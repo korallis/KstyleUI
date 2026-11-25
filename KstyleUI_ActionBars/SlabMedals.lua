@@ -80,12 +80,9 @@ function Medals.Layer(holder, level)
 end
 
 function Medals.Steps(target, steps, looping)
-	local group = target:CreateAnimationGroup()
+	local group = ns.Slab.Group(target, looping and "REPEAT")
 	for i, s in ipairs(steps) do
 		ns.Slab.Fade(group, s[1], s[2], s[3], i)
-	end
-	if looping then
-		group:SetLooping("REPEAT")
 	end
 	return group
 end
@@ -382,7 +379,11 @@ function Medals.Figure(parent, spec, level)
 		elseif lit.container and not each.steady then
 			local timer = Enum and Enum.StatusBarTimerDirection
 			lit:SetDurationBar(bar, { direction = timer and timer.RemainingTime or 1 })
-			lit.flicker = Medals.Steps(bar, { { alpha, alpha * 0.6, 0.25 }, { alpha * 0.6, alpha, 0.25 } }, true)
+			lit.flicker = ns.Slab.Flicker(bar, alpha)
+			lit.cue = f.add(Medals.Texture(bar, "OVERLAY", 1, "glow", "gilt", size * SPARK, "ADD"))
+			lit.cue:ClearAllPoints()
+			lit.cue:SetPoint("CENTER", bar:GetStatusBarTexture(), "TOP", 0, 0)
+			lit.cue:Hide()
 		elseif each.feed == "cooldown" then
 			f.timer, f.bar = Timer(lit, level + 1, "dot", "black", 0), bar
 			f.timer:SetDrawSwipe(false)
@@ -438,7 +439,8 @@ function Medals.Rim(parent, spec, level)
 	return r
 end
 
-local function Sigil(r, container, key, family, color, size, bloom)
+local function Sigil(r, lit, key, family, color, size, bloom)
+	local container = lit.container
 	local ids = {}
 	for _, id in ipairs(family.spells) do
 		ids[id] = true
@@ -458,7 +460,7 @@ local function Sigil(r, container, key, family, color, size, bloom)
 	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
 	button.timer:SetAllPoints(button)
 	button:SetDurationCooldown(button.timer)
-	button.ember = Medals.EmberSlot(r, container, "ember" .. key, options, size, r:GetFrameLevel() + ABOVE + 2)
+	button.ember = Medals.EmberSlot(r, lit, family, size, r:GetFrameLevel() + ABOVE + 2)
 	button.container, button.key, button.family = container, key, family
 	r.sigils[#r.sigils + 1] = button
 end
@@ -494,7 +496,7 @@ function Medals.CooldownRim(parent, spec, level, form)
 			Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		end
 		for k, family in ipairs(each.families) do
-			Sigil(r, lit.container, "sigil" .. k, family, spec.color, size, spec.bloom)
+			Sigil(r, lit, "sigil" .. k, family, spec.color, size, spec.bloom)
 		end
 	end
 	r.timer = r.lit.timer
@@ -610,7 +612,7 @@ local function Arrange(r)
 		local f = b.family
 		local on = f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
 		b.container:SetAuraSlotEnabled(b.key, on)
-		b.container:SetAuraSlotEnabled(b.ember.key, on and ns.Config("crestEmber") ~= false)
+		b.ember.slot.container:SetAuraSlotEnabled("lit", on and ns.Config("crestEmber") ~= false)
 		b.at = on and { r.left + n % r.per * r.pitch, r.first + floor(n / r.per) * r.rise } or nil
 		if b.at then
 			for _, slot in ipairs({ b, b.ember }) do
@@ -632,27 +634,38 @@ function Medals.Place(piece, anchor, x, y)
 end
 
 function Medals.Fire(piece)
-	if piece.flare and Effects.Allows("ambient") and not ns.Slab.Resting() then
-		piece.flare.play:Stop()
-		piece.flare.play:Play()
+	local flare = piece.flare
+	if flare and Effects.Allows("flare") and not ns.Slab.Resting() then
+		flare.stop = flare.stop or function() flare.play:Stop() end
+		if Effects.ClaimFor("crestFlare", Effects.PRIORITY.ready, FLARE[1][3] + FLARE[2][3], flare.stop) then
+			flare.play:Stop()
+			flare.play:Play()
+		end
 	end
 end
 
-local function Animate(button, full)
-	if button.full == full then
+local function Animate(button, mode)
+	mode = mode or false
+	local was = button.full or false
+	if was == mode then
 		return false
 	end
 	for kind, groups in pairs({ AuraShown = button.loops or { button.loop }, AuraAssigned = { button.flare and button.flare.play }, PandemicActive = { button.flicker } }) do
+		local want, had = mode == true or mode == "calm" and kind == "AuraAssigned", was == true or was == "calm" and kind == "AuraAssigned"
 		for _, group in ipairs(groups) do
-			if full then
+			if want and not had then
 				button["Add" .. kind .. "Animation"](button, group)
-			elseif button.full then
+			elseif had and not want then
 				button["Remove" .. kind .. "Animation"](button, group)
 				group:Stop()
 			end
 		end
 	end
-	button.full = full
+	if button.cue and (mode == "calm") ~= (was == "calm") then
+		button[mode == "calm" and "AddPandemicRegion" or "RemovePandemicRegion"](button, button.cue)
+		button.cue:Hide()
+	end
+	button.full = mode
 	return true
 end
 
@@ -707,8 +720,9 @@ function Medals.Rest()
 	for _, r in ipairs(rims) do
 		Medals.Still(r, still, 1)
 	end
+	local dark = not Effects.Allows("flare") or ns.Slab.Resting()
 	for _, gate in ipairs(gates) do
-		gate:SetAlpha(still and 0 or 1)
+		gate:SetAlpha(dark and 0 or 1)
 	end
 	for _, loop in ipairs(breaths) do
 		if still or not loop:GetParent():IsVisible() then

@@ -46,19 +46,19 @@ local LOOPS = {
 	call = function(m, gate, color, size, _, hub)
 		local ring = m.add(Medals.Texture(gate, "OVERLAY", 0, "ringLine8", color, size * 0.6, "ADD"))
 		ring:SetPoint("CENTER", m, "CENTER", -size * 0.3, size * 0.32)
-		local group = ns.Slab.Group(ring, "REPEAT")
+		local group = ns.Slab.Group(ring)
 		ns.Slab.Grow(group, 0.5, 1.6, 0.8)
-		ns.Slab.Fade(group, 0.9, 0, 0.8):SetEndDelay(2.2)
+		ns.Slab.Fade(group, 0.9, 0, 0.8)
 		if not hub then
 			return group
 		end
 		local wave = m.add(Medals.Texture(gate, "OVERLAY", 1, ART .. "Wave.png", color, RIM, "ADD"))
 		wave:SetPoint("CENTER", hub, "CENTER", 0, 0)
-		local travel = ns.Slab.Group(wave, "REPEAT")
+		local travel = ns.Slab.Group(wave)
 		local turn = travel:CreateAnimation("Rotation")
 		turn:SetDegrees(-120)
 		turn:SetDuration(0.8)
-		ns.Slab.Fade(travel, 1, 0, 0.8):SetEndDelay(2.2)
+		ns.Slab.Fade(travel, 1, 0, 0.8)
 		return group, travel
 	end,
 	halo = function(m, gate, color, size, look)
@@ -82,12 +82,10 @@ local LOOPS = {
 		return group
 	end,
 	flicker = function(m, gate, color, size)
-		return Medals.Steps(m.add(Medals.Texture(gate, "BACKGROUND", 0, "glow", color, size * 1.6, "ADD")),
-			{ { 1, 0.45, 0.06 }, { 0.45, 0.9, 0.05 }, { 0.9, 0.35, 0.07 }, { 0.35, 1, 0.08 } }, true)
+		return ns.Slab.Flicker(m.add(Medals.Texture(gate, "BACKGROUND", 0, "glow", color, size * 1.6, "ADD")))
 	end,
 	crackle = function(m, gate, color, size, look)
-		return Medals.Steps(m.add(Medals.Texture(gate, "OVERLAY", 0, Glow(look), color, size * GLOW, "ADD")),
-			{ { 1, 0.15, 0.04 }, { 0.15, 0.9, 0.03 }, { 0.9, 0.1, 0.05 }, { 0.1, 1, 0.04 }, { 1, 0.2, 0.3 } }, true)
+		return ns.Slab.Flicker(m.add(Medals.Texture(gate, "OVERLAY", 0, Glow(look), color, size * GLOW, "ADD")))
 	end,
 }
 
@@ -183,6 +181,16 @@ local function Light(m, look, each, level, size, top, share, form)
 		lit.awake.lit.loops = { LOOPS[each.loop or look.loop](m, lit.awake.lit, color, size, look, hub) }
 		for _, group in ipairs(lit.awake.lit.loops) do
 			group:GetParent():SetAlpha(0)
+		end
+		if (each.loop or look.loop) == "call" then
+			m.recall = function()
+				if Effects.Allows("ambient") and not ns.Slab.Resting() then
+					for _, group in ipairs(lit.awake.lit.loops) do
+						group:Stop()
+						group:Play()
+					end
+				end
+			end
 		end
 	end
 end

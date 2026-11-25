@@ -255,6 +255,7 @@ local DURATIONS = {
 }
 
 Tokens.Smoothing = { enter = "OUT", exit = "IN", loop = "IN_OUT" }
+Tokens.Flicker = { low = 0.6, step = 0.25 }
 
 local EASINGS = {
 	enter = "outCubic",

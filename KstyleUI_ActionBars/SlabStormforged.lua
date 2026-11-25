@@ -26,7 +26,6 @@ for token, ids in pairs({
 end
 local STONE, SETTING, RIM, LAST, GLOW = 14, 18, 22, 300, 0.55
 local SLOTS = { MainHand = 16, OffHand = 17 }
-local GUTTER = { { 1, 0.4, 0.07 }, { 0.4, 0.85, 0.06 }, { 0.85, 0.3, 0.08 }, { 0.3, 1, 0.1 } }
 local PULSE = { { 0.25, 1, 0.6 }, { 1, 0.25, 0.6 } }
 
 local stones, ankhs = {}, {}
@@ -50,7 +49,7 @@ local function Stone(parent, spec, level, form)
 	s.pulse = Medals.Steps(s.rim, PULSE, true)
 	Medals.Flare(s, lit, level + 3, spec.burst, SETTING * 3 * k)
 	s.slot, s.crest = SLOTS[spec.slot], form ~= "row"
-	s.gutter = Medals.Steps(s.light, GUTTER, true)
+	s.gutter = ns.Slab.Flicker(s.light)
 	stones[#stones + 1] = s
 	return s
 end

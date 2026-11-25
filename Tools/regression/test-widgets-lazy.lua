@@ -283,10 +283,11 @@ do
 	end
 	-- A healer, hunter, mage or warlock with every crest tracker known and lit (the render harness's RENDER_TRACKERS=lit
 	-- story) creates no more action bar regions than staging did before its crest broke out of its sockets (b4ec7887b); a
-	-- lit Rogue is 5,063, so 4,900 holds only the stock fixture above.
+	-- lit Rogue is 5,063, so 4,900 holds only the stock fixture above. The hunter, shaman and druid ceilings then rose by the one amber patch
+	-- each ember timer carries, which keeps red out of a timer until its last twelfth (14, 8 and 2 regions past the old ceilings).
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4940, DRUID = 5183, SHAMAN = 4889, HUNTER = 4915, MAGE = 4943, WARLOCK = 4978 }) do
+	for class, limit in pairs({ PRIEST = 4940, DRUID = 5185, SHAMAN = 4897, HUNTER = 4929, MAGE = 4943, WARLOCK = 4978 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")

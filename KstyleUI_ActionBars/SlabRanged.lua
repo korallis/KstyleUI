@@ -21,8 +21,6 @@ local STEEL, LIGHT, GROOVE, PERCH, GEM, SHOT, FLASH, HEAD = 0.45, 0.8, 0.35, 28,
 local MOODS, NONE = { "hostile", "neutral", "friendly" }, {}
 local BREATH = { { 0.6, 1, 0.9 }, { 1, 0.6, 0.9 } }
 local GLEAM = { { 0.8, 1, 0.7 }, { 1, 0.8, 0.7 } }
-local BURN = { { 1, 0.7, 0.1 }, { 0.7, 1, 0.08 }, { 1, 0.8, 0.12 }, { 0.8, 1, 0.1 } }
-local BLINK = { { 1, 0.2, 0.1 }, { 0.2, 1, 0.1 } }
 local OPENING = { { 0, 1, 0.06 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.08 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.1 } }
 local GROW = { { 0, 1, 0.6 } }
 local BAND = {
@@ -196,7 +194,7 @@ local function Band(p, each, level, band, horizontal, white, k)
 	lit.art:SetStatusBarColor(Lift(each.color, white))
 	lit.art:SetPoint("CENTER", p, "CENTER", 0, 0)
 	Timed(lit, lit.art)
-	lit.flicker = Medals.Steps(blink, BLINK, true)
+	lit.flicker = ns.Slab.Flicker(blink)
 	return lit, light
 end
 
@@ -217,7 +215,7 @@ local function Fuse(parent, spec, level, form)
 		flame:SetPoint("CENTER", lit.head, "CENTER", 0, 5 * h)
 		lit.mark = p.add(Medals.Texture(burn, "ARTWORK", 0, each.glyph, "white", 16 * h, "ADD"))
 		lit.mark:SetVertexColor(Lift(each.color, 0.3))
-		lit.loop = Medals.Steps(burn, BURN, true)
+		lit.loop = ns.Slab.Flicker(burn)
 		lit.flare = Bloom(lit.mark, 1.5)
 	end
 	return p
@@ -256,7 +254,7 @@ local function Mark(parent, spec, level, form)
 	lit.art = p.add(Medals.Texture(light, "ARTWORK", 0, band[1], "white", band[4] * k, "ADD"))
 	lit.art:SetVertexColor(Lift(spec.color, 0.2))
 	lit.loops = { Medals.Steps(light, GLEAM, true), Bloom(lit.art, 1.25).play }
-	lit.flicker = Medals.Steps(blink, BLINK, true)
+	lit.flicker = ns.Slab.Flicker(blink)
 	return p
 end
 
@@ -278,7 +276,7 @@ local function Stacks(parent, spec, level, form)
 		local x, y = Polar(67, 166 + (n - 1) * 10)
 		ember:SetPoint("CENTER", p, "CENTER", (x - band[2]) * k, (y - band[3]) * k)
 		slot:SetApplicationBar(ember, { minApplications = n - 1, maxApplications = n })
-		slot.flicker = Medals.Steps(ember, BLINK, true)
+		slot.flicker = ns.Slab.Flicker(ember)
 		p.lits[#p.lits + 1] = slot
 	end
 	Flare(p, lit, level + 6, 40 * k, -3 * k, 0)
@@ -390,7 +388,7 @@ local function Pet(parent, spec, level, form)
 		for i = 0, 5 do
 			Spot(m, light, "trackerFlame", spec.color, 24 * k, Off(69, 162 + 8 * i)):SetDesaturated(true)
 		end
-		lit.loop = Medals.Steps(light, BURN, true)
+		lit.loop = ns.Slab.Flicker(light)
 		for n, demon in ipairs(spec.demons) do
 			local slot = lit.container:AddAuraSlot("fel" .. n, "HELPFUL", { candidateFilters = { includeSpellIDs = { [demon[3]] = true } } })
 			pcall(slot.EnableMouse, slot, false)
@@ -610,7 +608,7 @@ local function Spire(p, container, i, s, angle, level)
 	local lit = Slot("lit", "pipSpire", "white", nil, SPIRE, 2)
 	lit.spec = { feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = s.spells }
 	t.lit:SetStatusBarColor(Lift(s.color, 0.55))
-	lit.flicker = Medals.Steps(t.lit, BLINK, true)
+	lit.flicker = ns.Slab.Flicker(t.lit)
 	Slot("core", "pipSpireCore", s.color, "ADD", SPIRE, 3)
 	t.rune = lit:CreateTexture(nil, "OVERLAY")
 	t.rune:SetTexture((Tokens.Texture(s.glyph)))

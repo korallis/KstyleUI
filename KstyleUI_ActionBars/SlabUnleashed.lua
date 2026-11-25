@@ -1,4 +1,4 @@
--- SlabUnleashed.lua: Unleashed (docs/medallions-effects.md#unleashed), the crest erupting in class fire while a major cooldown burns: each cooldown rim container gets two more slots of its own newest aura, one awake and one still, each under a gate the crest owns, so motion swaps by gate alpha in combat; they hold the class's ambient fire as a corona hugging the ring, a hot line on the ring's edge, the rune glyphs blazing near white and turning at one and a half times combat speed, a dim outer ring draining with the aura and, awake, the class burst growing out of the ring as a cooldown is assigned. Every layer sits under the level badge and inside a 184-unit mask. The player's own cast lifts the emblem; while auras are readable the corona folds and the glyphs cool when the last tracked aura instance goes. The switch off detaches and disables the slots at the next legal moment. Under Frames the newest-cooldown medal wears the corona over a breathing glow behind the row.
+-- SlabUnleashed.lua: Unleashed (docs/medallions-effects.md#unleashed), the crest erupting in class fire while a major cooldown burns: each cooldown rim container gets two more slots of its own newest aura, one awake and one still, each under a gate the crest owns, so motion swaps by gate alpha in combat; they hold the class's ambient fire as a corona hugging the ring, a hot line on the ring's edge, the rune glyphs blazing near white and turning at one and a half times combat speed, a dim outer ring draining with the aura and, awake, the class burst growing out of the ring as a cooldown is assigned. Every layer sits under the level badge and inside a 184-unit mask. The player's own cast lifts the emblem; while auras are readable the corona folds and the glyphs cool when the last tracked aura instance goes, and under hidden values they do so from the hot line's own timer ending. The switch off detaches and disables the slots at the next legal moment. Under Frames the newest-cooldown medal wears the corona over a breathing glow behind the row.
 local _, ns = ...
 
 local K = KstyleUI
@@ -71,7 +71,8 @@ local function Lights(piece, lit, spec, crest, awake)
 		Mask(piece, warm, piece.add(Medals.Texture(warm, "ARTWORK", 0, spec.burst or "glow", "white", CORONA, "ADD")))
 		warm:SetAlpha(WARM)
 		glow = Tint(piece.add(Medals.Texture(fire, "OVERLAY", 0, "medRuneGlyphs", "white", RIM, "ADD")), WHITE)
-		slot:SetDurationCooldown(piece.add(Medals.Timer(slot, hub + 1, "ringLine32", spec.color), LINE))
+		gate.timer = piece.add(Medals.Timer(slot, hub + 1, "ringLine32", spec.color), LINE)
+		slot:SetDurationCooldown(gate.timer)
 	else
 		glow = Sized(piece, slot, piece:GetParent():GetFrameLevel(), piece.units * ROW_GLOW)
 		Tint(Medals.Texture(glow, "BACKGROUND", 0, "glow", "white", nil, "ADD"), 0, 0.35):SetAllPoints(glow)
@@ -111,6 +112,8 @@ local function Fold(piece, spec)
 	return fold, cool
 end
 
+local Folds
+
 function Unleashed.Dress(piece, spec, form)
 	local crest = form == "crest"
 	for i, lit in ipairs(piece.lits) do
@@ -118,6 +121,9 @@ function Unleashed.Dress(piece, spec, form)
 		set.lits = { set.awake.lit, set.still.lit }
 		if crest and i == 1 then
 			set.fold, set.cool = Fold(piece, spec)
+			set.awake.timer:SetScript("OnCooldownDone", function()
+				if Medals.Restricted() then Folds(set) end
+			end)
 		end
 		sets[#sets + 1] = set
 	end
@@ -132,6 +138,15 @@ end
 
 local function Moving(set)
 	return Effects.Allows("pulse") and not (set.crest and ns.Slab.Resting())
+end
+
+function Folds(set)
+	if set.fold and set.piece:IsVisible() and Moving(set) then
+		for _, region in ipairs({ set.fold, set.cool }) do
+			region.play:Stop()
+			region.play:Play()
+		end
+	end
 end
 
 local function Scan()
@@ -175,12 +190,7 @@ local function OnAura(_, _, info)
 		return
 	end
 	for _, set in ipairs(sets) do
-		if set.fold and set.piece:IsVisible() and Moving(set) then
-			for _, region in ipairs({ set.fold, set.cool }) do
-				region.play:Stop()
-				region.play:Play()
-			end
-		end
+		Folds(set)
 	end
 end
 

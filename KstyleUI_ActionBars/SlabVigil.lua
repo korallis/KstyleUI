@@ -24,7 +24,6 @@ local OILS, OILED = { 20744, 20745, 20746, 20747, 20748, 20749, 20750 }, {}
 for _, id in ipairs({ 2623, 2624, 2625, 2626, 2627, 2628, 2629, 2685 }) do OILED[id] = true end
 local FLAMES, PER, CHARGES, DIM = { 315, 225, 135, 45 }, 5, 20, 0.5
 local ORBIT, FLAME, STUD, WELL, PIN, PERCH, FOOT = 54, 26, 12, 10, 4, 30, 22
-local FLICKER = { { 1, 0.45, 0.06 }, { 0.45, 0.9, 0.05 }, { 0.9, 0.35, 0.07 }, { 0.35, 1, 0.08 } }
 
 local CAST = {}
 for _, id in ipairs(INNER_FIRE) do CAST[id] = true end
@@ -55,7 +54,7 @@ local function Fire(parent, spec, level, form)
 		r.lits[#r.lits + 1] = lit
 		r.ring[k] = seat
 	end
-	r.flicker = Medals.Steps(r.ring[1], FLICKER, true)
+	r.flicker = ns.Slab.Flicker(r.ring[1])
 	state.fire = r
 	return r
 end

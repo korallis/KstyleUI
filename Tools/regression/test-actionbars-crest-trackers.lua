@@ -396,7 +396,7 @@ do
 	assert(mirror.full == true, "the engine keeps its fire while auras are secret")
 	env._aurasSecret = false
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
-	assert(mirror.full == false, "and takes the change once the restriction ends, still in combat")
+	assert(mirror.full == "calm", "and takes the change once the restriction ends, still in combat: Calm keeps the flares and drops the fire")
 	Clean(env, K, "auras secret")
 end
 
