@@ -103,7 +103,7 @@ function Effects.Apply(env, module, ns, notes)
 			local b = ns.actionButtons[4]
 			b.realCooldown = true
 			b:FlashReady()
-			t = Sample(env, b.medReady.anim, t)
+			t = Sample(env, b.medReady.anim, t, b.medReady.wash.anim)
 			notes[#notes + 1] = "fx: slot 4's ready flash " .. t .. " s after its cooldown ended"
 		elseif state == "cap" then
 			Fixtures(env)
