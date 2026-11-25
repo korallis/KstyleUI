@@ -1,5 +1,10 @@
 -- test-actionbars-crest-ranged-effects.lua: a hunter's, mage's and warlock's crest pieces break out of the medal into the crest: on the crest and under Frames, at rest and with every piece lit, none is a spell or item icon or sits in a round socket frame (a medal disc, an orb or medal ring, a rune stone, a spire socket); each piece takes its feed and shows its states: your damage over time a fuse down the right band whose head rides what is left and blinks in the aura's pandemic window, the Mark's reticle closing in over the emblem, a mage's armor crystals thawing from the far end, Frost Nova's frost over the inner ring, a school's stacks as embers and a cooldown as an arc filling along the left band, a bag gem hanging from the band and charging when used, an interrupt's blade charging on the lower left, the demon's health and sigil on the left band and Demonic Sacrifice's fel flames; each sits on its break-out seat; with auras secret in combat no event or ended cooldown touches a region under an engine aura button.
 local R = dofile("Tools/regression/ranged_env.lua")
+local Budget = dofile("Tools/regression/path_budget.lua")
+local Png = dofile("Tools/regression/png.lua")
+-- The socketed crest on staging 3e037a6be measured 229,200 addon instructions and 1,700 widget calls for a hundred unchanged
+-- mage cooldown updates, and 46,100 and 2,000 for a hundred warlock pet health ticks, with this fixture.
+local BUDGET_COOLDOWN, BUDGET_HEALTH = { 229200, 1700 }, { 46100, 2000 }
 local AB, Slots, New, Piece, Seated, Shown, Clean, Tint, Icons = R.AB, R.Slots, R.New, R.Piece, R.Seated, R.Shown, R.Clean, R.Tint, R.Icons
 
 local SHARED = { crestCooldowns = true }
@@ -105,17 +110,27 @@ do
 	Slots.Set(env, "target", { serpent })
 	local lit = sting.lits[1]
 	assert(lit:IsShown() and not sting.lits[3]:IsShown() and lit._durationBar[1] == lit.art and lit.art:GetOrientation() == "VERTICAL", "Serpent Sting's fuse is a duration bar burning down the band")
-	assert(Shown(lit.awake.lit, lit.awake.lit.flare.play) and Shown(lit, lit.loop), "the fuse ignites under a flare and its head flickers as the engine's animations")
-	assert(lit._pandemicAnimations[1] == lit.warn and not lit.warn:IsPlaying(), "the ending blink waits for the pandemic window")
+	assert(Shown(lit, lit.flare.play) and Shown(lit, lit.loop), "the fuse's mark ignites and its head flickers as the engine's animations")
+	local r, g, b = lit.mark:GetVertexColor()
+	assert(r + g + b < 2.6, "the serpent keeps its colour rather than burning white")
+	assert(#lit._regions + #lit.head._regions == 0 and #lit.head._kids[1]._regions == 2, "the head is the flame and the mark alone, no glow or flare of its own")
+	assert(lit._pandemicAnimations[1] == lit.flicker and not lit.flicker:IsPlaying(), "the ending blink waits for the pandemic window")
 	Pandemic(env, "target", serpent)
-	assert(lit.warn:IsPlaying(), "inside the pandemic window the fuse blinks")
+	assert(lit.flicker:IsPlaying(), "inside the pandemic window the fuse blinks")
 	local hunters = { id = 1130, harmful = true, start = 0, duration = 120 }
 	Slots.Set(env, "target", { hunters })
-	assert(mark.lit:IsShown() and not lit:IsShown() and mark.lit._pandemicAnimations[1] == mark.lit.warn, "Hunter's Mark lights the reticle over the emblem")
+	assert(mark.lit:IsShown() and not lit:IsShown() and mark.lit._pandemicAnimations[1] == mark.lit.flicker, "Hunter's Mark lights the reticle over the emblem")
 	Pandemic(env, "target", hunters)
-	assert(mark.lit.warn:IsPlaying(), "the Mark blinks at its end")
+	assert(mark.lit.flicker:IsPlaying(), "the Mark blinks at its end")
+	local alpha, w = Png.Alpha(Art(mark.lit.art):gsub("\\", "/"):match("Media/.+$"))
+	assert(alpha(w / 2, w / 2) > 128, "the reticle has an eye at its centre")
 	env.FireEvent("UNIT_PET", "player")
 	assert(pet.pet:IsShown() and Tint(pet.mood, K, "friendly"), "a happy pet's ember glows green at the end of its light")
+	local mend = pet.lits[#pet.lits]
+	assert(mend.loops[1]:GetParent():GetAlpha() > 0, "Mend Pet's motes show with no animation running")
+	for _, each in ipairs(aspect.lits) do
+		assert(#each._regions == 0 and not each.awake and Shown(each, each.flare.play), "each Aspect's sigil blooms itself as it lands, with no extra glow or flare")
+	end
 	K.Options.Write("ActionBars", "crestSting", false)
 	assert(not sting:IsShown() and mark.lit:IsShown(), "Your Sting off puts the fuse out alone")
 	Clean(env, K)
@@ -128,11 +143,12 @@ do
 	env._usable[2643] = true
 	env.FireEvent("SPELL_UPDATE_USABLE")
 	local multi = shot.shots[shot.spec.shots[2643]]
-	assert(multi:IsShown() and #multi._regions == 7 and shot.flare.play:IsPlaying(), "Multi-Shot ready fires three arrows, each with its glow, up the emblem")
+	assert(multi:IsShown() and #multi._regions == 4 and shot.flare == multi and multi.play:IsPlaying(), "Multi-Shot ready rises three arrows up the emblem")
 	env._usable[19306] = true
 	env.FireEvent("SPELL_UPDATE_USABLE")
 	local counter = shot.shots[shot.spec.shots[19306]]
 	assert(counter:IsShown() and not multi:IsShown() and Art(counter._regions[2]):find("Counter"), "Counterattack after a parry crosses two crimson blades over the emblem")
+	assert(shot.flare == counter and counter.play:IsPlaying() and #AB.W.Calls(counter.play, "Play") == 1, "the parry's opening double-flashes even with Multi-Shot already up")
 	local writes = #AB.W.Calls(counter, "Show") + #AB.W.Calls(counter, "Hide") + #AB.W.Calls(multi, "Show") + #AB.W.Calls(multi, "Hide")
 	for _ = 1, 50 do
 		env.FireEvent("SPELL_UPDATE_USABLE")
@@ -170,12 +186,13 @@ do
 		"Ice Armor's crystals are a duration bar that thaws from the far end")
 	assert(Shown(frost, frost.loops[1]) and Art(frost.art):find("ArmorFrost"), "the crystals grow in on apply")
 	Pandemic(env, "player", ice)
-	assert(frost.warn:IsPlaying(), "the armor blinks as it runs out")
+	assert(frost.flicker:IsPlaying(), "the armor blinks as it runs out")
 	Slots.Set(env, "player", { { id = 22782, start = 0, duration = 1800 } })
 	assert(armor.lits[2]:IsShown() and not frost:IsShown() and Art(armor.lits[2].art):find("ArmorArcane"), "Mage Armor grows its own arcane runes")
 	assert(counter.spec.look == "shard" and counter.bar and counter.bar:GetStatusBarTexture()._state.Desaturated ~= true, "Counterspell is a crystal blade in its own colours")
 	Slots.Set(env, "target", { { id = 122, harmful = true, start = 0, duration = 8 } })
-	assert(frozen.lit:IsShown() and frozen.lit._durationBar[1] == frozen.lit.art and Art(frozen.lit.art):find("Frost"), "your Frost Nova frosts the inner ring and recedes with its time")
+	assert(frozen.lit:IsShown() and frozen.lit._durationBar[1] == frozen.lit.art and Art(frozen.lit.art):find("Frost") and frozen.lit.art._state.FillStyle[1] == "CENTER",
+		"your Frost Nova frosts the inner ring and recedes to its lowest point with its time, no hard cut along the rim")
 	for _, count in ipairs({ 1, 3, 5 }) do
 		Slots.Set(env, "target", { { id = 22959, harmful = true, start = 0, duration = 30, count = count } })
 		local lit = 0
@@ -187,6 +204,12 @@ do
 		end
 		assert(lit == count, count .. " stacks of Fire Vulnerability light " .. count .. " embers along the left band (" .. lit .. ")")
 	end
+	local vulnerable = { id = 22959, harmful = true, start = 0, duration = 30, count = 5 }
+	Slots.Set(env, "target", { vulnerable })
+	Pandemic(env, "target", vulnerable)
+	local blinking = 0
+	for _, each in ipairs(fire.lits) do blinking = blinking + (each.flicker and each.flicker:IsPlaying() and 1 or 0) end
+	assert(blinking == 5, "the five embers blink as Fire Vulnerability runs out (" .. blinking .. ")")
 	Clean(env, K)
 end
 
@@ -208,8 +231,11 @@ do
 	local demon, stone, curse = Piece(ns, "crestDemon"), Piece(ns, "crestHealthstone"), Piece(ns, "crestCurse")
 	assert(At(ns, demon, -64, 0) and demon.pet:IsShown() and demon.health:GetOrientation() == "VERTICAL" and demon.health:GetReverseFill(), "the demon's health lights the left band from the top")
 	assert(env.Reveal(demon.health:GetValue()) == 75 and demon.sigil:IsShown(), "its health is the engine's value, under the demon's sigil")
+	env._petSpells[3110] = true
+	env.FireEvent("UNIT_PET", "player")
+	assert(Art(demon.glyph):find("Imp"), "an Imp out shows the Imp's sigil")
 	assert(Near(ns, stone, 80, 312), "the Healthstone hangs from the lower right")
-	assert(not stone.lit:IsShown() and not stone.rest:IsVisible(), "no Healthstone: nothing hangs there")
+	assert(not stone.lit:IsShown() and not stone.rest:IsVisible() and stone.bail:IsVisible() and Art(stone.bail):find("Bail"), "no Healthstone: the empty bail hangs there")
 	env._bags[5512] = 1
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(stone.lit:IsShown() and stone.ready:IsShown() and Tint(stone.lit.glow, K, "friendly"), "a Healthstone in the bags hangs a green gem")
@@ -227,9 +253,17 @@ do
 	assert(demon.bob:IsPlaying(), "awake, the demon's sigil bobs")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(not demon.bob:IsPlaying(), "Calm holds the sigil still")
-	Slots.Set(env, "player", { { id = 18789, start = 0, duration = 1800 } })
+	env._pet = nil
+	env.FireEvent("UNIT_PET", "player")
+	Slots.Set(env, "player", { { id = 18792, start = 0, duration = 1800 } })
 	local sacrifice = demon.lit
 	assert(sacrifice:IsShown() and sacrifice._durationBar[1] == sacrifice.art and Art(sacrifice.art):find("RimLeft"), "Demonic Sacrifice burns fel flames along the left band, its rim line draining")
+	local fel = {}
+	for _, slot in pairs(sacrifice.container._slots) do
+		if slot.frame:IsShown() and slot.frame._regions[1] then fel[#fel + 1] = Art(slot.frame._regions[1]) end
+	end
+	assert(#fel == 1 and fel[1]:find("Fangs") and not demon.pet:IsShown(), "the sacrificed Felhunter's sigil stays on the band, turned fel")
+	env._pet = { max = 100, missing = 25 }
 	Slots.Set(env, "target", { { id = 702, harmful = true, start = 0, duration = 120 } })
 	assert(curse.lits[1]:IsShown() and curse.lits[1]._durationBar[1] == curse.lits[1].art and At(ns, curse, 64, 0), "your Curse of Weakness burns its fuse down the right band")
 	env._petSpells[19244] = true
@@ -239,10 +273,55 @@ do
 	Clean(env, K)
 	local fenv, FK, fns = New("WARLOCK", { frames = true, trinket = true, known = { 688, 6201, 17962, 2362 }, pet = { max = 100, missing = 0 } })
 	local jewel, well, trinket, fdemon = Piece(fns, "crestConflagrate"), Piece(fns, "crestFiveSecond"), Seated(fns, "crestTrinkets"), Piece(fns, "crestDemon")
-	assert(jewel.spec.look == "orb" and jewel.ready and Art(jewel.lit.art):find("Coal"), "under Frames Conflagrate is a coal that charges")
-	assert(well.timer and not well.steel and trinket.ready, "under Frames the five-second rule is a mana well and the trinket a gem")
+	assert(jewel.bar and well.timer and trinket.bar, "under Frames Conflagrate and the trinket are jewels and the five-second rule a ring, as every class's")
 	assert(fdemon.units == 26 and fdemon.health and fdemon.sigil, "under Frames the demon's light and sigil stand free in the row")
 	Clean(fenv, FK)
+	local tenv, TK, tns = New("WARLOCK", { known = { 172, 980, 348, 18265 } })
+	local spires = Piece(tns, "crestTorments")
+	local immolate = { id = 348, harmful = true, start = 0, duration = 15 }
+	Slots.Set(tenv, "target", { immolate })
+	Pandemic(tenv, "target", immolate)
+	assert(spires.lits[3].flicker and spires.lits[3].flicker:IsPlaying() and not spires.lits[1].flicker:IsPlaying(), "Immolate's spire blinks as it runs out")
+	Clean(tenv, TK)
+end
+
+-- Frames stands the crest's own objects in the row, sized to it: the same fuse with its head, reticle closing in, crystals, frost and arc.
+for class, keys in pairs({ HUNTER = { crestSting = "ArcRight", crestMark = "MarkReticle" }, MAGE = { crestArmor = "ArmorFrost", crestFrozen = "Frost", crestYourSpell = "ArcRight" },
+	WARLOCK = { crestCurse = "ArcRight" } }) do
+	local env, K, ns = New(class, { frames = true, known = class == "MAGE" and { 168, 759, 2139, 122, 116, 118, 1326079 } or nil })
+	for key, art in pairs(keys) do
+		local p = Seated(ns, key)
+		assert(p and p.units == 26 and Art(p.lit.art):find(art), class .. " " .. key .. " under Frames is the crest's own " .. art .. ", sized to the row")
+		assert(not p.lit.mark or p.lit.head and select(2, p.lit.head:GetPoint()) == p.lit.art:GetStatusBarTexture(), class .. " " .. key .. " keeps its moving head under Frames")
+	end
+	if class == "HUNTER" then
+		local mark = Seated(ns, "crestMark").lit
+		assert(Shown(mark, mark.loops[2]), "the Frames reticle closes in")
+	elseif class == "MAGE" then
+		local arc = Seated(ns, "crestSchool")
+		assert(arc.bar and Art(arc.bar):find("ArcLeft"), "the Frames Arcane Wrath is the charging arc, not an orb")
+	end
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("MAGE", { known = { 759 }, bags = { [5514] = 1 } })
+	local gem = Piece(ns, "crestManaGem")
+	K.Options.Write("Medallions", "motion", "full")
+	env.SetTarget(true)
+	env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA")
+	assert(gem.lowMana:IsShown() and gem.pulse:IsPlaying(), "below 30% mana the ready gem pulses")
+	Clean(env, K)
+end
+
+-- The two hot tracker events cost no more than the socketed crest's did: an unchanged cooldown update for a mage and a pet health tick for a warlock.
+for class, case in pairs({ MAGE = { "SPELL_UPDATE_COOLDOWN", nil, BUDGET_COOLDOWN }, WARLOCK = { "UNIT_HEALTH", "pet", BUDGET_HEALTH } }) do
+	local env, K = New(class, { pet = { max = 100, missing = 10 }, bags = { [5512] = 1, [5514] = 1 } })
+	env.FireEvent(case[1], case[2])
+	local used = Budget.Count(env, function() for _ = 1, 100 do env.FireEvent(case[1], case[2]) end end, 1)
+	Budget.Check(used, case[3][1], case[3][2], class .. " " .. case[1] .. " repaints only what changed")
+	print(string.format("%s %s x100: %d addon instructions, %d widget calls", class, case[1], used.instructions, used.calls))
+	Clean(env, K)
 end
 
 for class in pairs(LIGHT) do

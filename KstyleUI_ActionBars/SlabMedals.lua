@@ -725,12 +725,15 @@ function Medals.Refresh(m, event)
 		else
 			m.timer:Clear()
 		end
-		local cooling = (m.bar or m.ready) and duration and Cooling(m, spec.spell, event)
-		if m.bar then
-			Refill(m.bar, cooling and duration)
-		end
-		if m.ready then
-			m.ready:SetShown(not cooling)
+		local cooling = (m.bar or m.ready) and duration and Cooling(m, spec.spell, event) or false
+		if cooling ~= m.cooled then
+			m.cooled = cooling
+			if m.bar then
+				Refill(m.bar, cooling and duration)
+			end
+			if m.ready then
+				m.ready:SetShown(not cooling)
+			end
 		end
 		return
 	end

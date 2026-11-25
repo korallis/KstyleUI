@@ -913,17 +913,21 @@ function Solver:barFill(texture, bar)
 	local fraction = Scene.BarFraction(env, bar, self.opts.time)
 	texture._fraction = fraction
 	local orientation = state(bar, "Orientation") or "HORIZONTAL"
-	local reverse = state(bar, "ReverseFill") == true
+	local reverse, center = state(bar, "ReverseFill") == true, (state(bar, "FillStyle") == "CENTER" or state(bar, "FillStyle") == 2)
 	local l, b, r, t = full[1], full[2], full[3], full[4]
 	if orientation == "VERTICAL" then
 		local h = (t - b) * fraction
-		if reverse then
+		if center then
+			return { l, (b + t - h) / 2, r, (b + t + h) / 2 }
+		elseif reverse then
 			return { l, t - h, r, t }
 		end
 		return { l, b, r, b + h }
 	end
 	local w = (r - l) * fraction
-	if reverse then
+	if center then
+		return { (l + r - w) / 2, b, (l + r + w) / 2, t }
+	elseif reverse then
 		return { r - w, b, r, t }
 	end
 	return { l, b, l + w, t }
@@ -1334,9 +1338,10 @@ function Scene.Build(env, opts)
 			-- The client crops a status bar's texture to its fill rather than squeezing it (the fill-up widgets anchor a
 			-- spark to the fill's top over shaped fill art, Blizzard_UIWidgetTemplateFillUpFrames.lua:203-205).
 			if not item.texCoord then
-				local reverse = state(bar, "ReverseFill") == true
-				item.texCoord = state(bar, "Orientation") == "VERTICAL" and { 0, 1, round4(reverse and 0 or 1 - f), round4(reverse and f or 1) }
-					or { round4(reverse and 1 - f or 0), round4(reverse and 1 or f), 0, 1 }
+				local reverse, center = state(bar, "ReverseFill") == true, (state(bar, "FillStyle") == "CENTER" or state(bar, "FillStyle") == 2)
+				local from = center and (1 - f) / 2 or reverse and 0 or 1 - f
+				item.texCoord = state(bar, "Orientation") == "VERTICAL" and { 0, 1, round4(from), round4(from + f) }
+					or { round4(center and from or reverse and 1 - f or 0), round4((center and from or reverse and 1 - f or 0) + f), 0, 1 }
 			end
 		end
 		item.mark = region._renderMark or frame._renderMark

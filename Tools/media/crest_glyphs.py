@@ -5,11 +5,10 @@ soft glow and reduced with a linear-light Lanczos, so the crest tints it in the 
 ADD (colour unpremultiplied, alpha the brightest channel, as medallions_kit.py stores effects). One glyph per spell
 family the hunter, mage and warlock crests track (KstyleUI_ActionBars/SlabRanged.lua), so two spells on one seat never
 share a shape: the Aspects (Hawk, Crescents, Paw, Pack, Leaf, Claws, Coil), the Stings (Serpent, Drop, Hook, Wing,
-Tear, BlackArrow), the Curses (Weakness, Burst, Tongue, Elements, Hourglass), the shots (Aimed, Multi, Counter, Fangs),
-the torment spires' sockets (Swirl, Eye, FireTongue, Siphon), the mage's armors, Intellect, spells and Frozen
-(ShieldFrost, ShieldArcane, Intellect, ChillShard, PolyCurl, Crystal), a warlock's armor and weapon jewels (Horns,
-Edge, Coal), the Auto Shot arrow (Arrowhead), Hunter's Mark (Reticle) and the bag gems (Facet). Shapes that fill the
-height drain from the top when the crest draws them as a duration bar.
+Tear, BlackArrow), the Curses (Weakness, Burst, Tongue, Elements, Hourglass), the openings (Counter, Fangs), the torment
+spires' feet (Swirl, Eye, FireTongue, Siphon), the mage's Intellect and spells (Intellect, ChillShard, PolyCurl), a
+warlock's armor and its demons (Horns, Imp, Voidwalker, Succubus, Fangs for the Felhunter), Raptor Strike's slash (Edge),
+the bag gems (Facet) and the bail they hang from (Bail).
 
     python3 Tools/media/crest_glyphs.py [--out DIR]
 """
@@ -189,23 +188,6 @@ def glyphs():
         p.line([(0.5, 0.5), (0.2, 0.94), (0.8, 0.94), (0.5, 0.5)], 0.08)
         p.poly([(0.32, 0.9), (0.68, 0.9), (0.5, 0.72)])
 
-    @make("Aimed")
-    def _(p):
-        p.poly([(0.5, 0.02), (0.76, 0.36), (0.5, 0.28), (0.24, 0.36)])
-        p.line([(0.5, 0.3), (0.5, 0.92)], 0.08)
-        for y in (0.72, 0.84):
-            p.line([(0.5, y), (0.32, y + 0.12)], 0.06)
-            p.line([(0.5, y), (0.68, y + 0.12)], 0.06)
-
-    @make("Multi")
-    def _(p):
-        for a in (-24, 0, 24):
-            c, s = math.cos(math.radians(a)), math.sin(math.radians(a))
-            def at(x, y):
-                return 0.5 + (x - 0.5) * c - (y - 0.92) * s, 0.92 + (x - 0.5) * s + (y - 0.92) * c
-            p.poly([at(0.5, 0.04), at(0.64, 0.28), at(0.5, 0.22), at(0.36, 0.28)])
-            p.line([at(0.5, 0.24), at(0.5, 0.9)], 0.06)
-
     @make("Counter")
     def _(p):
         for x0, x1 in ((0.12, 0.88), (0.88, 0.12)):
@@ -238,16 +220,6 @@ def glyphs():
         p.arc(0.52, 0.6, 0.32, -80, 80, 0.07)
         p.poly([(0.6, 0.86), (0.48, 0.96), (0.5, 0.8)])
 
-    @make("ShieldFrost")
-    def _(p):
-        p.shield()
-        p.snow(0.5, 0.46, 0.2)
-
-    @make("ShieldArcane")
-    def _(p):
-        p.shield()
-        p.star(0.5, 0.46, 0.07, 0.22, 4)
-
     @make("Intellect")
     def _(p):
         for x, top in ((0.26, 0.42), (0.5, 0.14), (0.74, 0.42)):
@@ -264,12 +236,6 @@ def glyphs():
         p.spiral(0.46, 0.56, 0.05, 0.3, 1.4, 0.09, a0=math.pi)
         p.star(0.78, 0.2, 0.04, 0.14, 4)
 
-    @make("Crystal")
-    def _(p):
-        for a in (90, 30, 150):
-            c, s = math.cos(math.radians(a)), math.sin(math.radians(a))
-            p.poly([(0.5 + 0.46 * c, 0.5 + 0.46 * s), (0.5 + 0.08 * s, 0.5 - 0.08 * c), (0.5 - 0.46 * c, 0.5 - 0.46 * s), (0.5 - 0.08 * s, 0.5 + 0.08 * c)])
-
     @make("Horns")
     def _(p):
         p.arc(-0.06, 0.62, 0.46, -60, 40, 0.11)
@@ -284,25 +250,36 @@ def glyphs():
         p.line([(0.18, 0.8), (0.06, 0.94)], 0.09)
         p.dot(0.6, 0.6, 0.07, 0.1)
 
-    @make("Coal")
+    @make("Imp")
     def _(p):
-        p.dot(0.5, 0.82, 0.38, 0.14)
-        p.poly([(0.5, 0.7), (0.24, 0.5), (0.34, 0.26), (0.42, 0.4), (0.48, 0.04), (0.6, 0.34), (0.68, 0.2), (0.76, 0.5)])
+        p.dot(0.5, 0.6, 0.24, 0.22)
+        p.poly([(0.3, 0.46), (0.14, 0.2), (0.38, 0.4)])
+        p.poly([(0.7, 0.46), (0.86, 0.2), (0.62, 0.4)])
+        p.poly([(0.5, 0.3), (0.42, 0.14), (0.5, 0.02), (0.58, 0.14)])
+        p.dot(0.42, 0.58, 0.04, erase=True)
+        p.dot(0.58, 0.58, 0.04, erase=True)
+        p.line([(0.42, 0.72), (0.58, 0.72)], 0.04, erase=True)
 
-    @make("Arrowhead")
+    @make("Voidwalker")
     def _(p):
-        p.poly([(0.96, 0.04), (0.84, 0.48), (0.66, 0.34), (0.52, 0.16)])
-        p.line([(0.74, 0.26), (0.18, 0.82)], 0.08)
-        p.line([(0.2, 0.8), (0.06, 0.74)], 0.06)
-        p.line([(0.2, 0.8), (0.26, 0.94)], 0.06)
+        p.arc(0.5, 0.42, 0.3, 200, 340, 0.1)
+        p.dot(0.5, 0.42, 0.14)
+        p.dot(0.5, 0.42, 0.06, erase=True)
+        p.wave(0.5, 0.5, 0.58, 0.96, 0.08, 1.2, 0.08)
+        p.line([(0.16, 0.5), (0.3, 0.7)], 0.08)
+        p.line([(0.84, 0.5), (0.7, 0.7)], 0.08)
 
-    @make("Reticle")
+    @make("Succubus")
     def _(p):
-        p.arc(0.5, 0.5, 0.36, 0, 360, 0.06)
-        for a in (0, 90, 180, 270):
-            c, s = math.cos(math.radians(a)), math.sin(math.radians(a))
-            p.line([(0.5 + 0.48 * c, 0.5 + 0.48 * s), (0.5 + 0.2 * c, 0.5 + 0.2 * s)], 0.09)
-        p.dot(0.5, 0.5, 0.08)
+        p.arc(0.3, 0.34, 0.18, 200, 330, 0.08)
+        p.arc(0.7, 0.34, 0.18, 210, 340, 0.08)
+        p.spiral(0.5, 0.66, 0.04, 0.26, 1.4, 0.07, 3.6)
+
+    @make("Bail")
+    def _(p):
+        p.arc(0.5, 0.82, 0.12, 0, 360, 0.07)
+        for y in (0.16, 0.38, 0.6):
+            p.arc(0.5, y, 0.07, 0, 360, 0.05)
 
     @make("Facet")
     def _(p):

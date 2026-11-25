@@ -13,7 +13,8 @@ glow, colour unpremultiplied and alpha the brightness, drawn ADD and tinted by t
     ArmorArcane  the same with five arcane runes: Mage Armor
     Frost        frost over the inner ring's lower half, 55 out from 205 to 335 degrees, four ice spikes pointing in: your
                  Frost Nova on the target (108 at 0, -39)
-    MarkReticle  a ring 42 out with four prongs on the diagonals from 30 to 51: Hunter's Mark over the emblem (108 at 0, 0)
+    MarkReticle  a ring 42 out with four prongs on the diagonals from 30 to 51 and an eye at the centre: Hunter's Mark
+                 over the emblem (108 at 0, 0)
 
     python3 Tools/media/crest_breakout.py [--out DIR]
 """
@@ -51,12 +52,9 @@ class Window:
         steps = max(8, int(abs(a1 - a0)))
         self.line([(r * math.cos(math.radians(a0 + (a1 - a0) * i / steps)), r * math.sin(math.radians(a0 + (a1 - a0) * i / steps))) for i in range(steps + 1)], w)
 
-    def poly(self, points):
-        self.draw.polygon([self.at(x, y) for x, y in points], fill=255)
-
     def shape(self, x, y, angle, outline, size):
         c, s = math.cos(math.radians(angle)), math.sin(math.radians(angle))
-        self.poly([(x + size * (u * c - v * s), y + size * (u * s + v * c)) for u, v in outline])
+        self.draw.polygon([self.at(x + size * (u * c - v * s), y + size * (u * s + v * c)) for u, v in outline], fill=255)
 
     def light(self, glow=2.5):
         shape = np.asarray(self.image, np.float64) / 255
@@ -78,7 +76,7 @@ def arts():
     right = Window(128, 64, 0, 58)
     right.arc(67, -24, 24, 4)
     out["ArcRight"] = right.light()
-    out["ArcLeft"] = right.light()[:, ::-1]
+    out["ArcLeft"] = out["ArcRight"][:, ::-1]
 
     pet = Window(128, 42, -46, 42)
     pet.arc(67, 290, 335, 4)
@@ -109,6 +107,9 @@ def arts():
     for a in (45, 135, 225, 315):
         c, s = math.cos(math.radians(a)), math.sin(math.radians(a))
         mark.line([(51 * c, 51 * s), (30 * c, 30 * s)], 2.6)
+    mark.shape(0, 0, 0, [(0.5, 0), (0, 0.28), (-0.5, 0), (0, -0.28)], 14)
+    mark.draw.ellipse([*mark.at(-2.6, 2.6), *mark.at(2.6, -2.6)], fill=0)
+    mark.draw.ellipse([*mark.at(-1.3, 1.3), *mark.at(1.3, -1.3)], fill=255)
     out["MarkReticle"] = mark.light(2)
     return out
 

@@ -52,6 +52,7 @@ local function New(class, opts)
 			e.UnitIsDead = function(unit) return unit == "pet" and e._pet ~= nil and e._pet.dead == true end
 			e.UnitHealthMax = function() return e.Secret(e._pet and e._pet.max or 0) end
 			e.UnitHealth = function() return e.Secret(e._pet and e._pet.max - e._pet.missing or 0) end
+			e.UnitHealthMissing = function() return e.Secret(e._pet and e._pet.missing or 0) end
 			e.C_PetInfo = { GetPetHappiness = function() return e._pet and e._pet.mood end }
 			e.GetInventoryItemID = function(_, slot) return opts.trinket and slot == 13 and 5002 or nil end
 			e.GetInventoryItemCooldown = function() return 0, 0, 1, false end
@@ -110,9 +111,11 @@ local function Clean(env, K)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- Tint(region, K, token) -> whether the region is drawn in the token's colour.
-local function Tint(region, K, token)
+-- Tint(region, K, token, white) -> whether the region is drawn in the token's colour, lifted toward white by that share.
+local function Tint(region, K, token, white)
+	white = white or 0
 	local r, g, b = K.Tokens.Color(token)
+	r, g, b = white + (1 - white) * r, white + (1 - white) * g, white + (1 - white) * b
 	local vr, vg, vb = region:GetVertexColor()
 	return math.abs(vr - r) + math.abs(vg - g) + math.abs(vb - b) < 1e-3
 end
