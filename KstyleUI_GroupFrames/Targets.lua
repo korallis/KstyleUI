@@ -102,14 +102,13 @@ end
 
 local function Health(t, unit)
 	local max, value = UnitHealthMax(unit), UnitHealth(unit)
-	local hiddenMax, hiddenValue = issecretvalue(max), issecretvalue(value)
-	if hiddenMax or max ~= t.healthMax then
+	if issecretvalue(max) or max ~= t.healthMax then
 		t.health:SetMinMaxValues(0, max)
-		t.healthMax = not hiddenMax and max or nil
+		t.healthMax = not issecretvalue(max) and max or nil
 	end
-	if hiddenValue or value ~= t.healthValue then
+	if issecretvalue(value) or value ~= t.healthValue then
 		t.health:SetValue(value)
-		t.healthValue = not hiddenValue and value or nil
+		t.healthValue = not issecretvalue(value) and value or nil
 	end
 end
 
