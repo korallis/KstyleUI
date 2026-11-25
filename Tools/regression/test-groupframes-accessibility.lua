@@ -66,6 +66,7 @@ assert(found.threat:IsShown() and not found.threatShape:IsShown(), "Threat shape
 K.Options.Write("GroupFrames", "threat.shapes", true)
 env.RunTimers()
 assert(found.threatShape:IsShown())
+env._member("party1").ready = "waiting"
 env.FireEvent("READY_CHECK")
 assert(status.resurrection:GetAlpha() == 0, "the ready check owns the shared slot while active")
 K.Options.Write("GroupFrames", "presets.raid", "Healer")
