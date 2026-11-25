@@ -86,6 +86,7 @@ local function Fade(target, from, to, duration, delay, order)
 	a:SetDuration(duration)
 	a:SetStartDelay(delay or 0)
 	a:SetOrder(order or 1)
+	a:SetSmoothing(ns.Slab.Ease(group, from, to))
 	target.fade = group
 	return group
 end

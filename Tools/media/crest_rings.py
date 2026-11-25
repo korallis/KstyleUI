@@ -9,6 +9,9 @@ Writes, procedurally and with no model or source image:
                                   last fifth of a clockwise sweep: amber from 288 to 330 degrees, red from 330 to 360, each
                                   with a near-white core
     EmberRingLine16.png  128x128  the same sectors of the shipped RingLine16.png, for the rim and cooldown rings
+    EmberBandAmber.png, EmberRingLine16Amber.png
+                         128x128  the red sector of each (330 to 360 degrees) in amber: drawn still over the swipe, it keeps
+                                  the whole last fifth amber until the last twelfth, when the addon fades it out
     CastRing.png         256x256  the cast ring: a near-white core stroke at 95.5% of the radius in a soft gilt bloom, open
                                   9 degrees either side of 6 o'clock so it passes under the level plaque
     SwingRing.png        256x256  the swing ring: one fine pale steel line (#e6ecf3, steelLit) at 97.5% of the radius in a
@@ -75,21 +78,25 @@ def sectors(angle, cover):
     return cover((angle >= FIFTH) & (angle < TWELFTH)), cover(angle >= TWELFTH)
 
 
-def ember_band(size=128):
+def ember_band(size=128, patch=False):
     r, angle, _, _, cover = field(size)
     core, spill = band(r, 0.853, 0.045), glow(r, 0.853, 0.075) * 0.75
     amber, red = sectors(angle, cover)
     a_rgb, alpha = paint(core, spill, AMBER, AMBER_CORE, cover)
+    if patch:
+        return image(a_rgb, alpha * red)
     r_rgb, _ = paint(core, spill, RED, RED_CORE, cover)
     hot = amber + red
     rgb = (amber[..., None] * a_rgb + red[..., None] * r_rgb) / np.maximum(hot, 1e-6)[..., None]
     return image(rgb, alpha * hot)
 
 
-def ember_line(name="RingLine16.png"):
+def ember_line(name="RingLine16.png", patch=False):
     base = np.asarray(Image.open(SOURCE / name).convert("RGBA"), dtype=np.float64) / 255
     _, angle, _, _, cover = field(base.shape[0])
     amber, red = sectors(angle, cover)
+    if patch:
+        return image(np.broadcast_to(np.array(AMBER, dtype=np.float64), base.shape[:2] + (3,)), base[..., 3] * red)
     rgb = (amber[..., None] * np.array(AMBER) + red[..., None] * np.array(RED)) / np.maximum(amber + red, 1e-6)[..., None]
     return image(rgb, base[..., 3] * (amber + red))
 
@@ -122,7 +129,9 @@ def main():
     parser.add_argument("--out", type=Path, default=OUT)
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
-    for name, made in (("EmberBand.png", ember_band()), ("EmberRingLine16.png", ember_line()), ("CastRing.png", cast()),
+    for name, made in (("EmberBand.png", ember_band()), ("EmberRingLine16.png", ember_line()),
+                       ("EmberBandAmber.png", ember_band(patch=True)), ("EmberRingLine16Amber.png", ember_line(patch=True)),
+                       ("CastRing.png", cast()),
                        ("SwingRing.png", swing()), ("SwingHalo.png", halo()), ("RingBead.png", bead())):
         path = args.out / name
         made.save(path, optimize=True)

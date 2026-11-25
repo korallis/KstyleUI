@@ -1,4 +1,4 @@
--- SlabStorm.lua: the Medallions crest's storm orbs for shamans who know Lightning Shield: three ball-lightning orbs circle the emblem inside the rune ring, one per charge, over three steel studs, with a storm halo while the shield is up; Blizzard's aura slots light each orb and the halo from the aura's own charge count (an application bar per orb), so Lua never reads or compares a secret, and Lua's own count, read from the aura while it is readable and counted from the player's own casts while it is secret, only chooses where the flourishes play: a cast ignites the orbs, each spent charge throws a bolt from its orb, one charge left dims the halo and flickers the last orb, and the halo crackles out when the shield ends.
+-- SlabStorm.lua: the Medallions crest's storm orbs for shamans who know Lightning Shield: three ball-lightning orbs circle the emblem inside the rune ring, one per charge, over three steel studs (standing still in their seats while the crest rests), with a storm halo while the shield is up; Blizzard's aura slots light each orb and the halo from the aura's own charge count (an application bar per orb), so Lua never reads or compares a secret, and Lua's own count, read from the aura while it is readable and counted from the player's own casts while it is secret, only chooses where the flourishes play: a cast ignites the orbs, each spent charge throws a bolt from its orb, one charge left dims the halo and flickers the last orb, and the halo crackles out when the shield ends.
 local _, ns = ...
 
 local K = KstyleUI
@@ -21,8 +21,6 @@ local IGNITE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local STRIKE = { { 0, 1, 0.03 }, { 1, 0, 0.32 } }
 local BLAST = { { 0, 0.4, 0.05 }, { 0.4, 0, 0.5 } }
 local CRACKLE = { { 0.8, 0.2, 0.12 }, { 0.2, 0.7, 0.1 }, { 0.7, 0, 0.5 } }
-local FLICKER = { { 1, 0.45, 0.06 }, { 0.45, 0.9, 0.05 }, { 0.9, 0.35, 0.07 }, { 0.35, 1, 0.08 } }
-local SHIMMER = { { 1, 0.15, 0.13 }, { 0.15, 1, 0.13 } }
 
 local CAST = {}
 for _, id in ipairs(RANKS) do CAST[id] = true end
@@ -128,7 +126,7 @@ local function Build(hub)
 		local container = Container(seat)
 		s.orb = select(2, Slot(container, "orb", seat, i - 1, "stormOrb", true))
 		local spark, bar = Slot(container, "spark", seat, i - 1, "stormOrbSpark", false)
-		state.loops[#state.loops + 1] = { button = spark, group = Steps(bar, SHIMMER, true) }
+		state.loops[#state.loops + 1] = { button = spark, group = ns.Slab.Flicker(bar) }
 		s.ignite = Layer(seat, base + 6, IGNITE)
 		add(Medals.Texture(s.ignite, "ARTWORK", 0, "glow", "jewelStormCore", FLARE, "ADD"))
 		s.strike = add(Layer(holder, base + 6, STRIKE))
@@ -138,7 +136,7 @@ local function Build(hub)
 		state.seats[i] = s
 	end
 	ns.SlabHeat.Fed(Container(holder), "HELPFUL", SLOT, CHARGES, state.feeds)
-	state.flicker = Steps(state.seats[1].frame, FLICKER, true)
+	state.flicker = ns.Slab.Flicker(state.seats[1].frame)
 	state.holder = holder
 end
 
@@ -196,8 +194,9 @@ end
 
 local function Motion()
 	local moving, last = Effects.Allows("ambient") and state.count ~= 0, state.count == 1
+	local turning = moving and not ns.Slab.Resting()
 	for _, s in ipairs(state.seats) do
-		if not moving then
+		if not turning then
 			s.orbit:Stop()
 		elseif not s.orbit:IsPlaying() then
 			s.orbit:Play()
@@ -364,6 +363,10 @@ function Storm.Recheck()
 		Storm.Update()
 	end
 end
+
+Medals.OnRest(function()
+	if state.listening then Motion() end
+end)
 
 function Storm.SetEnabled(on)
 	state.enabled = on

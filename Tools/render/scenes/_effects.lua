@@ -210,6 +210,8 @@ function Effects.Apply(env, module, ns, notes)
 				K.Options.Write("Medallions", "motion", motion)
 			end
 			ns.SlabHawks.Update()
+			local clock = env.GetTime
+			env.GetTime = function() return env._now end
 			for _, e in ipairs(HAWKS) do
 				if e.at <= at then
 					env._now = env._time - (at - e.at)
@@ -217,6 +219,7 @@ function Effects.Apply(env, module, ns, notes)
 					env.FireEvent("PLAYER_TOTEM_UPDATE", e.slot)
 				end
 			end
+			env.GetTime = clock
 			notes[#notes + 1] = "fx: the hawk perches " .. at .. " s into the story"
 		elseif state == "storm" then
 			-- A shaman who knows Lightning Shield, RENDER_FX_T seconds into the STORM story (2.5 when unset): the aura

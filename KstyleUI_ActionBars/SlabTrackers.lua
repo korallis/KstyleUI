@@ -480,7 +480,7 @@ function Trackers.Update()
 	end
 	Lay(form, name, seat, shown, kept, specs)
 	local on, off = Lists(form, prepared)
-	local full = Effects.Allows("ambient")
+	local full = Effects.Allows("ambient") or Effects.Allows("flare") and "calm"
 	Medals.Engine(off, false, full)
 	Medals.Engine(on, true, full)
 	Medals.Rest()

@@ -120,7 +120,7 @@ do
 	for _, mirror in pairs(loops) do assert(mirror.full == true and mirror.loops[1]:GetParent():GetAlpha() == 0, "at Full the engine plays the loop over a hidden part") end
 	K.Options.Write("Medallions", "motion", "calm")
 	env.RunTimers()
-	for _, mirror in pairs(loops) do assert(mirror.full == false, "at Calm the engine drops it") end
+	for _, mirror in pairs(loops) do assert(#mirror._shownAnimations == 0, "at Calm the engine drops it") end
 	Clean(env, K, "loops")
 end
 

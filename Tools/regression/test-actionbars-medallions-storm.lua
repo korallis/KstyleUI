@@ -147,7 +147,11 @@ do
 	Cast(env, RANK1)
 	assert(Lights(env, ns) == 3, "three charges light three orbs")
 	assert(Fired(state.blast) and Fired(seats[1].ignite) and Fired(seats[3].ignite), "a cast bursts the crest and ignites every orb")
-	assert(state.count == 3 and seats[1].orbit:IsPlaying() and seats[3].orbit:IsPlaying(), "the orbs circle at Full")
+	-- The crest plan's quiet-loops rule: while the crest rests the orbs stand still in their seats, and circle once it wakes.
+	assert(state.count == 3 and not seats[1].orbit:IsPlaying() and not seats[3].orbit:IsPlaying(), "the resting crest keeps its orbs still")
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	assert(seats[1].orbit:IsPlaying() and seats[3].orbit:IsPlaying(), "the orbs circle at Full once the crest is awake")
 	local halo = state.loops[1]
 	assert(halo.button:IsShown() and halo.group:IsPlaying(), "the halo shows and crackles while the shield is up")
 	Finish(state.blast)

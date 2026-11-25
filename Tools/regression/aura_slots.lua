@@ -162,6 +162,9 @@ function Slots.Show(env, c, slot, aura)
 				group:Play()
 			end
 		end
+		for _, region in ipairs(b._pandemicRegions or {}) do
+			region:SetShown(aura ~= nil and aura.pandemic == true)
+		end
 	end
 end
 
@@ -190,6 +193,23 @@ local function Button(env, c, button)
 					table.remove(list, i)
 					return
 				end
+			end
+		end
+	end
+	-- AddPandemicRegion: the engine shows the region while the slot's aura is in the pandemic window and hides it
+	-- otherwise (Blizzard_CustomAuraButton.lua:256-269, 760-762).
+	button._pandemicRegions = {}
+	function button.AddPandemicRegion(_, region)
+		Restricted(env)
+		assert(Owns(button, region), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")
+		table.insert(button._pandemicRegions, region)
+	end
+	function button.RemovePandemicRegion(_, region)
+		Restricted(env)
+		for i, added in ipairs(button._pandemicRegions) do
+			if added == region then
+				table.remove(button._pandemicRegions, i)
+				return
 			end
 		end
 	end

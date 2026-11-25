@@ -55,7 +55,7 @@ end
 local function Hot(lit)
 	for _, mirror in ipairs(lit.mirrors or {}) do
 		local c = mirror._cooldown
-		if c and tostring(c._state.SwipeTexture and c._state.SwipeTexture[1]):find("Ember", 1, true) then return c, mirror.container:GetParent() end
+		if c and tostring(c._state.SwipeTexture and c._state.SwipeTexture[1]):find("Ember", 1, true) then return c, mirror.container:GetParent():GetParent():GetParent() end
 	end
 end
 
@@ -84,7 +84,7 @@ local function Updating(frame)
 end
 
 -- The art SlabRings names by path ships.
-for _, file in ipairs({ "EmberBand.png", "EmberRingLine16.png", "CastRing.png", "SwingRing.png", "SwingHalo.png", "RingBead.png" }) do
+for _, file in ipairs({ "EmberBand.png", "EmberRingLine16.png", "EmberBandAmber.png", "EmberRingLine16Amber.png", "CastRing.png", "SwingRing.png", "SwingHalo.png", "RingBead.png" }) do
 	local handle = io.open("Media/Textures/Medallions/Trackers/" .. file, "rb")
 	assert(handle, file .. " is missing; run python3 Tools/media/crest_rings.py")
 	handle:close()
@@ -108,10 +108,10 @@ do
 	env.RunTimers()
 	assert(gate:GetAlpha() == 0 and select(2, Hot(cooldowns.lit)):GetAlpha() == 0, "its switch hides every ember swipe")
 	local sigil = cooldowns.sigils[1]
-	assert(sigil.container._slots[sigil.ember.key].disabled, "and turns the sigil bands' slots off")
+	assert(sigil.ember.slot.container._slots.lit.disabled, "and turns the sigil bands' slots off")
 	K.Options.Write("ActionBars", "crestEmber", true)
 	env.RunTimers()
-	assert(gate:GetAlpha() == 1 and not sigil.container._slots[sigil.ember.key].disabled, "and brings them back")
+	assert(gate:GetAlpha() == 1 and not sigil.ember.slot.container._slots.lit.disabled, "and brings them back")
 	-- Readable: the last fifth flickers the horn, an expiry fades its gilt glow to steel.
 	local watched = Watched(ns, shout)
 	env._now = 100
@@ -175,6 +175,66 @@ do
 	assert(start == 50 and length == 8 and math.abs(lua.units - (26 + 3) / 0.853) < 1e-6, "a Lua-fed timer's cooldown reaches its ember swipe")
 	timer:Clear()
 	assert(Last(lua) == "Clear", "and its clear")
+	-- A Lua-fed timer lights its cap late from the start and length it was given, and gets none from a duration object it cannot read.
+	local late = lua:GetParent()
+	env._now = 50
+	timer:SetCooldown(50, 12)
+	assert(late:GetAlpha() == 0 and late.amber:IsPlaying() and math.abs(late.amber.fade._state.StartDelay[1] - 9.6) < 1e-6 and math.abs(late.red.fade._state.StartDelay[1] - 11) < 1e-6,
+		"a fresh 12 s timer shows no cap: amber waits 9.6 s for the last fifth and red 11 s for the last twelfth")
+	timer:SetCooldownFromDurationObject({})
+	assert(late:GetAlpha() == 0 and not late.amber:IsPlaying() and not late.red:IsPlaying(), "a timer whose length is unreadable gets no cap at all")
+	env._now = 60
+	timer:SetCooldown(50, 12)
+	assert(late:GetAlpha() == 1 and late.cover:GetAlpha() == 1 and not late.amber:IsPlaying() and late.red:IsPlaying(), "2 s of 12 left: amber shows at once, under the cover that hides the red tip")
+	lua:GetScript("OnCooldownDone")(lua)
+	assert(late:GetAlpha() == 0 and not late.red:IsPlaying(), "the timer's end darkens the cap for the next timer")
+end
+
+-- The crest plan's late end warning: an aura's ember stays dark until the timer's last fifth, turns amber there and red in its last twelfth, darkens again on a refresh, goes dark
+-- when the aura changes under hidden values, and its gilt ghost fades from the game timer's own end.
+do
+	local env, K, ns = New("WARRIOR", { SHOUT, 2687, RECKLESS, WALL })
+	local cooldowns = Piece(ns, "crestCooldowns")
+	local ring, hot = Watched(ns, cooldowns, "player"), Hot(cooldowns.lit)
+	local late, done = ring.late, hot:GetScript("OnCooldownDone")
+	local function Aura(now, ends)
+		env._now = now
+		Slots.Set(env, "player", { { id = RECKLESS, start = ends - 120, duration = 120 } })
+		env._auraData["player" .. RECKLESS] = { auraInstanceID = 5, expirationTime = ends, duration = 120, sourceUnit = "player" }
+		env.FireEvent("UNIT_AURA", "player")
+	end
+	Aura(100, 220)
+	assert(late:GetAlpha() == 0 and late.amber:IsPlaying() and late.red:IsPlaying(), "a fresh 120 s timer shows no cap and arms both steps")
+	assert(math.abs(late.amber.fade._state.StartDelay[1] - 96) < 1e-6 and math.abs(late.red.fade._state.StartDelay[1] - 110) < 1e-6, "amber waits 96 s for the last fifth and red 110 s for the last twelfth")
+	assert(late.amber.fade._state.Duration[1] == K.Tokens.Flicker.step and late.amber._state.ToFinalAlpha[1] == true, "each step fades over the flicker's step and holds its end")
+	Aura(300, 320)
+	assert(late:GetAlpha() == 1 and late.cover:GetAlpha() == 1 and not late.amber:IsPlaying(), "20 s of 120 left: amber, with the red tip covered")
+	assert(math.abs(late.red.fade._state.StartDelay[1] - 10) < 1e-6, "and red is 10 s away")
+	Aura(300, 305)
+	assert(late:GetAlpha() == 1 and late.cover:GetAlpha() == 0, "5 s of 120 left: the red tip shows")
+	Aura(300, 420)
+	assert(late:GetAlpha() == 0 and late.amber:IsPlaying(), "a refresh darkens the cap and arms it again")
+	K.Options.Write("Medallions", "motion", "off")
+	Aura(300, 419)
+	assert(late.amber.fade._state.Duration[1] == 0, "at Off the cap steps without a fade")
+	K.Options.Write("Medallions", "motion", "calm")
+	Aura(300, 418)
+	assert(late.amber.fade._state.Duration[1] == K.Tokens.Flicker.step and late.amber:IsPlaying(), "Calm keeps the late cap and its fade")
+	K.Options.Write("Medallions", "motion", "full")
+	Aura(400, 420)
+	env._combat, env._aurasSecret = true, true
+	env.FireEvent("PLAYER_REGEN_DISABLED")
+	assert(late:GetAlpha() == 1, "entering combat keeps a cap that was already timed")
+	env.FireEvent("UNIT_AURA", "player", env.Secret({ updatedAuraInstanceIDs = { 5 } }))
+	assert(late:GetAlpha() == 0 and not late.red:IsPlaying(), "an aura change it cannot read darkens the cap: no cap beats a wrong one")
+	assert(not ring.fade:IsPlaying(), "nothing fades before the timer ends")
+	done(hot)
+	assert(ring.fade:IsPlaying(), "under hidden values the game timer's end fades the gilt ghost instead of cutting")
+	ring.fade:Stop()
+	K.Options.Write("Medallions", "motion", "off")
+	done(hot)
+	assert(not ring.fade:IsPlaying(), "at Off the end fades nothing")
+	Clean(env, K, "late ember")
 end
 
 -- A medal's ember is the bright band just outside its rim; under Frames the horn in the row warns as on the crest, and the hidden crest reads nothing.

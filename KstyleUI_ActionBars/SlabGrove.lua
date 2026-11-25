@@ -41,6 +41,7 @@ local function Bloom(parent, spec, level, form)
 	grow:SetScaleFrom(0.6, 0.6)
 	grow:SetScaleTo(1, 1)
 	grow:SetDuration(UNFURL)
+	grow:SetSmoothing(K.Tokens.Smoothing.enter)
 	ns.Slab.Fade(r.unfurl, 0, 1, UNFURL)
 	for k = 1, LEAVES do
 		local leaf = r.add(r.leaves:CreateTexture(nil, "OVERLAY"), LEAF)

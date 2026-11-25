@@ -43,6 +43,7 @@ local function Fade(target, from, to, duration, order)
 	a:SetToAlpha(to)
 	a:SetDuration(duration)
 	a:SetOrder(order or 1)
+	a:SetSmoothing(ns.Slab.Ease(group, from, to))
 	target.fade = group
 	group:SetScript("OnFinished", function()
 		target:Hide()
@@ -99,7 +100,7 @@ local function Build(hub, slot)
 	timer:SetDrawBling(false)
 	timer:SetHideCountdownNumbers(true)
 	p.timer = add(timer)
-	add(Medals.Ember(holder, nil, timer, "Band", base + 1, SEAT))
+	timer.ember = add(Medals.Ember(holder, nil, timer, "Band", base + 1, SEAT))
 	local cover = Layer(holder, base + 2)
 	add(Texture(cover, "ARTWORK", 0, "ring", "gilt", SEAT))
 	p.pop = Layer(holder, base + 3)
@@ -111,6 +112,7 @@ local function Build(hub, slot)
 	rise:SetToAlpha(1)
 	rise:SetDuration(LIFT_IN)
 	rise:SetOrder(1)
+	rise:SetSmoothing(Tokens.Smoothing.enter)
 	Move(p.lift, dx, dy, LIFT_UP, 1, "OUT")
 	Move(p.lift, -dx, -dy, SETTLE, 2, "IN_OUT")
 	p.pops = {}
@@ -133,6 +135,7 @@ local function Build(hub, slot)
 	ebb:SetToAlpha(0)
 	ebb:SetDuration(RIPPLE)
 	ebb:SetOrder(1)
+	ebb:SetSmoothing(Tokens.Smoothing.exit)
 	p.ripple.wave = wave
 	p.flareGate = Layer(p.pop, base + 4)
 	p.flare = Layer(p.flareGate, base + 4)
@@ -283,9 +286,13 @@ local function Paint(p, moving, full)
 	Gate(p.lit, have)
 	Steel(p, have)
 	local object = GetTotemDuration and GetTotemDuration(p.slot)
+	local known = not (IsSecret(have) or IsSecret(start) or IsSecret(duration)) and have == true
 	if object then
 		p.timer:SetCooldownFromDurationObject(object)
-	elseif not (IsSecret(have) or IsSecret(start) or IsSecret(duration)) and have == true then
+		if known then
+			p.timer.ember.Light(start, duration)
+		end
+	elseif known then
 		p.timer:SetCooldown(start, duration)
 	else
 		p.timer:Clear()

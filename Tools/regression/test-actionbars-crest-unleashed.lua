@@ -176,6 +176,7 @@ end
 do
 	local env, K, ns = New()
 	local set = ns.SlabUnleashed.sets[1]
+	local done = set.awake.timer:GetScript("OnCooldownDone")
 	env._aurasSecret = true
 	env.SetCombat(true)
 	Slots.Set(env, "player", Reck())
@@ -186,7 +187,16 @@ do
 	ns.SlabMedals.Rest()
 	Slots.Set(env, "player", nil)
 	env.FireEvent("UNIT_AURA", "player", env.Secret({ removedAuraInstanceIDs = { 7 } }))
-	assert(not set.fold.play:IsPlaying(), "secret, the end shows no fold: the corona ends with the ring")
+	assert(not set.fold.play:IsPlaying(), "secret, an aura event it cannot read folds nothing")
+	-- The crest plan: in combat the ending folds from the game timer's own end instead of cutting.
+	done(set.awake.timer)
+	assert(set.fold.play:IsPlaying() and set.cool.play:IsPlaying(), "secret, the game timer's end folds the corona and cools the glyphs")
+	set.fold.play:Stop()
+	set.cool.play:Stop()
+	K.Options.Write("Medallions", "motion", "off")
+	done(set.awake.timer)
+	assert(not set.fold.play:IsPlaying(), "at Off the timer's end folds nothing")
+	K.Options.Write("Medallions", "motion", "full")
 	env._aurasSecret = false
 	env.SetCombat(false)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)

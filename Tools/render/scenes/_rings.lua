@@ -22,11 +22,20 @@ function Rings.Play(env, K, ns, notes)
 	env._now = env._time
 	env.GetTime = function() return env._now end
 	if story == "ember" then
+		env.C_UnitAuras = env.C_UnitAuras or {}
+		env.C_UnitAuras.GetUnitAuraBySpellID = function(unit, id)
+			for i, a in ipairs(env._slotAuras[unit] or {}) do
+				if a.id == id and a.duration then
+					return { auraInstanceID = i, expirationTime = a.start + a.duration, duration = a.duration, sourceUnit = "player" }
+				end
+			end
+		end
 		for unit, auras in pairs(env._slotAuras or {}) do
 			for _, a in ipairs(auras) do
 				if a.duration then a.start = env._time - a.duration * (1 - left) end
 			end
 			Slots.Set(env, unit, auras)
+			env.FireEvent("UNIT_AURA", unit)
 		end
 	elseif story == "cast" or story == "landed" or story == "stopped" then
 		local start = env._time - CAST * (1 - left)
