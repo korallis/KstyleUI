@@ -1,10 +1,12 @@
 -- test-actionbars-medallions-hawks.lua: the crest's hawk perches: a hunter who knows Summon Hawk gets two perches on the rune ring's shoulders, nobody else gets a frame, an event or a callback; each perch lights from totem slot 2 or 3 through the slot's own boolean and drains through the slot's duration object, secret or not, with no Lua compare; a summon flares, an expiry fades, a third summon refreshes the oldest perch alone, both hawks out light the rune ring, breathing only while Lua can read both slots; a flyout or spellbook update leaves a playing flare alone; the render story keeps Summon Hawk's recovery and ends empty; at Full a summon lifts its gilt hawk 13 units outward and swells it from 0.55 to 1.35 times in 0.12 s, settling over 0.30 s with a ripple of 0.35 s while the timer stays seated, the empty steel hawk shows only on an empty slot, two hawks fade the ring's glow in over 0.30 s without a blink on a refresh, an expiry sinks the old hawk 3 units over 0.35 s, a proc or level-up holding the hub keeps the lift still and stops one already playing, a cast holding the hub or a proc on a spell with no button does not, a reload, style switch, spellbook change or combat entry with hawks out shows them at once without a lift, Calm keeps fades without travel and stills the breath, Off shows end states with no animation, ending a glow fade already playing, nothing runs OnUpdate, Hawk perches off hides everything, and every layer is an even number of pixels centred on its perch, mirrored across the crown, at four screen sizes.
 local AB = dofile("Tools/regression/actionbars_env.lua")
+local FX = dofile("Tools/regression/effects_env.lua")
 
 local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
 local RANK3 = 1293526
 
-local function New(class, known, size)
+-- New(class, known, size, setup): setup(e), when given, fills the fixture before login, such as hawks already out.
+local function New(class, known, size, setup)
 	size = size or SIZES[1]
 	local env, K, ns = AB.New({
 		class = class,
@@ -12,6 +14,7 @@ local function New(class, known, size)
 		height = size[2],
 		setup = function(e)
 			e._totems, e._known = {}, known or {}
+			e.UnitCastingInfo = function() if e._cast then return "Summon Hawk", "", 132158, e._cast[1], e._cast[2] end end
 			e.C_SpellBook = e.C_SpellBook or {}
 			e.C_SpellBook.IsSpellKnown = function(id) return e._known[id] == true end
 			e._reads = 0
@@ -25,6 +28,7 @@ local function New(class, known, size)
 				local t = e._totems[slot]
 				return { start = t and t.start or 0, finish = t and t.finish or 0 }
 			end
+			if setup then setup(e) end
 		end,
 	})
 	-- env._callbacks: the callbacks the hawks hold now, by event.
@@ -277,17 +281,38 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- Hub contention: Summon Hawk's own cast flash holding the hub leaves the lift, a proc on a spell with no action button
--- lights no button and claims nothing, so the lift goes on, and a proc on a button claims the hub and stops it.
+-- Hub contention through the player's own events: Summon Hawk's cast landing pulses the hub at the cast flash's
+-- priority and leaves the lift; a proc on a spell with no action button, low health and another slot's cooldown ending
+-- claim nothing on the hub, so the lift goes on with every timer drawn; a proc on a bar button and a level-up each claim
+-- the hub and stop a lift already playing, keeping the flare, the lit hawk and the timer.
 do
-	local env, K, ns = New("HUNTER", { [RANK3] = true })
+	local env, K, ns = New("HUNTER", { [RANK3] = true }, nil, function(e)
+		FX.Install(e)
+		e._health = 0.1
+	end)
 	local state = ns.SlabHawks.state
 	local left, right = state.perches[1], state.perches[2]
-	assert(K.Effects.ClaimFor("hub", K.Effects.PRIORITY.cast, 1), "the cast flash holds the hub")
+	env.FireEvent("PLAYER_ENTERING_WORLD")
+	env._cast = { 99000, 100000 }
+	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-H", 1293241, 1)
+	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-H", 1293241, 1)
+	env._cast = nil
+	assert(K.Effects.Holder("hub") == K.Effects.PRIORITY.cast, "Summon Hawk landing pulses the hub at the cast flash's priority")
 	Hawk(env, 2, 100)
-	assert(Lifting(left), "a cast holding the hub leaves the lift")
+	assert(Lifting(left), "the cast flash leaves the lift")
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 999)
 	assert(Lifting(left) and K.Effects.Holder("hub") == K.Effects.PRIORITY.cast, "a proc on a spell with no button claims nothing and the lift goes on")
+	env._health = 0.05
+	env.FireEvent("UNIT_HEALTH", "player")
+	local vignette = K.Effects.Vignette.frame
+	assert(vignette and vignette:IsShown() and env.Reveal(vignette._lastAlpha.args[1]) == 1, "low health shows the vignette in full")
+	assert(Lifting(left) and Timer(left).start == 100, "low health claims nothing on the hub: the lift goes on and the timer draws")
+	AB.Slot(env, 2, { texture = 2, type = "spell", id = 200 })
+	local ready = AB.Button(ns, "bar1", 2)
+	ready.realCooldown = true
+	ready.cooldown:GetScript("OnCooldownDone")(ready.cooldown)
+	assert(ready.medReady and ready.medReady.anim:IsPlaying(), "another slot's cooldown ending plays its ready flash")
+	assert(Lifting(left) and Timer(left).start == 100, "the ready flash stays on its slot: the lift goes on and the timer draws")
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
 	assert(K.Effects.Holder("hub") == K.Effects.PRIORITY.proc, "a proc on a button claims the hub")
@@ -296,6 +321,12 @@ do
 	assert(Seen(env, right.lit) and right.flare.fade:IsPlaying() and Still(right) and Timer(right).start == 101, "a hawk summoned under the proc lights and flares without lifting")
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
 	K.Effects.Stop("hub")
+	Hawk(env, 3, 102)
+	assert(Lifting(right), "with the hub free a refresh lifts")
+	env.FireEvent("PLAYER_LEVEL_UP", 12)
+	assert(K.Effects.Holder("hub") ~= nil and K.Effects.Holder("hub") <= K.Effects.PRIORITY.proc, "a level-up claims the hub")
+	assert(Still(right) and right.flare.fade:IsPlaying() and Seen(env, right.lit) and Timer(right).start == 102, "a level-up mid-lift stops it and keeps the flare, the lit hawk and the timer")
+	assert(Seen(env, left.lit) and Timer(left).start == 100 and state.pair:IsShown(), "the other hawk and the ring stay lit throughout")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -303,12 +334,12 @@ end
 -- hawks and their timers at once, with no lift; once combat makes the slots secret the ring holds still and a refresh
 -- lifts only its own perch.
 do
-	local env, K, ns = New("HUNTER", { [RANK3] = true })
+	local env, K, ns = New("HUNTER", { [RANK3] = true }, nil, function(e)
+		e._totems[2] = { have = true, start = 50, duration = 18, finish = 68, spell = 1293248 }
+		e._totems[3] = { have = true, start = 52, duration = 18, finish = 70, spell = 1312637 }
+	end)
 	local state = ns.SlabHawks.state
 	local left, right = state.perches[1], state.perches[2]
-	env._totems[2] = { have = true, start = 50, duration = 18, finish = 68, spell = 1293248 }
-	env._totems[3] = { have = true, start = 52, duration = 18, finish = 70, spell = 1312637 }
-	ns.SlabHawks.Update()
 	assert(Seen(env, left.lit) and Seen(env, right.lit) and state.pair:IsShown(), "a reload with two hawks out lights both perches and the ring")
 	assert(Still(left) and Still(right) and not left.flare.fade:IsPlaying() and not state.pair.dawn[1]:IsPlaying(), "a reload plays no lift, flare or glow fade")
 	assert(Timer(left).start == 50 and Timer(right).start == 52 and not left.steel:IsShown(), "and keeps each hawk's timer, steel hidden")
