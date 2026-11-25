@@ -228,7 +228,7 @@ function LayoutMenu(m, owner)
 	end
 	width = width * Widgets.ScaleFactor(owner) / Widgets.ScaleFactor(m)
 	m:ClearAllPoints()
-	Widgets.Point(m, "TOPLEFT", owner, "BOTTOMLEFT", 0, -Widgets.Snap(m, Tokens.Size("gapTiny")))
+	Widgets.Point(m, "TOPLEFT", owner, "BOTTOMLEFT", 0, -Widgets.Snap(m, Tokens.Size("gapTiny")), true)
 	Widgets.Size(m, width, rows * rowHeight + 2 * pad)
 	m.list:ClearAllPoints()
 	Widgets.Point(m.list, "TOPLEFT", m, "TOPLEFT", 0, -Widgets.Snap(m, pad))

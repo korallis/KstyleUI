@@ -185,7 +185,7 @@ local function Alarm(on)
 	if not on and list.alarmFlash then list.alarmFlash:Stop() end
 	list.panel.chrome:SetEdge(on and "hostile" or "edgeInner", 1)
 	K.Widgets.TextColor(list.title, on and "hostile" or "capsGold")
-	if entering and list.alarmFlash then list.alarmFlash:Play() end
+	if entering and K.Motion.Fades() and list.alarmFlash then list.alarmFlash:Play() end
 end
 
 local function Update()
@@ -319,7 +319,7 @@ local function Build()
 	alpha:SetFromAlpha(1)
 	alpha:SetToAlpha(0)
 	alpha:SetDuration(0.2)
-	Threat.list.alarmFlash = group
+	Threat.list.alarmFlash = K.Motion.TrackGroup(group)
 	Threat.holder = Threat.list.holder
 	ns.Place(Threat.holder, KEY, LIMITS)
 end

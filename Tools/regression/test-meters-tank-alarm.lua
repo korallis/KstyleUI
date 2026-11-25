@@ -28,6 +28,8 @@ assert(title[1] == want[1] and title[2] == want[2] and title[3] == want[3], "the
 assert(ns.Threat.list.alarmFlash:IsPlaying(), "the alarm starts its flash")
 local alpha = ns.Threat.list.alarmFlash._anims[1]
 assert(alpha:GetDuration() == 0.2, "the alarm flash lasts 200 ms")
+K.Options.Write("Appearance", "motion", "off")
+assert(not ns.Threat.list.alarmFlash:IsPlaying(), "Motion Off settles an active alarm flash")
 K.Layout.Update("meters.damage", { width = 300 })
 env.RunTimers()
 local resizedTitle = M.Last(ns.Threat.list.title, "SetTextColor")
@@ -46,7 +48,7 @@ assert(#env._errors == 0, tostring(env._errors[1]))
 env._threat.party1[5] = 910000
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 env.RunTimers()
-assert(ns.Threat.alarm)
+assert(ns.Threat.alarm and not ns.Threat.list.alarmFlash:IsPlaying(), "a new tank alarm stays steady with Motion Off")
 K.Options.Write("Meters", "threat.tankAlarm", false)
 env.RunTimers()
 assert(not ns.Threat.alarm and not ns.Threat.list.alarmFlash:IsPlaying(), "Tank alarm off restores the previous quiet title and edge")

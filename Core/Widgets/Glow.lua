@@ -209,6 +209,7 @@ function Widgets.ProcMotion(frame, body)
 	end
 	frame.enter = Fade(0, 1, Tokens.Duration("procIn"), "OUT")
 	frame.leave = Fade(1, 0, Tokens.Duration("procOut"), "IN")
+	Motion.TrackGroup(frame.enter, function() frame:SetAlpha(1) end)
 	frame.leave:SetScript("OnFinished", function()
 		if not frame.procShown then
 			frame:Hide()
@@ -216,7 +217,9 @@ function Widgets.ProcMotion(frame, body)
 			if frame.onProcHidden then frame.onProcHidden() end
 		end
 	end)
+	Motion.TrackGroup(frame.leave)
 	frame.breath, frame.breathAlpha = Pulse(body, 1, 0.55, Tokens.Duration("glowBreath"))
+	Motion.TrackGroup(frame.breath)
 end
 
 function Widgets.ShowProc(frame, on, polished, loops)

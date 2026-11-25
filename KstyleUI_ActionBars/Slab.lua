@@ -1019,7 +1019,7 @@ function Slab.SetProc(b, on, refresh)
 	end
 	if not (on and active) then
 		if b.medProc then
-			Widgets.ShowProc(b.medProcFrame, false, ns.Config("procTransitions") and active, false)
+			Widgets.ShowProc(b.medProcFrame, false, ns.Config("procTransitions") and active and Moving(), false)
 			if not b.medProcFrame.leave:IsPlaying() then
 				b.medProc.anim:Stop()
 				b.medProc:Hide()
@@ -1046,14 +1046,18 @@ function Slab.SetProc(b, on, refresh)
 	edge:SetVertexColor(r, g, bl, 1)
 	edge:Show()
 	loop:Show()
-	local polished = ns.Config("procTransitions") == true
+	local polished = ns.Config("procTransitions") == true and Moving()
 	local fresh = not b.medProcFrame.procShown
 	Widgets.ShowProc(b.medProcFrame, true, polished, Slab.Allows("pulse"))
 	if Slab.Allows("pulse") then
-		if not loop.anim:IsPlaying() then loop.anim:Play() end
+		if not loop.anim:IsPlaying() then
+			loop:SetTexCoord(0, 1, 0, 1)
+			loop.anim:Play()
+		end
 	else
 		loop.anim:Stop()
-		if polished and loop.path ~= Slab.Texture("medProc") then
+		if not Moving() then start.anim:Stop() end
+		if loop.path ~= Slab.Texture("medProc") then
 			local cells = Cells("medProc" .. ClassName(), FLIP)
 			loop:SetTexCoord(0, 1 / cells.columns, 0, 1 / cells.rows)
 		end

@@ -85,10 +85,16 @@ function Micro.Toggle(anchor)
 		end
 	end
 	local pad, gap, y = Widgets.Snap(panel, Tokens.Size("gapSmall")), Widgets.Snap(panel, Tokens.Size("gapTiny")), 0
+	local width = WIDTH
+	for _, row in ipairs(panel.rows) do
+		width = math.max(width, Widgets.TextWidth(row.label, 0) + 2 * Tokens.Size("gapLarge"))
+	end
 	for i, row in ipairs(panel.rows) do
 		local target = Target(ENTRIES[i][1])
 		row:SetShown(target ~= nil)
 		if target then
+			row.opts.width = width
+			Widgets.Size(row, width, row:GetHeight())
 			local enabled = target:IsEnabled()
 			row:SetEnabled(not Widgets.IsSecret(enabled) and enabled == true)
 			row:ClearAllPoints()
@@ -99,7 +105,7 @@ function Micro.Toggle(anchor)
 	if y == 0 then
 		return
 	end
-	Widgets.Size(panel, WIDTH + 2 * pad, y - gap + 2 * pad)
+	Widgets.Size(panel, width + 2 * pad, y - gap + 2 * pad)
 	local x, scale = anchor:GetCenter(), anchor:GetEffectiveScale()
 	local right = Plain(x) and Plain(scale) and x * scale > UIParent:GetWidth() * UIParent:GetEffectiveScale() / 2
 	panel:ClearAllPoints()

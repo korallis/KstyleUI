@@ -102,8 +102,8 @@ local function TextureRow(row, option)
 	Widgets.Tint(sample, "accent")
 	sample:Show()
 	row.label:ClearAllPoints()
-	row.label:SetPoint("LEFT", sample, "RIGHT", Widgets.Snap(row, Tokens.Size("gapMedium")), 0)
-	row.label:SetPoint("RIGHT", row, "RIGHT", -Widgets.Snap(row, Tokens.Size("gapMedium")), 0)
+	Widgets.Point(row.label, "LEFT", sample, "RIGHT", Widgets.Snap(row, Tokens.Size("gapMedium")), 0)
+	Widgets.Point(row.label, "RIGHT", row, "RIGHT", -Widgets.Snap(row, Tokens.Size("gapMedium")), 0)
 end
 
 function Widgets.FontPicker(parent, opts)
