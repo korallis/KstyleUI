@@ -1,4 +1,4 @@
--- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30) and RENDER_TRACKERS_SPEC the talents a paladin (holy, prot) or rogue (assassination, combat, subtlety) knows; RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. A priest, druid or shaman plays its own story through the same feeds and the addon's own handlers (charge counts, casts, cooldowns, weapon enchants, forms and a queued Maul), steel showing every known piece with nothing up, lit the story at its own time and moment RENDER_TRACKERS_T seconds in; RENDER_TARGET=friend gives the druid a friendly target and RENDER_FORM chooses another crest: cat, bear or moonkin for the druid, shadowform for the priest, enhancement for the shaman, and RENDER_TARGET=friend a healer's friendly target for the priest too. RENDER_TRACKERS_OFF=1 turns every tracker switch off first (and for a healer plays nothing, for a pixel diff). RENDER_UNLEASHED_T draws a melee class's first major cooldown that many seconds after it was cast in combat (Unleashed's burst, corona and lift sampled from the cast), and RENDER_UNLEASHED_END that many seconds after it ended out of combat (the fold).
+-- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30) and RENDER_TRACKERS_SPEC the talents a paladin (holy, prot) or rogue (assassination, combat, subtlety) knows; RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. A priest, druid or shaman plays its own story through the same feeds and the addon's own handlers (charge counts, casts, cooldowns, weapon enchants, forms and a queued Maul), steel showing every known piece with nothing up, lit the story at its own time and moment RENDER_TRACKERS_T seconds in; RENDER_TARGET=friend gives the druid a friendly target and RENDER_FORM chooses another crest: cat, bear or moonkin for the druid, shadowform or ending (an aura's fade in and ending flicker) for the priest, enhancement for the shaman, and RENDER_TARGET=friend a healer's friendly target for the priest too. RENDER_TRACKERS_OFF=1 turns every tracker switch off first (and for a healer plays nothing, for a pixel diff). RENDER_UNLEASHED_T draws a melee class's first major cooldown that many seconds after it was cast in combat (Unleashed's burst, corona and lift sampled from the cast), and RENDER_UNLEASHED_END that many seconds after it ended out of combat (the fold).
 local Slots = dofile("Tools/regression/aura_slots.lua")
 local Ranged = dofile("Tools/render/scenes/_ranged.lua")
 
@@ -38,7 +38,8 @@ local DRUID = { 9835, 24977, 25299, 9858, 9904, 9896, 9898, 9907, 9881, 24858, 1
 -- Each story: the spells the character knows, its form (GetShapeshiftFormID and power type), the default time, and
 -- its beats in seconds: an aura on a unit ({ unit, spell, charges, seconds, harmful }; seconds nil clears it), a
 -- charge count on the player's first aura, the player's cast, a spell's cooldown ({ spell, seconds }), a queued
--- spell (C_Spell.IsCurrentSpell) and a weapon's enchant ({ slot, enchantID, seconds left of an hour }, or { slot }).
+-- spell (C_Spell.IsCurrentSpell), a weapon's enchant ({ slot, enchantID, seconds left of an hour }, or { slot }) and an
+-- aura entering the engine's pandemic window ({ unit, spell }), which plays its ending warning.
 local HEALERS = {
 	PRIEST_friend = { at = 4, known = { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 }, beats = {
 		{ 0.5, cast = 10952, aura = { "player", 10952, 20, 600 } },
@@ -47,6 +48,12 @@ local HEALERS = {
 		{ 2, aura = { "target", 1240849, 5, 30 }, cooldown = { 1240827, 10 } },
 		{ 2.5, cooldown = { 1316995, 12 } },
 		{ 3.2, charges = 15 },
+	} },
+	PRIEST_ending = { at = 3, known = { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 }, beats = {
+		{ 0.5, aura = { "target", 10901, 0, 3 } },
+		{ 0.6, aura = { "target", 25315, 0, 4 } },
+		{ 0.8, cooldown = { 1316995, 3 } },
+		{ 3.4, warn = { "target", 25315 } },
 	} },
 	PRIEST = { at = 4, known = { 10952, 1316995, 10947, 401977, 10894, 10060, 586, 10901 }, beats = {
 		{ 0.5, cast = 10952, aura = { "player", 10952, 20, 600 } },
@@ -104,7 +111,7 @@ local HEALERS = {
 		{ 3.2, charges = 15 },
 		{ 3.5, aura = { "player", 586, 0, 10 } },
 	} },
-	SHAMAN_enhancement = { at = 3, known = { 16362, 10414, 20608, 17364, 425336, 29228 }, offHand = true, beats = {
+	SHAMAN_enhancement = { at = 3, known = { 16362, 10414, 20608, 17364, 425336 }, offHand = true, beats = {
 		{ 0.5, aura = { "target", 17364, 0, 12, true } },
 		{ 0, enchant = { 16, 1669, 1800 } },
 		{ 0, enchant = { 17, 1666, 240 } },
@@ -180,6 +187,12 @@ local function Healer(env, K, ns, notes, mode)
 					list[#list + 1] = { id = a[2], count = a[3], harmful = a[5], icon = HEALER_ICONS[a[2]], start = env._now, duration = a[4] }
 				end
 				Slots.Set(env, a[1], list)
+			end
+			if beat.warn then
+				for _, aura in ipairs(auras[beat.warn[1]]) do
+					aura.pandemic = aura.pandemic or aura.id == beat.warn[2]
+				end
+				Slots.Set(env, beat.warn[1], auras[beat.warn[1]])
 			end
 			if beat.charges then
 				auras.player[1].count = beat.charges

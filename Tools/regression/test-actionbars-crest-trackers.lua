@@ -507,7 +507,7 @@ end
 do
 	local env, K, ns = New("PALADIN", { 20154 }, { frames = true })
 	local medal = ns.SlabTrackers.state.forms.row.pieces["1:1"]
-	assert(medal and medal:IsVisible() and medal.timer and not medal.steel, "under Frames the five-second rule is the plaque's ring in a medal's well, no icon")
+	assert(medal and medal:IsVisible() and medal.steel, "under Frames the five-second rule is a medal in the row")
 	env.C_Spell.GetSpellPowerCost = function() return { { type = 0, cost = 50 } } end
 	env.GetTime = function() return 100 end
 	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 20154)

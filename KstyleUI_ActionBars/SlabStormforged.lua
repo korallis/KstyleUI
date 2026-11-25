@@ -125,6 +125,7 @@ local function Charm()
 	for _, a in ipairs(ankhs) do
 		a.lit.bar:GetStatusBarTexture():SetDesaturated(not stocked)
 		a.lit.bar:SetAlpha(stocked and 1 or 0.55)
+		a.lit.bloom:SetShown(stocked)
 	end
 end
 
@@ -139,15 +140,16 @@ ns.SlabTrackers.Register("SHAMAN", {
 	{ key = "crestImbues", seat = "lowerRight", feed = "enchant", slot = "OffHand", spells = IMBUES, active = OffHand, build = Stone },
 	{ key = "crestShock", seat = { 0, 0 }, feed = "cooldown", known = SHOCKS, build = Shock, figure = "figureShock", bloom = "totemEarth" },
 	{ key = "crestAnkh", seat = { 30, -60 }, size = 22, feed = "cooldown", known = REINCARNATION, build = Ankh, figure = "figureAnkh", bloom = "gilt" },
-	{ key = "crestFlameShock", seat = { -30, -60 }, size = 22, spells = FLAME, known = function() return Medals.Known(FLAME) or Medals.Known(RIPTIDE) end,
+	{ key = "crestFlameShock", seat = { -30, -60 }, size = 22, spells = FLAME, known = function() return Medals.Known(FLAME) or Medals.Known(STORMSTRIKE) or Medals.Known(RIPTIDE) end,
 		build = Medals.Figure, feeds = {
 			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FLAME, figure = "trackerFlame", color = "totemFire", bloom = "totemFire" },
 			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = STORMSTRIKE, figure = "figureStrike", bloom = "totemAir" },
 			{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = RIPTIDE, figure = "figureTide", bloom = "totemWater" },
 		} },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "pipStormGlow", families = { { spells = { 16166 }, sigil = "Bolt" }, { spells = { 16188 }, sigil = "Swift" },
+	{ key = "crestCooldowns", seat = "cooldowns", color = "pipStormGlow", bloom = "pipStormGlow", families = { { spells = { 16166 }, sigil = "Bolt" }, { spells = { 16188 }, sigil = "Swift" },
 			{ spells = { 425336 }, sigil = "Farseer" } } },
 }, {
+	figures = true,
 	burst = "medBurstShaman",
 	events = { "WEAPON_ENCHANT_CHANGED", "BAG_UPDATE_DELAYED" },
 	update = { "PLAYER_EQUIPMENT_CHANGED" },

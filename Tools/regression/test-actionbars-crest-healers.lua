@@ -268,6 +268,10 @@ do
 	assert(Says("crestShadowfiend", "Shadowfiend", "Shadowform", "Vampiric Embrace"), "the right-medal switch names Vampiric Embrace")
 	assert(Says("crestThird", "Faerie Fire", "Wild Growth", "Cat Form"), "the Faerie Fire switch names its Cat Form socket")
 	assert(Says("crestAnkh", "Reincarnation", "Ankh") and not Says("crestAnkh", "gold"), "the ankh switch describes the cooldown medal")
+	assert(Says("crestPenance", "left shoulder") and Says("crestThird", "above the crest") and Says("crestMend", "dome", "feet"), "the switches say where each figure stands")
+	for _, key in ipairs({ "crestPenance", "crestSeeds", "crestThird", "crestMend" }) do
+		assert(not Says(key, "medal") and not Says(key, "shield, Renew and Prayer of Mending on your target above"), key .. "'s help still describes a removed medal")
+	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -457,6 +461,7 @@ do
 	env._ankhs = 0
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(ankh.lit.bar:GetAlpha() < 1, "no Ankh in the bags: it greys")
+	assert(not ankh.lit.bloom:IsShown(), "and its gilt bloom goes out, so nothing gold says it is ready")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -690,7 +695,8 @@ for _, size in ipairs(SIZES) do
 		if env.issecretvalue(right) or env.issecretvalue(s) then
 			return nil
 		end
-		for _, v in ipairs({ (right - region:GetLeft()) * s, (region:GetTop() - region:GetBottom()) * s }) do
+		local w = right and right - region:GetLeft() or region:GetWidth()
+		for _, v in ipairs({ w * s, (right and region:GetTop() - region:GetBottom() or region:GetHeight()) * s }) do
 			local n = math.floor(v + 0.5)
 			if math.abs(v - n) > 1e-3 or n % 2 ~= 0 then return false end
 		end
@@ -713,31 +719,33 @@ end
 
 -- No crest piece of these classes draws a spell or item icon, on the crest or in the Frames row, in any form or
 -- spec: every texture is the crest's own art (a path, never a file ID) and no aura button is handed an icon region.
-local SOCKET = { "Ring128", "Ring256", "Enamel128", "Enamel256" }
-local MINE = {}
-for _, key in ipairs({ "crestInnerFire", "crestPenance", "crestShadowfiend", "crestPain", "crestMend", "crestPlague", "crestDeath", "crestSilence",
-	"crestOil", "crestSeeds", "crestThird", "crestGrowl", "crestCharge", "crestBite", "crestBash", "crestLeaves", "crestSwiftmend", "crestTankGlow",
-	"crestImbues", "crestShock", "crestAnkh", "crestFlameShock", "crestFiveSecond" }) do
-	MINE[key] = true
-end
+-- Only the shared cooldown sigils (#809) and the swing ring (#808) keep their forged rings.
+local SOCKET, SHARED = { "Ring128", "Ring256", "Enamel128", "Enamel256" }, { crestCooldowns = true, crestSwing = true }
 local function Icons(frame, found, mine)
 	if frame._icon then
 		found[#found + 1] = "an aura button's icon"
 	end
 	for _, region in ipairs(frame._regions or {}) do
-		local texture = region._state and region._state.Texture
-		if texture and type(texture[1]) == "number" then
-			found[#found + 1] = "file " .. texture[1]
+		local texture = region._state and region._state.Texture and region._state.Texture[1]
+		if type(texture) == "number" or type(texture) == "string" and texture:lower():find("interface\\icons\\", 1, true) then
+			found[#found + 1] = "icon " .. texture
 		end
-		for _, name in ipairs(mine and not frame.sigils and SOCKET or {}) do
-			if texture and type(texture[1]) == "string" and texture[1]:find(name, 1, true) then
+		for _, name in ipairs(mine and type(texture) == "string" and SOCKET or {}) do
+			if texture:find(name, 1, true) then
 				found[#found + 1] = "a round medal frame (" .. name .. ")"
 			end
 		end
 	end
 	for _, child in ipairs(frame._kids or {}) do
-		if not (child.sigils or frame.sigils) then
-			Icons(child, found, mine or child.spec and MINE[child.spec.key])
+		Icons(child, found, mine)
+	end
+	return found
+end
+local function Guard(form)
+	local found = Icons(form.frame, {}, false)
+	for _, piece in pairs(form.pieces) do
+		if not SHARED[piece.spec.key] then
+			Icons(piece, found, true)
 		end
 	end
 	return found
@@ -754,8 +762,7 @@ for _, case in ipairs({
 	for _, style in ipairs({ "medallions", "frames" }) do
 		K.Options.Write("HudStyle", "style", style)
 		env.RunTimers()
-		local form = ns.SlabTrackers.state.forms[style == "frames" and "row" or "crest"]
-		local found = Icons(form.frame, {})
+		local found = Guard(ns.SlabTrackers.state.forms[style == "frames" and "row" or "crest"])
 		assert(#found == 0, case[1] .. " under " .. style .. " draws icons or round medal frames (" .. table.concat(found, ", ") .. "): give the piece a free-standing figure, a jewel or a sigil")
 	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
@@ -794,7 +801,11 @@ do
 	env.SetCombat(true)
 	env._aurasSecret, env._form = true, 28
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
-	assert(b.flood:IsShown() and b.flood.tint:GetAlpha() > 0, "in Shadowform, even in combat, the crest floods violet")
+	local tint
+	for _, region in ipairs(b.flood._regions) do
+		tint = tint or region._state.Texture and region._state.Texture[1] == ns.Slab.hub.crestPath and region
+	end
+	assert(b.flood:IsShown() and tint and tint:GetAlpha() > 0, "in Shadowform, even in combat, the crest floods violet")
 	env._form = 0
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	assert(not b.flood:IsShown() and b.shadowform:IsShown(), "leaving the form drains the flood and the shroud waits on the right")
@@ -851,6 +862,123 @@ for _, size in ipairs(SIZES) do
 		end
 		assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 	end
+end
+
+-- The guard catches an icon path or a file ID under a sigil, and a round frame under a piece whose builder replaced
+-- its spec (the Frames Inner Fire).
+do
+	local env, K, ns = New("PRIEST", { 10952, 10060 })
+	local crest = ns.SlabTrackers.state.forms.crest
+	assert(#Guard(crest) == 0, "a clean crest passes the guard")
+	local sigil = Tracker(ns, "PRIEST").built.cooldowns.sigils[1]
+	sigil:CreateTexture():SetTexture("Interface\\Icons\\Spell_Holy_PowerInfusion")
+	assert(#Guard(crest) == 1, "an icon path under a sigil is an icon")
+	sigil:CreateTexture():SetTexture(135939)
+	assert(#Guard(crest) == 2, "so is a file ID under a sigil")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	local row = ns.SlabTrackers.state.forms.row
+	Tracker(ns, "PRIEST").built.innerFireRow:CreateTexture():SetTexture("Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Ring256.png")
+	assert(#Guard(row) == 1, "a round frame under the Frames Inner Fire is caught though its builder replaced the spec")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Auras warn before they end and arrive softly, as the approved films do: a figure fades in over 0.12 s when its aura
+-- appears (the engine's shown animation) and flickers inside the engine's pandemic window (its pandemic-active
+-- animation; the engine hides a button the moment its aura goes, so there is no fade out). A ready cooldown's bloom
+-- breathes at Full while the crest is awake. Calm holds them still.
+do
+	local env, K, ns = New("PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 })
+	local b = Tracker(ns, "PRIEST").built
+	local renew, lance = b.renew.lits[1], b.penance.lit
+	local function Has(list, group)
+		for _, g in ipairs(list or {}) do
+			if g == group then return true end
+		end
+		return false
+	end
+	assert(renew.flicker and Has(renew._pandemicAnimations, renew.flicker), "at Full the engine flickers an aura's figure in its pandemic window")
+	assert(renew.loops and Has(renew._shownAnimations, renew.loops[1]), "and fades it in as the aura appears")
+	assert(b.mend.lits[1].loops and not b.mend.flare, "the shield's dome fades in over the crest; no burst whites it out")
+	Slots.Set(env, "target", { { id = 25315, count = 0, start = 0, duration = 15 } })
+	assert(renew.loops[1]:IsPlaying() and not renew.flicker:IsPlaying(), "Renew lands: the fade plays, no warning yet")
+	Slots.Set(env, "target", { { id = 25315, count = 0, start = 0, duration = 15, pandemic = true } })
+	assert(renew.flicker:IsPlaying(), "inside its pandemic window the figure flickers")
+	Slots.Set(env, "target", nil)
+	assert(not renew.flicker:IsPlaying() and not renew:IsShown(), "and it is gone when Renew ends")
+	env.SetCombat(true)
+	env.RunTimers()
+	assert(lance.loop and lance.loop:IsPlaying(), "a ready cooldown's bloom breathes at Full")
+	K.Options.Write("Medallions", "motion", "calm")
+	env.RunTimers()
+	assert(not Has(renew._pandemicAnimations, renew.flicker) and not Has(renew._shownAnimations, renew.loops[1]) and not lance.loop:IsPlaying(), "Calm holds them still")
+	env.SetCombat(false)
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A motion change resets the shared sigil container once, not once per sigil: registering a sigil's flash never
+-- toggles the container it shares (each SetEnabled refreshes every aura on it, Blizzard_AuraContainer.lua:28).
+do
+	local env, K, ns = New("PRIEST", { 10952, 10060, 14751, 6346, 2651 })
+	local rim = Tracker(ns, "PRIEST").built.cooldowns
+	local calls, set = 0, rim.lit.container.SetEnabled
+	rim.lit.container.SetEnabled = function(self, on)
+		calls = calls + 1
+		return set(self, on)
+	end
+	assert(rim.sigils[1].loop, "a healer's sigil has its flash")
+	K.Options.Write("Medallions", "motion", "calm")
+	env.RunTimers()
+	assert(calls == 2, "Full to Calm resets the shared container once (off, on), not " .. calls .. " times")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- The cat's Faerie Fire jewel keeps the crest's socket size, the same as its sibling jewels, not its caster crown's.
+do
+	local known = { 1238070 }
+	for _, id in ipairs(DRUID) do known[#known + 1] = id end
+	local env, K, ns = New("DRUID", known)
+	local b = Tracker(ns, "DRUID").built
+	assert(b.faerieGem.units == b.bite.units and b.bite.units == 12, "the cat's Faerie Fire jewel is 12 units like Bite and Bash, not " .. b.faerieGem.units)
+	assert(b.rake.flare._regions[1].units <= 72, "Rake's arrival flare stays local, no larger than a perched figure's, not " .. b.rake.flare._regions[1].units)
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Every figure's spark is a part the crest snaps to whole pixels.
+do
+	local env, K, ns = New("PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 })
+	for key, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+		for _, lit in ipairs(piece.lits or {}) do
+			local spark
+			for _, region in ipairs(lit.bar and lit.bar._regions or {}) do
+				spark = spark or region ~= lit.bar:GetStatusBarTexture() and region
+			end
+			local listed = false
+			for _, part in ipairs(piece.parts) do
+				listed = listed or part == spark
+			end
+			assert(not lit.bar or spark and listed, key .. "'s spark is not a part, so it is never snapped")
+		end
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Prayer of Mending's bloom is gold, so its white ring and star keep their shape at 1080.
+do
+	local env, K, ns = New("PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 })
+	local r, g, bl = Tracker(ns, "PRIEST").built.mended.lits[1].bloom:GetVertexColor()
+	assert(not (r > 0.9 and g > 0.9 and bl > 0.9), "Prayer of Mending's bloom is not white")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Stormstrike alone builds the left foot: its bolt burns down there.
+do
+	local env, K, ns = New("SHAMAN", { 17364 })
+	local foot = Tracker(ns, "SHAMAN").built.flameShock
+	assert(foot, "a shaman who knows only Stormstrike gets the left foot")
+	Slots.Set(env, "target", { { id = 17364, count = 0, harmful = true, start = 0, duration = 12 } })
+	assert(foot.lits[2]:IsShown() and foot.lits[2].spec.figure == "figureStrike", "Stormstrike's bolt shows there")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
 print("actionbars crest healers ok")

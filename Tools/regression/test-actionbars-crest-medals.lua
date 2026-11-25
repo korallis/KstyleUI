@@ -159,9 +159,8 @@ do
 	for i, b in ipairs(rim.sigils) do
 		assert(not b.at or math.abs(b.at[1]) + 7 <= 25 and b.at[2] - 7 >= -44, i .. ": clear of the lower Inner Fire flames (x 32.5 and out) and the feet")
 	end
-	assert(Played(rim.sigils[1]._shownAnimations, rim.sigils[1].loop), "at Full the engine flashes a sigil's bloom as its cooldown lights")
+	assert(not rim.sigils[1].loop and rim.sigils[1]._regions[1]._state.VertexColor[1] == 0, "a sigil keeps #809's dark shade: the healers' bloom and flash are theirs alone")
 	Slots.Set(env, "player", { { id = 1719, count = 0, icon = 1, start = 0, duration = 15 }, { id = 871, count = 0, icon = 2, start = 0, duration = 10 } })
-	assert(rim.sigils[1].loop:IsPlaying(), "and the flash plays")
 	assert(rim.lit:IsShown() and AB.W.LastCall(rim.timer, "SetCooldownFromDurationObject")[1].finish == 10, "the newest cooldown burns on the rim")
 	assert(rim.sigils[1]:IsShown() and rim.sigils[2]:IsShown() and not rim.sigils[3]:IsShown(), "each running family lights its sigil")
 	assert(AB.W.LastCall(rim.sigils[2].timer, "SetCooldownFromDurationObject")[1].finish == 10, "each sigil's ring drains with its own aura")
@@ -184,8 +183,7 @@ do
 	assert(ok, "a hunter's cooldowns build under Frames: " .. tostring(rim))
 	Medals.Place(rim, parent, 0, 0)
 	Medals.Engine({ rim }, true, true)
-	local pet = rim.sigils[5].container
-	assert(pet._unit == "pet" and pet ~= rim.sigils[1].container and not rim.timer, "the pet's family has its own container, and the row has no rim")
+	assert(#rim.lits == 2 and rim.lits[2].container._unit == "pet" and not rim.timer, "the pet's family has its own container, and the row has no rim")
 	for i, b in ipairs(rim.sigils) do
 		assert(b.at and b.at[1] == 14 * (i - 1) and b.at[2] == 0, i .. ": its own place along the strip, the pet's after the player's four")
 		local ring = false
@@ -199,7 +197,7 @@ do
 	Slots.Set(env, "player", { { id = 3045, count = 0, icon = 8, start = 0, duration = 15 } })
 	assert(rim.sigils[5]:IsShown() and rim.sigils[1]:IsShown(), "the pet's Bestial Wrath and Rapid Fire light together")
 	local calls = 0
-	pet.UpdateAllAuras = function() calls = calls + 1 end
+	rim.lits[2].container.UpdateAllAuras = function() calls = calls + 1 end
 	env.FireEvent("UNIT_PET", "player")
 	assert(calls == 1, "a new pet refreshes the pet slot")
 	Slots.Set(env, "pet", nil)

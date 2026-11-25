@@ -59,6 +59,10 @@ local function PlacePlaque(piece, anchor, form, _, n)
 	return n
 end
 
+local function FiveSecondPiece(parent, spec, level, form)
+	return (form == "crest" and Medals.Plaque or Medals.Medal)(parent, spec, level)
+end
+
 local function Trinket(p)
 	local item = type(GetInventoryItemID) == "function" and GetInventoryItemID("player", p.slot)
 	local get = C_Item and C_Item.GetItemSpell
@@ -83,8 +87,8 @@ end
 
 function Trackers.Register(class, rows, hooks)
 	if not CLASSES[class] and MANA[class] then
-		CLASSES[class] = { { key = "crestFiveSecond", seat = "plaque", feed = "fiveSecond", known = Always, color = "hudMana",
-			build = Medals.Plaque, place = PlacePlaque, choices = { { forms = hooks and hooks.fiveSecondForms } } } }
+		CLASSES[class] = { { key = "crestFiveSecond", seat = "plaque", feed = "fiveSecond", known = Always, color = "hudMana", texture = 136053,
+			build = hooks and hooks.figures and Medals.Plaque or FiveSecondPiece, place = PlacePlaque, choices = { { forms = hooks and hooks.fiveSecondForms } } } }
 	end
 	CLASSES[class] = CLASSES[class] or {}
 	local cooldowns
@@ -94,7 +98,8 @@ function Trackers.Register(class, rows, hooks)
 	end
 	HOOKS[class] = hooks or HOOKS[class]
 	for slot = 13, cooldowns and 14 or 0 do
-		table.insert(CLASSES[class], { key = "crestTrinkets", seat = { slot == 13 and -TRINKET or TRINKET, 0 }, slot = slot, feed = "item", known = Trinket, color = cooldowns.color })
+		table.insert(CLASSES[class], { key = "crestTrinkets", seat = { slot == 13 and -TRINKET or TRINKET, 0 }, slot = slot, feed = "item", known = Trinket, color = cooldowns.color,
+			build = hooks and hooks.figures and Medals.Socket or nil })
 	end
 end
 
@@ -186,7 +191,7 @@ local function Build(form, name, key, spec)
 		return nil
 	end
 	local make = spec.build or spec.feed == "threat" and Medals.Threat or spec.seat == "cooldowns" and Medals.CooldownRim
-		or spec.slot and Medals.Socket or name == "crest" and spec.seat == "rim" and Medals.Rim or Medals.Medal
+		or name == "crest" and (spec.seat == "rim" and Medals.Rim or spec.slot and Medals.Socket) or Medals.Medal
 	local under = spec.seat == "rim" or spec.seat == "cooldowns" or spec.seat == "plaque"
 	local ok, piece = pcall(make, form.frame, spec, form.frame:GetFrameLevel() + (under and 1 or 16), name)
 	if not ok or not piece then

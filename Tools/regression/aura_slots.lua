@@ -8,7 +8,10 @@
 -- Blizzard_AuraContainerShared.lua:108, applied by Blizzard_AuraContainerFrameProviders.lua:84); Slots.Engine still
 -- reaches them. A container feeds nothing until SetEnabled(true). A button plays the groups
 -- AddAuraShownAnimation gave it when its aura appears and stops them when it goes, and restarts the groups
--- AddAuraAssignedAnimation gave it whenever a different aura is assigned (Blizzard_CustomAuraButton.lua:684-691).
+-- AddAuraAssignedAnimation gave it whenever a different aura is assigned (Blizzard_CustomAuraButton.lua:684-691), and
+-- plays the groups AddPandemicActiveAnimation gave it while its aura is in the engine's pandemic window (an aura with
+-- pandemic = true; the engine reads GetRefreshCarryOverDuration, Blizzard_AuraContainerUtil.lua:13-28) and stops them
+-- when it leaves (Blizzard_CustomAuraButton.lua:744-786).
 --
 --   local Slots = dofile("Tools/regression/aura_slots.lua")
 --   Slots.Install(env)                                   -- in an env's setup, before the addon loads
@@ -146,6 +149,13 @@ function Slots.Show(env, c, slot, aura)
 				group:Stop()
 			end
 		end
+		for _, group in ipairs(b._pandemicAnimations or {}) do
+			if not (aura and aura.pandemic) then
+				group:Stop()
+			elseif not group:IsPlaying() then
+				group:Play()
+			end
+		end
 	end
 end
 
@@ -159,15 +169,15 @@ local function Button(env, c, button)
 	button._denied = env._auraDenied
 	-- AddAuraShownAnimation: the engine plays the group when the slot's aura appears and stops it when it goes
 	-- (Blizzard_CustomAuraButton.lua:327-337, 694-705); its animations must target the button or a descendant.
-	for _, kind in ipairs({ "Shown", "Assigned" }) do
+	for kind, field in pairs({ AuraShown = "_shownAnimations", AuraAssigned = "_assignedAnimations", PandemicActive = "_pandemicAnimations" }) do
 		local list = {}
-		button["_" .. kind:lower() .. "Animations"] = list
-		button["AddAura" .. kind .. "Animation"] = function(_, group)
+		button[field] = list
+		button["Add" .. kind .. "Animation"] = function(_, group)
 			Restricted(env)
 			assert(Owns(button, group:GetParent()), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")
 			table.insert(list, group)
 		end
-		button["RemoveAura" .. kind .. "Animation"] = function(_, group)
+		button["Remove" .. kind .. "Animation"] = function(_, group)
 			Restricted(env)
 			for i, added in ipairs(list) do
 				if added == group then

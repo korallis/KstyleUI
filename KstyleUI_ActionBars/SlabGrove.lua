@@ -26,13 +26,8 @@ local maul, bloom = {}, nil
 local Oil, Ring = ns.SlabVigil.Oil, ns.SlabVigil.Ring
 local Join = ns.SlabTrackers.Joined
 
-local function Effect(spells, figure, filter, forms)
-	return { feed = "aura", unit = "target", filter = filter or "HARMFUL|PLAYER", spells = spells, figure = figure, forms = forms }
-end
-
-local function Glow(effect, tint, seat, size)
-	effect.bloom, effect.seat, effect.size = tint, seat, size
-	return effect
+local function Effect(spells, figure, tint, filter, forms, seat, size)
+	return { feed = "aura", unit = "target", filter = filter or "HARMFUL|PLAYER", spells = spells, figure = figure, bloom = tint, forms = forms, seat = seat, size = size }
 end
 
 local function Bloom(parent, spec, level, form)
@@ -101,19 +96,19 @@ end
 
 ns.SlabTrackers.Register("DRUID", {
 	{ key = "crestSeeds", seat = { -62, 40 }, size = PERCH, build = Medals.Figure, choices = {
-		Glow(Effect(ROAR, "figureRoar", nil, BEAR), "jewelCombo", { 0, 88 }, 40),
-		{ forms = CAT, known = Join(RAKE, POUNCE), seat = { -44, 6 }, size = 60, feeds = { Glow(Effect(POUNCE, "figureRake"), "jewelCombo"), Glow(Effect(RAKE, "figureRake"), "plateHostile") } },
-		{ forms = Join(CASTER, MOONKIN), known = Join(MOONFIRE, REJUVENATION), feeds = { Glow(Effect(MOONFIRE, "figureMoon"), "schoolArcane"),
-			Glow(Effect(REJUVENATION, "figureBud", "HELPFUL|PLAYER"), "schoolNature") } },
+		Effect(ROAR, "figureRoar", "jewelCombo", nil, BEAR, { 0, 88 }, 40),
+		{ forms = CAT, known = Join(RAKE, POUNCE), seat = { -44, 6 }, size = 60, feeds = { Effect(POUNCE, "figureRake", "jewelCombo"), Effect(RAKE, "figureRake", "plateHostile") } },
+		{ forms = Join(CASTER, MOONKIN), known = Join(MOONFIRE, REJUVENATION), feeds = { Effect(MOONFIRE, "figureMoon", "schoolArcane"),
+			Effect(REJUVENATION, "figureBud", "schoolNature", "HELPFUL|PLAYER") } },
 	} },
 	{ key = "crestSeeds", seat = { 62, 40 }, size = PERCH, build = Medals.Figure, choices = {
-		Glow(Effect(FAERIE, "figureFaerie", nil, BEAR), "schoolArcane"), Glow(Effect(RIP, "figureRip", nil, CAT), "plateHostile", { 44, 6 }, 56),
-		{ forms = Join(CASTER, MOONKIN), known = Join(SWARM, REGROWTH), feeds = { Glow(Effect(SWARM, "figureSwarm"), "jewelHawk"),
-			Glow(Effect(REGROWTH, "figureSprout", "HELPFUL|PLAYER"), "schoolNature") } },
+		Effect(FAERIE, "figureFaerie", "schoolArcane", nil, BEAR), Effect(RIP, "figureRip", "plateHostile", nil, CAT, { 44, 6 }, 56),
+		{ forms = Join(CASTER, MOONKIN), known = Join(SWARM, REGROWTH), feeds = { Effect(SWARM, "figureSwarm", "jewelHawk"),
+			Effect(REGROWTH, "figureSprout", "schoolNature", "HELPFUL|PLAYER") } },
 	} },
 	{ key = "crestThird", seat = { 0, 92 }, size = 30, build = Medals.Figure, choices = {
-		{ forms = CASTER, known = Join(FAERIE, GROWTH), feeds = { Glow(Effect(FAERIE, "figureFaerie"), "schoolArcane"), Glow(Effect(GROWTH, "figureGrowth", "HELPFUL|PLAYER"), "schoolNature") } },
-		Glow(Effect(FAERIE, "figureFaerie", nil, MOONKIN), "schoolArcane"), Gems({ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FAERIE, color = "schoolArcane",
+		{ forms = CASTER, known = Join(FAERIE, GROWTH), feeds = { Effect(FAERIE, "figureFaerie", "schoolArcane"), Effect(GROWTH, "figureGrowth", "schoolNature", "HELPFUL|PLAYER") } },
+		Effect(FAERIE, "figureFaerie", "schoolArcane", nil, MOONKIN), Gems({ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FAERIE, color = "schoolArcane",
 			forms = CAT, seat = "lowerLeft" }),
 	} },
 	{ key = "crestGrowl", seat = { -30, -60 }, size = FOOT, feed = "cooldown", known = GROWL, forms = BEAR, build = Medals.Figure, figure = "figureGrowl", bloom = "jewelCombo" },
@@ -121,7 +116,7 @@ ns.SlabTrackers.Register("DRUID", {
 		bloom = "jewelCombo" },
 	{ key = "crestBite", seat = "lowerLeft", feed = "cooldown", known = BITE, forms = BEAR, color = "jewelCombo", build = Medals.Socket },
 	{ key = "crestBash", seat = "lowerRight", feed = "cooldown", known = BASH, forms = BEAR, color = "jewelCombo", build = Medals.Socket },
-	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, forms = Join(CASTER, MOONKIN), color = "jewelHoly" },
+	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, forms = Join(CASTER, MOONKIN), color = "jewelHoly", build = Medals.Socket },
 	{ key = "crestLeaves", seat = "rim", known = OMEN, spells = CLEARCASTING, build = Bloom, place = Ring },
 	{ key = "crestSwiftmend", seat = "topGem", feed = "cooldown", choices = {
 		Gems({ forms = BEAR, known = MAUL, color = "jewelCombo", build = Maul }),
@@ -129,10 +124,10 @@ ns.SlabTrackers.Register("DRUID", {
 		Gems({ forms = CASTER, known = { 18562 } }), Gems({ forms = CASTER, known = { 17116 } }), Gems({ forms = CASTER, known = { 29166 } }),
 	} },
 	{ key = "crestTankGlow", seat = "rim", feed = "threat", build = Emblem, color = "gilt", forms = BEAR, known = { 9634, 5487 } },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "pipDruidGlow", choices = {
+	{ key = "crestCooldowns", seat = "cooldowns", color = "pipDruidGlow", bloom = "pipDruidGlow", choices = {
 		{ forms = BEAR, families = { { spells = { 22842 }, sigil = "Mend" }, { spells = { 5229 }, sigil = "Fang" }, BARKSKIN, DASH } },
 		{ forms = CAT, families = { DASH, BARKSKIN } },
 		{ families = { { spells = { 29166 }, sigil = "Innervate" }, { spells = { 17116 }, sigil = "Swift" }, BARKSKIN, DASH,
 				{ spells = { 16689, 16810, 16811, 16812, 16813, 17329 }, sigil = "Roots" } } },
 	} },
-}, { burst = "medBurstDruid", fiveSecondForms = Join(CASTER, MOONKIN), events = { "CURRENT_SPELL_CAST_CHANGED" }, update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" }, paint = Queued, motion = Unfurl })
+}, { figures = true, burst = "medBurstDruid", fiveSecondForms = Join(CASTER, MOONKIN), events = { "CURRENT_SPELL_CAST_CHANGED" }, update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" }, paint = Queued, motion = Unfurl })

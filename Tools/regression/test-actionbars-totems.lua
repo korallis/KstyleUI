@@ -123,7 +123,18 @@ do
 		return found
 	end
 	assert(#Framed(state.wolf, {}) == 0 and #Framed(state.call, {}) == 0 and #state.call.runes == 4, "the medals are a spirit wolf and four element runes, with no spell icon and no round medal frame: " .. table.concat(Framed(state.wolf, Framed(state.call, {})), ", "))
-	assert(tostring(state.wolf.icon._state.Texture[1]):find("Wolf", 1, true), "Ghost Wolf's medal is the spirit wolf figure")
+	local function Art(frame, name)
+		for _, region in ipairs(frame._regions) do
+			local t = region._state.Texture and tostring(region._state.Texture[1])
+			if t and t:find(name, 1, true) then return region end
+		end
+	end
+	assert(Art(state.wolf, "Figures\\Wolf"), "Ghost Wolf's medal is the spirit wolf figure")
+	assert(Art(state.wolf, "Glow") and Art(state.call, "Glow"), "a dark shade backs each medal, so the wolf's face and the runes read against the crest")
+	assert(Art(state.wolf.spirit, "Ring.png") and not Art(state.wolf.spirit, "Glow"), "wolf form rings the medal; no glow fills the wolf's face")
+	for _, rune in ipairs(state.call.runes) do
+		assert(rune:GetWidth() >= 0.44 * state.call:GetWidth(), "each element rune is almost half the medal, legible at 1080")
+	end
 
 	-- Drop a totem: the socket casts its action.
 	AB.Click(env, fire, "LeftButton", false)

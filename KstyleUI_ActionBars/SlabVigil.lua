@@ -102,7 +102,6 @@ local function Flood(parent, spec, level, form)
 	local hub = ns.Slab.hub
 	local f = Medals.Piece(parent, level, ns.Slab.RING)
 	local tint = f:CreateTexture(nil, "ARTWORK")
-	f.tint = tint
 	tint:SetTexture(hub.crestPath)
 	tint:SetAllPoints(hub.crest)
 	tint:SetVertexColor(K.Tokens.Color("schoolShadow"))
@@ -196,20 +195,21 @@ ns.SlabTrackers.Register("PRIEST", {
 		{ feed = "cooldown", known = Healer(MENDING), color = "white" },
 		{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PAIN, color = "schoolShadow" },
 	} },
-	Mend(SHIELD, "figureDome", { 0, 16 }, 116), Mend(RENEW, "figureRenew", { -30, -60 }, FOOT, "schoolNature"), Mend(MENDED, "figureMending", { 30, -60 }, FOOT, "white"),
+	Mend(SHIELD, "figureDome", { 0, 16 }, 116), Mend(RENEW, "figureRenew", { -30, -60 }, FOOT, "schoolNature"), Mend(MENDED, "figureMending", { 30, -60 }, FOOT, "jewelHoly"),
 	{ key = "crestPlague", seat = { -30, -60 }, size = FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PLAGUE,
 		known = ShadowOnly(PLAGUE), build = Medals.Figure, figure = "figurePlague", bloom = "schoolNature" },
 	{ key = "crestDeath", seat = { 30, -60 }, size = FOOT, feed = "cooldown", known = ShadowOnly(DEATH), build = Medals.Figure, figure = "figureReaper",
 		bloom = "schoolShadow" },
 	{ key = "crestSilence", seat = "lowerLeft", feed = "cooldown", known = SILENCE, color = "schoolShadow", build = Medals.Socket },
-	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, color = "jewelHoly" },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = {
+	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, color = "jewelHoly", build = Medals.Socket },
+	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", bloom = "pipPriestGlow", families = {
 		{ spells = { 10060 }, sigil = "Infusion" }, { spells = { 14751 }, sigil = "Focus" },
 		{ spells = { 586, 9578, 9579, 9592, 10941, 10942 }, sigil = "Veil" }, { spells = { 6346 }, sigil = "Brave" }, { spells = { 2651 }, sigil = "Moon" },
 		{ spells = { 13896, 19271, 19273, 19274, 19275 }, sigil = "Feedback" }, { spells = { 1277328, 1277327, 1277326, 1277325, 1277324 }, sigil = "Sacrifice" },
 		{ spells = { 1277640, 1277639, 1277638, 1277634, 1277462 }, sigil = "Lifeline" },
 	} },
 }, {
+	figures = true,
 	burst = "medBurstPriest",
 	update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" },
 	events = { { "UNIT_AURA", "player" }, { "UNIT_SPELLCAST_SUCCEEDED", "player" } },

@@ -22,7 +22,7 @@ from sigils import N, Pen, bezier
 
 OUT = Path(__file__).resolve().parents[2] / "Media/Textures/Figures"
 HOLY, SHADOW, BLOOD = (1.0, 0.8, 0.38), (0.62, 0.36, 1.0), (0.95, 0.16, 0.2)
-NATURE, ARCANE, FIRE = (0.42, 0.95, 0.36), (0.62, 0.72, 1.0), (1.0, 0.5, 0.16)
+NATURE, ARCANE = (0.42, 0.95, 0.36), (0.62, 0.72, 1.0)
 FROST, STORM, AMBER = (0.36, 0.66, 1.0), (0.62, 0.84, 1.0), (1.0, 0.68, 0.26)
 FIGURES = {}
 
@@ -60,7 +60,7 @@ def tapered(p, f, w0, w1, steps=40):
     for k in range(steps + 1):
         t = k / steps
         x, y = f(t)
-        x2, y2 = f(min(1, t + 0.01)) if t < 1 else f(t)
+        x2, y2 = f(min(1, t + 0.01))
         x1, y1 = f(max(0, t - 0.01))
         dx, dy = x2 - x1, y2 - y1
         length = math.hypot(dx, dy) or 1
@@ -266,7 +266,7 @@ def render(draw, colour, core_colour):
     pen = Pen()
     draw(pen)
     mask = np.asarray(pen.image, np.float64) / 255
-    x, y = grid()
+    _, y = grid()
     glow = np.clip(blur(mask, 4) * 1.4, 0, 1)
     core = 0.65 * np.clip((blur(mask, 2.2) - 0.72) / 0.26, 0, 1) * mask
     shade = 0.72 + 0.28 * (1 - y)

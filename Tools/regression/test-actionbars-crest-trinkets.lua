@@ -66,6 +66,11 @@ local function Seat(ns, p)
 	return x * s - hx, y * s - hy
 end
 
+local function Grey(piece)
+	local call = AB.W.LastCall(piece.lit.icon, "SetDesaturated")
+	return call ~= nil and call[1] == true
+end
+
 -- No trinket, or one without a use effect: nothing.
 do
 	local env, K, ns = New()
@@ -169,14 +174,14 @@ do
 	Clean(env, K, "unlocked")
 end
 
--- Frames: the crest's jewel at medal size in the row above the stance bar, refilling over the cooldown, no rim.
+-- Frames: an icon medal in the row above the stance bar.
 do
 	local env, K, ns = New({ frames = true, items = { [13] = 5002 } })
 	local medal = Trinket(ns, 13, "row")
-	assert(medal and medal.bar and not medal.steel and medal.lit:IsShown() and medal.timer:GetParent() == medal.lit, "under Frames the trinket is a jewel, no icon and no rim")
+	assert(medal and medal.steel and medal.lit:IsShown() and medal.lit.icon._state.Texture[1] == 205002, "under Frames the trinket is a medal with its icon")
 	env._cd[13] = { 100, 120, 1, false }
 	env.FireEvent("BAG_UPDATE_COOLDOWN")
-	assert(AB.W.LastCall(medal.bar, "SetTimerDuration"), "and refills over its cooldown there")
+	assert(Grey(medal) and AB.W.LastCall(medal.timer, "SetCooldown"), "and burns its cooldown there")
 	Clean(env, K, "frames")
 end
 
