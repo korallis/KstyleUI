@@ -206,6 +206,24 @@ do
 	Clean(env, K, "cooldowns")
 end
 
+-- Eureka!, the gnome racial, has its own spell for each class that has it on Forever (the 71091 cooldown sets: rogue
+-- 1259812, warrior 1259813, mage 1259817, warlock 1259821, priest 1259823); each one places and lights the shared Gear
+-- sigil on its class's cooldown rim (the KSTY-61 plan's Eureka! check).
+for _, case in ipairs({ { "ROGUE", 1259812 }, { "WARRIOR", 1259813 }, { "MAGE", 1259817 }, { "WARLOCK", 1259821 }, { "PRIEST", 1259823 } }) do
+	local class, eureka = case[1], case[2]
+	local env, K, ns = New(class, { eureka })
+	local gear
+	for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+		for _, b in ipairs(p.sigils or {}) do
+			if b.at and b.family.sigil == "Gear" then gear = b end
+		end
+	end
+	assert(gear, class .. ": Eureka! " .. eureka .. " places the Gear sigil on the cooldown rim")
+	Slots.Set(env, "player", { { id = eureka, count = 0, icon = 136243, start = 0, duration = 8 } })
+	assert(gear:IsShown(), class .. ": its Eureka! lights the Gear sigil")
+	Clean(env, K, class .. " Eureka!")
+end
+
 -- Stances and stealth: every known choice is built out of combat, the form picks which shows, in combat too.
 do
 	local env, K, ns = New("WARRIOR", { 25289, 20662, 11585, 25288 })

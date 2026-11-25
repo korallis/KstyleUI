@@ -30,7 +30,7 @@ end
 local SHARED = {
 	{ spells = { 20572 }, sigil = "Axe" }, { spells = { 20554 }, sigil = "Tusks" }, { spells = { 20594 }, sigil = "Stone" },
 	{ spells = { 20600 }, sigil = "Eye" }, { spells = { 7744 }, sigil = "Grave" }, { spells = { 1299026 }, sigil = "Shatter" },
-	{ spells = { 1259799 }, sigil = "Star" }, { spells = { 1259812 }, sigil = "Gear" }, { spells = { 1260270 }, sigil = "Regen" },
+	{ spells = { 1259799 }, sigil = "Star" }, { spells = { 1259812, 1259813, 1259817, 1259821, 1259823 }, sigil = "Gear" }, { spells = { 1260270 }, sigil = "Regen" },
 	{ spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {}, sigil = "Potion" },
 }
 local CLASSES, HOOKS, JOINED = {}, {}, {}
