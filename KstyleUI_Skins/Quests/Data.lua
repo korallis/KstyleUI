@@ -258,7 +258,7 @@ do
 	ns.QuestParty = Party
 	local OWNER, PREFIX, LIMIT = "Skins.Quests.Party", "KstyleQuest1", 240
 	local enabled, registered, pending, generation = false, false, false, 0
-	local peers, sent = {}, {}
+	local peers, sent, queue, stale = {}, {}, {}, true
 	local tip, hovered
 
 	local function Grouped()
@@ -359,26 +359,36 @@ do
 		end)
 	end
 
+	local function Changed()
+		stale = true
+		Schedule()
+	end
+
 	function Flush()
 		if not Grouped() or not Fn(C_ChatInfo, "SendAddonMessage") then return end
-		local current = Snapshot()
-		if not current then return end
-		local packet, updates = "1;", {}
-		for id, record in pairs(current) do
-			if record ~= sent[id] and #packet + #record + 1 <= LIMIT then
-				packet, updates[id] = packet .. record .. ";", record
+		if stale then
+			local current = Snapshot()
+			if not current then return end
+			queue, stale = {}, false
+			for id, record in pairs(current) do
+				if record ~= sent[id] then queue[id] = record end
+			end
+			for id in pairs(sent) do
+				if not current[id] then queue[id] = false end
 			end
 		end
-		for id in pairs(sent) do
-			local record = id .. ":-;"
-			if not current[id] and #packet + #record <= LIMIT then packet, updates[id] = packet .. record, false end
+		local packet, updates = "1;", {}
+		for id, record in pairs(queue) do
+			local piece = record and record .. ";" or id .. ":-;"
+			if #packet + #piece <= LIMIT then packet, updates[id] = packet .. piece, record end
 		end
 		if packet == "1;" then return end
 		local status = C_ChatInfo.SendAddonMessage(PREFIX, packet, "PARTY")
-		if not IsSecret(status) and status == 0 then
-			for id, record in pairs(updates) do sent[id] = record or nil end
+		if IsSecret(status) then return end
+		if status == 0 then
+			for id, record in pairs(updates) do sent[id], queue[id] = record or nil, nil end
 		end
-		if not IsSecret(status) and (status == 0 or status == 3 or status == 8) then Schedule() end
+		if (status == 0 and next(queue) ~= nil) or status == 3 or status == 8 then Schedule() end
 	end
 
 	local function Receive(_, prefix, message, channel, sender)
@@ -478,14 +488,14 @@ do
 		on = on == true and ns.Skins.Setting("quests", "partyProgress") == true
 		if enabled == on then return end
 		enabled, pending, generation = on, false, generation + 1
-		peers, sent = {}, {}
+		peers, sent, queue, stale = {}, {}, {}, true
 		Party.Hide()
 		K.Events.UnregisterAll(OWNER)
 		if not on then return end
-		K.Events.Register(OWNER, "QUEST_LOG_UPDATE", Schedule)
-		K.Events.Register(OWNER, "UNIT_QUEST_LOG_CHANGED", Schedule)
+		K.Events.Register(OWNER, "QUEST_LOG_UPDATE", Changed)
+		K.Events.Register(OWNER, "UNIT_QUEST_LOG_CHANGED", Changed)
 		K.Events.Register(OWNER, "GROUP_ROSTER_UPDATE", function()
-			peers, sent = {}, {}
+			peers, sent, queue, stale = {}, {}, {}, true
 			Party.Hide()
 			Schedule()
 		end)

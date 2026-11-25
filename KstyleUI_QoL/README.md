@@ -52,8 +52,9 @@ Selling junk is one feature, in Bags: **Sell junk by itself** on the Bags page, 
 | `LOOT_ITEM_SELF`, `LOOT_ITEM_SELF_MULTIPLE`, `LOOT_ITEM_PUSHED_SELF`, `LOOT_ITEM_PUSHED_SELF_MULTIPLE`, `LOOT_ITEM_CREATED_SELF`, `LOOT_ITEM_CREATED_SELF_MULTIPLE`, `LOOT_ITEM_BONUS_ROLL_SELF`, `LOOT_ITEM_BONUS_ROLL_SELF_MULTIPLE`, `YOU_LOOT_MONEY`, `LOOT_MONEY_SPLIT`, `GOLD_AMOUNT`, `SILVER_AMOUNT`, `COPPER_AMOUNT` | The client's own `GlobalStrings` DB2 table, exported read-only with `Tools/icons/casc_export.py` for build 1.60.1.70862. The UI source checkout does not hold these |
 
 - **Every locale parses.** Each string is turned into an anchored pattern from the client's own text, `%s` and `%d` and positional `%1$s` included, so the feed needs no English word. A string the client lacks leaves the feed silent.
-- **Quality comes from the item API by item ID, never from the link's colour.** The live client writes `|cnIQ0:` into the links of both a Bug Eye and a Worn Leather Vest. When the quality is not cached yet, the line shows at once in the plain colour, the data is requested, and `ITEM_DATA_LOAD_RESULT` paints it.
+- **Quality comes from the item API by item ID, never from the link's colour.** The live client writes `|cnIQ0:` into the links of both a Bug Eye and a Worn Leather Vest. When the quality is not cached yet, the line shows at once in the plain colour, the data is requested once per item until `ITEM_DATA_LOAD_RESULT` answers, and that event paints it.
 - **Another player's loot, a secret line, or text beyond the amounts** (a guild-bank split) is skipped, not guessed at.
+- **Bursts.** A line pushed out of the four live ones fades out. When more than four are fading at once, the oldest fading line is reused for the newest loot, so a burst never holds more than eight lines.
 - **Size.** `Setup.Layouts` plans the footprint (318 by 144: four rows of the `lootTile` token, the gaps and the card's padding). `Feed.lua` reads the line count from it, so the footprint and the feed cannot drift apart; `test-qol-feed.lua` and `test-setup-collisions.lua` hold it.
 
 ## Rules

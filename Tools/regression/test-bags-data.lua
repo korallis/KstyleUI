@@ -215,6 +215,23 @@ do
 	local compiled = Data.Compile(Data.Query("sword | potion"))
 	assert(type(compiled) == "function" and Data.Compile(Data.Query("sword | potion")) == compiled, "a compiled search is cached by its text")
 	assert(Data.Compile(nil) == nil, "no search compiles to nothing")
+
+	-- The idle-work audit's finding 77: every distinct search a player typed stayed compiled until logout.
+	local kept, typed = setmetatable({}, { __mode = "k" }), 0
+	for level = 1, 300 do
+		for _, text in ipairs({ "ilvl>=" .. level, "#" .. level .. "-" .. level + 10, "name:sword & ilvl<" .. level }) do
+			kept[Data.Compile(Data.Query(text))], typed = true, typed + 1
+		end
+		assert(Data.Compile(Data.Query("sword | potion")) == compiled, "the search in use stays compiled while others are typed, at level " .. level)
+	end
+	collectgarbage("collect")
+	collectgarbage("collect")
+	local held = 0
+	for _ in pairs(kept) do
+		held = held + 1
+	end
+	assert(held < 100, "the bag search cache keeps a few dozen searches, not all " .. typed .. " typed: " .. held .. " still held")
+	assert(M(helm, "ilvl>=1") and not M(potion, "ilvl>=1") and M(ring, "#30-40") and not M(helm, "#30-40"), "a search dropped from the cache compiles again and still matches")
 end
 
 -- Free slots ------------------------------------------------------------------------------------

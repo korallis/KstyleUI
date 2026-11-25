@@ -496,7 +496,8 @@ Parse = function(tokens, state)
 	return left
 end
 
-local compiled = {}
+local COMPILED_LIMIT = 32
+local compiled, older, kept = {}, {}, 0
 
 function Data.Compile(query)
 	query = Plain(query, "string")
@@ -504,6 +505,10 @@ function Data.Compile(query)
 		return nil
 	end
 	local fn = compiled[query]
+	if fn then
+		return fn
+	end
+	fn = older[query]
 	if not fn then
 		local tokens = Tokens(query)
 		local state = { i = 1 }
@@ -519,8 +524,11 @@ function Data.Compile(query)
 			end
 		end
 		fn = fn or Nothing
-		compiled[query] = fn
 	end
+	if kept >= COMPILED_LIMIT then
+		compiled, older, kept = {}, compiled, 0
+	end
+	compiled[query], kept = fn, kept + 1
 	return fn
 end
 
