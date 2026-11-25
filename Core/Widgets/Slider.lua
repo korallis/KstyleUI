@@ -194,8 +194,8 @@ local function StartDrag(self, mouse)
 	if not self.enabled or (mouse and mouse ~= "LeftButton") then
 		return
 	end
-	Drag(self)
 	self:SetScript("OnUpdate", Drag)
+	Drag(self)
 end
 
 local function Wheel(self, delta)

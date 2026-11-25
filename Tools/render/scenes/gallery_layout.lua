@@ -40,7 +40,7 @@ local function LayOutToolbar(env, K, panel)
 	local content = panel.content
 	local gap = Tokens.Size("gapMedium")
 	local x, tallest = 0, 0
-	for i, item in ipairs({ panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.search, panel.elements, panel.done }) do
+	for i, item in ipairs({ panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.search, panel.elements, panel.discard, panel.done }) do
 		local width = item:GetWidth() or 0
 		if item.trackBox and item.label then
 			local path, size = Scene.Font(env, item.label)
@@ -89,7 +89,7 @@ return Common.Run(function()
 	W.Settle(env)
 	frames:Add(env, toolbar, {
 		name = "layout_toolbar", title = "Layout Mode toolbar", grade = "window", reference = "chat",
-		caption = "The Layout Mode toolbar: a titled glass window with the Grid and Snap toggles, Undo and Redo disabled before any change, Reset and the primary Done button.",
+		caption = "The Layout Mode toolbar: a titled glass window with the Grid and Snap toggles, Undo and Redo disabled before any change, Reset, Discard and the primary Done button.",
 		match = "Window grade as the mockup's chat panel: surface fill, the dark outer and light inner lines, the 12-unit chamfer and the drop shadow; the toggles and buttons inside are the bar and button grades.",
 	})
 	local plates = { Mode.Plate("gallery.chat"), Mode.Plate("gallery.player"), target, Mode.Plate("gallery.buffs") }

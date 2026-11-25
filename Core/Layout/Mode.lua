@@ -966,6 +966,10 @@ local function BuildToolbar()
 			if Layout.IsActive() then Layout.ResetAll() end
 		end,
 	})
+	panel.discard = Widgets.Button(content, {
+		text = L["Discard"], tooltip = L["Restore the positions from when Layout Mode opened, then leave."],
+		onClick = function() Layout.Exit(false) end,
+	})
 	panel.done = Widgets.Button(content, {
 		text = L["Done"], primary = true, tooltip = L["Keep the layout and leave Layout Mode."],
 		onClick = function()
@@ -1017,7 +1021,7 @@ local function BuildToolbar()
 		panel.bind:SetShown(ns.Store.Module("ActionBars").bindingHints ~= false)
 		local gap = Tokens.Size("gapMedium")
 		local x, tallest = 0, 0
-		for i, item in ipairs({ panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.restore, panel.search, panel.elements, panel.done }) do
+		for i, item in ipairs({ panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.restore, panel.search, panel.elements, panel.discard, panel.done }) do
 			if item:IsShown() then
 				item:ClearAllPoints()
 				item:SetPoint("LEFT", content, "LEFT", Widgets.Snap(panel, x), 0)
@@ -1032,7 +1036,7 @@ local function BuildToolbar()
 		panel:Restyle()
 	end
 	panel:Arrange()
-	for _, part in ipairs({ panel, panel.titleBar, panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.restore, panel.search, panel.elements, panel.done }) do
+	for _, part in ipairs({ panel, panel.titleBar, panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.restore, panel.search, panel.elements, panel.discard, panel.done }) do
 		part:HookScript("OnEnter", RevealToolbar)
 		part:HookScript("OnLeave", RevealToolbar)
 	end
