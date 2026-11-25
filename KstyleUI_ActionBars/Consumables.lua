@@ -179,6 +179,7 @@ function C.Apply()
 			target = targets[record.key]
 			if not target then
 				target = CreateFrame("Button", "KstyleUI_Use_" .. record.key:gsub(":", "_"), header, "SecureActionButtonTemplate")
+				target:EnableMouse(false)
 				target:RegisterForClicks("AnyUp", "AnyDown")
 				target:SetAttribute("type", "item")
 				targets[record.key] = target
