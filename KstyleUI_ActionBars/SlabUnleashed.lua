@@ -137,6 +137,11 @@ function Unleashed.Dress(piece, spec, form)
 				set.up = nil
 				Settle()
 			end)
+			local taken = ns.Slab.Group(set.awake.lit)
+			ns.Slab.Fade(taken, 1, 1, 0.01)
+			taken:SetScript("OnPlay", function() set.up, state.lit = true, true end)
+			set.awake.lit:AddAuraAssignedAnimation(taken)
+			set.taken = taken
 		end
 		sets[#sets + 1] = set
 	end
