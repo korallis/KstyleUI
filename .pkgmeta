@@ -1,9 +1,11 @@
 # .pkgmeta: how the BigWigs packager builds the release zip.
 # move-folders has one line per module folder. A new module adds "KstyleUI/KstyleUI_<Module>: KstyleUI_<Module>".
+# manual-changelog is the text uploaded with the zip: the tagged version's section of CHANGELOG.md, which the release
+# workflow writes before packaging. GitHub refuses release text over 125,000 characters, and the whole file is longer.
 package-as: KstyleUI
 enable-nolib-creation: no
 manual-changelog:
-  filename: CHANGELOG.md
+  filename: Tools/release/packager-changelog.md
   markup-type: markdown
 
 ignore:

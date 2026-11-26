@@ -1,6 +1,6 @@
 # KstyleUI release notes
 
-The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes, and after `bash scripts/gate.sh release` passes on the commit to be tagged.
+The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The release workflow hands the packager the tagged version's section of that file, so CurseForge, Wago and the GitHub release each show that version's notes; the zip carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes, and after `bash scripts/gate.sh release` passes on the commit to be tagged.
 
 ## 0.3.5: the crest comes alive (2026-11-25)
 

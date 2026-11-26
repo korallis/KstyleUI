@@ -64,6 +64,10 @@ jobs:
           "$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py verify
           "$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py pack --out "$RUNNER_TEMP/icons"
           test -n "$(find "$RUNNER_TEMP/icons/Interface/Icons" -name '*.tga' -print -quit)"
+      - name: Write this version's changelog section for the packager
+        # .pkgmeta hands the packager this file as the text it uploads with the zip. The whole CHANGELOG.md is longer
+        # than the 125,000 characters GitHub allows a release, and that upload comes after both stores have the zip.
+        run: python3 Tools/release/discord_post.py --section "$GITHUB_REF_NAME" > Tools/release/packager-changelog.md
       - name: Package without uploading
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
         with:
@@ -95,6 +99,9 @@ jobs:
           python3 -c 'import PIL; print("Pillow", PIL.__version__)' | grep '^Pillow 13\.0\.0$'
           python3 Tools/icons/iconset.py pack --out "$RUNNER_TEMP/icons"
           (cd "$RUNNER_TEMP/icons" && zip -r -q "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" Interface)
+      - name: Write this version's changelog section for the packager
+        # Each job has its own checkout, so each writes the file .pkgmeta names.
+        run: python3 Tools/release/discord_post.py --section "$GITHUB_REF_NAME" > Tools/release/packager-changelog.md
       - name: Package and upload
         # The check job validates a deterministic dry build of this same commit with this same pinned packager.
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
@@ -110,8 +117,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" --clobber
-      - name: Show only this version's changelog on the GitHub release
-        # The packager writes the whole CHANGELOG.md to the release page.
+      - name: Add the store links to the GitHub release text
+        # The packager wrote this version's section to the release page; this writes it again with the links under it.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
