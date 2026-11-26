@@ -91,11 +91,12 @@ local function Lift(color, white)
 end
 
 local function Bloom(texture, from)
-	local group = texture:CreateAnimationGroup()
+	local group, still = texture:CreateAnimationGroup(), texture:CreateAnimationGroup()
 	ns.Slab.Grow(group, from, 1, 0.5)
 	ns.Slab.Fade(group, 0, 1, 0.15)
-	group.held = 0.5
-	return { play = group }
+	ns.Slab.Grow(still, from, from, 0.5)
+	group.held, still.held = 0.5, 0.5
+	return { play = group, still = still }
 end
 
 local function Light(p, each, level, look)

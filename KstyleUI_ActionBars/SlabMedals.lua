@@ -638,8 +638,8 @@ local function Arrange(r)
 		local f = b.family
 		local on = f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
 		b.container:SetAuraSlotEnabled(b.key, on)
-		for _, key in ipairs({ "lit", "lit2" }) do
-			b.ember.slot.container:SetAuraSlotEnabled(key, on and ns.Config("crestEmber") ~= false)
+		for _, slot in ipairs(b.ember.slots) do
+			slot.container:SetAuraSlotEnabled("lit", on and ns.Config("crestEmber") ~= false)
 		end
 		b.at = on and { r.left + n % r.per * r.pitch, r.first + floor(n / r.per) * r.rise } or nil
 		if b.at then
@@ -662,7 +662,7 @@ function Medals.Place(piece, anchor, x, y)
 end
 
 local function Hold(flare)
-	if not flare.still and flare.CreateAnimationGroup then
+	if not flare.still then
 		flare.still = ns.Slab.Group(flare)
 		ns.Slab.Fade(flare.still, 1, 1, HELD)
 	end
@@ -674,15 +674,18 @@ function Medals.Claim(stop, seconds)
 end
 
 function Medals.Ensemble(hush, seconds)
-	local claiming
+	local held, at
 	local function stop()
-		if not claiming then hush() end
+		held = nil
+		hush()
 	end
 	return function()
-		claiming = true
-		local token = Medals.Claim(stop, seconds)
-		claiming = false
-		return token ~= nil
+		local now = type(GetTime) == "function" and GetTime() or 0
+		if not (held and at == now) then
+			held = Medals.Claim(stop, seconds) ~= nil
+			at = now
+		end
+		return held == true
 	end
 end
 
@@ -712,7 +715,7 @@ function Medals.Fire(piece)
 		local play = Effects.Allows("ambient") and flare.play or Hold(flare)
 		flare.play:Stop()
 		if flare.still then flare.still:Stop() end
-		if play then Medals.Arbitrate(play):Play() end
+		Medals.Arbitrate(play):Play()
 	end
 end
 

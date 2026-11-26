@@ -450,16 +450,25 @@ end
 -- the next summon takes the place back.
 do
 	local env, K, ns = New("HUNTER", { [RANK3] = true })
-	local Effects, left, right = K.Effects, ns.SlabHawks.state.perches[1], ns.SlabHawks.state.perches[2]
+	local Effects, left, right, pair = K.Effects, ns.SlabHawks.state.perches[1], ns.SlabHawks.state.perches[2], ns.SlabHawks.state.pair
+	env.GetTime = function() return env._now end
+	env._now = 100
 	Hawk(env, 2, 100)
 	Hawk(env, 3, 100)
 	assert(left.flare.fade:IsPlaying() and right.flare.fade:IsPlaying(), "two hawks summoned together both flare: one ensemble, not split")
+	assert(Lifting(left) and Lifting(right) and pair.dawn[1]:IsPlaying() and pair.dawn[2]:IsPlaying(), "with both lifts, both ripples and the pair's dawn")
 	assert(Effects.Holder("crestFlare") == Effects.PRIORITY.ready, "the ensemble holds the crest's flare place")
 	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
 	other:Play()
 	assert(other:IsPlaying() and not left.flare.fade:IsPlaying() and not right.flare.fade:IsPlaying() and not right.flare:IsShown(), "a crest flare from elsewhere stops both")
+	assert(Still(left) and Still(right) and not pair.dawn[1]:IsPlaying() and not pair.dawn[2]:IsPlaying(), "and every other flourish of theirs: the lifts, the ripples and the pair's dawn")
+	env._now = 130
 	Hawk(env, 2, 130)
-	assert(left.flare.fade:IsPlaying() and not other:IsPlaying(), "and the next summon stops that one in turn")
+	assert(left.flare.fade:IsPlaying() and Lifting(left) and not other:IsPlaying(), "and the next summon stops that one in turn")
+	-- A later summon is a different trigger, not part of the first one's ensemble: it takes the place and the earlier hawk's flourish stops.
+	env._now = 130.2
+	Hawk(env, 3, 130.2)
+	assert(right.flare.fade:IsPlaying() and Lifting(right) and not left.flare.fade:IsPlaying() and Still(left), "a summon a moment later cancels the earlier hawk's flourish instead of joining it")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

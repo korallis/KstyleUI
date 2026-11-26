@@ -220,6 +220,31 @@ local function Gate(frame, value)
 	end
 end
 
+local function Still(p)
+	for _, group in ipairs(p.pops) do
+		group:Stop()
+	end
+	p.lift:Stop()
+	p.sink:Stop()
+	p.ripple.wave:Stop()
+	p.ripple:SetAlpha(0)
+end
+
+local function Hush()
+	for _, p in ipairs(state.perches) do
+		for _, frame in ipairs({ p.was, p.flare }) do
+			frame.fade:Stop()
+			frame:Hide()
+		end
+		Still(p)
+	end
+	for _, group in ipairs(state.pair and state.pair.dawn or {}) do
+		group:Stop()
+	end
+end
+
+local Claimed = Medals.Ensemble(Hush, LIFT_UP + SETTLE + 0.05)
+
 local function Pair(moving)
 	local pair, first, second = state.pair, state.perches[1], state.perches[2]
 	local plain = not (IsSecret(first.have) or IsSecret(second.have))
@@ -229,7 +254,7 @@ local function Pair(moving)
 	pair:SetShown(pair:IsShown() and pair.inner:IsShown())
 	pair.both = plain and pair:IsShown()
 	for _, group in ipairs(pair.dawn) do
-		if moving and pair.both and not was then
+		if moving and pair.both and not was and Claimed() then
 			group:Stop()
 			group:Play()
 		elseif not (moving and pair.both) then
@@ -255,16 +280,6 @@ local function Steel(p, have)
 	end
 end
 
-local function Still(p)
-	for _, group in ipairs(p.pops) do
-		group:Stop()
-	end
-	p.lift:Stop()
-	p.sink:Stop()
-	p.ripple.wave:Stop()
-	p.ripple:SetAlpha(0)
-end
-
 local function Lift(p, have, was)
 	Still(p)
 	if was then
@@ -280,17 +295,6 @@ local function Lift(p, have, was)
 	end
 	p.ripple.wave:Play()
 end
-
-local function Hush()
-	for _, p in ipairs(state.perches) do
-		for _, frame in ipairs({ p.was, p.flare }) do
-			frame.fade:Stop()
-			frame:Hide()
-		end
-	end
-end
-
-local Claimed = Medals.Ensemble(Hush)
 
 local function Paint(p, moving, full)
 	local have, _, start, duration = GetTotemInfo(p.slot)
@@ -316,13 +320,15 @@ local function Paint(p, moving, full)
 	if moving then
 		Gate(p.flareGate, have)
 		Gate(p.wasGate, p.have)
+		local any
 		for _, frame in ipairs({ p.was, p.flare }) do
 			if frame:GetParent():IsShown() and Claimed() then
+				any = true
 				frame:Show()
 				frame.fade:Play()
 			end
 		end
-		if full then
+		if full and any then
 			Lift(p, have, p.was:IsShown())
 		end
 	end

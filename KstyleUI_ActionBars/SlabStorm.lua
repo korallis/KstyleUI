@@ -267,7 +267,7 @@ end
 
 local function Spend(n)
 	local was = state.count
-	if was and n < was and Effects.Allows("flare") and Claim() then
+	if was and n < was and (was - n == 1 or n == 0) and Effects.Allows("flare") and Claim() then
 		if was - n == 1 then
 			Strike(was)
 		end

@@ -432,7 +432,10 @@ do
 	assert(main.lit:IsShown() and not main.rim:IsShown() and not main.pulse:IsPlaying(), "an imbue lights the stone and stops the pulse")
 	assert(off.gutter:IsPlaying() and not main.gutter:IsPlaying(), "the last five minutes gutter")
 	K.Options.Write("Medallions", "motion", "calm")
-	assert(not off.gutter:IsPlaying(), "Calm does not gutter")
+	assert(not off.gutter:IsPlaying() and off.gutter.still and off.gutter.still:IsPlaying() and not (main.gutter.still and main.gutter.still:IsPlaying()),
+		"Calm does not gutter: the stone in its last five minutes holds its light still, at the flicker's low alpha")
+	K.Options.Write("Medallions", "motion", "off")
+	assert(not off.gutter:IsPlaying() and not off.gutter.still:IsPlaying(), "Off shows neither")
 	K.Options.Write("Medallions", "motion", "full")
 	env._offHand = false
 	env.FireEvent("PLAYER_EQUIPMENT_CHANGED")
