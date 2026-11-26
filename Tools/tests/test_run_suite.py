@@ -5,6 +5,7 @@ the tool changed, and the release gate runs every file.
 """
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -37,6 +38,14 @@ class SelectTest(unittest.TestCase):
 
 class ScheduleTest(unittest.TestCase):
     NAMES = ["test_a.py", "test_b.py", "test_run_all.py", "test_z.py"]
+
+    def test_every_file_that_starts_processes_side_by_side_runs_alone(self):
+        # Intent: the approved faster-gate plan, a file in the pool holds one process at a time, so the pool's
+        # size bounds the suite.
+        wide = sorted(path.name for path in run_suite.HERE.glob("test_*.py")
+                      if re.search(r"ThreadPoolExecutor|Popen\(|\bJOBS\b|max_workers|multiprocessing",
+                                   path.read_text(encoding="utf-8")))
+        self.assertEqual(wide, sorted(run_suite.WIDE))
 
     def test_a_wide_file_finishes_before_any_file_is_given_to_the_pool(self):
         events = []

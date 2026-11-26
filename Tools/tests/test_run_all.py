@@ -405,6 +405,7 @@ class RunAllTest(unittest.TestCase):
         result = self.run_all(JOBS="2")
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertTrue(result.stdout.rstrip().endswith("passed 2, failed 0"))
+        self.assertIn("\npeak: at most 2 test processes alive at once\n", result.stdout)
 
     def test_reports_failures_in_file_order(self):
         for name in ("test-c.lua", "test-a.lua", "test-b.lua"):
@@ -620,6 +621,7 @@ finally:
         self.assertEqual(self.overlaps(), 2)
         self.assertIn("worker slots: 2 for every run on this machine", result.stdout)
         self.assertRegex(result.stdout, r"\ntotal [\d.]+ s of test time in [\d.]+ s, 2 at a time\n")
+        self.assertIn("\npeak: at most 2 test processes alive at once\n", result.stdout, "six workers asked, two slots")
 
     def test_two_runs_share_the_slots(self):
         self.timed_tests(4)

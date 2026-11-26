@@ -1,5 +1,7 @@
 """Tests for Tools/regression/affected.py and run-all.sh --affected: picking the Lua tests a change can reach."""
 
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -258,6 +260,18 @@ class CacheTest(unittest.TestCase):
             self.assertEqual(affected.load_records(one)["a"]["files"], ["x"], "the other working copy's run left these records alone")
             self.assertEqual({name: entry["files"] for name, entry in affected.load_records(two).items()}, {"a": ["z"], "f": ["z"]})
 
+    def test_a_folder_that_cannot_be_read_is_not_a_missing_folder(self):
+        # Intent: the approved faster-gate plan, a shared record is reused only where the working copy provably matches.
+        listed = record(listings=["gone/*"])
+        missing = affected.seen(listed, self._tmp.name)
+        with mock.patch.object(affected.os, "scandir", side_effect=PermissionError("denied")):
+            with self.assertRaises(PermissionError):
+                affected.seen(listed, self._tmp.name)
+            with mock.patch.dict(os.environ, {"XDG_CACHE_HOME": self._tmp.name, "KSTYLEUI_DEPS_CACHE": ""}), \
+                    mock.patch.object(affected, "cache_path", return_value=self.path):
+                affected.save_cache(affected.shared_path(), {"a": dict(listed, seen=missing)})
+                self.assertEqual(affected.load_records(self._tmp.name), {}, "an unread folder matches no record")
+
     def test_the_path_follows_the_environment(self):
         old = os.environ.get("KSTYLEUI_DEPS_CACHE")
         os.environ["KSTYLEUI_DEPS_CACHE"] = "/tmp/elsewhere.json"
@@ -424,6 +438,32 @@ class RunAllAffectedTest(GitRepoCase):
         result = self.affected()
         self.assertEqual(self.ran(result), ["test-a", "test-b", "test-c", "test-d"])
         self.assertIn("is shared by the whole suite", result.stdout)
+
+    def test_a_run_that_cannot_look_at_the_working_copy_afterwards_still_finishes_and_seeds_no_other_working_copy(self):
+        # Intent: the approved faster-gate plan, records are a speed-up and never decide whether the gate passes.
+        import run_all
+        shared = tempfile.TemporaryDirectory()
+        self.addCleanup(shared.cleanup)
+        environment = {key: value for key, value in os.environ.items() if key not in ("CI", "KSTYLEUI_DEPS_CACHE")}
+        environment.update(GIT_ENV, LUA=lua(), JOBS="2", KSTYLEUI_SLOTS="0", XDG_CACHE_HOME=shared.name)
+        output, start = io.StringIO(), os.getcwd()
+        with mock.patch.dict(os.environ, environment, clear=True):
+            os.chdir(self.repo)
+            try:
+                with mock.patch.object(affected, "seen", side_effect=RuntimeError("git stopped")), \
+                        contextlib.redirect_stdout(output):
+                    status = run_all.main(["--affected", "HEAD"])
+            finally:
+                os.chdir(start)
+            self.assertEqual(status, 0, output.getvalue())
+            self.assertIn("passed 4, failed 0 (affected mode: 4 of 4", output.getvalue())
+            saved = affected.load_cache(affected.shared_path())
+            self.assertEqual(sorted(saved), ["Tools/regression/test-{0}.lua".format(letter) for letter in "abcd"])
+            self.assertEqual([name for name, entry in saved.items() if "seen" in entry], [])
+            other = Path(shared.name) / "other"
+            self.git("worktree", "add", "-q", str(other))
+            self.assertEqual(affected.load_records(other), {}, "a record with no look at its working copy seeds none")
+            self.assertEqual(sorted(affected.load_records(self.repo)), sorted(saved), "the run's own working copy keeps them")
 
     def test_a_failing_test_is_reported_and_not_recorded_as_known(self):
         self.write({"Tools/regression/test-e.lua": 'dofile("Mod/a.lua")\nerror("boom")\n'})
