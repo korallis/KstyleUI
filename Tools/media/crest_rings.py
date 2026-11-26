@@ -4,14 +4,12 @@ Usage:
     python3 Tools/media/crest_rings.py [--out Media/Textures/Medallions/Trackers]
 
 Writes, procedurally and with no model or source image:
-    EmberBand.png        128x128  Expiring ember for medals and sigils: a bright band at 85.3% of the radius (just outside
-                                  a medal's rim when drawn at (medal + 3) / 0.853 across) with a soft spill, kept only in the
-                                  last fifth of a clockwise sweep: amber from 288 to 330 degrees, red from 330 to 360, each
-                                  with a near-white core
-    EmberRingLine16.png  128x128  the same sectors of the shipped RingLine16.png, for the rim and cooldown rings
-    EmberBandAmber.png, EmberRingLine16Amber.png
-                         128x128  the red sector of each (330 to 360 degrees) in amber: drawn still over the swipe, it keeps
-                                  the whole last fifth amber until the last twelfth, when the addon fades it out
+    EmberBandAmber.png   128x128  Expiring ember for medals and sigils: a bright band at 85.3% of the radius (just outside
+                                  a medal's rim when drawn at (medal + 3) / 0.853 across) with a soft spill and a near-white
+                                  core, amber, kept only in the last fifth of a clockwise sweep (288 to 360 degrees)
+    EmberBandRed.png     128x128  the same band in red, kept only in the last twelfth (330 to 360 degrees)
+    EmberRingLine16Amber.png, EmberRingLine16Red.png
+                         128x128  the same two sectors of the shipped RingLine16.png, for the rim and cooldown rings
     CastRing.png         256x256  the cast ring: a near-white core stroke at 95.5% of the radius in a soft gilt bloom, open
                                   9 degrees either side of 6 o'clock so it passes under the level plaque
     SwingRing.png        256x256  the swing ring: one fine pale steel line (#e6ecf3, steelLit) at 97.5% of the radius in a
@@ -21,9 +19,11 @@ Writes, procedurally and with no model or source image:
     RingBead.png         64x64    a ring timer's head: a white-hot round bead with a short tapered trail along its x axis
                                   (the ring's tangent), drawn as the Cooldown's edge
 
-A Cooldown swipe that drains from 12 o'clock always ends in the ember sector, so the texture drawn on a second swipe of
-the same duration turns what is left hot by itself. Colour is stored in the art where the swipe is tinted white: amber
-#f09a3c (the research mockup's) and red #ff7060 (the shared timerExpiring value), with brighter cores #ffc86e and #ffa090.
+A Cooldown swipe that drains from 12 o'clock always ends in the ember sector, so each texture is drawn on a swipe of
+its own with the timer's duration: the addon shows the amber one through the last fifth and trades it for the red one at
+the last twelfth, so the two colours never lie over each other. Colour is stored in the art where the swipe is tinted
+white: amber #f09a3c (the research mockup's) and red #ff7060 (the shared timerExpiring value), with brighter cores
+#ffc86e and #ffa090.
 Everything is 8x8 supersampled. Needs Pillow and numpy.
 """
 
@@ -74,31 +74,17 @@ def paint(core, spill, edge_colour, core_colour, cover):
     return mix[..., None] * np.array(core_colour) + (1 - mix[..., None]) * np.array(edge_colour), alpha
 
 
-def sectors(angle, cover):
-    return cover((angle >= FIFTH) & (angle < TWELFTH)), cover(angle >= TWELFTH)
-
-
-def ember_band(size=128, patch=False):
+def ember_band(red=False, size=128):
     r, angle, _, _, cover = field(size)
-    core, spill = band(r, 0.853, 0.045), glow(r, 0.853, 0.075) * 0.75
-    amber, red = sectors(angle, cover)
-    a_rgb, alpha = paint(core, spill, AMBER, AMBER_CORE, cover)
-    if patch:
-        return image(a_rgb, alpha * red)
-    r_rgb, _ = paint(core, spill, RED, RED_CORE, cover)
-    hot = amber + red
-    rgb = (amber[..., None] * a_rgb + red[..., None] * r_rgb) / np.maximum(hot, 1e-6)[..., None]
-    return image(rgb, alpha * hot)
+    rgb, alpha = paint(band(r, 0.853, 0.045), glow(r, 0.853, 0.075) * 0.75, RED if red else AMBER, RED_CORE if red else AMBER_CORE, cover)
+    return image(rgb, alpha * cover(angle >= (TWELFTH if red else FIFTH)))
 
 
-def ember_line(name="RingLine16.png", patch=False):
+def ember_line(red=False, name="RingLine16.png"):
     base = np.asarray(Image.open(SOURCE / name).convert("RGBA"), dtype=np.float64) / 255
     _, angle, _, _, cover = field(base.shape[0])
-    amber, red = sectors(angle, cover)
-    if patch:
-        return image(np.broadcast_to(np.array(AMBER, dtype=np.float64), base.shape[:2] + (3,)), base[..., 3] * red)
-    rgb = (amber[..., None] * np.array(AMBER) + red[..., None] * np.array(RED)) / np.maximum(amber + red, 1e-6)[..., None]
-    return image(rgb, base[..., 3] * (amber + red))
+    colour = np.array(RED if red else AMBER, dtype=np.float64)
+    return image(np.broadcast_to(colour, base.shape[:2] + (3,)), base[..., 3] * cover(angle >= (TWELFTH if red else FIFTH)))
 
 
 def cast(size=256):
@@ -129,8 +115,8 @@ def main():
     parser.add_argument("--out", type=Path, default=OUT)
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
-    for name, made in (("EmberBand.png", ember_band()), ("EmberRingLine16.png", ember_line()),
-                       ("EmberBandAmber.png", ember_band(patch=True)), ("EmberRingLine16Amber.png", ember_line(patch=True)),
+    for name, made in (("EmberBandAmber.png", ember_band()), ("EmberBandRed.png", ember_band(red=True)),
+                       ("EmberRingLine16Amber.png", ember_line()), ("EmberRingLine16Red.png", ember_line(red=True)),
                        ("CastRing.png", cast()),
                        ("SwingRing.png", swing()), ("SwingHalo.png", halo()), ("RingBead.png", bead())):
         path = args.out / name

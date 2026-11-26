@@ -446,4 +446,21 @@ for _, size in ipairs(SIZES) do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- The crest plan's flare rule (the review of part 1): hawks summoned together flare as one ensemble in the crest's one flare place; a flare from elsewhere stops both, and
+-- the next summon takes the place back.
+do
+	local env, K, ns = New("HUNTER", { [RANK3] = true })
+	local Effects, left, right = K.Effects, ns.SlabHawks.state.perches[1], ns.SlabHawks.state.perches[2]
+	Hawk(env, 2, 100)
+	Hawk(env, 3, 100)
+	assert(left.flare.fade:IsPlaying() and right.flare.fade:IsPlaying(), "two hawks summoned together both flare: one ensemble, not split")
+	assert(Effects.Holder("crestFlare") == Effects.PRIORITY.ready, "the ensemble holds the crest's flare place")
+	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
+	other:Play()
+	assert(other:IsPlaying() and not left.flare.fade:IsPlaying() and not right.flare.fade:IsPlaying() and not right.flare:IsShown(), "a crest flare from elsewhere stops both")
+	Hawk(env, 2, 130)
+	assert(left.flare.fade:IsPlaying() and not other:IsPlaying(), "and the next summon stops that one in turn")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 print("actionbars medallions hawks ok")

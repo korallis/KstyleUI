@@ -5,10 +5,10 @@ local Slots = dofile("Tools/regression/aura_slots.lua")
 local function New(opts)
 	opts = opts or {}
 	local env, K, ns = AB.New({
-		class = "WARRIOR",
+		class = opts.class or "WARRIOR",
 		setup = function(e)
 			e.C_SpellBook = e.C_SpellBook or {}
-			e.C_SpellBook.IsSpellKnown = function(id) return id == 1719 or id == 6673 end
+			e.C_SpellBook.IsSpellKnown = function(id) return opts.class ~= nil or id == 1719 or id == 6673 end
 			e.C_Secrets = { ShouldAurasBeSecret = function() return e._aurasSecret == true end }
 			e.C_UnitAuras = e.C_UnitAuras or {}
 			e._queries = 0
@@ -33,6 +33,16 @@ end
 
 local function Clean(env, K, what)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, what .. ": " .. AB.Errors(env))
+end
+
+-- The game runs a slot's OnHide when it hides it; the stub's Hide runs no script, so the tests run it by hand, with the script read before combat forbids the slot.
+local function Hidden(set)
+	set.hidden = assert(set.awake.lit:GetScript("OnHide"), "the hot line's slot tells the crest when the game hides it")
+end
+
+local function Dark(env, set, unit)
+	Slots.Set(env, unit or "player", nil)
+	set.hidden(set.awake.lit)
 end
 
 local function Rim(ns, form)
@@ -177,6 +187,7 @@ do
 	local env, K, ns = New()
 	local set = ns.SlabUnleashed.sets[1]
 	local done = set.awake.timer:GetScript("OnCooldownDone")
+	Hidden(set)
 	env._aurasSecret = true
 	env.SetCombat(true)
 	Slots.Set(env, "player", Reck())
@@ -185,23 +196,90 @@ do
 	K.Options.Write("Medallions", "motion", "full")
 	K.Theme.SetPalette({ WARRIOR = { r = 0.1, g = 0.3, b = 0.8 } }, 0)
 	ns.SlabMedals.Rest()
-	Slots.Set(env, "player", nil)
+	Dark(env, set)
 	env.FireEvent("UNIT_AURA", "player", env.Secret({ removedAuraInstanceIDs = { 7 } }))
-	assert(not set.fold.play:IsPlaying(), "secret, an aura event it cannot read folds nothing")
-	-- The crest plan: in combat the ending folds from the game timer's own end instead of cutting.
+	assert(not set.fold.play:IsPlaying(), "secret, an aura event it cannot read folds nothing in the frame the slot hides")
+	-- The crest plan: in combat the ending folds instead of cutting, the frame after the game hides the last lit slot or ends its timer.
+	local function Folding()
+		return set.fold.play:IsPlaying() and set.cool.play:IsPlaying()
+	end
+	local function Reset()
+		set.fold.play:Stop()
+		set.cool.play:Stop()
+	end
+	env.RunTimers()
+	assert(Folding(), "secret, the frame after the hot line's slot hides the corona folds and the glyphs cool")
+	Reset()
+	Slots.Set(env, "player", Reck())
 	done(set.awake.timer)
-	assert(set.fold.play:IsPlaying() and set.cool.play:IsPlaying(), "secret, the game timer's end folds the corona and cools the glyphs")
-	set.fold.play:Stop()
-	set.cool.play:Stop()
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "a timer that ends while its slot is still lit, on another cooldown, folds nothing")
+	Dark(env, set)
+	env.RunTimers()
+	assert(Folding(), "the fold waits for the slot to go dark")
+	Reset()
+	done(set.awake.timer)
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "and does not replay from a timer's end when nothing was lit")
+	Slots.Set(env, "player", Reck())
 	K.Options.Write("Medallions", "motion", "off")
-	done(set.awake.timer)
-	assert(not set.fold.play:IsPlaying(), "at Off the timer's end folds nothing")
+	Dark(env, set)
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "at Off the ending folds nothing")
 	K.Options.Write("Medallions", "motion", "full")
+	Slots.Set(env, "player", Reck())
+	K.Options.Write("ActionBars", "crestUnleashed", false)
+	Dark(env, set)
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "switched off in combat, the slots the game still drives fold nothing")
+	K.Options.Write("ActionBars", "crestUnleashed", true)
 	env._aurasSecret = false
 	env.SetCombat(false)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
 	assert(not set.fold.play:IsPlaying(), "and none plays late when the restriction ends")
 	Clean(env, K, "secret")
+end
+
+-- A hunter's cooldowns are fed for the player and for the pet: the fold waits for the last of them, whichever feed it is on.
+do
+	local env, K, ns = New({ class = "HUNTER" })
+	local own, pets, fold
+	for _, s in ipairs(ns.SlabUnleashed.sets) do
+		if s.crest then
+			fold = fold or s.fold and s
+			if s.awake.lit.spec.unit == "pet" then pets = s else own = own or s end
+		end
+	end
+	assert(own and pets and fold, "the crest has a hot line for the player's cooldowns and one for the pet's")
+	Hidden(own)
+	Hidden(pets)
+	local ended = own.awake.timer:GetScript("OnCooldownDone")
+	local function Up(s, on)
+		local spec = s.awake.lit.spec
+		if on then
+			Slots.Set(env, spec.unit or "player", { { id = spec.spells[1], auraInstanceID = spec.unit == "pet" and 8 or 7, start = 0, duration = 15 } })
+		else
+			Dark(env, s, spec.unit)
+		end
+	end
+	env._aurasSecret = true
+	env.SetCombat(true)
+	Up(own, true)
+	Up(pets, true)
+	Up(own, false)
+	ended(own.awake.timer)
+	env.RunTimers()
+	assert(not fold.fold.play:IsPlaying(), "the player's cooldown ending while the pet's is still lit folds nothing")
+	Up(pets, false)
+	env.RunTimers()
+	assert(fold.fold.play:IsPlaying() and fold.cool.play:IsPlaying(), "the pet's ending, the last one, folds the corona")
+	fold.fold.play:Stop()
+	fold.cool.play:Stop()
+	Up(pets, true)
+	Up(pets, false)
+	env.RunTimers()
+	assert(fold.fold.play:IsPlaying(), "a cooldown on the pet alone folds when it ends")
+	Clean(env, K, "pet fold")
 end
 
 -- Frames: the cooldown row wears the corona, over a breathing glow behind the row.

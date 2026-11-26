@@ -182,7 +182,7 @@ local function Kill(parent, _, level, form)
 		drop:SetOffset(0, -DROP)
 		drop:SetDuration(WAVE)
 		drop:SetSmoothing("OUT")
-		Slab.Fade(k.ripple.play, 1, 0, WAVE, 1):SetSmoothing("OUT")
+		Slab.Fade(k.ripple.play, 1, 0, WAVE, 1)
 		k.ripple.grow = Arc(k.ripple, "ringLine12", "jewelComboCore", INNER, 0.2):CreateAnimationGroup()
 		Slab.Grow(k.ripple.grow, 1, SPREAD, WAVE):SetSmoothing("OUT")
 	else

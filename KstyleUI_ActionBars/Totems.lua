@@ -202,23 +202,23 @@ local function Skin(s, angle)
 end
 
 local function Flicker(s, slot, have, start, duration)
-	s.flicker.anim:Stop()
+	ns.Slab.Warn(s.flicker.anim, false)
 	if IsSecret(have) or IsSecret(start) or IsSecret(duration) or have ~= true or type(duration) ~= "number" or duration <= 0
-		or type(GetTime) ~= "function" or not Effects.Allows("pulse") then
+		or type(GetTime) ~= "function" or not Effects.Allows("flare") then
 		s.fifth = nil
 		return
 	end
 	local due = start + duration * (1 - FIFTH)
 	if due <= GetTime() then
 		s.fifth = nil
-		s.flicker.anim:Play()
+		ns.Slab.Warn(s.flicker.anim, true)
 	elseif s.fifth ~= due and C_Timer and C_Timer.After then
 		s.fifth = due
 		C_Timer.After(due - GetTime(), function()
 			if s.fifth ~= due then return end
 			s.fifth = nil
 			local up = GetTotemInfo(slot)
-			if state.listening and not IsSecret(up) and up == true then s.flicker.anim:Play() end
+			if state.listening and not IsSecret(up) and up == true then ns.Slab.Warn(s.flicker.anim, true) end
 		end)
 	end
 end
@@ -232,6 +232,17 @@ local function Rest(b)
 		b.icon:SetAlphaFromBoolean(have, 1, IDLE_ICON)
 	end
 end
+
+local function Hush()
+	for _, b in ipairs(state.sockets) do
+		local s = b.spire
+		s.flare.anim:Stop()
+		s.flare:Hide()
+		s.ignite:Stop()
+	end
+end
+
+local Claimed = Medals.Ensemble(Hush)
 
 local function PaintSpire(b, moving)
 	local s, slot = b.spire, b.element.slot
@@ -254,7 +265,7 @@ local function PaintSpire(b, moving)
 	s.flare.anim:Stop()
 	s.flare:Hide()
 	s.ignite:Stop()
-	if moving and (IsSecret(have) or have == true) then
+	if moving and (IsSecret(have) or have == true) and Claimed() then
 		Gate(s.flareGate, have)
 		s.flare:Show()
 		s.flare.anim:Play()

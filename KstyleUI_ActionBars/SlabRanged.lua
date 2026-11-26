@@ -91,8 +91,9 @@ end
 
 local function Bloom(texture, from)
 	local group = texture:CreateAnimationGroup()
-	ns.Slab.Grow(group, from, 1, 0.5, 1, "OUT")
+	ns.Slab.Grow(group, from, 1, 0.5)
 	ns.Slab.Fade(group, 0, 1, 0.15)
+	group.held = 0.5
 	return { play = group }
 end
 

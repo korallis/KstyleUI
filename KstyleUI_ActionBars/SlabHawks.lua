@@ -281,6 +281,17 @@ local function Lift(p, have, was)
 	p.ripple.wave:Play()
 end
 
+local function Hush()
+	for _, p in ipairs(state.perches) do
+		for _, frame in ipairs({ p.was, p.flare }) do
+			frame.fade:Stop()
+			frame:Hide()
+		end
+	end
+end
+
+local Claimed = Medals.Ensemble(Hush)
+
 local function Paint(p, moving, full)
 	local have, _, start, duration = GetTotemInfo(p.slot)
 	Gate(p.lit, have)
@@ -306,7 +317,7 @@ local function Paint(p, moving, full)
 		Gate(p.flareGate, have)
 		Gate(p.wasGate, p.have)
 		for _, frame in ipairs({ p.was, p.flare }) do
-			if frame:GetParent():IsShown() then
+			if frame:GetParent():IsShown() and Claimed() then
 				frame:Show()
 				frame.fade:Play()
 			end

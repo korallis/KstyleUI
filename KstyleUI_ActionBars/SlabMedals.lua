@@ -20,6 +20,7 @@ local SEATS = {
 }
 local PIP, PIP_ARC, GLOW, SPARK_LAP = 4, 22, 0.35, 1.6
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
+local HELD = FLARE[1][3] + FLARE[2][3]
 local OWNER = "ActionBars.SlabMedals"
 local refreshed, rims, watchers, gates, breaths, NONE = {}, {}, {}, {}, {}, {}
 local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
@@ -380,10 +381,6 @@ function Medals.Figure(parent, spec, level)
 			local timer = Enum and Enum.StatusBarTimerDirection
 			lit:SetDurationBar(bar, { direction = timer and timer.RemainingTime or 1 })
 			lit.flicker = ns.Slab.Flicker(bar, alpha)
-			lit.cue = f.add(Medals.Texture(bar, "OVERLAY", 1, "glow", "gilt", size * SPARK, "ADD"))
-			lit.cue:ClearAllPoints()
-			lit.cue:SetPoint("CENTER", bar:GetStatusBarTexture(), "TOP", 0, 0)
-			lit.cue:Hide()
 		elseif each.feed == "cooldown" then
 			f.timer, f.bar = Timer(lit, level + 1, "dot", "black", 0), bar
 			f.timer:SetDrawSwipe(false)
@@ -612,7 +609,9 @@ local function Arrange(r)
 		local f = b.family
 		local on = f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
 		b.container:SetAuraSlotEnabled(b.key, on)
-		b.ember.slot.container:SetAuraSlotEnabled("lit", on and ns.Config("crestEmber") ~= false)
+		for _, key in ipairs({ "lit", "lit2" }) do
+			b.ember.slot.container:SetAuraSlotEnabled(key, on and ns.Config("crestEmber") ~= false)
+		end
 		b.at = on and { r.left + n % r.per * r.pitch, r.first + floor(n / r.per) * r.rise } or nil
 		if b.at then
 			for _, slot in ipairs({ b, b.ember }) do
@@ -633,15 +632,68 @@ function Medals.Place(piece, anchor, x, y)
 	end
 end
 
+local function Hold(flare)
+	if not flare.still and flare.CreateAnimationGroup then
+		flare.still = ns.Slab.Group(flare)
+		ns.Slab.Fade(flare.still, 1, 1, HELD)
+	end
+	return flare.still
+end
+
+function Medals.Claim(stop, seconds)
+	return Effects.ClaimFor("crestFlare", Effects.PRIORITY.ready, seconds or HELD, stop)
+end
+
+function Medals.Ensemble(hush, seconds)
+	local claiming
+	local function stop()
+		if not claiming then hush() end
+	end
+	return function()
+		claiming = true
+		local token = Medals.Claim(stop, seconds)
+		claiming = false
+		return token ~= nil
+	end
+end
+
+function Medals.Arbitrate(group, engine)
+	group.engine = group.engine or engine
+	if group.claims then
+		return group
+	end
+	group.claims = true
+	local claiming
+	local function stop()
+		if not (claiming or group.engine and Medals.Restricted()) then
+			group:Stop()
+		end
+	end
+	group:SetScript("OnPlay", function()
+		claiming = true
+		Medals.Claim(stop, group.held)
+		claiming = false
+	end)
+	return group
+end
+
 function Medals.Fire(piece)
 	local flare = piece.flare
 	if flare and Effects.Allows("flare") and not ns.Slab.Resting() then
-		flare.stop = flare.stop or function() flare.play:Stop() end
-		if Effects.ClaimFor("crestFlare", Effects.PRIORITY.ready, FLARE[1][3] + FLARE[2][3], flare.stop) then
-			flare.play:Stop()
-			flare.play:Play()
-		end
+		local play = Effects.Allows("ambient") and flare.play or Hold(flare)
+		flare.play:Stop()
+		if flare.still then flare.still:Stop() end
+		if play then Medals.Arbitrate(play):Play() end
 	end
+end
+
+local function Wanted(button, mode)
+	local flare, flicker = button.flare, button.flicker
+	return {
+		AuraShown = mode == true and (button.loops or { button.loop }) or NONE,
+		AuraAssigned = { flare and (mode == true and Medals.Arbitrate(flare.play, true) or mode == "calm" and Hold(flare) and Medals.Arbitrate(flare.still, true)) or nil },
+		PandemicActive = { flicker and (mode == true and flicker or mode == "calm" and ns.Slab.Still(flicker)) or nil },
+	}
 end
 
 local function Animate(button, mode)
@@ -650,20 +702,13 @@ local function Animate(button, mode)
 	if was == mode then
 		return false
 	end
-	for kind, groups in pairs({ AuraShown = button.loops or { button.loop }, AuraAssigned = { button.flare and button.flare.play }, PandemicActive = { button.flicker } }) do
-		local want, had = mode == true or mode == "calm" and kind == "AuraAssigned", was == true or was == "calm" and kind == "AuraAssigned"
-		for _, group in ipairs(groups) do
-			if want and not had then
-				button["Add" .. kind .. "Animation"](button, group)
-			elseif had and not want then
-				button["Remove" .. kind .. "Animation"](button, group)
-				group:Stop()
+	for verb, state in pairs({ Remove = was, Add = mode }) do
+		for kind, groups in pairs(state and Wanted(button, state) or NONE) do
+			for _, group in ipairs(groups) do
+				button[verb .. kind .. "Animation"](button, group)
+				if verb == "Remove" then group:Stop() end
 			end
 		end
-	end
-	if button.cue and (mode == "calm") ~= (was == "calm") then
-		button[mode == "calm" and "AddPandemicRegion" or "RemovePandemicRegion"](button, button.cue)
-		button.cue:Hide()
 	end
 	button.full = mode
 	return true

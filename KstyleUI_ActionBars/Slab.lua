@@ -214,7 +214,31 @@ function Slab.Flicker(target, alpha)
 	alpha = alpha or 1
 	Fade(g, alpha, alpha * f.low, f.step, 1)
 	Fade(g, alpha * f.low, alpha, f.step, 2)
+	g.target, g.low = target, alpha * f.low
 	return g
+end
+
+function Slab.Still(g)
+	if not g.still then
+		g.still = Group(g.target, "REPEAT")
+		Fade(g.still, g.low, g.low, 1)
+	end
+	return g.still
+end
+
+function Slab.Warn(g, on)
+	local move = on and K.Effects.Allows("pulse")
+	local hold = on and not move and K.Effects.Allows("flare")
+	if not move then
+		g:Stop()
+	elseif not g:IsPlaying() then
+		g:Play()
+	end
+	if not hold then
+		if g.still then g.still:Stop() end
+	elseif not Slab.Still(g):IsPlaying() then
+		g.still:Play()
+	end
 end
 
 local function Grow(g, from, to, duration, order, smoothing)
