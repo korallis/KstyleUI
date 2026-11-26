@@ -34,6 +34,8 @@ return Common.Run(function()
 		ns.Window.Jump({ page = "ActionBars", module = "ActionBars", key = "bar2.visibilityBuilder.mode" })
 		env.RunTimers(); AB.W.Settle(env)
 	end
+	-- RENDER_EXTRA_BARS (rows or beside) applies that Extra bars layout first, so a Frames page shows the selector it keeps for undoing it.
+	if os.getenv("RENDER_EXTRA_BARS") then K.Options.Write("ActionBars", "extraBarsLayout", os.getenv("RENDER_EXTRA_BARS")); env.RunTimers(); AB.W.Settle(env) end
 	local target = os.getenv("RENDER_OPTIONS_KEY")
 	if target then ns.Window.Jump({ page = "ActionBars", module = "ActionBars", key = target }); env.RunTimers(); AB.W.Settle(env) end
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))

@@ -1095,6 +1095,19 @@ function Layouts.DisplayInsets(key, height, anchor)
 	return l, r, b, t
 end
 
+function Layouts.RailStack(class, name, key)
+	local bars = ns.Store.IsLoaded() and ns.Store.Module("ActionBars")
+	local base = layouts[name] and layouts[name]["actionbars.bar4"]
+	if not (bars and base) or bars.extraBarsApplied ~= "rows" and bars.extraBarsApplied ~= "beside" then return end
+	local w4, h4 = Layouts.ActionBarFootprint(class, "actionbars.bar4", "frames")
+	local w5, h5 = Layouts.ActionBarFootprint(class, "actionbars.bar5", "frames")
+	if bars.bar4.enabled == false then w4, h4 = 0, -RAIL_PITCH end
+	local y = base.y
+	if math.max(w4, w5) > 3 * RAIL_COLUMN - RAIL_PITCH then y = math.max(y, y + RAIL_BARS_H - h4 - RAIL_PITCH - h5) end
+	if key == "actionbars.bar5" then y = y + h4 + RAIL_PITCH end
+	return { anchor = base.anchor, x = base.x, y = y }
+end
+
 function Layouts.Aspect(class, style, name, key)
 	if key == "unitframes.resource" and (style == "medallions" or style == "frames" and ns.HudStyle.Current() == "medallions") then
 		return Layouts.ExtraBarsPlace(class, name, key) or PLACES[class].medallions[key] or STYLES.medallions[name][key]
@@ -1113,6 +1126,10 @@ function Layouts.Aspect(class, style, name, key)
 	end
 	local extra = style == "medallions" and Layouts.ExtraBarsPlace(class, name, key)
 	if extra then return extra end
+	if style == "frames" and (key == "actionbars.bar4" or key == "actionbars.bar5") then
+		local stacked = Layouts.RailStack(class, name, key)
+		if stacked then return stacked end
+	end
 	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(class, name, key, style)
 	if bar then return bar end
 	if key == "actionbars.bar3" and not Layouts.ThirdBarFinished() then return Layouts.LegacyThirdBar() end

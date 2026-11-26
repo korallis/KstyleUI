@@ -22,9 +22,8 @@ local TWO_ROWS = {
 	{ "Frames, bar 1 in two rows", "frames", { { "bar1.rows", 2 } } },
 	{ "Medallions without the slab, bar 2 in two rows", "medallions", { { "slab", false }, { "bar2.rows", 2 } } },
 }
-local EXTRA_BARS = { "rows", "beside" }
 local checked = 0
-for _, screen in ipairs({ { 3456, 2234, #TWO_ROWS, #EXTRA_BARS }, { 1920, 1080, 1, 0 } }) do
+for _, screen in ipairs({ { 3456, 2234, #TWO_ROWS, 1 }, { 1920, 1080, 1, 0 } }) do
 	local where = " at " .. screen[1] .. "x" .. screen[2]
 	for index = 1, screen[3] do
 		local case = TWO_ROWS[index]
@@ -44,16 +43,14 @@ for _, screen in ipairs({ { 3456, 2234, #TWO_ROWS, #EXTRA_BARS }, { 1920, 1080, 
 		assert(#env._errors + K.ErrorCount() == 0, label .. ": no Lua error")
 		checked = checked + 1
 	end
-	for index = 1, screen[4] do
-		local kind = EXTRA_BARS[index]
-		local env, K = Fresh(screen[1], screen[2], "medallions")
-		K.Options.Write("ActionBars", "extraBarsLayout", kind)
+	for _ = 1, screen[4] do
+		local env, K = Fresh(screen[1], screen[2], "frames")
+		K.Options.Write("ActionBars", "bar4.rows", 1)
 		env.RunTimers()
-		K.Options.Write("HudStyle", "style", "frames")
-		env.RunTimers()
-		local label = "Extra bars layout " .. kind .. ", then Frames" .. where
-		assert(not Clear(K, "actionbars.bar4", "actionbars.bar5"), label .. ": the kept bars 4 and 5 overlap at every size, which is the case this guards")
+		local label = "Frames, bar 4 set to one row" .. where
+		assert(not Clear(K, "actionbars.bar4", "actionbars.bar5"), label .. ": a one-row bar 4 overlaps bar 5 on the right rail at every size, which is the case this guards")
 		assert(K.Scale.AppliedUserScale() >= K.Scale.MIN_USER_SCALE, label .. ": an overlap no size cures must not shrink the HUD, got " .. K.Scale.AppliedUserScale())
+		assert(#env._errors + K.ErrorCount() == 0, label .. ": no Lua error")
 		checked = checked + 1
 	end
 end

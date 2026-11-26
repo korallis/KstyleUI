@@ -460,8 +460,15 @@ function ns.Schema()
 	BarRows(schema, ns.Consumables.def)
 	local shared = {
 		{ type = "header", label = L["Slab and cooldowns"] },
-		{ type = "dropdown", key = "extraBarsLayout", label = L["Extra bars layout"], help = L["Places bars 4 and 5 once; all controls stay editable. Off restores their previous settings."], showWhen = function() return K.HudStyle.Current() == "medallions" end,
-			options = { { value = "off", label = L["Off"] }, { value = "rows", label = L["Two rows on the slab"] }, { value = "beside", label = L["Beside the slab"] } } },
+		{ type = "dropdown", key = "extraBarsLayout", label = L["Extra bars layout"], help = L["Places bars 4 and 5 once; all controls stay editable. Off restores their previous settings."],
+			showWhen = function(settings) return K.HudStyle.Current() == "medallions" or settings.extraBarsApplied ~= "off" end,
+			options = function()
+				local applied, out = K.Store.Module("ActionBars").extraBarsApplied, { { value = "off", label = L["Off"] } }
+				for _, option in ipairs({ { value = "rows", label = L["Two rows on the slab"] }, { value = "beside", label = L["Beside the slab"] } }) do
+					if K.HudStyle.Current() == "medallions" or option.value == applied then out[#out + 1] = option end
+				end
+				return out
+			end },
 		{ type = "toggle", key = "quietSockets", label = L["Quiet empty sockets"], help = L["Dims empty Medallions buttons until you drag an action, bind keys or enter Layout Mode."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
 		{ type = "toggle", key = "quietCooldown", label = L["Quieter cooldowns"], help = L["Removes the bright edge from the global cooldown and keeps cooling icons readable."] },
 		{ type = "toggle", key = "readableCountdown", label = L["Readable countdowns"], help = L["Centres outlined timers and dims larger key labels during real cooldowns."] },
