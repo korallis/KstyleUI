@@ -2,6 +2,14 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The release workflow hands the packager the tagged version's section of that file, so CurseForge, Wago and the GitHub release each show that version's notes; the zip carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes, and after `bash scripts/gate.sh release` passes on the commit to be tagged.
 
+## 0.3.5.1: fold the quest card, and the fixes since 0.3.5 (2026-11-26)
+
+This hotfix adds a collapse toggle to the quest card and ships the bug fixes made since 0.3.5. Click the quest card's header row and the card folds down to that row; click it again and it opens on the same quests at the same scroll place. A small arrow beside the quest count shows the state, and the card remembers it in your profile.
+
+The chat edit box used to open over the newest chat line. It now opens in its own strip under that line, and the messages fill the card again when you stop typing. At a trainer, choosing another spell or reopening the window could leave Train blocked, and the Train all button raised a forbidden-action error; training works again and Train all is gone, because the game refuses it.
+
+The rest are smaller fixes. Settings sliders save on release, a failed import keeps your text, and Layout Mode's Discard restores positions. Healer raid frames keep their heal and dispel slots and their resurrection cue. Nameplates retry stacking once, an early channel stop no longer looks finished, and a targeted boss keeps its aura row. Consumable keys follow eligible items, raid tools open below the guide, Motion Off stops the tank alarm flash but keeps its warning, and tooltips align to whole pixels. The HUD also does less work in busy moments. The newer crest work still in testing is not in this release.
+
 ## 0.3.5: the crest comes alive (2026-11-25)
 
 The crest comes alive. In v0.3.4 most of what your class tracks sat on the crest as little spell icons in sockets. They're gone. Every class's buffs, debuffs, procs and cooldowns are now part of the crest itself: objects perched inside the ring, fuses that burn down it, grooves in the rune band that charge and drain, and overlays that flood the rim or close over the emblem. Under Frames the same pieces stand free in the tracker row above the stance bar. Every piece keeps its own switch under Action Bars > Slab and cooldowns, so anything you turned off in v0.3.4 stays off.

@@ -1,5 +1,41 @@
 # KstyleUI changelog
 
+## v0.3.5.1 (2026-11-26)
+
+A hotfix that adds a collapse toggle to the quest card and ships the bug fixes made since v0.3.5, from the chat edit box and trainers to settings, group frames and nameplates.
+
+Highlights:
+
+- Click the quest card's header to fold the card down to that one row, and click again to open it.
+- The chat edit box opens in its own strip under the newest line, no longer over your messages.
+- You can train again after choosing another spell, and the Train all button the game refused is gone.
+- Settings sliders save when you let go, a bad import keeps your text and Layout Mode's Discard puts things back.
+- Healer cues stay on raid frames, and nameplates, channels and boss auras read clearer in crowded fights.
+- Consumable keys, guide text, tooltips and item readouts get fixes, and the HUD does less work in busy moments.
+
+### Added
+
+- The quest card collapses and expands from its header. A click on the header row folds the card to that row, and a second click opens it on the same quests at the same scroll place.
+- An arrow beside the quest count points up while the card is open and down while it is folded, and the card remembers its state in your profile, through reloads and profile switches.
+
+### Changed
+
+- The HUD skips updates that change nothing, nameplate polling stops when no plates are up, and quest sharing, loot bursts, bag searches and chat history do bounded work.
+
+### Fixed
+
+- Chat: the edit box no longer covers the newest chat line while you type. The messages move up to give it its own strip and return when you stop.
+- Trainers: buying from a trainer no longer fails with a blocked-action error after you choose another spell or reopen the window, and trainer rows keep the game's own height.
+- Quality of Life no longer offers the Train all button, which the game refused with a forbidden-action error. Train with the trainer's own Train button.
+- Nameplates: a refused stacking request retries only once after combat, late plates fade in, Dungeon names every casting enemy and simultaneous hits start on separate rows.
+- Cast bars and auras: an early channel stop no longer looks like a finished cast, a targeted boss keeps its aura row, and a tracked buff stays in your buff row when the cooldown viewer hides it.
+- Group frames: both healer raid presets keep their heal and dispel slots, only a visible ready-check icon displaces the resurrection cue, and similar shortened names stay distinct.
+- Settings: window sliders preview the drag and save on release, a failed import keeps your pasted text, account imports report what they applied, and Layout Mode's Discard restores positions.
+- Action bars: consumable keys follow eligible items in their category, binding mode names the command a key displaces before you save, and out-of-range actions gain a mark that does not rely on colour.
+- Guide and notices: raid tools open below the guide, character stats follow the global text size, and quest actions, repair messages and potion notices wait for readable data.
+- Motion Off stops the tank alarm flash without hiding its warning, stationary warlock procs hold one cell, tooltips and dropdowns align to whole pixels and translated minimap labels fit.
+- Readouts: manual waypoints are kept, item tooltips say who owns an item, and stale readings look different from current ones.
+
 ## v0.3.5 (2026-11-25)
 
 The crest comes alive. No more little icons on the crest: every class's buffs, debuffs, procs and cooldowns are now part of the crest itself, perched in the ring, burning round it as fuses or charging in grooves in the band. Ten new crest effects join them, inspired by the old WeakAuras centre-piece UIs, plus sigils for your cooldowns and your trinkets on the rim. Every piece has its own switch under Action Bars > Slab and cooldowns. Rogues and cat druids also get an energy tick spark, expiring timers stay readable everywhere and windows show at once.
