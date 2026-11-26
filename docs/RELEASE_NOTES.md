@@ -1,6 +1,6 @@
 # KstyleUI release notes
 
-The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
+The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The release workflow hands the packager the tagged version's section of that file, so CurseForge, Wago and the GitHub release each show that version's notes; the zip carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
 ## 0.3.5.1: fold the quest card, and the fixes since 0.3.5 (2026-11-26)
 
