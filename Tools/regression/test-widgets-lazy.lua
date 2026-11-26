@@ -290,10 +290,11 @@ do
 	-- warlock, shaman and druid sit above that by the layers their owner chose to add so that a motion level changed in combat
 	-- shows at once and an older cue hides under a newer one: a second flare slot on each aura medal, two more copies of the
 	-- slots of each piece with a cue on its own art (a warlock's torment spires and the hunter's gust among them), and a moving
-	-- and a still copy of the storm's halo and sparks and of a druid's Clearcasting leaves.
+	-- and a still copy of the storm's halo and sparks and of a druid's Clearcasting leaves. Those two copies of a hunter's
+	-- cued pieces carry their forged marks too, hidden, which adds 115 regions to the hunter's 70 for the motion layers.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4940, DRUID = 5268, SHAMAN = 4917, HUNTER = 5050, MAGE = 4943, WARLOCK = 5097 }) do
+	for class, limit in pairs({ PRIEST = 4940, DRUID = 5268, SHAMAN = 4917, HUNTER = 5165, MAGE = 4943, WARLOCK = 5097 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")
