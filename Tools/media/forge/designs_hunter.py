@@ -11,6 +11,13 @@ def design(fn):
     return fn
 
 
+def inset(k, cx=0.5, cy=0.5):
+    """Draw a figure at k of its size about (cx, cy): the canvas is the unit box and cuts off whatever is drawn past it, before fit() or seat() can bring it back."""
+    def at(points):
+        return [(0.5 + (x - cx) * k, 0.5 + (y - cy) * k) for x, y in points]
+    return at
+
+
 def leaf(x0, y0, x1, y1, w, bulge=0.45):
     """A feather or leaf from its base to its tip."""
     dx, dy = x1 - x0, y1 - y0
@@ -229,16 +236,19 @@ def Serpent():
 def ViperSting():
     """Viper Sting: a viper's flat wedge head in profile on a thick neck, jaws wide open, one long fang and a forked tongue flicking out past them."""
     e = Emblem("ViperSting")
-    e.add(stroke([(0.26, 1.05), (0.08, 0.80), (0.12, 0.52)], 0.30, 0.30), h=0.7, r=0.07, base=0.3)
-    lower = blob([(0.04, 0.56), (0.28, 0.58), (0.54, 0.72), (0.78, 0.94), (0.70, 1.00), (0.46, 0.92), (0.22, 0.84), (0.04, 0.76)], 14)
-    e.add(lower, h=0.85, r=0.05, base=0.4)
-    upper = blob([(0.00, 0.52), (0.02, 0.26), (0.18, 0.14), (0.54, 0.10), (0.86, 0.12), (0.88, 0.26), (0.62, 0.36), (0.36, 0.44), (0.18, 0.60)], 14)
-    e.add(upper, h=1.0, r=0.09, base=0.45)
-    e.add(stroke([(0.78, 0.24), (0.76, 0.48), (0.68, 0.64)], 0.15, 0.01), h=1.0, r=0.03, base=0.55)
-    e.add(stroke([(0.36, 0.62), (0.62, 0.56), (0.92, 0.52)], 0.09, 0.08), h=0.7, r=0.02, base=0.4)
+    k = 0.72
+    at = inset(k, 0.55, 0.60)
+    e.add(stroke(at([(0.26, 1.05), (0.08, 0.80), (0.12, 0.52)]), 0.30 * k, 0.30 * k), h=0.7, r=0.07 * k, base=0.3)
+    lower = blob(at([(0.04, 0.56), (0.28, 0.58), (0.54, 0.72), (0.78, 0.94), (0.70, 1.00), (0.46, 0.92), (0.22, 0.84), (0.04, 0.76)]), 14)
+    e.add(lower, h=0.85, r=0.05 * k, base=0.4)
+    upper = blob(at([(0.00, 0.52), (0.02, 0.26), (0.18, 0.14), (0.54, 0.10), (0.86, 0.12), (0.88, 0.26), (0.62, 0.36), (0.36, 0.44), (0.18, 0.60)]), 14)
+    e.add(upper, h=1.0, r=0.09 * k, base=0.45)
+    e.add(stroke(at([(0.78, 0.24), (0.76, 0.48), (0.68, 0.64)]), 0.15 * k, 0.01), h=1.0, r=0.03 * k, base=0.55)
+    e.add(stroke(at([(0.36, 0.62), (0.62, 0.56), (0.92, 0.52)]), 0.09 * k, 0.08 * k), h=0.7, r=0.02 * k, base=0.4)
     for dy in (-0.14, 0.12):
-        e.add(stroke([(0.90, 0.52), (1.10, 0.52 + dy)], 0.08, 0.04, smooth=False), h=0.7, r=0.02, base=0.4)
-    e.pierce(ellipse(0.38, 0.24, 0.09, 0.05, 0))
+        e.add(stroke(at([(0.90, 0.52), (1.10, 0.52 + dy)]), 0.08 * k, 0.04 * k, smooth=False), h=0.7, r=0.02 * k, base=0.4)
+    (ex, ey), = at([(0.38, 0.24)])
+    e.pierce(ellipse(ex, ey, 0.09 * k, 0.05 * k, 0))
     return e.seat()
 
 
@@ -246,16 +256,22 @@ def ViperSting():
 def Scorpid():
     """Scorpid Sting: a scorpion from above, two big open pincers raised in front, a short body on two pairs of legs, the tail sweeping round one side to its barb."""
     e = Emblem("Scorpid")
+    k = 0.76
+    at = inset(k, 0.54, 0.515)
     for sx in (-1, 1):
         for y in (0.48, 0.66):
-            e.add(stroke([(0.40, y), (0.40 + sx * 0.27, y + 0.08)], 0.10, 0.07, smooth=False), h=0.6, r=0.02, base=0.3)
-        e.add(stroke([(0.40 + sx * 0.08, 0.40), (0.40 + sx * 0.32, 0.32), (0.40 + sx * 0.28, 0.14)], 0.13, 0.12, smooth=False), h=0.85, r=0.03, base=0.4)
-        claw = ellipse(0.40 + sx * 0.26, 0.08, 0.16, 0.19) & ~poly([(0.40 + sx * 0.24, 0.12), (0.40 + sx * 0.10, -0.25), (0.40 + sx * 0.34, -0.25)])
-        e.add(claw, h=1.0, r=0.05, base=0.5)
-    e.add(ellipse(0.40, 0.52, 0.15, 0.22), h=0.9, r=0.08, base=0.4)
-    e.add(stroke([(0.40, 0.70), (0.44, 0.94), (0.66, 1.06), (0.92, 0.98), (1.04, 0.74), (1.00, 0.50)], 0.17, 0.14), h=0.95, r=0.05, base=0.45)
-    e.add(ellipse(0.99, 0.46, 0.11, 0.11), h=1.0, r=0.05, base=0.5)
-    e.add(stroke([(0.96, 0.42), (0.84, 0.30), (0.74, 0.36)], 0.14, 0.01), h=1.0, r=0.03, base=0.55)
+            e.add(stroke(at([(0.40, y), (0.40 + sx * 0.27, y + 0.08)]), 0.10 * k, 0.07 * k, smooth=False), h=0.6, r=0.02 * k, base=0.3)
+        arm = at([(0.40 + sx * 0.08, 0.40), (0.40 + sx * 0.32, 0.32), (0.40 + sx * 0.28, 0.14)])
+        e.add(stroke(arm, 0.13 * k, 0.12 * k, smooth=False), h=0.85, r=0.03 * k, base=0.4)
+        (cx, cy), = at([(0.40 + sx * 0.26, 0.08)])
+        gap = poly(at([(0.40 + sx * 0.24, 0.12), (0.40 + sx * 0.10, -0.25), (0.40 + sx * 0.34, -0.25)]))
+        e.add(ellipse(cx, cy, 0.16 * k, 0.19 * k) & ~gap, h=1.0, r=0.05 * k, base=0.5)
+    (bx, by), (tx, ty) = at([(0.40, 0.52), (0.99, 0.46)])
+    e.add(ellipse(bx, by, 0.15 * k, 0.22 * k), h=0.9, r=0.08 * k, base=0.4)
+    tail = at([(0.40, 0.70), (0.44, 0.94), (0.66, 1.06), (0.92, 0.98), (1.04, 0.74), (1.00, 0.50)])
+    e.add(stroke(tail, 0.17 * k, 0.14 * k), h=0.95, r=0.05 * k, base=0.45)
+    e.add(ellipse(tx, ty, 0.11 * k, 0.11 * k), h=1.0, r=0.05 * k, base=0.5)
+    e.add(stroke(at([(0.96, 0.42), (0.84, 0.30), (0.74, 0.36)]), 0.14 * k, 0.01), h=1.0, r=0.03 * k, base=0.55)
     return e.seat()
 
 
@@ -324,14 +340,17 @@ def Counter():
 def Mongoose():
     """Mongoose Bite: a mongoose lunging to the right, a long low body on short legs, a thick straight tail, jaws wide open."""
     e = Emblem("Mongoose")
-    e.add(stroke([(0.26, 0.52), (0.08, 0.50), (-0.14, 0.44)], 0.19, 0.09, smooth=False), h=0.7, r=0.04, base=0.3)
-    for (a, b, c) in (((0.30, 0.58), (0.26, 0.74), (0.36, 0.77)), ((0.64, 0.58), (0.70, 0.73), (0.80, 0.75))):
-        e.add(stroke([a, b, c], 0.12, 0.09, smooth=False), h=0.7, r=0.03, base=0.3)
-    e.add(stroke([(0.26, 0.52), (0.50, 0.50), (0.70, 0.47)], 0.24, 0.22), h=0.9, r=0.08, base=0.4)
-    e.add(ellipse(0.80, 0.41, 0.12, 0.12), h=1.0, r=0.06, base=0.5)
-    e.add(blob([(0.78, 0.30), (0.94, 0.22), (1.10, 0.18), (1.08, 0.27), (0.94, 0.38), (0.82, 0.41)], 12), h=1.0, r=0.04, base=0.5)
-    e.add(blob([(0.76, 0.43), (0.90, 0.48), (1.05, 0.60), (1.01, 0.65), (0.86, 0.59), (0.74, 0.54)], 12), h=0.95, r=0.04, base=0.5)
-    e.add(ellipse(0.74, 0.29, 0.045, 0.045), h=1.05, r=0.02, base=0.7)
+    k = 0.86
+    at = inset(k, 0.53, 0.46)
+    e.add(stroke(at([(0.26, 0.52), (0.12, 0.50), (0.04, 0.47)]), 0.19 * k, 0.09 * k, smooth=False), h=0.7, r=0.04 * k, base=0.3)
+    for leg in ([(0.30, 0.58), (0.26, 0.74), (0.36, 0.77)], [(0.64, 0.58), (0.70, 0.73), (0.80, 0.75)]):
+        e.add(stroke(at(leg), 0.12 * k, 0.09 * k, smooth=False), h=0.7, r=0.03 * k, base=0.3)
+    e.add(stroke(at([(0.26, 0.52), (0.50, 0.50), (0.70, 0.47)]), 0.24 * k, 0.22 * k), h=0.9, r=0.08 * k, base=0.4)
+    (hx, hy), (rx, ry) = at([(0.80, 0.41), (0.74, 0.29)])
+    e.add(ellipse(hx, hy, 0.12 * k, 0.12 * k), h=1.0, r=0.06 * k, base=0.5)
+    e.add(blob(at([(0.78, 0.30), (0.94, 0.22), (1.03, 0.18), (1.02, 0.27), (0.94, 0.38), (0.82, 0.41)]), 12), h=1.0, r=0.04 * k, base=0.5)
+    e.add(blob(at([(0.76, 0.43), (0.90, 0.48), (1.02, 0.60), (0.98, 0.65), (0.86, 0.59), (0.74, 0.54)]), 12), h=0.95, r=0.04 * k, base=0.5)
+    e.add(ellipse(rx, ry, 0.045 * k, 0.045 * k), h=1.05, r=0.02 * k, base=0.7)
     return e.fit()
 
 
@@ -339,10 +358,13 @@ def Mongoose():
 def Raptor():
     """Raptor Strike: a bird of prey's foot seen from the front, a short shank, three thick toes spread wide and a spur behind, each ending in a hooked claw."""
     e = Emblem("Raptor")
-    e.add(stroke([(0.50, -0.10), (0.50, 0.34)], 0.16, 0.18, smooth=False), h=0.8, r=0.07, base=0.35)
+    k = 0.76
+    at = inset(k, 0.50, 0.50)
+    e.add(stroke(at([(0.50, 0.00), (0.50, 0.34)]), 0.16 * k, 0.18 * k, smooth=False), h=0.8, r=0.07 * k, base=0.35)
     for (tip, mid, hook) in (((0.10, 0.56), (0.02, 0.84), (0.14, 1.00)), ((0.50, 0.72), (0.46, 0.98), (0.34, 1.10)),
                              ((0.90, 0.56), (0.98, 0.84), (0.86, 1.00)), ((0.80, 0.22), (0.92, 0.26), (0.96, 0.40))):
-        e.add(stroke([(0.50, 0.34), tip], 0.22, 0.18, smooth=False), h=0.9, r=0.05, base=0.4)
-        e.add(stroke([tip, mid, hook], 0.18, 0.012), h=1.0, r=0.03, base=0.5)
-    e.add(ellipse(0.50, 0.36, 0.16, 0.14), h=0.95, r=0.06, base=0.45)
+        e.add(stroke(at([(0.50, 0.34), tip]), 0.22 * k, 0.18 * k, smooth=False), h=0.9, r=0.05 * k, base=0.4)
+        e.add(stroke(at([tip, mid, hook]), 0.18 * k, 0.012), h=1.0, r=0.03 * k, base=0.5)
+    (jx, jy), = at([(0.50, 0.36)])
+    e.add(ellipse(jx, jy, 0.16 * k, 0.14 * k), h=0.95, r=0.06 * k, base=0.45)
     return e.fit()
