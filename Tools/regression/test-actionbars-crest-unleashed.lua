@@ -115,6 +115,13 @@ do
 	other:Stop()
 	env.RunTimers()
 	assert(burst:GetAlpha() == 1, "and its layer shows again once the burst's time is over")
+	-- The other order: the burst is the newer flare. It shows at once, its layer too if it was still hidden, and the older flare stops.
+	Slots.Set(env, "player", nil)
+	env._aurasSecret = true
+	other:Play()
+	Slots.Set(env, "player", Reck())
+	env._aurasSecret = false
+	assert(grow:IsPlaying() and burst:GetAlpha() == 1 and not other:IsPlaying(), "a burst that takes the place shows at once and stops the older flare")
 	assert(AB.W.LastCall(awake._cooldown, "SetCooldownFromDurationObject"), "the outer ring drains with the aura")
 	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 1719)
 	local lift = hub.crest.lift
@@ -232,6 +239,24 @@ do
 	Dark(env, set)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "and the slot hiding afterwards folds nothing more")
+	-- One cooldown running out as another takes its slot, which stays lit and so runs neither OnHide nor OnShow: the game plays the slot's assigned animations for the
+	-- new aura, and that keeps the slot lit for the crest, so nothing folds until that one ends.
+	Slots.Set(env, "player", Reck())
+	set.shown(set.awake.lit)
+	done(set.awake.timer)
+	local other
+	for _, id in ipairs(set.lit.spec.spells) do
+		other = other or id ~= 1719 and id
+	end
+	Slots.Set(env, "player", { { id = assert(other, "the rim tracks a second cooldown"), auraInstanceID = 9, count = 0, icon = 132109, start = 0, duration = 10 } })
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "a cooldown running out as another takes its lit slot folds nothing")
+	done(set.awake.timer)
+	env.RunTimers()
+	assert(Folding(), "and that one's timer running out, the last, folds")
+	Reset()
+	Dark(env, set)
+	env.RunTimers()
 	done(set.awake.timer)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "and does not replay from a timer's end when nothing was lit")

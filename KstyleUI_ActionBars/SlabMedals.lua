@@ -689,7 +689,7 @@ function Medals.Arbitrate(group, engine, gate)
 			return
 		elseif not (group.engine and Medals.Restricted()) then
 			group:Stop()
-		elseif hide then
+		elseif hide and hide.owner == group then
 			local mark = {}
 			hide.hushed = mark
 			Medals.Gate(hide)
@@ -704,9 +704,13 @@ function Medals.Arbitrate(group, engine, gate)
 		end
 	end
 	group:SetScript("OnPlay", function()
-		if group.gate and group.gate.hushed then
-			group.gate.hushed = nil
-			Medals.Gate(group.gate)
+		local own = group.gate
+		if own then
+			own.owner, own.hushed = group, nil
+			Medals.Gate(own)
+			if own.base == 0 then
+				return
+			end
 		end
 		claiming = true
 		Medals.Claim(stop, group.held)

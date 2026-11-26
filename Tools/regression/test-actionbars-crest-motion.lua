@@ -27,6 +27,11 @@ local function New(class)
 			local t = e._totems[slot]
 			return { start = t and t.start or 0, finish = t and t.start + 18 or 0 }
 		end
+		-- A shaman has totems to drop, so the Spirit Poles and their spires build.
+		e.C_ActionBar.GetMultiCastBarIndex = function() return 12 end
+		e.GetMultiCastTotemSpells = function(slot) return slot == 1 and 3599 or nil end
+		e.SetMultiCastSpell = function() end
+		e.CreateFrame("Frame", "MultiCastActionBarFrame", e.UIParent)
 		Slots.Install(e)
 		e.AuraContainerSortMethod, e.AuraContainerSortDirection = { Default = 0, AuraInstanceIDOnly = 8 }, { Normal = 0, Reverse = 1 }
 	end })
@@ -97,26 +102,38 @@ end
 
 -- The warnings by the callers that play them, whatever rate a wrong one would have: every ember watch (a medal, the horn), every slot's refresh cue, the last Lightning
 -- Shield orb, a rune stone's gutter and the last Inner Fire flame.
-local met = {}
+local met, checked = {}, {}
 local function Warnings(ns, class)
 	local n = 0
 	local function check(group, what)
 		if group then
 			Flicker(group, class .. " " .. what)
 			n = n + 1
-			met[what] = true
+			met[what], checked[group] = true, true
 		end
 	end
 	for _, e in ipairs(ns.SlabRings.state.watched) do
 		check(e.flicker, "ember watch")
 	end
 	check(ns.SlabStorm and ns.SlabStorm.state.flicker, "storm orb")
+	for _, loop in ipairs(ns.SlabStorm and ns.SlabStorm.state.loops or {}) do
+		if rawget(loop.group, "low") then check(loop.group, "storm spark") end
+	end
+	for _, socket in ipairs(ns.Totems and ns.Totems.state.sockets or {}) do
+		check(socket.spire and socket.spire.flicker.anim, "totem spire")
+	end
 	local crest = ns.SlabTrackers.state.forms.crest
 	for _, piece in pairs(crest and crest.pieces or {}) do
+		local key = tostring(piece.spec and piece.spec.key)
 		check(piece.gutter, "rune stone")
 		check(piece.ring and piece.flicker, "Inner Fire")
 		for _, lit in ipairs(piece.lits or { piece.lit }) do
-			check(lit.flicker, tostring(piece.spec and piece.spec.key) .. " refresh cue")
+			check(lit.flicker, key .. " refresh cue")
+			-- The looks that burn with the one flicker while their aura shows: a fuse's head, and a flame or a crackle on a warrior's or paladin's hip.
+			if lit.loop and rawget(lit.loop, "low") then check(lit.loop, key .. " burn") end
+			for _, group in ipairs(lit.awake and lit.awake.lit.loops or {}) do
+				if rawget(group, "low") then check(group, key .. " flame") end
+			end
 		end
 	end
 	return n
@@ -178,6 +195,8 @@ for _, class in ipairs(CLASSES) do
 			alphaOnly = alphaOnly and anim._type == "Alpha"
 			cycle = cycle + (Set(anim, "Duration") or 0) + (Set(anim, "StartDelay") or 0) + (Set(anim, "EndDelay") or 0)
 		end
+		-- Every flicker the action bars build with ns.Slab.Flicker is one of the callers named above, so a new caller is named there too.
+		assert(rawget(group, "low") == nil or checked[group], class .. ": a flicker from " .. tostring(group._anims[1]._origin) .. " that the walk by caller does not name; add its caller to Warnings")
 		if alphaOnly and Set(group, "Looping") == "REPEAT" and cycle <= 0.5 then
 			Flicker(group, class .. ": a second end-warning rate (" .. cycle .. " s a cycle) from " .. tostring(group._anims[1]._origin) .. "; use ns.Slab.Flicker")
 			flickers[class] = flickers[class] + 1
@@ -187,7 +206,8 @@ end
 for _, class in ipairs(CLASSES) do
 	assert(named[class] > 0, class .. ": the walk by caller meets a warning")
 end
-for _, what in ipairs({ "ember watch", "storm orb", "rune stone", "Inner Fire", "crestMark refresh cue", "crestCurse refresh cue", "crestFlameShock refresh cue" }) do
+for _, what in ipairs({ "ember watch", "storm orb", "totem spire", "rune stone", "Inner Fire", "crestMark refresh cue", "crestCurse refresh cue", "crestFlameShock refresh cue",
+	"crestSting burn", "crestYourSpell burn", "crestCurse burn", "crestDemon burn", "crestHipLeft flame", "crestHipRight flame" }) do
 	assert(met[what], "the walk by caller meets the " .. what)
 end
 assert(flickers.WARRIOR > 0 and flickers.HUNTER > 0 and flickers.SHAMAN > 0 and flickers.WARLOCK > 0, "the walk meets the flicker on warriors, hunters, shamans and warlocks")
@@ -281,6 +301,18 @@ do
 		Motion(env, K, level)
 		assert(Has(slot._assignedAnimations, slot.flare.play) and #slot._assignedAnimations == 1, level .. " under hidden values: the engine still has the moving flare")
 		assert(gate:GetAlpha() == 0, level .. " under hidden values: so its layer is dark")
+		-- What a person sees when a new aura lands now: the engine does play the flare it has, and none of it reaches the screen. A flare nobody sees takes no place: one
+		-- that is showing plays on.
+		local showing = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
+		showing:Play()
+		Slots.Set(env, "player", { { id = fed.lit.spec.spells[1], start = 0, duration = 12 } })
+		env._engine = true
+		local playing, seen = slot.flare.play:IsPlaying(), slot.flare:GetEffectiveAlpha()
+		env._engine = nil
+		assert(playing and seen == 0, level .. " under hidden values: a new aura's flare plays unseen (" .. seen .. ")")
+		assert(showing:IsPlaying(), level .. " under hidden values: and leaves the flare that is showing alone")
+		showing:Stop()
+		Slots.Set(env, "player", nil)
 	end
 	Motion(env, K, "full")
 	assert(gate:GetAlpha() == 1, "back at Full, the level the slot is bound for, the layer shows again")
@@ -397,6 +429,79 @@ do
 	Gain(true)
 	assert(Plays() and gate:GetAlpha() == 1 and not cool.flare.play:IsPlaying(), "the slot's own next flare shows its layer at once and stops the cooldown's")
 	env.C_Timer.After = after
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A melee seat's schools share one container, so their flares share one layer: the second school's flare, landing while the first still plays, shows at once, and the
+-- first one's ending does not hide the layer under it.
+do
+	local env, K, ns = New("PALADIN")
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	local seat
+	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+		local a, b = piece.lits and piece.lits[1], piece.lits and piece.lits[2]
+		if a and b and a.flareGate and a.flareGate == b.flareGate and not piece.spec.unit then seat = piece end
+	end
+	assert(seat, "a paladin's crest has a seat whose schools share a flare layer")
+	local gate, slots = seat.lits[1].flareGate, {}
+	for i = 1, 2 do
+		for _, mirror in ipairs(seat.lits[i].mirrors) do
+			slots[i] = mirror.flare and mirror or slots[i]
+		end
+		assert(slots[i] and slots[i].flare.gate == gate, "each school has a flare slot of its own under the shared layer")
+	end
+	local unit = seat.lits[1].spec.unit or "player"
+	local first, second = { id = slots[1].spec.spells[1], auraInstanceID = 31, start = 0, duration = 12 }, { id = slots[2].spec.spells[1], auraInstanceID = 32, start = 0, duration = 12 }
+	local function Plays(i)
+		env._engine = true
+		local playing = slots[i].flare.play:IsPlaying()
+		env._engine = nil
+		return playing
+	end
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	Slots.Set(env, unit, { first })
+	assert(Plays(1) and gate:GetAlpha() == 1, "hidden values: the first school's flare plays")
+	Slots.Set(env, unit, { first, second })
+	assert(Plays(2) and gate:GetAlpha() == 1, "the second school's flare shows at once, its shared layer still lit")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A ranged piece's bloom is a crest flare the engine plays too. Newer, it shows at once and hides the older flare's layer; older, the newer flare shows at once over it
+-- (the bloom is the sigil's own art growing to its size, which has no layer of its own to hide without hiding the sigil).
+do
+	local env, K, ns = New("HUNTER")
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	local aspect = assert(Piece(ns, "crestAspect"), "the Aspect perch")
+	local lit, older = aspect.lits[1], nil
+	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+		local gate = piece:IsShown() and piece.lit and piece.lit.flareGate
+		if gate and gate.lit and gate.lit.spec.unit == nil and not older then older = piece end
+	end
+	assert(older, "a hunter's crest has an aura medal with a flare")
+	local gate, slot, bloom = older.lit.flareGate, older.lit.flareGate.lit, lit.flare.play
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	-- One table an aura, as the game keeps one aura instance: a slot's flare plays again only for a new one.
+	local medal, sigil = { id = slot.spec.spells[1], auraInstanceID = 21, start = 0, duration = 30 }, { id = lit.spec.spells[1], auraInstanceID = 22, start = 0, duration = 600 }
+	local function Auras(first, second)
+		Slots.Set(env, "player", { first and medal or sigil, second and sigil or nil })
+	end
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	Auras(true, false)
+	assert(Engine(function() return slot.flare.play:IsPlaying() end) and gate:GetAlpha() == 1, "hidden values: the medal's flare plays")
+	Auras(true, true)
+	assert(Engine(function() return bloom:IsPlaying() end) and gate:GetAlpha() == 0, "the Aspect's bloom shows at once and the older flare's layer hides")
+	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
+	other:Play()
+	assert(other:IsPlaying() and Engine(function() return bloom:IsPlaying() end), "a newer flare shows at once over a bloom, which finishes its growth")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
