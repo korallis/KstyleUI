@@ -226,7 +226,8 @@ class CacheTest(unittest.TestCase):
 
     def test_each_working_copy_keeps_its_own_records_and_a_new_one_starts_from_the_shared_copy(self):
         # Intent: the approved faster-gate plan, another working copy's run must not replace this one's records.
-        root = Path(self._tmp.name)
+        # resolve(): git names the macOS temp folder by its real /private/var path.
+        root = Path(self._tmp.name).resolve()
         one, two = root / "one", root / "two"
         environment = {key: value for key, value in os.environ.items() if key != "KSTYLEUI_DEPS_CACHE"}
         environment.update(GIT_ENV, XDG_CACHE_HOME=str(root / "cache"))
