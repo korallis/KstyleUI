@@ -987,14 +987,32 @@ do
 	local after, armed = env.C_Timer.After, {}
 	env.C_Timer.After = function(_, fn) armed[#armed + 1] = fn end
 	Slots.Set(env, "player", { { id = 10060, count = 0, icon = 135939, start = 0, duration = 15 } })
-	env._engine = true
-	assert(sigil:IsShown() and sigil.flash:IsPlaying(), "the engine flashes the dark slot as the cooldown shows")
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	local function Up(which)
+		return Engine(function() return which:IsShown() and which:GetEffectiveAlpha() > 0 and which.flash:IsPlaying() end)
+	end
+	assert(Up(sigil), "the engine flashes the dark slot as the cooldown shows")
 	K.Options.Write("Medallions", "motion", "full")
-	assert(rim.lit.flash:GetAlpha() == 0 and sigil:IsShown() and sigil:GetEffectiveAlpha() > 0, "Calm to Full inside the flash: its layer stays dark and the sigil stays up")
-	env._engine = nil
+	assert(rim.lit.flash:GetAlpha() == 0 and Up(sigil), "Calm to Full inside the flash: its layer stays dark and the sigil stays up")
+	-- The sigils share the flash's layer: a second cooldown gained while the layer is still dark for the first keeps it dark for its own whole flash.
+	local second = rim.sigils[2]
+	local early = armed
+	armed = {}
+	env._now = env._now + 0.3
+	Slots.Set(env, "player", { { id = 10060, count = 0, icon = 135939, start = 0, duration = 15 }, { id = 14751, count = 0, start = 0, duration = 15 } })
+	assert(Up(second), "a second cooldown shows its sigil and the engine flashes its dark slot")
+	env._now = env._now + 0.2
+	assert(#early > 0, "the first flash's layer waits on a timer")
+	for _, fn in ipairs(early) do fn() end
+	assert(rim.lit.flash:GetAlpha() == 0, "the first flash's end leaves the layer dark while the second, begun unseen, still plays")
 	env._now = env._now + 1
 	for _, fn in ipairs(armed) do fn() end
-	assert(rim.lit.flash:GetAlpha() == 1, "and the layer shows again once the flash is over")
+	assert(rim.lit.flash:GetAlpha() == 1, "and the layer shows again once the last unseen flash is over")
 	K.Options.Write("Medallions", "motion", "calm")
 	K.Options.Write("Medallions", "motion", "full")
 	assert(rim.lit.flash:GetAlpha() == 1, "a flash whose time is over hides nothing")
