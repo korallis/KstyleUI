@@ -53,7 +53,7 @@ do
 	assert(m.lit:IsShown() and m.lit.icon._state.Texture[1] == 132333, "the aura lights the medal with its own icon")
 	assert(AB.W.LastCall(m.timer, "SetCooldownFromDurationObject"), "and drains the ring from its duration")
 	Medals.Engine({ m, socket, rim }, true, false)
-	assert(not Assigned(m.lit) and not Shown(rim.fire.lit, rim.fire.lit.loop), "below Full the engine plays no flare or fire")
+	assert(not Shown(rim.fire.lit, rim.fire.lit.loop), "below Full the engine plays no fire")
 	Slots.Enchant(env, 1, { start = 0, duration = 1800 })
 	assert(socket.lit:IsShown() and AB.W.LastCall(socket.bar, "SetTimerDuration"), "an enchant fills the socket and drains it")
 end

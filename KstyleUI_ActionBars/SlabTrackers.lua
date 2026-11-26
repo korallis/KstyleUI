@@ -204,15 +204,24 @@ local function Build(form, name, key, spec)
 	local make = spec.build or spec.feed == "threat" and Medals.Threat or spec.seat == "cooldowns" and Medals.CooldownRim
 		or name == "crest" and (spec.seat == "rim" and Medals.Rim or spec.slot and not spec.perch and Medals.Socket) or spec.look and ns.SlabArmory.Build or Medals.Medal
 	local under = spec.seat == "rim" or spec.seat == "cooldowns" or spec.seat == "plaque"
-	local ok, piece = pcall(make, form.frame, spec, form.frame:GetFrameLevel() + (under and 1 or 16), name)
-	if not ok or not piece then
+	local function Make()
+		local ok, piece = pcall(make, form.frame, spec, form.frame:GetFrameLevel() + (under and 1 or 16), name)
+		if not ok or not piece then
+			K.DevTest.Log("ActionBars", tostring(spec.key) .. " on the crest unavailable: " .. tostring(piece))
+			return nil
+		end
+		return piece
+	end
+	local piece = Make()
+	if not piece then
 		form.failed[key] = true
-		K.DevTest.Log("ActionBars", tostring(spec.key) .. " on the crest unavailable: " .. tostring(piece))
 		return nil
 	end
 	piece.spec = piece.spec or spec
 	if spec.families then
 		ns.SlabUnleashed.Dress(piece, spec, name)
+	elseif Medals.Cued(piece) then
+		Medals.Twins(piece, Make)
 	end
 	form.pieces[key] = piece
 	return piece
@@ -245,6 +254,9 @@ end
 local function Lay(form, name, seat, shown, order, specs)
 	for key, piece in pairs(form.pieces) do
 		piece:SetShown(shown[key] ~= nil)
+		for _, twin in ipairs(piece.twins or {}) do
+			twin:SetShown(shown[key] ~= nil)
+		end
 	end
 	local n, strip, over = 0, nil, 0
 	for _, key in ipairs(order) do

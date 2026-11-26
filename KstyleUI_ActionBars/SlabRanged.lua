@@ -180,8 +180,9 @@ local function Spot(p, parent, art, color, size, x, y, layer)
 end
 
 local function Flare(p, lit, level, size, x, y)
-	Medals.Flare(p, lit, level, "glow", size)
-	p.parts[#p.parts]:SetPoint("CENTER", p, "CENTER", x, y)
+	for _, flare in ipairs(Medals.Flare(p, lit, level, "glow", size)) do
+		flare:SetPoint("CENTER", p, "CENTER", x, y)
+	end
 end
 
 local function Groove(p, band, k)
