@@ -520,9 +520,13 @@ def main(argv):
                 try:
                     with open(os.path.join(logs, name + ".trace"), encoding="utf-8", errors="replace") as trace:
                         records[path] = dict(affected.record_from_trace(trace.read(), os.getcwd()), sha=affected.fingerprint(path))
-                        records[path]["seen"] = affected.seen(records[path], memo=hashes)
                 except OSError:
                     pass
+                else:
+                    try:
+                        records[path]["seen"] = affected.seen(records[path], memo=hashes)
+                    except (OSError, RuntimeError):
+                        pass
             for line in lines:
                 print(line)
             if result["ok"] and not any(line.startswith("FAIL ") for line in lines):

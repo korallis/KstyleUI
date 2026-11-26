@@ -238,6 +238,7 @@ class CacheTest(unittest.TestCase):
                 (folder / "x").write_text("same in both")
                 (folder / "y").write_text("made in " + folder.name)
                 (folder / "z").write_text("z")
+            (one / "kind").mkdir()
             (two / "more").write_text("only in two")
             affected.git("add", "more", cwd=two)
 
@@ -246,7 +247,11 @@ class CacheTest(unittest.TestCase):
 
             affected.save_records({"a": made(files=["x"]), "b": made(files=["y"]), "c": record(["x"]),
                                    "d": made(files=["x"], listings=["m*"]), "e": made(files=["x"], names=["m*"]),
-                                   "f": made(files=["x"], listings=["z*"], names=["*.lua"])}, one)
+                                   "f": made(files=["x"], listings=["z*"], names=["*.lua"]), "g": made(listings=["sub/*"]),
+                                   "h": made(listings=["kind"])}, one)
+            (two / "sub").mkdir()
+            (two / "sub" / "missing").write_text("a file named like the word for no folder")
+            (two / "kind").write_text("a file where the record saw a folder")
             self.assertEqual(sorted(affected.load_records(two)), ["a", "f"],
                              "a new working copy takes only the shared records whose files, listings and tracked names it holds")
             affected.save_records({"a": record(["z"], seen=affected.seen(record(["z"]), two)), "f": record(["z"])}, two)

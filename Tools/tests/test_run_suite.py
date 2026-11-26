@@ -8,8 +8,10 @@ import os
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import run_suite
 
@@ -31,6 +33,46 @@ class SelectTest(unittest.TestCase):
 
     def test_every_tool_test_and_wide_file_names_a_file_in_the_suite(self):
         self.assertEqual([name for name in (*run_suite.TOOL_TESTS, *run_suite.WIDE) if not (HERE / name).is_file()], [])
+
+
+class ScheduleTest(unittest.TestCase):
+    NAMES = ["test_a.py", "test_b.py", "test_run_all.py", "test_z.py"]
+
+    def test_a_wide_file_finishes_before_any_file_is_given_to_the_pool(self):
+        events = []
+
+        class Pool:
+            def __init__(self, max_workers):
+                events.append(("workers", max_workers))
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def map(self, start, names):
+                events.append(("pooled", list(names)))
+                return map(start, names)
+
+        def start(name):
+            events.append(("ran", name))
+            return name
+
+        with mock.patch.object(run_suite, "ThreadPoolExecutor", Pool):
+            order = list(run_suite.results(self.NAMES, 3, start))
+        self.assertEqual(order, ["test_run_all.py", "test_a.py", "test_b.py", "test_z.py"])
+        self.assertEqual(events[:3], [("workers", 3), ("ran", "test_run_all.py"), ("pooled", ["test_a.py", "test_b.py", "test_z.py"])])
+
+    def test_the_other_files_run_side_by_side(self):
+        together = threading.Barrier(3, timeout=60)
+
+        def start(name):
+            if name != "test_run_all.py":
+                together.wait()
+            return name
+
+        self.assertEqual(len(list(run_suite.results(self.NAMES, 3, start))), 4)
 
 
 class RunTest(unittest.TestCase):
@@ -56,20 +98,6 @@ class RunTest(unittest.TestCase):
         self.assertIn("ok   test_good.py (2 tests, 1 skipped", result.stdout)
         self.assertIn("ran 3 tests and skipped 1 in 2 files", result.stdout)
         self.assertIn("failed files: test_bad.py", result.stdout)
-
-    def test_a_wide_file_never_runs_beside_another_file(self):
-        body = ("    def test_a(self):\n        import os, time\n        from pathlib import Path\n"
-                "        mine = Path(os.environ['SPANS'], Path(__file__).stem)\n"
-                "        mine.write_text(str(time.time()) + ' ')\n        time.sleep(0.6)\n"
-                "        mine.write_text(mine.read_text() + str(time.time()))\n")
-        with tempfile.TemporaryDirectory() as spans:
-            result = self.run_suite({name: body for name in ("test_run_all.py", "test_x1.py", "test_x2.py", "test_x3.py")}, SPANS=spans)
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            times = {path.name: [float(part) for part in path.read_text().split()] for path in Path(spans).iterdir()}
-        wide = times.pop("test_run_all")
-        self.assertEqual([name for name, (start, end) in times.items() if start < wide[1] and wide[0] < end], [])
-        self.assertLess(max(start for start, _ in times.values()), min(end for _, end in times.values()), "the other files run side by side")
-        self.assertIn("at most 3 files at once", result.stdout)
 
     def test_the_release_gate_runs_a_tool_test_whose_tool_is_unchanged(self):
         files = {"test_crlf.py": "    def test_a(self):\n        pass\n", "test_other.py": "    def test_a(self):\n        pass\n"}

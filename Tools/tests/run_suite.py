@@ -76,6 +76,15 @@ def run_counted(folder, name):
             "seconds": time.monotonic() - start, "output": done.stdout + done.stderr}
 
 
+def results(run, jobs, start):
+    """Yield start(name) for each file: the WIDE ones one at a time, then the rest jobs at a time, in order."""
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        for name in run:
+            if name in WIDE:
+                yield start(name)
+        yield from pool.map(start, [name for name in run if name not in WIDE])
+
+
 def main(argv):
     parser = argparse.ArgumentParser(prog="run_suite.py", description="Run the Python suite.")
     parser.add_argument("base", nargs="?", help="leave out the tool tests whose tool is unchanged against this ref")
@@ -99,22 +108,15 @@ def main(argv):
               "bash scripts/gate.sh release runs them all".format(len(skipped), args.base, ", ".join(skipped)), flush=True)
     start = time.monotonic()
     failed, tests, unchecked = [], 0, 0
-    with ThreadPoolExecutor(max_workers=jobs) as pool:
-        def results():
-            for name in run:
-                if name in WIDE:
-                    yield run_file(folder, name)
-            yield from pool.map(lambda name: run_file(folder, name), [name for name in run if name not in WIDE])
-
-        for result in results():
-            tests += result["tests"] - result["skipped"]
-            unchecked += result["skipped"]
-            if result["ok"]:
-                print("ok   {0} ({1} tests, {2} skipped, {3:.1f} s)".format(
-                    result["name"], result["tests"] - result["skipped"], result["skipped"], result["seconds"]), flush=True)
-            else:
-                failed.append(result["name"])
-                print("FAIL {0}\n{1}".format(result["name"], result["output"].rstrip()), flush=True)
+    for result in results(run, jobs, lambda name: run_file(folder, name)):
+        tests += result["tests"] - result["skipped"]
+        unchecked += result["skipped"]
+        if result["ok"]:
+            print("ok   {0} ({1} tests, {2} skipped, {3:.1f} s)".format(
+                result["name"], result["tests"] - result["skipped"], result["skipped"], result["seconds"]), flush=True)
+        else:
+            failed.append(result["name"])
+            print("FAIL {0}\n{1}".format(result["name"], result["output"].rstrip()), flush=True)
     print("python suite: ran {0} tests and skipped {1} in {2} files in {3:.1f} s, at most {4} files at once; failed files: {5}".format(
         tests, unchecked, len(run), time.monotonic() - start, ALIVE["peak"], ", ".join(failed) or "none"))
     return 1 if failed or not run else 0

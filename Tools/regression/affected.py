@@ -65,8 +65,9 @@ def cache_path(cwd=None):
 
 
 def seen(record, root=".", memo=None):
-    """Return one hash of what a record's test read, as it is under root now: the bytes of each file, the names
-    each listing matches and the paths git tracks for each pattern."""
+    """Return one hash of what a record's test read, as it is under root now: the bytes of each file, whether
+    each listed folder exists and the names its glob matches with which of them are folders (fs.list's dirs
+    option tells them apart), and the paths git tracks for each pattern."""
     memo = {} if memo is None else memo
 
     def answer(kind, value):
@@ -76,9 +77,10 @@ def seen(record, root=".", memo=None):
             elif kind == "n":
                 folder, _, glob = value.rpartition("/")
                 try:
-                    found = "/".join(sorted(name for name in os.listdir(os.path.join(root, folder)) if fnmatch.fnmatchcase(name, glob)))
+                    found = repr(("listed", sorted((entry.name, entry.is_dir()) for entry in os.scandir(os.path.join(root, folder))
+                                                   if fnmatch.fnmatchcase(entry.name, glob))))
                 except OSError:
-                    found = "missing"
+                    found = repr(("missing",))
             else:
                 found = git("ls-files", "-z", "--", value, cwd=root)
             memo[kind, value] = found
