@@ -158,7 +158,7 @@ local function Effect(parent, spec, level, form)
 	p.add(Medals.Texture(p.rest, "ARTWORK", 0, art, "steel", p.units * look.k)):SetDesaturated(true)
 	for i, each in ipairs(select(4, Tokens.Texture(art)) and spec.feeds or {}) do
 		if each.glyph ~= art then
-			p.add(Medals.Texture(p.lits[i].art:GetParent(), "BACKGROUND", -1, art, "black", p.units * look.k))
+			p.add(Medals.Texture(Medals.Layer(p.lits[i], level + 1), "BACKGROUND", 0, art, "black", p.units * look.k))
 		end
 	end
 	return p
