@@ -84,7 +84,7 @@ local function Updating(frame)
 end
 
 -- The art SlabRings names by path ships.
-for _, file in ipairs({ "EmberBand.png", "EmberRingLine16.png", "EmberBandAmber.png", "EmberRingLine16Amber.png", "CastRing.png", "SwingRing.png", "SwingHalo.png", "RingBead.png" }) do
+for _, file in ipairs({ "EmberBandAmber.png", "EmberBandRed.png", "EmberRingLine16Amber.png", "EmberRingLine16Red.png", "CastRing.png", "SwingRing.png", "SwingHalo.png", "RingBead.png" }) do
 	local handle = io.open("Media/Textures/Medallions/Trackers/" .. file, "rb")
 	assert(handle, file .. " is missing; run python3 Tools/media/crest_rings.py")
 	handle:close()
@@ -95,10 +95,23 @@ do
 	local env, K, ns = New("WARRIOR", { SHOUT, 2687, RECKLESS, WALL })
 	local shout, rim, cooldowns = Piece(ns, "crestShout"), Piece(ns, "crestEnrage"), Piece(ns, "crestCooldowns")
 	local hot, gate = Hot(cooldowns.lit)
-	assert(hot and tostring(hot._state.SwipeTexture[1]):find("EmberRingLine16.png", 1, true), "the cooldown ring gets the thin ring's ember")
+	assert(hot and tostring(hot._state.SwipeTexture[1]):find("EmberRingLine16Amber.png", 1, true), "the cooldown ring gets the thin ring's amber ember")
+	assert(tostring(hot.red._state.SwipeTexture[1]):find("EmberRingLine16Red.png", 1, true), "and a second swipe of its red one: the two colours are separate art, never one painted over the other")
+	local lits = hot.slot.container._slots
+	assert(lits.lit.frame._cooldown == hot and lits.lit2.frame._cooldown == hot.red and lits.lit.frame ~= lits.lit2.frame, "each swipe is the duration cooldown of a slot of its own in one container")
+	assert(lits.lit.newest == true and lits.lit2.newest == true, "both slots pick the newest cooldown, as the ring's own slot does")
 	assert(not Hot(rim.lit) and Watched(ns, rim), "Enrage's cracks keep no ember on the 112 line and warn on themselves")
 	for _, sigil in ipairs(cooldowns.sigils) do
-		assert(sigil.ember and tostring(sigil.ember.timer._state.SwipeTexture[1]):find("EmberBand.png", 1, true), "every cooldown sigil has its band")
+		assert(sigil.ember and tostring(sigil.ember.timer._state.SwipeTexture[1]):find("EmberBandAmber.png", 1, true) and tostring(sigil.ember.timer.red._state.SwipeTexture[1]):find("EmberBandRed.png", 1, true),
+			"every cooldown sigil has its amber and red bands")
+		local watch, slots = Watched(ns, sigil.ember.slot.spec and cooldowns), sigil.ember.slot.container._slots
+		assert(not slots.lit.newest and not slots.lit2.newest and not sigil.container._slots[sigil.key].newest, "a sigil's ember slots sort as the sigil's own slot does, so both show the same aura")
+		assert(watch, "the ring is watched")
+	end
+	for _, e in ipairs(ns.SlabRings.state.watched) do
+		if e.piece == cooldowns and e.spec.newest == false then
+			assert(e.flicker == nil and e.fade == nil and e.late, "a sigil's watch times its colours only: no flicker and no ghost of its own to schedule")
+		end
 	end
 	Slots.Set(env, "player", { { id = RECKLESS, start = 0, duration = 120 } })
 	local d = hot._state.CooldownFromDurationObject and hot._state.CooldownFromDurationObject[1]
@@ -108,10 +121,18 @@ do
 	env.RunTimers()
 	assert(gate:GetAlpha() == 0 and select(2, Hot(cooldowns.lit)):GetAlpha() == 0, "its switch hides every ember swipe")
 	local sigil = cooldowns.sigils[1]
-	assert(sigil.ember.slot.container._slots.lit.disabled, "and turns the sigil bands' slots off")
+	assert(sigil.ember.slot.container._slots.lit.disabled and sigil.ember.slot.container._slots.lit2.disabled, "and turns the sigil bands' slots off")
 	K.Options.Write("ActionBars", "crestEmber", true)
 	env.RunTimers()
-	assert(gate:GetAlpha() == 1 and not sigil.ember.slot.container._slots.lit.disabled, "and brings them back")
+	assert(gate:GetAlpha() == 1 and not sigil.ember.slot.container._slots.lit.disabled and not sigil.ember.slot.container._slots.lit2.disabled, "and brings them back")
+	-- Two cooldowns of one family at once: the sigil's own slot and both its ember slots show the same one.
+	local family = sigil.family.spells
+	if #family > 1 then
+		Slots.Set(env, "player", { { id = family[1], start = 0, duration = 30 }, { id = family[2], start = 5, duration = 12 } })
+		local shown = sigil.container._slots[sigil.key].aura
+		assert(shown and sigil.ember.slot.container._slots.lit.aura == shown and sigil.ember.slot.container._slots.lit2.aura == shown, "with two of a family up, the warning times the aura the sigil shows")
+		Slots.Set(env, "player", nil)
+	end
 	-- Readable: the last fifth flickers the horn, an expiry fades its gilt glow to steel.
 	local watched = Watched(ns, shout)
 	env._now = 100
@@ -176,18 +197,30 @@ do
 	timer:Clear()
 	assert(Last(lua) == "Clear", "and its clear")
 	-- A Lua-fed timer lights its cap late from the start and length it was given, and gets none from a duration object it cannot read.
-	local late = lua:GetParent()
+	local late = lua:GetParent():GetParent()
 	env._now = 50
 	timer:SetCooldown(50, 12)
-	assert(late:GetAlpha() == 0 and late.amber:IsPlaying() and math.abs(late.amber.fade._state.StartDelay[1] - 9.6) < 1e-6 and math.abs(late.red.fade._state.StartDelay[1] - 11) < 1e-6,
-		"a fresh 12 s timer shows no cap: amber waits 9.6 s for the last fifth and red 11 s for the last twelfth")
+	assert(lua.red._state.Cooldown[1] == 50 and lua.red._state.Cooldown[2] == 12, "the red swipe gets the same cooldown")
+	assert(late:GetAlpha() == 0 and late.show:IsPlaying() and math.abs(late.show.fade._state.StartDelay[1] - 9.6) < 1e-6 and math.abs(late.turn.fade._state.StartDelay[1] - 11) < 1e-6
+		and math.abs(late.leave.fade._state.StartDelay[1] - 11) < 1e-6, "a fresh 12 s timer shows no cap: amber waits 9.6 s for the last fifth, and gives way to red after 11 s, at the last twelfth")
 	timer:SetCooldownFromDurationObject({})
-	assert(late:GetAlpha() == 0 and not late.amber:IsPlaying() and not late.red:IsPlaying(), "a timer whose length is unreadable gets no cap at all")
+	assert(late:GetAlpha() == 0 and not late.show:IsPlaying() and not late.turn:IsPlaying() and not late.leave:IsPlaying(), "a timer whose length is unreadable gets no cap at all, and nothing stays armed")
 	env._now = 60
 	timer:SetCooldown(50, 12)
-	assert(late:GetAlpha() == 1 and late.cover:GetAlpha() == 1 and not late.amber:IsPlaying() and late.red:IsPlaying(), "2 s of 12 left: amber shows at once, under the cover that hides the red tip")
+	assert(late:GetAlpha() == 1 and late.amber:GetAlpha() == 1 and late.red:GetAlpha() == 0 and not late.show:IsPlaying() and late.turn:IsPlaying() and late.leave:IsPlaying(),
+		"2 s of 12 left: amber shows at once and red not yet")
+	env._now = 61.5
+	timer:SetCooldown(50, 12)
+	assert(late:GetAlpha() == 1 and late.amber:GetAlpha() == 0 and late.red:GetAlpha() == 1, "0.5 s of 12 left: red alone, the amber swipe gone")
 	lua:GetScript("OnCooldownDone")(lua)
-	assert(late:GetAlpha() == 0 and not late.red:IsPlaying(), "the timer's end darkens the cap for the next timer")
+	assert(late:GetAlpha() == 0 and not late.turn:IsPlaying(), "the timer's end darkens the cap for the next timer")
+	-- A Lua-fed cap follows the motion level without waiting for its next cooldown.
+	env._now = 50
+	timer:SetCooldown(50, 12)
+	K.Options.Write("Medallions", "motion", "off")
+	assert(late.show:IsPlaying() and late.show.fade._state.Duration[1] == 0, "switching to Off re-arms a pending step as a cut")
+	K.Options.Write("Medallions", "motion", "full")
+	assert(late.show.fade._state.Duration[1] == K.Tokens.Flicker.step, "and Full brings its fade back")
 end
 
 -- The crest plan's late end warning: an aura's ember stays dark until the timer's last fifth, turns amber there and red in its last twelfth, darkens again on a refresh, goes dark
@@ -197,36 +230,52 @@ do
 	local cooldowns = Piece(ns, "crestCooldowns")
 	local ring, hot = Watched(ns, cooldowns, "player"), Hot(cooldowns.lit)
 	local late, done = ring.late, hot:GetScript("OnCooldownDone")
-	local function Aura(now, ends)
+	local function Aura(now, ends, length, id)
+		length = length or 120
 		env._now = now
-		Slots.Set(env, "player", { { id = RECKLESS, start = ends - 120, duration = 120 } })
-		env._auraData["player" .. RECKLESS] = { auraInstanceID = 5, expirationTime = ends, duration = 120, sourceUnit = "player" }
+		Slots.Set(env, "player", { { id = RECKLESS, start = ends - length, duration = length } })
+		env._auraData["player" .. RECKLESS] = { auraInstanceID = id or 5, expirationTime = ends, duration = length, sourceUnit = "player" }
 		env.FireEvent("UNIT_AURA", "player")
 	end
+	local function Delay(group)
+		return group.fade._state.StartDelay[1]
+	end
 	Aura(100, 220)
-	assert(late:GetAlpha() == 0 and late.amber:IsPlaying() and late.red:IsPlaying(), "a fresh 120 s timer shows no cap and arms both steps")
-	assert(math.abs(late.amber.fade._state.StartDelay[1] - 96) < 1e-6 and math.abs(late.red.fade._state.StartDelay[1] - 110) < 1e-6, "amber waits 96 s for the last fifth and red 110 s for the last twelfth")
-	assert(late.amber.fade._state.Duration[1] == K.Tokens.Flicker.step and late.amber._state.ToFinalAlpha[1] == true, "each step fades over the flicker's step and holds its end")
+	assert(late:GetAlpha() == 0 and late.show:IsPlaying() and late.leave:IsPlaying() and late.turn:IsPlaying(), "a fresh 120 s timer shows no cap and arms every step")
+	assert(math.abs(Delay(late.show) - 96) < 1e-6 and math.abs(Delay(late.turn) - 110) < 1e-6 and math.abs(Delay(late.leave) - 110) < 1e-6,
+		"amber waits 96 s for the last fifth and trades places with red after 110 s, at the last twelfth")
+	assert(late.show.fade._state.Duration[1] == K.Tokens.Flicker.step and late.show._state.ToFinalAlpha[1] == true, "each step fades over the flicker's step and holds its end")
 	Aura(300, 320)
-	assert(late:GetAlpha() == 1 and late.cover:GetAlpha() == 1 and not late.amber:IsPlaying(), "20 s of 120 left: amber, with the red tip covered")
-	assert(math.abs(late.red.fade._state.StartDelay[1] - 10) < 1e-6, "and red is 10 s away")
+	assert(late:GetAlpha() == 1 and late.amber:GetAlpha() == 1 and late.red:GetAlpha() == 0 and not late.show:IsPlaying(), "20 s of 120 left: amber alone")
+	assert(math.abs(Delay(late.turn) - 10) < 1e-6, "and red is 10 s away")
 	Aura(300, 305)
-	assert(late:GetAlpha() == 1 and late.cover:GetAlpha() == 0, "5 s of 120 left: the red tip shows")
+	assert(late:GetAlpha() == 1 and late.amber:GetAlpha() == 0 and late.red:GetAlpha() == 1, "5 s of 120 left: red alone, with no amber under it")
 	Aura(300, 420)
-	assert(late:GetAlpha() == 0 and late.amber:IsPlaying(), "a refresh darkens the cap and arms it again")
+	assert(late:GetAlpha() == 0 and late.show:IsPlaying(), "a refresh darkens the cap and arms it again")
+	-- The schedule follows every input it was worked out from: a replacement or a new length with the same end, and the motion level, each re-arm it.
+	assert(math.abs(Delay(late.show) - 96) < 1e-6, "120 s left of 120: amber is 96 s away")
+	Aura(300, 420, 60)
+	assert(math.abs(Delay(late.show) - 108) < 1e-6 and math.abs(Delay(late.turn) - 115) < 1e-6, "the same end on a 60 s timer moves the steps to its own last fifth and twelfth")
+	Aura(300, 420, 60, 6)
+	assert(ring.aura == 6 and late.show:IsPlaying() and math.abs(Delay(late.show) - 108) < 1e-6, "a replacement that ends at the same moment is timed afresh")
 	K.Options.Write("Medallions", "motion", "off")
-	Aura(300, 419)
-	assert(late.amber.fade._state.Duration[1] == 0, "at Off the cap steps without a fade")
+	assert(late.show:IsPlaying() and late.show.fade._state.Duration[1] == 0, "switching to Off re-arms the pending steps as cuts, with no new aura event")
 	K.Options.Write("Medallions", "motion", "calm")
-	Aura(300, 418)
-	assert(late.amber.fade._state.Duration[1] == K.Tokens.Flicker.step and late.amber:IsPlaying(), "Calm keeps the late cap and its fade")
+	assert(late.show.fade._state.Duration[1] == K.Tokens.Flicker.step and late.show:IsPlaying(), "Calm keeps the late cap and its fade")
 	K.Options.Write("Medallions", "motion", "full")
+	-- An older cooldown that ends while a newer one is up: the ring keeps timing the newer one, the one its slot shows.
+	env._auraData["player" .. WALL] = { auraInstanceID = 3, expirationTime = 301, duration = 10, sourceUnit = "player" }
+	env.FireEvent("UNIT_AURA", "player")
+	assert(ring.aura == 6 and late:GetAlpha() == 0, "an older cooldown inside its own last fifth lights nothing on the newer one's ring")
+	env._auraData["player" .. WALL] = nil
+	env.FireEvent("UNIT_AURA", "player", { isFullUpdate = false, removedAuraInstanceIDs = { 3 } })
+	assert(ring.aura == 6 and late:GetAlpha() == 0 and late.show:IsPlaying(), "and its end leaves the newer one's schedule alone")
 	Aura(400, 420)
 	env._combat, env._aurasSecret = true, true
 	env.FireEvent("PLAYER_REGEN_DISABLED")
 	assert(late:GetAlpha() == 1, "entering combat keeps a cap that was already timed")
 	env.FireEvent("UNIT_AURA", "player", env.Secret({ updatedAuraInstanceIDs = { 5 } }))
-	assert(late:GetAlpha() == 0 and not late.red:IsPlaying(), "an aura change it cannot read darkens the cap: no cap beats a wrong one")
+	assert(late:GetAlpha() == 0 and not late.show:IsPlaying(), "an aura change it cannot read darkens the cap from outside the slots, which Lua may not touch now: no cap beats a wrong one")
 	assert(not ring.fade:IsPlaying(), "nothing fades before the timer ends")
 	done(hot)
 	assert(ring.fade:IsPlaying(), "under hidden values the game timer's end fades the gilt ghost instead of cutting")
@@ -242,7 +291,7 @@ do
 	local env, K, ns = New("WARRIOR", { SHOUT })
 	local medal = ns.SlabMedals.Medal(ns.Slab.hub, { feed = "aura", spells = { SHOUT }, color = "gilt", texture = 132333 }, 10)
 	local hot = Hot(medal.lit)
-	assert(hot and tostring(hot._state.SwipeTexture[1]):find("EmberBand.png", 1, true), "a medal's ember is the bright band")
+	assert(hot and tostring(hot._state.SwipeTexture[1]):find("EmberBandAmber.png", 1, true) and tostring(hot.red._state.SwipeTexture[1]):find("EmberBandRed.png", 1, true), "a medal's ember is the bright band, amber and red")
 	local r, g, b = unpack(hot._state.SwipeColor)
 	assert(r == 1 and g == 1 and b == 1 and math.abs(hot.units - (26 + 3) / 0.853) < 1e-6, "drawn white, its band just outside the 26-unit medal's rim")
 	local watched = Watched(ns, Piece(ns, "crestShout"))

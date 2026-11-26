@@ -921,7 +921,11 @@ end
 -- An AnimationGroup plays from the stub clock (env._now) when Play is called, so a render can sample its
 -- animations at a later time; Stop and Finish end it, and Pause holds it until Play. The group lists its animations in _anims and the frame
 -- its groups in _groups.
-function Object:Play() self._playedAt, self._paused = self._env._now, nil end
+function Object:Play()
+	self._playedAt, self._paused = self._env._now, nil
+	local onPlay = self._scripts and self._scripts.OnPlay
+	if onPlay then onPlay(self) end
+end
 function Object:Stop() self._playedAt, self._paused = nil, nil end
 function Object:Finish() self._playedAt, self._paused = nil, nil end
 function Object:Pause() if self._playedAt then self._playedAt, self._paused = nil, true end end

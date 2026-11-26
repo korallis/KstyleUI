@@ -434,4 +434,21 @@ for _, size in ipairs(SIZES) do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- The crest plan's flare rule (the review of part 1): a cast's burst and three ignitions are one ensemble in the crest's one flare place; a flare from elsewhere stops all of
+-- them, and the next cast takes the place back.
+do
+	local env, K, ns = New("SHAMAN", { [RANK1] = true })
+	local state, Effects = ns.SlabStorm.state, K.Effects
+	Shield(env, 3, RANK1)
+	Cast(env, RANK1)
+	assert(Fired(state.blast) and Fired(state.seats[1].ignite) and Fired(state.seats[3].ignite), "the cast's ensemble plays whole")
+	assert(Effects.Holder("crestFlare") == Effects.PRIORITY.ready, "and holds the crest's flare place")
+	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
+	other:Play()
+	assert(other:IsPlaying() and not Fired(state.blast) and not state.seats[1].ignite:IsShown() and not Fired(state.seats[3].ignite), "a crest flare from elsewhere stops the whole ensemble")
+	Cast(env, RANK1)
+	assert(Fired(state.blast) and Fired(state.seats[2].ignite) and not other:IsPlaying(), "and the next cast stops that one in turn")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 print("actionbars medallions storm ok")

@@ -1,4 +1,4 @@
--- SlabUnleashed.lua: Unleashed (docs/medallions-effects.md#unleashed), the crest erupting in class fire while a major cooldown burns: each cooldown rim container gets two more slots of its own newest aura, one awake and one still, each under a gate the crest owns, so motion swaps by gate alpha in combat; they hold the class's ambient fire as a corona hugging the ring, a hot line on the ring's edge, the rune glyphs blazing near white and turning at one and a half times combat speed, a dim outer ring draining with the aura and, awake, the class burst growing out of the ring as a cooldown is assigned. Every layer sits under the level badge and inside a 184-unit mask. The player's own cast lifts the emblem; while auras are readable the corona folds and the glyphs cool when the last tracked aura instance goes, and under hidden values they do so from the hot line's own timer ending. The switch off detaches and disables the slots at the next legal moment. Under Frames the newest-cooldown medal wears the corona over a breathing glow behind the row.
+-- SlabUnleashed.lua: Unleashed (docs/medallions-effects.md#unleashed), the crest erupting in class fire while a major cooldown burns: each cooldown rim container gets two more slots of its own newest aura, one awake and one still, each under a gate the crest owns, so motion swaps by gate alpha in combat; they hold the class's ambient fire as a corona hugging the ring, a hot line on the ring's edge, the rune glyphs blazing near white and turning at one and a half times combat speed, a dim outer ring draining with the aura and, awake, the class burst growing out of the ring as a cooldown is assigned. Every layer sits under the level badge and inside a 184-unit mask. The player's own cast lifts the emblem; while auras are readable the corona folds and the glyphs cool when the last tracked aura instance goes, and under hidden values they do so the frame after a hot line's timer ends or its slot hides, once no tracked slot of the player's or the pet's is still lit and while the switch is on. The switch off detaches and disables the slots at the next legal moment. Under Frames the newest-cooldown medal wears the corona over a breathing glow behind the row.
 local _, ns = ...
 
 local K = KstyleUI
@@ -14,14 +14,14 @@ local RIM, CORONA, MASK, LINE, ROW_CORONA, ROW_GLOW, EMBERS = 150, 212, 184, 154
 local FLIP, BREATH, BREATH_LOW, TURN = 0.96, 0.7, 0.85, 90 / (2.25 * 1.5)
 local WHITE, WARM = 0.55, 0.6
 local BURST = { 0.85, 1.45, 0.5 }
-local LIFT = { { 1, 1.06, 0.12, "OUT" }, { 1.06, 1.03, 0.25, "IN_OUT" }, { 1.03, 1.03, 0.6, "NONE" }, { 1.03, 1, 0.6, "IN_OUT" } }
+local LIFT = { { 1, 1.06, 0.12 }, { 1.06, 1.03, 0.25 }, { 1.03, 1.03, 0.6, "NONE" }, { 1.03, 1, 0.6 } }
 local FOLD, FOLD_RUN, COOL_RUN = 1.12, 0.4, 0.6
 local GATES = { "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }
 local sets, tints, state, NONE = {}, {}, { ids = {} }, {}
 Unleashed.sets, Unleashed.state = sets, state
 
-local function Fade(group, from, to, duration, smoothing)
-	ns.Slab.Fade(group, from, to, duration):SetSmoothing(smoothing)
+local function Fade(group, from, to, duration)
+	ns.Slab.Fade(group, from, to, duration)
 	return group
 end
 
@@ -78,8 +78,7 @@ local function Lights(piece, lit, spec, crest, awake)
 		Tint(Medals.Texture(glow, "BACKGROUND", 0, "glow", "white", nil, "ADD"), 0, 0.35):SetAllPoints(glow)
 	end
 	if awake then
-		slot.loops = { Medals.Flip(cloud, ambient, FLIP / select(4, Tokens.Flipbook(ambient))), Fade((crest and fire or glow):CreateAnimationGroup(), 1, BREATH_LOW, BREATH, "IN_OUT") }
-		slot.loops[2]:SetLooping("BOUNCE")
+		slot.loops = { Medals.Flip(cloud, ambient, FLIP / select(4, Tokens.Flipbook(ambient))), Fade(ns.Slab.Group(crest and fire or glow, "BOUNCE"), 1, BREATH_LOW, BREATH) }
 		if crest then
 			local spin = glow:CreateAnimationGroup()
 			spin:SetLooping("REPEAT")
@@ -90,8 +89,8 @@ local function Lights(piece, lit, spec, crest, awake)
 			local flare = piece.add(Medals.Texture(slot, "OVERLAY", 1, spec.burst or "glow", "white", RIM, "ADD"))
 			flare:SetAlpha(0)
 			flare.play = flare:CreateAnimationGroup()
-			ns.Slab.Grow(flare.play, BURST[1], BURST[2], BURST[3], 1, "OUT")
-			Fade(flare.play, 1, 0, BURST[3], "OUT")
+			ns.Slab.Grow(flare.play, BURST[1], BURST[2], BURST[3])
+			Fade(flare.play, 1, 0, BURST[3]).held = BURST[3]
 			slot.flare = flare
 		end
 	end
@@ -103,27 +102,32 @@ local function Fold(piece, spec)
 	local _, fold = Fire(piece, piece, hub, CORONA, (spec.burst or "medBurstWarrior"):gsub("^medBurst", "medAmbient"), true, true)
 	fold:SetAlpha(0)
 	fold.play = fold:CreateAnimationGroup()
-	ns.Slab.Grow(fold.play, FOLD, 1, FOLD_RUN, 1, "IN")
-	Fade(fold.play, 1, 0, FOLD_RUN, "IN")
+	ns.Slab.Grow(fold.play, FOLD, 1, FOLD_RUN)
+	Fade(fold.play, 1, 0, FOLD_RUN)
 	local cool = Sized(piece, piece, hub, RIM)
 	Tint(piece.add(Medals.Texture(cool, "OVERLAY", 0, "medRuneGlyphs", "white", RIM, "ADD")), WHITE)
 	cool:SetAlpha(0)
-	cool.play = Fade(cool:CreateAnimationGroup(), 1, 0, COOL_RUN, "IN_OUT")
+	cool.play = Fade(cool:CreateAnimationGroup(), 1, 0, COOL_RUN)
 	return fold, cool
 end
 
-local Folds
+local Settle
 
 function Unleashed.Dress(piece, spec, form)
 	local crest = form == "crest"
 	for i, lit in ipairs(piece.lits) do
 		local set = { piece = piece, crest = crest, lit = lit, awake = Lights(piece, lit, spec, crest, true), still = Lights(piece, lit, spec, crest, false) }
 		set.lits = { set.awake.lit, set.still.lit }
-		if crest and i == 1 then
-			set.fold, set.cool = Fold(piece, spec)
-			set.awake.timer:SetScript("OnCooldownDone", function()
-				if Medals.Restricted() then Folds(set) end
+		if crest then
+			if i == 1 then
+				set.fold, set.cool = Fold(piece, spec)
+			end
+			set.awake.lit:HookScript("OnShow", function() set.up, state.lit = true, true end)
+			set.awake.lit:HookScript("OnHide", function()
+				set.up = nil
+				Settle()
 			end)
+			set.awake.timer:SetScript("OnCooldownDone", Settle)
 		end
 		sets[#sets + 1] = set
 	end
@@ -140,12 +144,35 @@ local function Moving(set)
 	return Effects.Allows("pulse") and not (set.crest and ns.Slab.Resting())
 end
 
-function Folds(set)
+local function Folds(set)
 	if set.fold and set.piece:IsVisible() and Moving(set) then
 		for _, region in ipairs({ set.fold, set.cool }) do
 			region.play:Stop()
 			region.play:Play()
 		end
+	end
+end
+
+local function Settled()
+	state.settling = nil
+	local fold
+	for _, set in ipairs(sets) do
+		if set.crest and set.up then
+			return
+		end
+		fold = fold or set.fold and set
+	end
+	local was = state.lit
+	state.lit = nil
+	if was and fold and Medals.Restricted() and ns.Config("crestUnleashed") ~= false then
+		Folds(fold)
+	end
+end
+
+function Settle()
+	if not state.settling and C_Timer and C_Timer.After then
+		state.settling = true
+		C_Timer.After(0, Settled)
 	end
 end
 

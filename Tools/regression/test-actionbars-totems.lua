@@ -536,11 +536,15 @@ do
 	Drop(env, 1, 100)
 	assert(s.flicker.anim:IsPlaying(), "a repaint inside the last fifth flickers at once")
 	Motion("calm")
-	assert(not s.flicker.anim:IsPlaying(), "Calm holds the stub steady")
+	local still = s.flicker.anim.still
+	assert(not s.flicker.anim:IsPlaying() and still and still:IsPlaying(), "Calm trades the flicker for a still mark")
+	assert(#still._anims == 1 and still._anims[1]._state.FromAlpha[1] == 0.6 and still._anims[1]._state.ToAlpha[1] == 0.6, "the mark holds the spire at the flicker's low alpha, 0.6, without moving")
+	Motion("off")
+	assert(not s.flicker.anim:IsPlaying() and not still:IsPlaying(), "Off shows neither")
 	Motion("full")
-	assert(s.flicker.anim:IsPlaying(), "Full brings the flicker back")
+	assert(s.flicker.anim:IsPlaying() and not still:IsPlaying(), "Full brings the flicker back")
 	Expire(env, 1)
-	assert(not s.flicker.anim:IsPlaying() and Near(fire.icon:GetAlpha(), 0.82), "an expiry stops it and rests the icon")
+	assert(not s.flicker.anim:IsPlaying() and not still:IsPlaying() and Near(fire.icon:GetAlpha(), 0.82), "an expiry stops it and rests the icon")
 	Drop(env, 1, 100, true)
 	env.RunTimers()
 	assert(not s.flicker.anim:IsPlaying(), "a secret slot holds steady: Lua cannot read when its last fifth starts")
@@ -622,4 +626,25 @@ do
 		assert(v and Near(v[1], c.r) and Near(v[2], c.g) and Near(v[3], c.b), "the ring takes a live class colour edit")
 	end
 	Clean(env, K, "review 1d4af6de")
+end
+
+-- The crest plan's flare rule (the review of part 1): totems dropped together flare as one ensemble, and the ensemble shares the crest's one flare place with every other
+-- crest flare, so a flare from elsewhere stops all of it and a new totem takes the place back.
+do
+	local env, K, ns = New("SHAMAN")
+	local Effects, spires = K.Effects, {}
+	for _, b in ipairs(ns.Totems.state.sockets) do spires[b.element.slot] = b.spire end
+	env.GetTime = function() return 100 end
+	Drop(env, 1, 100)
+	Drop(env, 2, 100)
+	assert(spires[1].flare.anim:IsPlaying() and spires[2].flare.anim:IsPlaying() and spires[1].ignite:IsPlaying(), "two totems dropped together both flare: one ensemble, not split")
+	assert(Effects.Holder("crestFlare") == Effects.PRIORITY.ready, "the ensemble holds the crest's flare place")
+	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
+	other:Play()
+	assert(other:IsPlaying() and not spires[1].flare.anim:IsPlaying() and not spires[2].flare:IsShown() and not spires[2].ignite:IsPlaying(), "a crest flare from elsewhere stops the whole ensemble")
+	Drop(env, 3, 100)
+	assert(spires[3].flare.anim:IsPlaying() and not other:IsPlaying(), "and a new totem's flare stops that one in turn")
+	env.RunTimers()
+	assert(Effects.Holder("crestFlare") == nil, "the place frees itself afterwards")
+	Clean(env, K, "flare arbiter")
 end

@@ -131,13 +131,7 @@ local function Motion()
 	local resting = ns.Slab.Resting()
 	local still, last = resting or not Effects.Allows("ambient"), n ~= nil and n > 0 and n <= PER
 	Medals.Still(r, still, last and DIM or 1)
-	if last and not resting and Effects.Allows("pulse") then
-		if not r.flicker:IsPlaying() then
-			r.flicker:Play()
-		end
-	else
-		r.flicker:Stop()
-	end
+	ns.Slab.Warn(r.flicker, last and not resting)
 end
 
 local function Read()

@@ -21,6 +21,7 @@ local IGNITE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local STRIKE = { { 0, 1, 0.03 }, { 1, 0, 0.32 } }
 local BLAST = { { 0, 0.4, 0.05 }, { 0.4, 0, 0.5 } }
 local CRACKLE = { { 0.8, 0.2, 0.12 }, { 0.2, 0.7, 0.1 }, { 0.7, 0, 0.5 } }
+local CLAIM = 0.72
 
 local CAST = {}
 for _, id in ipairs(RANKS) do CAST[id] = true end
@@ -49,6 +50,15 @@ local function Layer(parent, level, steps)
 	state.flares[#state.flares + 1] = frame
 	return frame
 end
+
+local function Hush()
+	for _, f in ipairs(state.flares) do
+		f.play:Stop()
+		f:Hide()
+	end
+end
+
+local Claim = Medals.Ensemble(Hush, CLAIM)
 
 local function Fire(frame)
 	frame.play:Stop()
@@ -203,13 +213,7 @@ local function Motion()
 			state.orbitAt = GetTime and GetTime()
 		end
 	end
-	if moving and last then
-		if not state.flicker:IsPlaying() then
-			state.flicker:Play()
-		end
-	else
-		state.flicker:Stop()
-	end
+	ns.Slab.Warn(state.flicker, last)
 	state.halo:SetAlpha(last and DIM or 1)
 end
 
@@ -263,7 +267,7 @@ end
 
 local function Spend(n)
 	local was = state.count
-	if was and n < was and Effects.Allows("flare") then
+	if was and n < was and Effects.Allows("flare") and Claim() then
 		if was - n == 1 then
 			Strike(was)
 		end
@@ -279,7 +283,7 @@ local function OnCast(_, _, _, spellID)
 		return
 	end
 	if CAST[spellID] then
-		if Effects.Allows("flare") then
+		if Effects.Allows("flare") and Claim() then
 			Fire(state.blast)
 			for _, s in ipairs(state.seats) do
 				Fire(s.ignite)
@@ -311,7 +315,7 @@ local function Stop()
 		for _, s in ipairs(state.seats) do
 			s.orbit:Stop()
 		end
-		state.flicker:Stop()
+		ns.Slab.Warn(state.flicker, false)
 		state.holder:Hide()
 		Engine(false, state.looping, state.eased)
 	end
@@ -349,10 +353,7 @@ function Storm.Update()
 	local flare = Effects.Allows("flare")
 	Engine(true, Effects.Allows("ambient"), flare)
 	if not flare then
-		for _, f in ipairs(state.flares) do
-			f.play:Stop()
-			f:Hide()
-		end
+		Hush()
 	end
 	state.count = Read() or state.count
 	Motion()
