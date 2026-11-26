@@ -38,14 +38,14 @@ GLYPHS = tuple(designs_hunter.D)
 
 
 def maps(work, only):
-    """Write each mark's maps; returns {kind: [names]} and, under "free", the glyphs that stand on no plate."""
-    done = {"glyphs": [], "sigils": [], "free": set()}
+    """Write each mark's maps; returns {kind: [names]} and, under "free", the outline width of each glyph that stands on no plate."""
+    done = {"glyphs": [], "sigils": [], "free": {}}
     for name in GLYPHS:
         if not only or name in only:
             emblem = designs_hunter.D[name]().save(work / "maps" / "glyphs")
             done["glyphs"].append(name)
-            if emblem.dark is None:
-                done["free"].add(name)
+            if emblem.edge or emblem.dark is None:
+                done["free"][name] = emblem.edge or FREE_EDGE
     for name in SIGILS:
         if not only or name in only:
             pen = sigils.Pen()
@@ -85,7 +85,7 @@ def main(argv=None):
         for name in names:
             path = out / f"{name}.png"
             # a figure with no plate stands over the painted emblem, so its dark edge is heavy enough to part it from the paint
-            save(resize(outline(load(renders / f"{name}.png"), **({"width": FREE_EDGE} if name in free else {})), SIZE), path)
+            save(resize(outline(load(renders / f"{name}.png"), **({"width": free[name]} if name in free else {})), SIZE), path)
             print(f"{kind}/{path.name}", hashlib.sha256(path.read_bytes()).hexdigest())
     if not args.work:
         shutil.rmtree(work)

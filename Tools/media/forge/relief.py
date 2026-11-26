@@ -128,6 +128,7 @@ class Emblem:
         self.H = np.zeros((N, N), np.float32)
         self.M = np.zeros((N, N), bool)
         self.dark = None
+        self.edge = None
 
     def add(self, mask, h=1.0, r=0.05, base=None, prof="round"):
         """Raise a layer. base is the height at its edge (default: 35% of h, so the wall shows)."""
@@ -153,6 +154,14 @@ class Emblem:
         self.H = np.where(mask, 0, self.H).astype(np.float32)
         return self
 
+    def shade(self, mask):
+        """Fill a gap beside the figure with low dark metal, so an open mouth reads as a dark wedge instead of showing the ground through it. Call it before fit(), never before turn()."""
+        mask = mask & ~self.M
+        self.M |= mask
+        self.H = np.where(mask, 0.12, self.H).astype(np.float32)
+        self.dark = mask
+        return self
+
     def turn(self, degrees):
         """Turn the whole drawing about the box's centre (positive is clockwise on screen); fit() or seat() then brings it back inside."""
         size = 2 * N
@@ -174,14 +183,19 @@ class Emblem:
         target = int(N * (1 - 2 * margin))
         k = target / size
         h = Image.fromarray(self.H[y0:y1, x0:x1]).resize((max(1, round((x1 - x0) * k)), max(1, round((y1 - y0) * k))), Image.BICUBIC)
-        m = Image.fromarray((self.M[y0:y1, x0:x1] * 255).astype(np.uint8)).resize(h.size, Image.BICUBIC)
-        H = Image.new("F", (N, N), 0.0)
-        M = Image.new("L", (N, N), 0)
         ox, oy = (N - h.size[0]) // 2, (N - h.size[1]) // 2
+
+        def placed(mask):
+            out = Image.new("L", (N, N), 0)
+            out.paste(Image.fromarray((mask[y0:y1, x0:x1] * 255).astype(np.uint8)).resize(h.size, Image.BICUBIC), (ox, oy))
+            return np.asarray(out) > 127
+
+        H = Image.new("F", (N, N), 0.0)
         H.paste(h, (ox, oy))
-        M.paste(m, (ox, oy))
         self.H = np.asarray(H, np.float32).copy()
-        self.M = np.asarray(M) > 127
+        if self.dark is not None:
+            self.dark = placed(self.dark)
+        self.M = placed(self.M)
         return self
 
     def seat(self, reach=0.40, rim=0.045):

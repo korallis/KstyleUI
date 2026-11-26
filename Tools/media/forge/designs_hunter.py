@@ -319,16 +319,18 @@ def Counter():
 
 @design
 def Mongoose():
-    """Mongoose Bite: a beast's head in profile, tilted up, an ear behind, a pierced eye and jaws wide open with a tooth in each. A whole mongoose could not be named over the emblem at the strike's size in three poses; blind readers called this an animal's head."""
+    """Mongoose Bite: a beast's head in profile, an ear behind, a pierced eye and jaws wide open on a dark mouth with a tooth in each, inside a wider dark outline than the other strikes. A whole mongoose could not be named over the emblem at the strike's size in three poses; blind readers called a head an animal, and lost jaws the emblem showed through and a paler edge at that size."""
     e = Emblem("Mongoose")
     e.add(blob([(0.06, 0.40), (0.20, 0.22), (0.44, 0.18), (0.56, 0.30), (0.50, 0.56), (0.34, 0.74), (0.14, 0.70)], 14), h=0.9, r=0.10, base=0.4)
-    e.add(blob([(0.40, 0.20), (0.66, 0.14), (0.94, 0.10), (0.96, 0.22), (0.70, 0.36), (0.50, 0.40)], 12), h=1.0, r=0.05, base=0.5)
-    e.add(blob([(0.34, 0.56), (0.56, 0.60), (0.86, 0.76), (0.84, 0.88), (0.54, 0.82), (0.32, 0.74)], 12), h=0.95, r=0.05, base=0.5)
-    e.add(poly([(0.80, 0.20), (0.90, 0.18), (0.84, 0.38)]), h=1.0, r=0.02, base=0.6)
-    e.add(poly([(0.72, 0.72), (0.82, 0.76), (0.80, 0.56)]), h=1.0, r=0.02, base=0.6)
+    e.add(blob([(0.40, 0.20), (0.66, 0.10), (0.94, 0.02), (0.97, 0.14), (0.72, 0.30), (0.50, 0.40)], 12), h=1.0, r=0.05, base=0.5)
+    e.add(blob([(0.34, 0.56), (0.56, 0.62), (0.86, 0.84), (0.83, 0.96), (0.54, 0.84), (0.32, 0.74)], 12), h=0.95, r=0.05, base=0.5)
+    e.add(poly([(0.76, 0.22), (0.88, 0.16), (0.82, 0.40)]), h=1.0, r=0.02, base=0.6)
+    e.add(poly([(0.68, 0.74), (0.80, 0.82), (0.78, 0.58)]), h=1.0, r=0.02, base=0.6)
     e.add(ellipse(0.16, 0.24, 0.09, 0.09), h=1.0, r=0.03, base=0.6)
-    e.pierce(ellipse(0.36, 0.32, 0.045))
-    return e.turn(-20).fit()
+    e.pierce(ellipse(0.36, 0.32, 0.05))
+    e.shade(poly([(0.46, 0.34), (0.95, 0.08), (0.85, 0.90), (0.44, 0.64)]))
+    e.edge = 0.056
+    return e.fit()
 
 
 @design
