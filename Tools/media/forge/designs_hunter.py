@@ -227,33 +227,35 @@ def Serpent():
 
 @design
 def ViperSting():
-    """Viper Sting: a viper's head in profile, jaws thrown wide open, one long fang, a single tapered tongue."""
+    """Viper Sting: a viper's flat wedge head in profile on a thick neck, jaws wide open, one long fang and a forked tongue flicking out past them."""
     e = Emblem("ViperSting")
-    e.add(stroke([(0.02, 0.98), (0.10, 0.62)], 0.30, 0.30, smooth=False), h=0.7, r=0.07, base=0.3)
-    lower = blob([(0.06, 0.62), (0.30, 0.62), (0.56, 0.74), (0.86, 0.96), (0.80, 1.02), (0.50, 0.94), (0.24, 0.86), (0.06, 0.80)], 14)
+    e.add(stroke([(0.26, 1.05), (0.08, 0.80), (0.12, 0.52)], 0.30, 0.30), h=0.7, r=0.07, base=0.3)
+    lower = blob([(0.04, 0.56), (0.28, 0.58), (0.54, 0.72), (0.78, 0.94), (0.70, 1.00), (0.46, 0.92), (0.22, 0.84), (0.04, 0.76)], 14)
     e.add(lower, h=0.85, r=0.05, base=0.4)
-    upper = blob([(0.02, 0.56), (0.06, 0.26), (0.26, 0.08), (0.54, 0.04), (0.82, 0.12), (0.99, 0.26), (0.97, 0.36), (0.74, 0.38),
-                  (0.50, 0.42), (0.32, 0.56), (0.14, 0.68)], 14)
+    upper = blob([(0.00, 0.52), (0.02, 0.26), (0.18, 0.14), (0.54, 0.10), (0.86, 0.12), (0.88, 0.26), (0.62, 0.36), (0.36, 0.44), (0.18, 0.60)], 14)
     e.add(upper, h=1.0, r=0.09, base=0.45)
-    e.add(stroke([(0.84, 0.34), (0.80, 0.56), (0.70, 0.72)], 0.13, 0.01), h=1.0, r=0.03, base=0.55)
-    e.add(stroke([(0.34, 0.66), (0.56, 0.60), (0.70, 0.50)], 0.05, 0.03), h=0.6, r=0.014, base=0.35)
-    e.pierce(ellipse(0.50, 0.21, 0.085, 0.06, 15))
+    e.add(stroke([(0.78, 0.24), (0.76, 0.48), (0.68, 0.64)], 0.15, 0.01), h=1.0, r=0.03, base=0.55)
+    e.add(stroke([(0.36, 0.62), (0.62, 0.56), (0.92, 0.52)], 0.09, 0.08), h=0.7, r=0.02, base=0.4)
+    for dy in (-0.14, 0.12):
+        e.add(stroke([(0.90, 0.52), (1.10, 0.52 + dy)], 0.08, 0.04, smooth=False), h=0.7, r=0.02, base=0.4)
+    e.pierce(ellipse(0.38, 0.24, 0.09, 0.05, 0))
     return e.seat()
 
 
 @design
 def Scorpid():
-    """Scorpid Sting: a scorpion from the side, a long body on short legs, its heavy tail arched high over its back with the barb hanging in front, an open two-pronged pincer reaching forward."""
+    """Scorpid Sting: a scorpion from above, two big open pincers raised in front, a short body on two pairs of legs, the tail sweeping round one side to its barb."""
     e = Emblem("Scorpid")
-    for x in (0.28, 0.44, 0.60):
-        e.add(stroke([(x, 0.78), (x - 0.05, 0.96)], 0.10, 0.07, smooth=False), h=0.6, r=0.02, base=0.3)
-    e.add(blob([(0.12, 0.70), (0.28, 0.58), (0.54, 0.58), (0.74, 0.66), (0.76, 0.78), (0.56, 0.86), (0.28, 0.86), (0.12, 0.82)], 14),
-          h=0.9, r=0.08, base=0.4)
-    e.add(stroke([(0.18, 0.70), (0.09, 0.46), (0.17, 0.21), (0.40, 0.10), (0.62, 0.15), (0.72, 0.28)], 0.18, 0.15), h=0.95, r=0.05, base=0.45)
-    e.add(stroke([(0.72, 0.26), (0.72, 0.38), (0.60, 0.48)], 0.17, 0.01), h=1.0, r=0.03, base=0.55)
-    e.add(stroke([(0.72, 0.72), (0.84, 0.68)], 0.12, 0.12, smooth=False), h=0.8, r=0.03, base=0.4)
-    for tip in ((0.98, 0.52), (0.98, 0.84)):
-        e.add(stroke([(0.82, 0.68), tip], 0.14, 0.04, smooth=False), h=0.95, r=0.03, base=0.45)
+    for sx in (-1, 1):
+        for y in (0.48, 0.66):
+            e.add(stroke([(0.40, y), (0.40 + sx * 0.27, y + 0.08)], 0.10, 0.07, smooth=False), h=0.6, r=0.02, base=0.3)
+        e.add(stroke([(0.40 + sx * 0.08, 0.40), (0.40 + sx * 0.32, 0.32), (0.40 + sx * 0.28, 0.14)], 0.13, 0.12, smooth=False), h=0.85, r=0.03, base=0.4)
+        claw = ellipse(0.40 + sx * 0.26, 0.08, 0.16, 0.19) & ~poly([(0.40 + sx * 0.24, 0.12), (0.40 + sx * 0.10, -0.25), (0.40 + sx * 0.34, -0.25)])
+        e.add(claw, h=1.0, r=0.05, base=0.5)
+    e.add(ellipse(0.40, 0.52, 0.15, 0.22), h=0.9, r=0.08, base=0.4)
+    e.add(stroke([(0.40, 0.70), (0.44, 0.94), (0.66, 1.06), (0.92, 0.98), (1.04, 0.74), (1.00, 0.50)], 0.17, 0.14), h=0.95, r=0.05, base=0.45)
+    e.add(ellipse(0.99, 0.46, 0.11, 0.11), h=1.0, r=0.05, base=0.5)
+    e.add(stroke([(0.96, 0.42), (0.84, 0.30), (0.74, 0.36)], 0.14, 0.01), h=1.0, r=0.03, base=0.55)
     return e.seat()
 
 
@@ -320,29 +322,27 @@ def Counter():
 
 @design
 def Mongoose():
-    """Mongoose Bite: a whole mongoose lunging to the right, long low body, short legs, a long thick tail, jaws open."""
+    """Mongoose Bite: a mongoose lunging to the right, a long low body on short legs, a thick straight tail, jaws wide open."""
     e = Emblem("Mongoose")
-    e.add(stroke([(0.34, 0.60), (0.18, 0.66), (0.06, 0.56), (0.02, 0.38), (0.10, 0.24)], 0.14, 0.09), h=0.7, r=0.04, base=0.3)
-    for (a, b) in (((0.36, 0.66), (0.30, 0.90)), ((0.62, 0.62), (0.70, 0.86))):
-        e.add(stroke([a, b, (b[0] + 0.09, b[1] + 0.02)], 0.11, 0.07, smooth=False), h=0.7, r=0.03, base=0.3)
-    e.add(stroke([(0.34, 0.58), (0.50, 0.52), (0.66, 0.50), (0.78, 0.40)], 0.24, 0.17), h=0.9, r=0.08, base=0.4)
-    e.add(stroke([(0.66, 0.56), (0.80, 0.70), (0.92, 0.70)], 0.10, 0.06, smooth=False), h=0.95, r=0.03, base=0.5)
-    skull = blob([(0.70, 0.36), (0.76, 0.24), (0.88, 0.22), (1.00, 0.26), (1.00, 0.33), (0.90, 0.36), (0.84, 0.44), (0.74, 0.46)], 14)
-    e.add(skull, h=1.0, r=0.05, base=0.5)
-    e.add(stroke([(0.82, 0.44), (0.96, 0.50)], 0.07, 0.03, smooth=False), h=0.9, r=0.02, base=0.5)
-    e.add(ellipse(0.74, 0.21, 0.05, 0.04), h=1.05, r=0.02, base=0.7)
-    e.pierce(ellipse(0.87, 0.285, 0.022))
+    e.add(stroke([(0.26, 0.52), (0.08, 0.50), (-0.14, 0.44)], 0.19, 0.09, smooth=False), h=0.7, r=0.04, base=0.3)
+    for (a, b, c) in (((0.30, 0.58), (0.26, 0.74), (0.36, 0.77)), ((0.64, 0.58), (0.70, 0.73), (0.80, 0.75))):
+        e.add(stroke([a, b, c], 0.12, 0.09, smooth=False), h=0.7, r=0.03, base=0.3)
+    e.add(stroke([(0.26, 0.52), (0.50, 0.50), (0.70, 0.47)], 0.24, 0.22), h=0.9, r=0.08, base=0.4)
+    e.add(ellipse(0.80, 0.41, 0.12, 0.12), h=1.0, r=0.06, base=0.5)
+    e.add(blob([(0.78, 0.30), (0.94, 0.22), (1.10, 0.18), (1.08, 0.27), (0.94, 0.38), (0.82, 0.41)], 12), h=1.0, r=0.04, base=0.5)
+    e.add(blob([(0.76, 0.43), (0.90, 0.48), (1.05, 0.60), (1.01, 0.65), (0.86, 0.59), (0.74, 0.54)], 12), h=0.95, r=0.04, base=0.5)
+    e.add(ellipse(0.74, 0.29, 0.045, 0.045), h=1.05, r=0.02, base=0.7)
     return e.fit()
 
 
 @design
 def Raptor():
-    """Raptor Strike: a bird of prey's foot striking down from the upper left, a long shank, three heavy toes reaching forward and a short spur behind, each ending in a hooked claw."""
+    """Raptor Strike: a bird of prey's foot seen from the front, a short shank, three thick toes spread wide and a spur behind, each ending in a hooked claw."""
     e = Emblem("Raptor")
-    e.add(stroke([(0.50, -0.16), (0.50, 0.46)], 0.20, 0.22, smooth=False), h=0.8, r=0.07, base=0.35)
-    for (knuckle, tip, hook, w) in (((0.24, 0.68), (0.14, 0.86), (0.20, 1.02), 0.17), ((0.50, 0.78), (0.50, 0.94), (0.44, 1.10), 0.17),
-                                    ((0.76, 0.68), (0.86, 0.86), (0.80, 1.02), 0.17), ((0.70, 0.34), (0.82, 0.32), (0.88, 0.46), 0.13)):
-        e.add(stroke([(0.50, 0.46), knuckle, tip], w, w * 0.8), h=0.9, r=0.05, base=0.4)
-        e.add(stroke([tip, hook], w * 0.8, 0.012, smooth=False), h=1.0, r=0.03, base=0.5)
-    e.add(ellipse(0.50, 0.46, 0.15, 0.13), h=0.95, r=0.06, base=0.45)
-    return e.turn(-35).fit()
+    e.add(stroke([(0.50, -0.10), (0.50, 0.34)], 0.16, 0.18, smooth=False), h=0.8, r=0.07, base=0.35)
+    for (tip, mid, hook) in (((0.10, 0.56), (0.02, 0.84), (0.14, 1.00)), ((0.50, 0.72), (0.46, 0.98), (0.34, 1.10)),
+                             ((0.90, 0.56), (0.98, 0.84), (0.86, 1.00)), ((0.80, 0.22), (0.92, 0.26), (0.96, 0.40))):
+        e.add(stroke([(0.50, 0.34), tip], 0.22, 0.18, smooth=False), h=0.9, r=0.05, base=0.4)
+        e.add(stroke([tip, mid, hook], 0.18, 0.012), h=1.0, r=0.03, base=0.5)
+    e.add(ellipse(0.50, 0.36, 0.16, 0.14), h=0.95, r=0.06, base=0.45)
+    return e.fit()
