@@ -86,12 +86,14 @@ local function Lights(piece, lit, spec, crest, awake)
 			turn:SetDegrees(-360)
 			turn:SetDuration(TURN)
 			slot.loops[3] = spin
-			local flare = piece.add(Medals.Texture(slot, "OVERLAY", 1, spec.burst or "glow", "white", RIM, "ADD"))
+			local burst = Medals.Layer(piece, level)
+			burst.lit = Medals.Feed(burst, setmetatable({}, { __index = lit.spec }), level)
+			local flare = piece.add(Medals.Texture(burst.lit, "OVERLAY", 1, spec.burst or "glow", "white", RIM, "ADD"))
 			flare:SetAlpha(0)
 			flare.play = flare:CreateAnimationGroup()
 			ns.Slab.Grow(flare.play, BURST[1], BURST[2], BURST[3])
 			Fade(flare.play, 1, 0, BURST[3]).held = BURST[3]
-			slot.flare = flare
+			flare.gate, burst.lit.flare, gate.burst = burst, flare, burst
 		end
 	end
 	return gate
@@ -117,7 +119,7 @@ function Unleashed.Dress(piece, spec, form)
 	local crest = form == "crest"
 	for i, lit in ipairs(piece.lits) do
 		local set = { piece = piece, crest = crest, lit = lit, awake = Lights(piece, lit, spec, crest, true), still = Lights(piece, lit, spec, crest, false) }
-		set.lits = { set.awake.lit, set.still.lit }
+		set.lits = { set.awake.lit, set.still.lit, set.awake.burst and set.awake.burst.lit }
 		if crest then
 			if i == 1 then
 				set.fold, set.cool = Fold(piece, spec)
@@ -267,6 +269,10 @@ function Unleashed.Paint()
 		set.awake:SetShown(on)
 		set.still:SetShown(on)
 		set.awake:SetAlpha(moving and 1 or 0)
+		if set.awake.burst then
+			set.awake.burst:SetShown(on)
+			Medals.Gate(set.awake.burst, moving and 1 or 0)
+		end
 		set.still:SetAlpha(moving and 0 or 1)
 		shown = shown or on and set.piece:IsVisible()
 		crest = crest or on and set.crest and set.piece:IsVisible()

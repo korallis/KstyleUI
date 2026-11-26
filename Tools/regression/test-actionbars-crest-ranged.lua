@@ -167,7 +167,7 @@ do
 	Slots.Set(env, "player", { { id = 11426, icon = 135988, start = 0, duration = 60 } })
 	assert(ward.lit:IsShown() and AB.W.LastCall(ward.timer, "SetCooldownFromDurationObject"), "Ice Barrier lights the ward ring and drains it")
 	local mirror = clear.lit.awake.lit
-	assert(clear.timer == nil and Shown(mirror, mirror.flare.play) and Shown(mirror, mirror.loop), "at Full Clearcasting gives the engine its burst and fire, with no ring")
+	assert(clear.timer == nil and Shown(clear.lit.flareGate.lit, clear.lit.flareGate.lit.flare.play) and Shown(mirror, mirror.loop), "at Full Clearcasting gives the engine its burst and fire, with no ring")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(not Shown(mirror, mirror.loop), "Calm holds the moment's fire still")
 	Clean(env, K)

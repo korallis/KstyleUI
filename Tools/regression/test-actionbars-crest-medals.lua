@@ -33,7 +33,7 @@ local function Shown(button, group)
 end
 
 local function Assigned(lit)
-	local mirror = lit.awake.lit
+	local mirror = lit.flareGate.lit
 	return Played(mirror._assignedAnimations, mirror.flare.play)
 end
 

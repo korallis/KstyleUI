@@ -173,11 +173,12 @@ local function Light(m, look, each, level, size, top, share, form)
 	m.timer = m.timer or lit.timer
 	Medals.Flare(m, lit, top + 1, each.burst or "glow", size * BURST)
 	if hub and each.flash then
-		local band = m.add(Medals.Texture((lit.awake and lit.awake.lit or lit).flare, "ARTWORK", 1, ART .. "BandFlash.png", color, RIM, "ADD"))
+		local band = m.add(Medals.Texture((lit.flareGate.lit or lit).flare, "ARTWORK", 1, ART .. "BandFlash.png", color, RIM, "ADD"))
 		band:SetPoint("CENTER", hub, "CENTER", 0, 0)
 		band:SetTexCoord(each.flash == "left" and 1 or 0, each.flash == "left" and 0 or 1, 0, 1)
 	end
 	if fed and (each.loop or look.loop) then
+		Medals.Awake(m, lit, top + 1)
 		lit.awake.lit.loops = { LOOPS[each.loop or look.loop](m, lit.awake.lit, color, size, look, hub) }
 		for _, group in ipairs(lit.awake.lit.loops) do
 			group:GetParent():SetAlpha(0)

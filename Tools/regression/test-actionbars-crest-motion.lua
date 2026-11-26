@@ -273,7 +273,7 @@ do
 	K.Options.Write("Medallions", "restingCrest", false)
 	env.RunTimers()
 	local fed = assert(Piece(ns, "crestEnrage"), "an aura medal")
-	local gate, slot = fed.lit.flareGate, fed.lit.awake.lit
+	local gate, slot = fed.lit.flareGate, fed.lit.flareGate.lit
 	assert(gate:GetAlpha() == 1 and Has(slot._assignedAnimations, slot.flare.play), "at Full the flare's layer shows and the engine has the flare")
 	env._aurasSecret = true
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
@@ -317,7 +317,7 @@ do
 	local Effects = K.Effects
 	local cool, fed = assert(Piece(ns, "crestFootLeft"), "a cooldown medal"), assert(Piece(ns, "crestEnrage"), "an aura medal")
 	local ready = assert(cool.timer:GetScript("OnCooldownDone"), "the cooldown medal flares from its own timer's end")
-	local slot = fed.lit.awake.lit
+	local slot = fed.lit.flareGate.lit
 	local function Gain(on)
 		Slots.Set(env, "player", on and { { id = fed.lit.spec.spells[1], start = env._now or 0, duration = 12 } } or nil)
 	end
@@ -352,6 +352,51 @@ do
 	ready(cool.timer)
 	Gain(true)
 	assert(not cool.flare.play:IsPlaying() and not still:IsPlaying() and #slot._assignedAnimations == 0 and Effects.Holder("crestFlare") == nil, "Off plays no flare, shows no mark and claims nothing")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Under hidden values Lua may not stop a flare the engine is playing inside an aura slot. The newer flare shows at once all the same, and the older one is hidden: its
+-- slot sits under a layer of its own, which the addon owns and turns dark for the rest of the flare's time. The slot's next flare shows it again at once.
+do
+	local env, K, ns = New("WARRIOR")
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	local cool, fed = assert(Piece(ns, "crestFootLeft"), "a cooldown medal"), assert(Piece(ns, "crestEnrage"), "an aura medal")
+	local ready = assert(cool.timer:GetScript("OnCooldownDone"), "the cooldown medal flares from its own timer's end")
+	local gate, slot = fed.lit.flareGate, fed.lit.flareGate.lit
+	local function Gain(on)
+		Slots.Set(env, "player", on and { { id = fed.lit.spec.spells[1], start = 0, duration = 12 } } or nil)
+	end
+	assert(gate:GetParent() == fed and slot.container ~= fed.lit.container, "the flare's slot has a container of its own under a layer of the medal's")
+	local flare = slot.flare.play
+	-- The test reads the slot's flare as the engine would; the addon's own code may not, and the stub raises if it tries.
+	local function Plays()
+		env._engine = true
+		local playing = flare:IsPlaying()
+		env._engine = nil
+		return playing
+	end
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	Gain(true)
+	assert(Plays() and gate:GetAlpha() == 1, "hidden values: the engine plays the aura medal's flare")
+	local after, armed = env.C_Timer.After, {}
+	env.C_Timer.After = function(_, fn) armed[#armed + 1] = fn end
+	ready(cool.timer)
+	assert(cool.flare.play:IsPlaying(), "the newer flare shows at once")
+	assert(Plays() and gate:GetAlpha() == 0, "the older one, which Lua may not stop, is hidden by its own layer")
+	assert(fed:IsShown() and fed:GetAlpha() == 1, "and nothing else of the medal is")
+	for _, fn in ipairs(armed) do fn() end
+	assert(gate:GetAlpha() == 1, "the layer shows again once the hidden flare's time is over")
+	Gain(false)
+	Gain(true)
+	armed = {}
+	ready(cool.timer)
+	assert(gate:GetAlpha() == 0, "hidden again by the next cooldown's flare")
+	Gain(false)
+	Gain(true)
+	assert(Plays() and gate:GetAlpha() == 1 and not cool.flare.play:IsPlaying(), "the slot's own next flare shows its layer at once and stops the cooldown's")
+	env.C_Timer.After = after
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
