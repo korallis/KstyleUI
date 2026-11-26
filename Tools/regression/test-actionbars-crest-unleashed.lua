@@ -271,6 +271,30 @@ do
 	Dark(env, set)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "switched off in combat, the slots the game still drives fold nothing")
+	-- Still switched off: the game assigns a cooldown to the slots it still drives. The burst nobody sees takes no place among the crest's flares (a place it held
+	-- would be taken from it by the next flare, which darkens the older one's layer), and the hidden slot counts as no lit cooldown, so its running out folds nothing
+	-- when the switch comes back before the next frame.
+	local showing = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
+	Slots.Set(env, "player", Reck())
+	env._engine = true
+	local grew = set.awake.burst.lit.flare.play:IsPlaying()
+	env._engine = nil
+	showing:Play()
+	assert(grew and showing:IsPlaying() and set.awake.burst:GetAlpha() == 1, "switched off, the burst the game still plays unseen holds no place for the next flare to take")
+	showing:Stop()
+	-- The timer's own deferred check is held back here until the switch is back on and painted, the order in which a fold would show.
+	local after, held = env.C_Timer.After, {}
+	env.C_Timer.After = function(_, fn) held[#held + 1] = fn end
+	done(set.awake.timer)
+	env.C_Timer.After = after
+	Slots.Set(env, "player", nil)
+	K.Options.Write("ActionBars", "crestUnleashed", true)
+	env.RunTimers()
+	assert(#held == 1, "the timer's end defers one check")
+	held[1]()
+	assert(not set.fold.play:IsPlaying(), "a cooldown assigned and run out while switched off folds nothing when the switch comes back")
+	Slots.Set(env, "player", nil)
+	Reset()
 	K.Options.Write("ActionBars", "crestUnleashed", true)
 	-- The switch hides the hot line's own layer, and its slot with it, which is no cooldown ending: off and on again with the cooldown still up folds nothing.
 	Slots.Set(env, "player", Reck())
