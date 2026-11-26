@@ -194,6 +194,16 @@ do
 	env._bags[6265] = 1
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(not wisps.seats[2].wisp:IsShown() and wisps.seats[2].flare.play:IsPlaying() and wisps.seats[3].flare.play:IsPlaying(), "each spent shard bursts")
+	-- The bursts of one spend are one crest flare: they hold the crest's flare place together, another crest flare stops them all, and the next spend stops that one.
+	assert(K.Effects.Holder("crestFlare") == K.Effects.PRIORITY.ready, "the spend's bursts hold the crest's flare place")
+	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
+	other:Play()
+	assert(other:IsPlaying() and not wisps.seats[2].flare.play:IsPlaying() and not wisps.seats[3].flare.play:IsPlaying(), "a crest flare from elsewhere stops both bursts")
+	env._bags[6265] = 0
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(wisps.seats[1].flare.play:IsPlaying() and not other:IsPlaying(), "and the next spend stops that one in turn")
+	env._bags[6265] = 1
+	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(not wisps.number:IsShown() and not wisps.full:IsShown(), "five or fewer shards: the wisps alone")
 	env._bags[6265] = 9
 	env.FireEvent("BAG_UPDATE_COOLDOWN")

@@ -17,6 +17,16 @@ local function New(class)
 		e._auraData = {}
 		e.C_UnitAuras = { GetUnitAuraBySpellID = function(unit, id) return e._auraData[unit .. id] end }
 		e._slotGroups = true
+		e._totems = {}
+		e.GetTotemInfo = function(slot)
+			local t = e._totems[slot]
+			if not t then return false, "", 0, 0, 0, 1, 0 end
+			return true, "Hawk", t.start, 18, 132158, 1, t.spell
+		end
+		e.GetTotemDuration = function(slot)
+			local t = e._totems[slot]
+			return { start = t and t.start or 0, finish = t and t.start + 18 or 0 }
+		end
 		Slots.Install(e)
 		e.AuraContainerSortMethod, e.AuraContainerSortDirection = { Default = 0, AuraInstanceIDOnly = 8 }, { Normal = 0, Reverse = 1 }
 	end })
@@ -72,9 +82,80 @@ end
 -- IN_OUT); a hold may carry any curve, and travel and turns keep curves of their own, which part 1 of the plan leaves alone. An alpha loop that blinks twice a second or faster is
 -- the one flicker.
 local WANT = { enter = "OUT", exit = "IN", loop = "IN_OUT" }
-local flickers, steps = {}, { enter = 0, exit = 0, loop = 0 }
+
+-- The one flicker, typed from the plan: a repeating pair of alpha steps of 0.25 s each with no pause, down to 0.6 of the part's own alpha and back up to it.
+local function Flicker(group, what)
+	local down, up = group._anims[1], group._anims[2]
+	assert(Set(group, "Looping") == "REPEAT" and #group._anims == 2 and down._type == "Alpha" and up._type == "Alpha", what .. ": the warning is one repeating pair of alpha steps")
+	local high, low = Set(down, "FromAlpha"), Set(down, "ToAlpha")
+	assert(high > 0 and high <= 1 and math.abs(low - high * 0.6) < 1e-9 and Set(up, "FromAlpha") == low and Set(up, "ToAlpha") == high,
+		what .. ": it dips from the part's alpha to 0.6 of it and comes back to it")
+	for _, step in ipairs({ down, up }) do
+		assert(Set(step, "Duration") == 0.25 and (Set(step, "StartDelay") or 0) == 0 and (Set(step, "EndDelay") or 0) == 0, what .. ": each step takes 0.25 s with no pause, two blinks a second")
+	end
+end
+
+-- The warnings by the callers that play them, whatever rate a wrong one would have: every ember watch (a medal, the horn), every slot's refresh cue, the last Lightning
+-- Shield orb, a rune stone's gutter and the last Inner Fire flame.
+local met = {}
+local function Warnings(ns, class)
+	local n = 0
+	local function check(group, what)
+		if group then
+			Flicker(group, class .. " " .. what)
+			n = n + 1
+			met[what] = true
+		end
+	end
+	for _, e in ipairs(ns.SlabRings.state.watched) do
+		check(e.flicker, "ember watch")
+	end
+	check(ns.SlabStorm and ns.SlabStorm.state.flicker, "storm orb")
+	local crest = ns.SlabTrackers.state.forms.crest
+	for _, piece in pairs(crest and crest.pieces or {}) do
+		check(piece.gutter, "rune stone")
+		check(piece.ring and piece.flicker, "Inner Fire")
+		for _, lit in ipairs(piece.lits or { piece.lit }) do
+			check(lit.flicker, tostring(piece.spec and piece.spec.key) .. " refresh cue")
+		end
+	end
+	return n
+end
+
+-- What only builds or plays once the game drives it: a hunter's hawks and the pair's glow, and the crest's lift on a tracked cooldown's cast.
+local function Travel(group)
+	local curves = {}
+	for _, anim in ipairs(group._anims) do
+		if anim._type == "Translation" then curves[#curves + 1] = Set(anim, "Smoothing") end
+	end
+	return table.concat(curves, ",")
+end
+
+local function Drive(env, ns, class)
+	if class == "HUNTER" then
+		for slot, spell in pairs({ [2] = 1293248, [3] = 1312637 }) do
+			env._totems[slot] = { start = 0, spell = spell }
+			env.FireEvent("PLAYER_TOTEM_UPDATE", slot)
+		end
+		local p, pair = assert(ns.SlabHawks.state.perches[1], "a summon builds the hawk's perch"), assert(ns.SlabHawks.state.pair, "and two hawks the pair's glow")
+		assert(p.lift:IsPlaying() and p.pops[1]:IsPlaying() and pair.dawn[1]:IsPlaying(), "the summon lifts and swells the hawk and both fade the ring's glow in")
+		local up, down = p.pops[1]._anims[1], p.pops[1]._anims[2]
+		assert(Set(up, "Smoothing") == "OUT" and Set(down, "ScaleTo") < Set(down, "ScaleFrom") and Set(down, "Smoothing") == "IN", "the hawk swells easing out and shrinks back easing in")
+		assert(Set(pair.dawn[1]._anims[1], "Smoothing") == "OUT" and Set(pair.breath._anims[1], "Smoothing") == "IN_OUT", "the pair's glow fades in easing out and breathes easing both ways")
+		-- Travel is not part 1's: the lift's way out and back and the old hawk's sinking keep the curves they had.
+		assert(Travel(p.lift) == "OUT,IN_OUT" and Travel(p.sink) == "IN", "the hawk's travel keeps its own curves (" .. Travel(p.lift) .. "; " .. Travel(p.sink) .. ")")
+	elseif class == "WARRIOR" then
+		env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 1719)
+		local lift = assert(ns.Slab.hub.crest.lift, "a tracked cooldown's cast builds the crest's lift")
+		assert(lift:IsPlaying() and #lift._anims == 4, "and plays its four steps")
+	end
+end
+
+local flickers, steps, named = {}, { enter = 0, exit = 0, loop = 0 }, {}
 for _, class in ipairs(CLASSES) do
-	local env = New(class)
+	local env, _, ns = New(class)
+	Drive(env, ns, class)
+	named[class] = Warnings(ns, class)
 	flickers[class] = 0
 	Groups(env, function(group)
 		local alphaOnly, cycle = true, 0
@@ -98,13 +179,16 @@ for _, class in ipairs(CLASSES) do
 			cycle = cycle + (Set(anim, "Duration") or 0) + (Set(anim, "StartDelay") or 0) + (Set(anim, "EndDelay") or 0)
 		end
 		if alphaOnly and Set(group, "Looping") == "REPEAT" and cycle <= 0.5 then
-			local down, up = group._anims[1], group._anims[2]
-			local high = Set(down, "FromAlpha")
-			assert(#group._anims == 2 and cycle == 0.5 and math.abs(Set(down, "ToAlpha") - high * 0.6) < 1e-9 and Set(up, "ToAlpha") == high,
-				class .. ": a second end-warning rate (" .. cycle .. " s a cycle) from " .. tostring(down._origin) .. "; use ns.Slab.Flicker")
+			Flicker(group, class .. ": a second end-warning rate (" .. cycle .. " s a cycle) from " .. tostring(group._anims[1]._origin) .. "; use ns.Slab.Flicker")
 			flickers[class] = flickers[class] + 1
 		end
 	end)
+end
+for _, class in ipairs(CLASSES) do
+	assert(named[class] > 0, class .. ": the walk by caller meets a warning")
+end
+for _, what in ipairs({ "ember watch", "storm orb", "rune stone", "Inner Fire", "crestMark refresh cue", "crestCurse refresh cue", "crestFlameShock refresh cue" }) do
+	assert(met[what], "the walk by caller meets the " .. what)
 end
 assert(flickers.WARRIOR > 0 and flickers.HUNTER > 0 and flickers.SHAMAN > 0 and flickers.WARLOCK > 0, "the walk meets the flicker on warriors, hunters, shamans and warlocks")
 assert(steps.enter > 0 and steps.exit > 0 and steps.loop > 0, "and steps of all three kinds")
@@ -179,6 +263,32 @@ do
 	assert(K.Effects.Holder("crestFlare") == K.Effects.PRIORITY.ready, "and it takes the crest's flare place as any ready cue does")
 	Motion(env, K, "off")
 	assert(#lit._assignedAnimations == 0 and not still:IsPlaying(), "Off shows neither")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Under hidden values the engine keeps the flare it was given, and Lua may not touch it: the flare's own layer, which the addon owns, goes dark for as long as the slot is
+-- bound for another motion level, so Calm and Off show no moving flare, and the slot is bound again when the restriction ends.
+do
+	local env, K, ns = New("WARRIOR")
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	local fed = assert(Piece(ns, "crestEnrage"), "an aura medal")
+	local gate, slot = fed.lit.flareGate, fed.lit.awake.lit
+	assert(gate:GetAlpha() == 1 and Has(slot._assignedAnimations, slot.flare.play), "at Full the flare's layer shows and the engine has the flare")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	for _, level in ipairs({ "calm", "off" }) do
+		Motion(env, K, level)
+		assert(Has(slot._assignedAnimations, slot.flare.play) and #slot._assignedAnimations == 1, level .. " under hidden values: the engine still has the moving flare")
+		assert(gate:GetAlpha() == 0, level .. " under hidden values: so its layer is dark")
+	end
+	Motion(env, K, "full")
+	assert(gate:GetAlpha() == 1, "back at Full, the level the slot is bound for, the layer shows again")
+	Motion(env, K, "calm")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	env.RunTimers()
+	assert(Has(slot._assignedAnimations, slot.flare.still) and #slot._assignedAnimations == 1 and gate:GetAlpha() == 1, "when the restriction ends the slot gets Calm's still mark and its layer shows")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

@@ -102,11 +102,12 @@ local function Light(late, start, length)
 	if start then
 		late.amber:SetAlpha(1)
 		late.red:SetAlpha(0)
-		local left, fade = start + length - (type(GetTime) == "function" and GetTime() or 0), Effects.Allows("flare") and Tokens.Flicker.step or 0
+		local left, step = start + length - (type(GetTime) == "function" and GetTime() or 0), Effects.Allows("flare") and Tokens.Flicker.step or 0
 		local turn = left - length * TWELFTH
+		local fade, last = math.min(step, length * (FIFTH - TWELFTH) / 4), math.min(step, length * TWELFTH / 4)
 		Arm(late.show, late, left - length * FIFTH, fade, 1)
 		Arm(late.leave, late.amber, turn - fade, fade, 0)
-		Arm(late.turn, late.red, turn, fade, 1)
+		Arm(late.turn, late.red, turn, last, 1)
 	end
 end
 
