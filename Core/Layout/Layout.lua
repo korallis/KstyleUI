@@ -642,6 +642,8 @@ local function StyleDefault(el)
 			el.limits.maxWidth = math.max(el.limits.maxWidth, d.width)
 		end
 	end
+	local lift = ns.Setup and ns.Setup.Layouts and ns.Setup.Layouts.BarLift(Scale.Aspect(), el.key) or 0
+	d.y, el.frames.y = d.y + lift, el.frames.y + lift
 	el.default = Band(el, d)
 end
 
@@ -1959,7 +1961,7 @@ ns.Callbacks.Register("ModuleChanged", SECTION, function(_, name)
 end)
 
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
-	if module == "ActionBars" and key == "extraBarsApplied" then Restyle() end
+	if module == "ActionBars" and key == "extraBarsApplied" or ns.Setup.Layouts.LiftSetting(module, key) then Restyle() end
 	if module == SECTION and key == "preset" and Style() then
 		if InCombatLockdown() then
 			Combat.Queue(Restyle)
