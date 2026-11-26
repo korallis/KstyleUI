@@ -99,22 +99,14 @@ class WorkflowsTest(unittest.TestCase):
                 "DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}",
             ]),
         )
-        jobs = re.findall(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
-        self.assertIn("release", jobs)
-        self.assertIn("needs: [check, lua]", text)
+        self.assertEqual(list(jobs_of(text)), ["check", "release", "discord-repost"])
 
-    def test_release_requires_successful_shards_or_a_successful_sha_proof(self):
+    def test_release_runs_no_test_suite_and_uploads_only_after_check(self):
+        # The owner's ruling: Actions makes the release; lint and the suites run locally on the commit before the tag.
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
-        jobs = jobs_of(text)
-        shards = re.search(r"shard: \[([\d, ]+)\]", jobs["lua"]).group(1).split(", ")
-        self.assertEqual(shards, [str(i) for i in range(1, len(shards) + 1)])
-        self.assertIn('bash scripts/gate.sh lua --shard "$SHARD/{0}"'.format(len(shards)), jobs["lua"])
-        self.assertIn("needs: [check, lua]", jobs["release"])
-        self.assertEqual(re.findall(r"(?m)^    if: (.+)$", jobs["lua"]), ["github.event_name == 'push'"])
-        self.assertNotIn("continue-on-error:", jobs["lua"])
-        self.assertIn("needs: check", jobs["lua"])
-        step = next(step for step in jobs["lua"].split("\n      - ") if "bash scripts/gate.sh lua" in step)
-        self.assertIn("if: needs.check.outputs.run != 'false'", step)
+        for needle in ("gate.sh", "run-all", "unittest discover", "proof"):
+            self.assertNotIn(needle, text)
+        self.assertEqual(re.findall(r"(?m)^    needs: (.+)$", jobs_of(text)["release"]), ["check"])
 
     def test_release_upload_requires_successful_dependencies(self):
         jobs = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))
@@ -152,11 +144,10 @@ class WorkflowsTest(unittest.TestCase):
                                  env=env, capture_output=True, text=True)
             self.assertEqual((run.stdout.strip(), run.returncode == 0), (expected, ref != "v2"), (roadmap, ref, ids, run.stderr))
 
-    def test_release_check_and_lua_cannot_ignore_errors(self):
+    def test_release_check_cannot_ignore_errors(self):
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
         jobs = jobs_of(text)
-        for job in (jobs["check"], jobs["lua"]):
-            self.assertNotIn("continue-on-error:", job)
+        self.assertNotIn("continue-on-error:", jobs["check"])
         steps = jobs["release"].split("\n      - ")[1:]
         for step in steps[:-1]:
             self.assertNotIn("continue-on-error:", step)
@@ -190,12 +181,6 @@ class WorkflowsTest(unittest.TestCase):
         for step in ("actions/setup-python@", "pip install Pillow", "Tools/icons/iconset.py pack"):
             self.assertLess(release.index(step), packager, f"{step} can fail: run it before the packager publishes")
         self.assertLess(packager, release.index("gh release upload"))
-
-    def test_reused_release_proof_downloads_no_lint_or_python_suite_tools(self):
-        check = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["check"]
-        for step in check.split("\n      - "):
-            if re.search(r"luarocks|pre-commit|luajit", step):
-                self.assertIn("if: steps.proof.outputs.run != 'false'", step, "only the lint and Python checks need these")
 
     def test_release_page_shows_only_its_version_after_the_upload(self):
         release = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["release"]

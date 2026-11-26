@@ -32,9 +32,6 @@ jobs:
     timeout-minutes: 35
     permissions:
       contents: read
-      actions: read
-    outputs:
-      run: ${{ steps.proof.outputs.run }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,12 +44,6 @@ jobs:
             echo "The tag $GITHUB_REF_NAME is not on main. Release only from main, after the in-game pass on staging."
             exit 1
           fi
-      - name: Reuse successful checks or refuse known-red proof
-        # Tags from hotfix/vX.Y.Z normally have no push proof, so release runs its own lint, Python and Lua checks.
-        id: proof
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: python3 -m Tools.release.proof
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
@@ -62,23 +53,6 @@ jobs:
           sudo apt-get install -y lua5.1
           python3 -m pip install Pillow==13.0.0
           echo "KSTYLEUI_PILLOW_PYTHON=$(command -v python3)" >> "$GITHUB_ENV"
-      - name: Install the lint and Python check tools
-        if: steps.proof.outputs.run != 'false'
-        run: |
-          sudo apt-get install -y luajit luarocks
-          luarocks --local --lua-version=5.1 install luacheck 1.2.0
-          python3 -m venv "$HOME/.local/share/wow-dev/venv"
-          "$HOME/.local/share/wow-dev/venv/bin/python" -m pip install pre-commit==4.7.0
-          echo "$HOME/.luarocks/bin" >> "$GITHUB_PATH"
-          echo "$HOME/.local/share/wow-dev/venv/bin" >> "$GITHUB_PATH"
-          echo "LUA_PATH=$(luarocks --local --lua-version=5.1 path --lr-path)" >> "$GITHUB_ENV"
-          echo "LUA_CPATH=$(luarocks --local --lua-version=5.1 path --lr-cpath)" >> "$GITHUB_ENV"
-      - name: Run missing lint checks
-        if: steps.proof.outputs.run != 'false'
-        run: bash scripts/gate.sh lint
-      - name: Run missing Python checks
-        if: steps.proof.outputs.run != 'false'
-        run: bash scripts/gate.sh python
       - name: Check the release changelog
         run: python3 -m unittest Tools.tests.test_release_changelog
       - name: Check the runner's Lua is 5.1.5 and its Python has Pillow
@@ -98,40 +72,9 @@ jobs:
       - name: Check the zip
         run: bash Tools/hooks/check-package.sh
 
-  lua:
-    name: lua ${{ matrix.shard }}/8
-    needs: check
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Install hosted Lua 5.1
-        if: needs.check.outputs.run != 'false'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y lua5.1
-      - name: Check the runner's Lua is 5.1.5
-        if: needs.check.outputs.run != 'false'
-        run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
-      - name: Lua regression tests, one slice of the files
-        if: needs.check.outputs.run != 'false'
-        env:
-          SHARD: ${{ matrix.shard }}
-        run: bash scripts/gate.sh lua --shard "$SHARD/8"
-
   release:
     name: release
-    needs: [check, lua]
+    needs: check
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15

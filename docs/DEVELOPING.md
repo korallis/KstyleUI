@@ -11,7 +11,7 @@ The binding design is [`docs/superpowers/specs/2026-11-07-kstyleui-design.md`](s
 
 Each release is a `vX.Y.Z` tag on `main`, cut after the owner's in-game pass on `staging`. [`CHANGELOG.md`](../CHANGELOG.md) and [`docs/RELEASE_NOTES.md`](RELEASE_NOTES.md) hold what each release changed, and [`docs/TESTING.md`](TESTING.md) is the test guide.
 
-The release's `check` job validates the tag's changelog section and packages without uploading. It first runs `Tools/release/proof.py` on the newest `checks.yml` push run on `staging` in this repository whose commit has the same tree as the tag (`git rev-parse <sha>^{tree}`), so a feature release's merge commit reuses the staging run of its tree. A successful run proves lint, Python and Lua, so the release reuses it; a failed, cancelled or other unsuccessful run refuses the release. If that run is queued or in progress, the proof polls every two minutes for up to 15 minutes. With no run (a hotfix tag, whose tree never reached `staging`), a timeout or an API error, `check` runs lint and Python and the eight hosted Lua shards run the suite. Uploads require `check` and every shard to succeed. After the upload, the release job sets the GitHub release text to that version's changelog section and the CurseForge and Wago links.
+Before pushing a `v*` tag, run `bash scripts/gate.sh release` on the exact commit to be tagged and quote its last line, `gate passed (release)`, in the release report. It runs lint, every Lua test file and the Python suite; a hotfix tag gets the same run. The release workflow runs none of them. Its `check` job verifies that the tag is on `main`, validates the tag's changelog section, builds the icon pack and packages without uploading. Uploads require `check` to succeed. After the upload, the release job sets the GitHub release text to that version's changelog section and the CurseForge and Wago links.
 
 To run the current `staging` build from a clone at `~/KstyleUI`, follow [Install the addons](TESTING.md#install-the-addons) in the test guide.
 
@@ -44,7 +44,7 @@ Run the gate from the repository root before every push and read its exit code. 
 bash scripts/gate.sh
 ```
 
-It runs `python3 Tools/dev/crlf.py --check`, `env -u SKIP pre-commit run --all-files` (including luacheck and the TOC/API hooks), `python3 Tools/locale/strings.py check`, `scripts/check-suppressions.sh` against `origin/staging`, `bash Tools/regression/run-all.sh --affected origin/staging` and the Python suite (`python3 -m unittest discover -s Tools/tests`, with the venv interpreter), then lists every step that failed. `scripts/gate.sh lint`, `lua` and `python` run one group; CI calls those.
+It runs `python3 Tools/dev/crlf.py --check`, `env -u SKIP pre-commit run --all-files` (including luacheck and the TOC/API hooks), `python3 Tools/locale/strings.py check`, `scripts/check-suppressions.sh` against `origin/staging`, `bash Tools/regression/run-all.sh --affected origin/staging` and the Python suite (`python3 -m unittest discover -s Tools/tests`, with the venv interpreter), then lists every step that failed. `scripts/gate.sh lint`, `lua` and `python` run one group; CI calls those. `scripts/gate.sh release` runs all three with every Lua test file, for the commit a release tag will point at.
 
 The gate rejects tracked evidence images: put them in the PR body; published pictures and source assets must use the folders listed in `Tools/hooks/check_images.py`.
 

@@ -140,6 +140,30 @@ class GateTest(unittest.TestCase):
         result = subprocess.run(["bash", str(GATE), "nonsense"], cwd=REPO, capture_output=True, text=True)
         self.assertEqual(result.returncode, 2)
 
+    def test_release_group_runs_lint_every_lua_file_and_the_python_suite(self):
+        # The owner's ruling: a pull request runs the tests its change can reach; a release runs every test first.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for folder in ("scripts", "Tools/regression", "bin"):
+                (root / folder).mkdir(parents=True)
+            (root / "scripts/gate.sh").write_bytes(GATE.read_bytes())
+            (root / "scripts/check-suppressions.sh").write_text("exit 0\n", encoding="utf-8", newline="\n")
+            (root / "bin/pre-commit").write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8", newline="\n")
+            os.chmod(root / "bin/pre-commit", 0o755)
+            (root / "Tools/regression/run-all.sh").write_text(
+                'pick_python() { py=(true); }\n'
+                'if [ "${BASH_SOURCE[0]}" = "$0" ]; then echo "lua args=[$*] full=${KSTYLEUI_FULL:-unset}"; fi\n',
+                encoding="utf-8", newline="\n")
+            env = {key: value for key, value in os.environ.items() if key != "KSTYLEUI_FULL"}
+            env["PATH"] = str(root / "bin") + os.pathsep + env["PATH"]
+            result = subprocess.run(["bash", "scripts/gate.sh", "release"], cwd=root, env=env, capture_output=True, text=True)
+        lines = result.stdout.splitlines()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("lua args=[] full=1", lines)
+        for step in ("crlf --check", "pre-commit", "strings.py check", "python suite"):
+            self.assertIn("== gate: " + step, lines)
+        self.assertEqual(lines[-1], "gate passed (release)")
+
     def test_ci_calls_the_gate_in_each_job_that_has_a_group(self):
         text = CHECKS.read_text(encoding="utf-8")
         for group in ("lint", "lua", "python"):
