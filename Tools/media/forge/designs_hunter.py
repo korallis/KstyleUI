@@ -330,7 +330,7 @@ def Mongoose():
     e.pierce(ellipse(0.36, 0.32, 0.05))
     e.shade(poly([(0.46, 0.34), (0.95, 0.08), (0.85, 0.90), (0.44, 0.64)]))
     e.edge = 0.056
-    return e.fit()
+    return e.fit(margin=0.09)
 
 
 @design
