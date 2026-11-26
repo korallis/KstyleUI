@@ -508,11 +508,11 @@ for _, element in ipairs({ "Earth", "Fire", "Water", "Air" }) do
 	TEXTURES["totemRune" .. element] = { file = "Textures\\Totems\\Rune" .. element .. ".png" }
 end
 for _, name in ipairs({
-	"Aegis", "Arcane", "Axe", "Bark", "Bolt", "Brave", "Bubble", "Bulwark", "Crossed", "Crystal", "Curse", "Dash", "Deflect",
+	"Aegis", "Arcane", "Axe", "Bark", "Bolt", "Brave", "Bubble", "Bulwark", "Crossed", "Crystal", "Curse", "Dash", "Deflect", "Demon",
 	"Drop", "Evade", "Eye", "Fang", "Farseer", "Feedback", "Flame", "Flurry", "Focus", "Gear", "Ghost", "Grave", "Hand", "Heart",
-	"Horns", "Hourglass", "Infusion", "Innervate", "Lifeline", "Mend", "Moon", "Paw", "Potion", "Regen", "Roots", "Rush",
+	"Hourglass", "Infusion", "Innervate", "Lifeline", "Mend", "Moon", "Paw", "Potion", "Regen", "Roots", "Rush",
 	"Sacrifice", "Shade", "Shatter", "Skull", "Smoke", "Star", "Stone", "Sun", "Sweep", "Swift", "Thorns", "Tusks", "Veil", "Voice",
-	"Void", "Volley", "Vortex", "Wall", "Wing"
+	"Voidwalker", "Volley", "Vortex", "Wall", "Wing"
 }) do
 	TEXTURES["sigil" .. name] = { file = "Textures\\Sigils\\" .. name .. ".png" }
 end
@@ -523,18 +523,21 @@ for _, name in ipairs({
 	TEXTURES["figure" .. name] = { file = "Textures\\Figures\\" .. name .. ".png" }
 end
 for _, name in ipairs({
-	"ArcLeft", "ArcPet", "ArcRight", "ArmorArcane", "ArmorFrost", "Bail", "Beast", "BlackArrow", "Burst", "Cheetah",
-	"ChillShard", "Counter", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Frost", "Hawk", "Horns", "Hourglass",
-	"Imp", "Intellect", "Lacerate", "MarkReticle", "Mongoose", "Monkey", "Pack", "PolyCurl", "Raptor", "RimLeft",
-	"Scorpid", "Serpent", "Siphon", "Succubus", "Swirl", "Tongue", "Viper", "ViperSting", "Voidwalker", "Weakness",
-	"Wild", "Wyvern"
+	"ArcLeft", "ArcPet", "ArcRight", "ArmorArcane", "ArmorFrost", "Bail", "Beast", "BlackArrow", "BrokenBlade", "Burst",
+	"Cheetah", "Counter", "Demon", "Elements", "Eye", "Felhunter", "Flame", "Frost", "Gem", "Hawk", "Hourglass", "Imp",
+	"Intellect", "Lacerate", "MarkReticle", "Mongoose", "Monkey", "Pack", "Raptor", "RimLeft", "Scorpid", "Serpent",
+	"Shard", "Sheep", "Siphon", "Succubus", "Swirl", "Tongues", "Viper", "ViperSting", "Voidwalker", "Wild", "Wyvern"
 }) do
 	TEXTURES["glyph" .. name] = { file = "Textures\\Glyphs\\" .. name .. ".png" }
 end
 for _, name in ipairs({
-	"glyphBeast", "glyphBlackArrow", "glyphCheetah", "glyphCounter", "glyphHawk", "glyphLacerate", "glyphMongoose",
-	"glyphMonkey", "glyphPack", "glyphRaptor", "glyphScorpid", "glyphSerpent", "glyphViper", "glyphViperSting", "glyphWild",
-	"glyphWyvern", "sigilDeflect", "sigilPaw", "sigilVolley"
+	"glyphBeast", "glyphBlackArrow", "glyphBrokenBlade", "glyphBurst", "glyphCheetah", "glyphCounter", "glyphDemon",
+	"glyphElements", "glyphEye", "glyphFelhunter", "glyphFlame", "glyphGem", "glyphHawk", "glyphHourglass", "glyphImp",
+	"glyphIntellect", "glyphLacerate", "glyphMongoose", "glyphMonkey", "glyphPack", "glyphRaptor", "glyphScorpid",
+	"glyphSerpent", "glyphShard", "glyphSheep", "glyphSiphon", "glyphSuccubus", "glyphSwirl", "glyphTongues", "glyphViper",
+	"glyphViperSting", "glyphVoidwalker", "glyphWild", "glyphWyvern", "sigilArcane", "sigilCrystal", "sigilCurse",
+	"sigilDeflect", "sigilDemon", "sigilFlame", "sigilHourglass", "sigilPaw", "sigilShade", "sigilVoidwalker", "sigilVolley",
+	"sigilVortex"
 }) do
 	TEXTURES[name].forged = true
 end

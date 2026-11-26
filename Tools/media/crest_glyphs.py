@@ -1,13 +1,11 @@
-"""Draw the crest effects' glyphs into Media/Textures/Glyphs/.
+"""Draw the crest effects' flat glyph, the bail a bag gem hangs from, into Media/Textures/Glyphs/, and six marks for the forge.
 
-Procedural, no model and no input image. Each glyph is a bold white silhouette or line figure drawn at 8x, given a
-soft glow and reduced with a linear-light Lanczos, so the crest tints it in the tracked spell's colour and draws it
-ADD (colour unpremultiplied, alpha the brightest channel, as medallions_kit.py stores effects). One glyph per spell
-family the mage and warlock crests track (KstyleUI_ActionBars/SlabRanged.lua), so two spells on one seat never share a
-shape: the Curses (Weakness, Burst, Tongue, Elements, Hourglass), the torment spires' feet (Swirl, Eye, FireTongue,
-Siphon), the mage's Intellect and spells (Intellect, ChillShard, PolyCurl), a warlock's armor and its demons (Horns, Imp,
-Voidwalker, Succubus, Fangs for the Felhunter), the bag gems (Facet) and the bail they hang from (Bail). The hunter's
-marks are forged in Blender instead (Tools/media/forge/marks.py).
+Procedural, no model and no input image. A glyph is a bold white silhouette or line figure drawn at 8x. Bail is given a
+soft glow and reduced with a linear-light Lanczos, so the crest tints it and draws it ADD (colour unpremultiplied, alpha
+the brightest channel, as medallions_kit.py stores effects). The six in FORGED (the Curses Burst, Elements and Hourglass
+and the torment spires' feet Swirl, Eye and Siphon; KstyleUI_ActionBars/SlabRanged.lua) are only drawn here:
+Tools/media/forge/marks.py raises each drawing as ridges on a plate and writes it as Blender-forged metal, as it writes
+the hunter's, mage's and warlock's other marks from its own designs.
 
     python3 Tools/media/crest_glyphs.py [--out DIR]
 """
@@ -80,21 +78,9 @@ def glyphs():
             return fn
         return wrap
 
-    @make("Weakness")
-    def _(p):
-        p.line([(0.5, 0.06), (0.5, 0.36)], 0.1)
-        p.line([(0.5, 0.48), (0.5, 0.66)], 0.1)
-        p.poly([(0.22, 0.6), (0.78, 0.6), (0.5, 0.96)])
-
     @make("Burst")
     def _(p):
         p.star(0.5, 0.5, 0.17, 0.46, 8)
-
-    @make("Tongue")
-    def _(p):
-        p.line([(0.5, 0.96), (0.5, 0.5)], 0.13)
-        p.line([(0.5, 0.52), (0.34, 0.3), (0.22, 0.24), (0.18, 0.08)], 0.09)
-        p.line([(0.5, 0.52), (0.66, 0.3), (0.78, 0.24), (0.82, 0.08)], 0.09)
 
     @make("Elements")
     def _(p):
@@ -108,12 +94,6 @@ def glyphs():
         p.line([(0.5, 0.5), (0.2, 0.94), (0.8, 0.94), (0.5, 0.5)], 0.08)
         p.poly([(0.32, 0.9), (0.68, 0.9), (0.5, 0.72)])
 
-    @make("Fangs")
-    def _(p):
-        p.arc(0.5, 0.1, 0.4, 30, 150, 0.09)
-        p.poly([(0.22, 0.32), (0.4, 0.34), (0.3, 0.92)])
-        p.poly([(0.6, 0.34), (0.78, 0.32), (0.7, 0.92)])
-
     @make("Swirl")
     def _(p):
         p.spiral(0.5, 0.5, 0.04, 0.42, 2.2, 0.08)
@@ -124,63 +104,11 @@ def glyphs():
         p.arc(0.5, 0.08, 0.6, 52, 128, 0.08)
         p.dot(0.5, 0.5, 0.13)
 
-    @make("FireTongue")
-    def _(p):
-        p.poly([(0.5, 0.96), (0.2, 0.62), (0.3, 0.3), (0.38, 0.5), (0.44, 0.04), (0.6, 0.4), (0.7, 0.24), (0.8, 0.62)])
-
     @make("Siphon")
     def _(p):
         p.poly([(0.36, 0.1)] + [(0.36 + 0.2 * math.cos(math.radians(a)), 0.52 + 0.2 * math.sin(math.radians(a))) for a in range(-30, 211, 10)])
         p.arc(0.52, 0.6, 0.32, -80, 80, 0.07)
         p.poly([(0.6, 0.86), (0.48, 0.96), (0.5, 0.8)])
-
-    @make("Intellect")
-    def _(p):
-        for x, top in ((0.26, 0.42), (0.5, 0.14), (0.74, 0.42)):
-            p.line([(x, 0.92), (x, top + 0.14)], 0.09)
-            p.dot(x, top, 0.08)
-
-    @make("ChillShard")
-    def _(p):
-        p.poly([(0.5, 0.02), (0.74, 0.3), (0.62, 0.98), (0.38, 0.98), (0.26, 0.3)])
-        p.line([(0.5, 0.06), (0.5, 0.94)], 0.035, erase=True)
-
-    @make("PolyCurl")
-    def _(p):
-        p.spiral(0.46, 0.56, 0.05, 0.3, 1.4, 0.09, a0=math.pi)
-        p.star(0.78, 0.2, 0.04, 0.14, 4)
-
-    @make("Horns")
-    def _(p):
-        p.arc(-0.06, 0.62, 0.46, -60, 40, 0.11)
-        p.arc(1.06, 0.62, 0.46, 140, 240, 0.11)
-        p.line([(0.22, 0.56), (0.78, 0.56)], 0.08)
-        p.line([(0.3, 0.76), (0.7, 0.76)], 0.08)
-
-    @make("Imp")
-    def _(p):
-        p.dot(0.5, 0.6, 0.24, 0.22)
-        p.poly([(0.3, 0.46), (0.14, 0.2), (0.38, 0.4)])
-        p.poly([(0.7, 0.46), (0.86, 0.2), (0.62, 0.4)])
-        p.poly([(0.5, 0.3), (0.42, 0.14), (0.5, 0.02), (0.58, 0.14)])
-        p.dot(0.42, 0.58, 0.04, erase=True)
-        p.dot(0.58, 0.58, 0.04, erase=True)
-        p.line([(0.42, 0.72), (0.58, 0.72)], 0.04, erase=True)
-
-    @make("Voidwalker")
-    def _(p):
-        p.arc(0.5, 0.42, 0.3, 200, 340, 0.1)
-        p.dot(0.5, 0.42, 0.14)
-        p.dot(0.5, 0.42, 0.06, erase=True)
-        p.wave(0.5, 0.5, 0.58, 0.96, 0.08, 1.2, 0.08)
-        p.line([(0.16, 0.5), (0.3, 0.7)], 0.08)
-        p.line([(0.84, 0.5), (0.7, 0.7)], 0.08)
-
-    @make("Succubus")
-    def _(p):
-        p.arc(0.3, 0.34, 0.18, 200, 330, 0.08)
-        p.arc(0.7, 0.34, 0.18, 210, 340, 0.08)
-        p.spiral(0.5, 0.66, 0.04, 0.26, 1.4, 0.07, 3.6)
 
     @make("Bail")
     def _(p):
@@ -188,13 +116,11 @@ def glyphs():
         for y in (0.16, 0.38, 0.6):
             p.arc(0.5, y, 0.07, 0, 360, 0.05)
 
-    @make("Facet")
-    def _(p):
-        p.poly([(0.5, 0.04), (0.92, 0.5), (0.5, 0.96), (0.08, 0.5)])
-        for a, b in (((0.5, 0.04), (0.5, 0.96)), ((0.08, 0.5), (0.92, 0.5)), ((0.3, 0.27), (0.7, 0.73)), ((0.7, 0.27), (0.3, 0.73))):
-            p.line([a, b], 0.03, erase=True)
-
     return g
+
+
+# Drawn here, written as Blender-forged metal by Tools/media/forge/marks.py.
+FORGED = {"Burst", "Elements", "Hourglass", "Swirl", "Eye", "Siphon"}
 
 
 def light(pen):
@@ -212,6 +138,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
     for name, pen in glyphs().items():
+        if name in FORGED:
+            continue
         path = args.out / f"{name}.png"
         Image.fromarray(np.clip(light(pen) * 255 + 0.5, 0, 255).astype(np.uint8), "RGBA").save(path, optimize=True)
         print(path.name, hashlib.sha256(path.read_bytes()).hexdigest())

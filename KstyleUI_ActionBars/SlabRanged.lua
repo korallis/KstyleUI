@@ -24,6 +24,7 @@ local GLEAM = { { 0.8, 1, 0.7 }, { 1, 0.8, 0.7 } }
 local BURN = { { 1, 0.7, 0.1 }, { 0.7, 1, 0.08 }, { 1, 0.8, 0.12 }, { 0.8, 1, 0.1 } }
 local BLINK = { { 1, 0.2, 0.1 }, { 0.2, 1, 0.1 } }
 local MARK, MARK_IN, MARK_BACK, REST_FORGED, SHOT_FLAT, SHOT_FORGED = 24, 14, 2.6, 0.85, 0.82, 0.45
+local DEMON, DEMON_SIZE = "glyphDemon", 28
 local OPENING = { { 0, 1, 0.06 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.08 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.1 } }
 local GROW = { { 0, 1, 0.6 } }
 local BAND = {
@@ -34,7 +35,7 @@ local EMBLEM, PERCH_LEFT, PERCH_RIGHT, PENDANT, SIGIL = { 0, 0 }, { Polar(73, 22
 local LOOKS = {
 	glyph = { k = 1.25, loop = BREATH, white = 0.1 },
 	orb = { art = "stormOrb", k = 1.15 },
-	gem = { art = "glyphFacet", k = 1, white = 0.15 },
+	gem = { art = "glyphGem", k = 1, white = 0.15 },
 	shard = { art = "pipShard50", steel = "pipShardSteel50", k = 1.4, bar = true, solid = true, native = true, rest = 0.9 },
 	blade = { art = "pipBlade50", steel = "pipBladeSteel50", k = 1.4, bar = true, solid = true, rest = 0.9 },
 }
@@ -185,6 +186,15 @@ local function Spot(p, parent, art, color, size, x, y, layer)
 	local t = p.add(Medals.Texture(parent, layer or "ARTWORK", 0, art, color, size, "ADD"))
 	t:SetPoint("CENTER", p, "CENTER", x, y)
 	return t
+end
+
+local function Seat(m, parent, art, color, k, x, y)
+	local seat = CreateFrame("Frame", nil, parent)
+	seat:SetFrameLevel(parent:GetFrameLevel())
+	seat:SetSize(1, 1)
+	seat:SetPoint("CENTER", m, "CENTER", x, y)
+	Medals.Mark(m, seat, art, DEMON_SIZE * k, color, Lift(color, 0.2))
+	return seat
 end
 
 local function Flare(p, lit, level, size, x, y)
@@ -390,9 +400,11 @@ local function Pet(parent, spec, level, form)
 	end
 	if spec.demons then
 		m.sigil = Medals.Layer(m.pet, level + 3)
-		Spot(m, m.sigil, "glow", spec.light, 44 * k, Off(67, 184)):SetAlpha(0.5)
-		m.glyph = Spot(m, m.sigil, "glyphHorns", "white", 28 * k, Off(67, 184))
-		m.glyph:SetVertexColor(Lift(spec.light, 0.2))
+		m.art, m.marks = DEMON, { [DEMON] = Seat(m, m.sigil, DEMON, spec.light, k, Off(67, 184)) }
+		for _, demon in ipairs(spec.demons) do
+			m.marks[demon[1]] = Seat(m, m.sigil, demon[1], spec.light, k, Off(67, 184))
+			m.marks[demon[1]]:Hide()
+		end
 		m.bob = m.sigil:CreateAnimationGroup()
 		m.bob:SetLooping("REPEAT")
 		for n, dy in ipairs({ 2, -2 }) do
@@ -415,7 +427,7 @@ local function Pet(parent, spec, level, form)
 			pcall(slot.EnableMouse, slot, false)
 			slot:SetAllPoints(m)
 			slot:SetFrameLevel(level + 6)
-			Spot(m, slot, demon[1], "white", 28 * k, Off(67, 184)):SetVertexColor(Lift(spec.color, 0.2))
+			Seat(m, slot, demon[1], spec.color, k, Off(67, 184))
 		end
 		Flare(m, lit, level + 8, 40 * k, Off(60, 184))
 	end
@@ -606,7 +618,7 @@ local function Spire(p, container, i, s, angle, level)
 	local t = { def = s, angle = angle }
 	t.base = Medals.Piece(p, level, BASE)
 	t.dim = t.base.add(Medals.Texture(t.base, "ARTWORK", 0, s.glyph, "steel", BASE - 3))
-	t.dim:SetAlpha(STEEL)
+	t.dim:SetAlpha(REST_FORGED)
 	t.spire = Medals.Piece(p, level, SPIRE)
 	t.spire.add(Medals.Texture(t.spire, "BACKGROUND", 0, "pipSpireSteel" .. angle, "white", SPIRE))
 	local ids = {}
@@ -631,11 +643,10 @@ local function Spire(p, container, i, s, angle, level)
 	t.lit:SetStatusBarColor(Lift(s.color, 0.55))
 	lit.flicker = Medals.Steps(t.lit, BLINK, true)
 	Slot("core", "pipSpireCore", s.color, "ADD", SPIRE, 3)
-	t.rune = lit:CreateTexture(nil, "OVERLAY")
-	t.rune:SetTexture((Tokens.Texture(s.glyph)))
-	t.rune:SetVertexColor(Lift(s.color))
-	t.rune:SetBlendMode("ADD")
-	t.rune:SetAllPoints(t.dim)
+	local foot = CreateFrame("Frame", nil, lit)
+	foot:SetFrameLevel(lit:GetFrameLevel())
+	foot:SetAllPoints(t.base)
+	Medals.Mark(t.base, foot, s.glyph, BASE - 3, s.color, Lift(s.color))
 	t.neck = lit:CreateTexture(nil, "OVERLAY")
 	t.neck:SetTexture((Tokens.Texture("glow")))
 	t.neck:SetVertexColor(Lift(s.color, 0.2))
@@ -691,7 +702,7 @@ local function Bob(m)
 end
 
 local function Sigil(m)
-	local book, bank, art = C_SpellBook, Enum and Enum.SpellBookSpellBank, "glyphHorns"
+	local book, bank, art = C_SpellBook, Enum and Enum.SpellBookSpellBank, DEMON
 	for _, demon in ipairs(book and type(book.IsSpellKnown) == "function" and bank and m.spec.demons or NONE) do
 		for _, id in ipairs(demon[2]) do
 			local known = book.IsSpellKnown(id, bank.Pet)
@@ -701,8 +712,9 @@ local function Sigil(m)
 		end
 	end
 	if art ~= m.art then
+		m.marks[m.art]:Hide()
+		m.marks[art]:Show()
 		m.art = art
-		m.glyph:SetTexture((Tokens.Texture(art)))
 	end
 end
 
@@ -723,7 +735,7 @@ local function PaintPet(m, event)
 	if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
 		return
 	end
-	if m.glyph and up then
+	if m.marks and up then
 		Sigil(m)
 	end
 	if m.mood then
@@ -926,7 +938,7 @@ if CLASS == "MAGE" then
 			{ build = Stacks, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 22959 }, known = { 11095, 12872, 12873 }, color = "schoolFire",
 				stacks = 5, ember = "trackerFlame" },
 			{ build = Stacks, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 12579 }, known = WINTERS, color = "schoolFrost", stacks = 5,
-				ember = "glyphChillShard" },
+				ember = "glyphShard" },
 			{ build = Charge, feed = "cooldown", known = { 1326079 }, color = "schoolArcane" },
 			{ build = Charge, feed = "cooldown", known = NOVA, color = "schoolFrost" },
 		} },
@@ -936,9 +948,9 @@ if CLASS == "MAGE" then
 				{ spells = FROSTBOLT },
 			} },
 		{ key = "crestYourSpell", seat = At(BAND.right), build = Fuse, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", newest = true, choices = {
-			{ spells = FIRE, known = IGNITE, color = "schoolFire", glyph = "glyphFireTongue" },
-			{ spells = CHILLS, known = WINTERS, color = "schoolFrost", glyph = "glyphChillShard" },
-			{ spells = { 118, 12824, 12825, 12826, 28271, 28272 }, color = "schoolArcane", glyph = "glyphPolyCurl" },
+			{ spells = FIRE, known = IGNITE, color = "schoolFire", glyph = "glyphFlame" },
+			{ spells = CHILLS, known = WINTERS, color = "schoolFrost", glyph = "glyphShard" },
+			{ spells = { 118, 12824, 12825, 12826, 28271, 28272 }, color = "schoolArcane", glyph = "glyphSheep" },
 		} },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "pipMageGlow", families = { { spells = { 12042 }, sigil = "Arcane" },
 			{ spells = { 12043 }, sigil = "Hourglass" }, { spells = { 11129, 28682 }, known = { 11129 }, sigil = "Flame" }, { spells = { 12051 }, sigil = "Vortex" },
@@ -958,12 +970,12 @@ if CLASS == "WARLOCK" then
 		{ "glyphImp", { 3110, 7799, 7800, 7801, 7802, 11762, 11763 }, 18789 },
 		{ "glyphVoidwalker", { 3716, 7809, 7810, 7811, 11774, 11775 }, 18790 },
 		{ "glyphSuccubus", { 7814, 7815, 7816, 11778, 11779, 11780 }, 18791 },
-		{ "glyphFangs", { 19505, 19731, 19734, 19736, 19244, 19647 }, 18792 },
+		{ "glyphFelhunter", { 19505, 19731, 19734, 19736, 19244, 19647 }, 18792 },
 	}
 	local CURSES = {
-		{ spells = { 702, 1108, 6205, 7646, 11707, 11708 }, color = "jewelShard", glyph = "glyphWeakness" },
+		{ spells = { 702, 1108, 6205, 7646, 11707, 11708 }, color = "jewelShard", glyph = "glyphBrokenBlade" },
 		{ spells = { 704, 7658, 7659, 11717 }, color = "hostile", glyph = "glyphBurst" },
-		{ spells = { 1714, 11719 }, color = "schoolArcane", glyph = "glyphTongue" },
+		{ spells = { 1714, 11719 }, color = "schoolArcane", glyph = "glyphTongues" },
 		{ spells = { 440892, 1311676, 1311677, 1311680 }, color = "schoolFire", glyph = "glyphElements" },
 		{ spells = { 18223 }, color = "schoolFrost", glyph = "glyphHourglass" },
 	}
@@ -989,17 +1001,17 @@ if CLASS == "WARLOCK" then
 		{ key = "crestDemon", seat = At(BAND.left), choices = {
 			{ build = Pet, band = "left", light = "schoolNature", demons = SIGILS, known = DEMONS, active = Demon, feed = "aura", color = "jewelShard",
 				spells = { 18789, 18790, 18791, 18792 } },
-			{ build = Effect, seat = SIGIL, size = PERCH, look = "glyph", glyph = "glyphHorns", feed = "aura", color = "jewelShard", spells = ARMORS },
+			{ build = Effect, seat = SIGIL, size = PERCH, look = "glyph", glyph = "glyphDemon", feed = "aura", color = "jewelShard", spells = ARMORS },
 		} },
 		{ key = "crestHealthstone", seat = PENDANT, build = Effect, choices = {
 			{ build = Gem, look = "gem", size = GEM, feed = "item", items = STONES, color = "friendly", known = function() return Medals.Known(CREATE) or Have(STONES) and CREATE[#CREATE] end },
-			{ seat = PERCH_RIGHT, size = PERCH, look = "glyph", glyph = "glyphHorns", feed = "aura", color = "jewelShard", spells = ARMORS,
+			{ seat = PERCH_RIGHT, size = PERCH, look = "glyph", glyph = "glyphDemon", feed = "aura", color = "jewelShard", spells = ARMORS,
 				known = function() return Medals.Known(DEMONS) and Medals.Known(ARMORS) end, active = Demon },
 		} },
 		{ key = "crestStone", seat = "lowerLeft", build = Medals.Socket, feed = "enchant", slot = "MainHand", color = "schoolFire",
 			known = { 17728, 17727, 2362, 17953, 17952, 17951, 6366 } },
 		{ key = "crestConflagrate", seat = "lowerRight", build = Medals.Socket, feed = "cooldown", color = "schoolFire", known = { 1293818, 1293817, 18932, 18931, 18930, 17962 } },
-		{ key = "crestCurse", seat = At(BAND.right), build = Fuse, glyph = "glyphWeakness", feed = "aura", unit = "target",
+		{ key = "crestCurse", seat = At(BAND.right), build = Fuse, glyph = "glyphBrokenBlade", feed = "aura", unit = "target",
 			filter = "HARMFUL|PLAYER", color = "jewelShard", known = Trackers.Joined(CURSES[1].spells, CURSES[2].spells, CURSES[3].spells, CURSES[4].spells,
 			CURSES[5].spells), feeds = CURSES },
 		{ key = "crestSpellLock", seat = PERCH_LEFT, build = Effect, feed = "cooldown", color = "schoolShadow", choices = {
@@ -1007,14 +1019,14 @@ if CLASS == "WARLOCK" then
 			{ look = "orb", known = { 17926, 17925, 6789 } },
 		} },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelShard", families = { { spells = { 18288 }, sigil = "Curse" },
-			{ spells = { 18708 }, sigil = "Horns" }, { spells = { 6229, 11739, 11740, 28610 }, sigil = "Shade" },
-			{ spells = { 7812, 19438, 19440, 19441, 19442, 19443 }, known = {}, sigil = "Void" } } },
+			{ spells = { 18708 }, sigil = "Demon" }, { spells = { 6229, 11739, 11740, 28610 }, sigil = "Shade" },
+			{ spells = { 7812, 19438, 19440, 19441, 19442, 19443 }, known = {}, sigil = "Voidwalker" } } },
 		{ key = "crestWisps", seat = "rim", build = Wisps, place = PlaceWisps, items = { 6265 },
 			known = function() return Medals.Known({ 1120, 8288, 8289, 11675 }) or Count(6265) > 0 and 1120 end },
 		{ key = "crestTorments", seat = "rim", build = Spires, place = PlaceSpires, spires = {
 			{ angle = 126, glyph = "glyphSwirl", color = "totemEarth", spells = { 172, 6222, 6223, 7648, 11671, 11672, 25311 } },
 			{ angle = 102, glyph = "glyphEye", color = "jewelShard", spells = { 980, 1014, 6217, 11711, 11712, 11713, 603, 1225228 } },
-			{ angle = 78, glyph = "glyphFireTongue", color = "schoolFire", spells = { 348, 707, 1094, 2941, 11665, 11667, 11668, 25309 } },
+			{ angle = 78, glyph = "glyphFlame", color = "schoolFire", spells = { 348, 707, 1094, 2941, 11665, 11667, 11668, 25309 } },
 			{ angle = 54, glyph = "glyphSiphon", color = "healthHostile", spells = { 18265, 18879, 18880, 18881 } },
 		}, known = function(row)
 			for _, s in ipairs(row.spires) do

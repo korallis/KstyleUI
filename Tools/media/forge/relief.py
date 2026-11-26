@@ -231,10 +231,10 @@ class Emblem:
         return self
 
 
-def forge_lineart(name, image, folder):
-    """Forge a generator's white line drawing: its strokes become raised ridges, the gaps between them left open."""
+def forge_lineart(name, image, folder, plate=False):
+    """Forge a generator's white line drawing: its strokes become raised ridges, the gaps between them left open, or closed by a plate."""
     e = Emblem(name)
     e.add(from_image(image), h=1.0, r=0.022, base=0.27)
-    e.fit()
+    e.seat() if plate else e.fit()
     e.save(folder)
     return e

@@ -586,7 +586,7 @@ def sheet(images, path, cell=64):
 
 
 # Drawn here, written as Blender-forged metal by Tools/media/forge/marks.py.
-FORGED = {"Volley", "Deflect", "Paw"}
+FORGED = {"Arcane", "Crystal", "Curse", "Deflect", "Hourglass", "Paw", "Shade", "Volley", "Vortex"}
 
 
 def main(argv=None):
