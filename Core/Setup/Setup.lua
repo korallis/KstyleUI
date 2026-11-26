@@ -290,6 +290,9 @@ local function Restyle()
 end
 
 ns.Callbacks.Register("HudStyleChanged", "Setup", Restyle)
+ns.Callbacks.Register("SettingChanged", "Setup", function(_, module, key)
+	if Layouts.LiftSetting(module, key) then Restyle() end
+end)
 
 local aspect, band, lane = ns.Scale.Aspect(), ns.Scale.Band()
 ns.Callbacks.Register("ScaleChanged", "Setup", function()
