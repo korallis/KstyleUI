@@ -92,9 +92,18 @@ local function Playing(ns)
 		n = n + (s.orbit:IsPlaying() and 1 or 0) + (s.ignite.play:IsPlaying() and 1 or 0) + (s.strike.play:IsPlaying() and 1 or 0)
 	end
 	for _, loop in ipairs(state.loops) do
-		n = n + (loop.group:IsPlaying() and 1 or 0)
+		n = n + (loop.group:IsPlaying() and loop.button:GetEffectiveAlpha() > 0 and 1 or 0)
 	end
 	return n + (state.flicker:IsPlaying() and 1 or 0) + (state.blast.play:IsPlaying() and 1 or 0) + (state.crackle.play:IsPlaying() and 1 or 0)
+end
+
+-- The halo's clouds and each orb's spark exist twice, a moving copy the engine loops and a still one, each under a layer of the addon's own: "moving" or "still" names
+-- the copy on screen, so a motion level takes effect by lighting one layer and darkening the other, in combat too.
+local function Copy(ns)
+	local state, moving, still = ns.SlabStorm.state, 0, 0
+	for _, layer in ipairs(state.moving) do moving = moving + layer:GetAlpha() end
+	for _, layer in ipairs(state.still) do still = still + layer:GetAlpha() end
+	return moving == #state.moving and still == 0 and "moving" or still == #state.still and moving == 0 and "still" or "mixed"
 end
 
 local function Registered(ns)
@@ -132,7 +141,8 @@ do
 	local state = ns.SlabStorm.state
 	local seats = state.seats
 	assert(#seats == 3 and state.holder:IsShown() and state.listening, "a shaman who knows any rank gets three orbs over three studs")
-	assert(#state.containers == 5 and state.fed == true, "five aura containers, one for the halo, one per orb and one for Rising heat, all feeding")
+	assert(#state.containers == 12 and state.fed == true, "twelve aura containers: the halo's moving and still copies, an orb and a spark's two copies on each seat, and Rising heat, all feeding")
+	assert(#state.moving == 4 and #state.still == 4, "the halo and each of the three sparks have a moving and a still copy")
 	for i, s in ipairs(seats) do
 		local options = s.orb:GetParent()._applicationBar[2]
 		assert(options.minApplications == i - 1 and options.maxApplications == i, "orb " .. i .. " fills from " .. (i - 1) .. " to " .. i .. " charges")
@@ -140,7 +150,7 @@ do
 	end
 	assert(Lights(env, ns) == 0 and state.count == 0, "no shield: no orb lights and Lua reads zero charges")
 	assert(not seats[1].orbit:IsPlaying() and not state.flicker:IsPlaying(), "no shield: nothing circles or flickers")
-	assert(Registered(ns) == #state.loops, "at Full the halo's and the orbs' loops are the engine's shown animations")
+	assert(Registered(ns) == #state.loops and Copy(ns) == "moving", "at Full the halo's and the orbs' loops are the engine's shown animations, on the copy that shows")
 
 	-- Cast: three orbs light from the aura's own count, the orbs ignite and start circling.
 	Shield(env, 3, RANK1)
@@ -208,7 +218,7 @@ do
 
 	-- Calm: the orbs hold on their studs and the loops leave the engine; the flares stay.
 	K.Options.Write("Medallions", "motion", "calm")
-	assert(not seats[1].orbit:IsPlaying() and Registered(ns) == 0, "Calm holds the orbs on their studs and drops the loops")
+	assert(not seats[1].orbit:IsPlaying() and Copy(ns) == "still", "Calm holds the orbs on their studs and shows the still halo and sparks")
 	assert(Lights(env, ns) == 3, "Calm keeps every charge lit")
 	Shield(env, 2)
 	Cast(env, STRIKE7)
@@ -226,7 +236,7 @@ do
 	assert(not seats[3].strike:IsShown() and not seats[1].ignite:IsShown(), "Off hides the flourishes")
 	assert(Lights(env, ns) == 2 and seats[3].orb._ease == nil, "Off shows the charges at once")
 	K.Options.Write("Medallions", "motion", "full")
-	assert(Registered(ns) == #state.loops and seats[1].orbit:IsPlaying(), "Full gives the loops back to the engine and circles again")
+	assert(Registered(ns) == #state.loops and Copy(ns) == "moving" and seats[1].orbit:IsPlaying(), "Full shows the looping copy and circles again")
 
 	-- The switch hides everything and drops every event; turning it back on reads the shield again.
 	K.Options.Write("ActionBars", "crestStorm", false)
@@ -263,10 +273,13 @@ do
 	env.FireEvent("SPELLS_CHANGED")
 	assert(state.count == 1 and state.halo:GetAlpha() == 0.5, "the last charge dims the halo in combat")
 	K.Options.Write("Medallions", "motion", "calm")
-	assert(Registered(ns) == #state.loops, "a motion change waits while auras are secret")
+	assert(Registered(ns) == #state.loops and Copy(ns) == "still", "a motion level chosen while auras are secret shows at once: the looping copy is dark, though the engine keeps its loops")
+	K.Options.Write("Medallions", "motion", "full")
+	assert(Copy(ns) == "moving", "and Full, chosen in combat, shows it again")
+	K.Options.Write("Medallions", "motion", "calm")
 	env._aurasSecret = false
 	env.SetCombat(false)
-	assert(Registered(ns) == 0 and state.halo:GetAlpha() == 0.5, "and lands when combat ends")
+	assert(Copy(ns) == "still" and state.halo:GetAlpha() == 0.5, "and it stays when combat ends")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 
 	local fresh, FK, fns = New("SHAMAN", { [RANK7] = true })

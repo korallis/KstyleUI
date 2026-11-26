@@ -283,20 +283,31 @@ for _, rank in ipairs({ 1277328, 1277640 }) do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- Clearcasting's leaves unfurl when it lights: a group the engine plays as the aura shows, at Full only. (Forever
--- has no hidden-aura animation, so the leaves cannot scatter as it is spent.)
+-- Clearcasting's leaves unfurl when it lights: a group the engine plays as the aura shows, seen at Full only. The leaves exist twice, each in a slot under a layer
+-- of the addon's own: one copy unfurls and one stands still, so a motion level takes effect by lighting one layer, in combat too. (Forever has no hidden-aura
+-- animation, so the leaves cannot scatter as it is spent.)
 do
 	local env, K, ns = New("DRUID", DRUID)
 	local bloom = Tracker(ns, "DRUID").built.bloom
-	local function Registered()
-		for _, group in ipairs(bloom.lit._shownAnimations or {}) do
+	local moving, calm = bloom.moving.lit, bloom.calm.lit
+	local function Registered(slot)
+		for _, group in ipairs(slot._shownAnimations or {}) do
 			if group == bloom.unfurl then return true end
 		end
 		return false
 	end
-	assert(bloom.unfurl and Registered(), "at Full the engine unfurls the leaves as Clearcasting shows")
+	assert(bloom.unfurl and Registered(moving) and not Registered(calm), "the engine unfurls one copy of the leaves as Clearcasting shows, and never the other")
+	assert(moving.container ~= calm.container and moving.container ~= bloom.lit.container, "each copy has an aura feed of its own")
+	assert(bloom.moving:GetAlpha() == 1 and bloom.calm:GetAlpha() == 0, "at Full the unfurling copy shows")
 	K.Options.Write("Medallions", "motion", "calm")
-	assert(not Registered(), "Calm keeps them still")
+	assert(bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "Calm shows the still copy")
+	K.Options.Write("Medallions", "motion", "full")
+	env._aurasSecret = true
+	env.SetCombat(true)
+	K.Options.Write("Medallions", "motion", "off")
+	assert(Registered(moving) and bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "a level chosen under hidden values shows at once: the copy the engine still unfurls is dark")
+	env._aurasSecret = false
+	env.SetCombat(false)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -929,10 +940,16 @@ do
 		calls = calls + 1
 		return set(self, on)
 	end
-	assert(rim.sigils[1].loop, "a healer's sigil has its flash")
+	-- The flash is a glow of its own, in a slot under a layer of the addon's own that only Full lights: the sigil's slot carries no cue, so a level chosen in combat
+	-- stops the flash from showing at once.
+	local sigil = rim.sigils[1]
+	local flashed = sigil.flashed
+	assert(sigil.flash and sigil.loop == nil and flashed._shownAnimations[1] == sigil.flash and #(sigil._shownAnimations or {}) == 0, "a healer's sigil has its flash, on a slot beside its own")
+	assert(flashed.container ~= rim.lit.container and rim.lit.flash:GetAlpha() == 1, "the flash's slots have a feed of their own under a layer that shows at Full")
 	K.Options.Write("Medallions", "motion", "calm")
 	env.RunTimers()
 	assert(calls == 2, "Full to Calm resets the shared container once (off, on), not " .. calls .. " times")
+	assert(flashed._shownAnimations[1] == sigil.flash and rim.lit.flash:GetAlpha() == 0, "Calm darkens the flash's layer and leaves the engine its group")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

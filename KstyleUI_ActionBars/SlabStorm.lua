@@ -116,10 +116,12 @@ local function Build(hub)
 	ring:SetPoint("CENTER", hub, "CENTER", 0, 0)
 	ring.units = HALO
 	state.halo = Medals.Layer(holder, base)
-	local halo = Slot(Container(state.halo), "halo", ring)
+	state.moving, state.still = { Medals.Layer(state.halo, base) }, { Medals.Layer(state.halo, base) }
+	local halo, calm = Slot(Container(state.moving[1]), "halo", ring), Slot(Container(state.still[1]), "halo", ring)
 	state.crackle = Layer(ring, base + 1, CRACKLE)
 	for k, cell in ipairs(CLOUDS) do
 		state.loops[#state.loops + 1] = { button = halo, group = Medals.Flip(Medals.Cloud(halo, "medAmbientShaman", cell), "medAmbientShaman", 1 + (k - 1) / 3) }
+		Medals.Cloud(calm, "medAmbientShaman", cell)
 		Medals.Cloud(state.crackle, "medAmbientShaman", cell)
 	end
 	state.blast = Layer(holder, base + 6, BLAST)
@@ -135,10 +137,14 @@ local function Build(hub)
 		seat:SetAllPoints(pin)
 		seat:SetFrameLevel(base + 3)
 		local s = { frame = seat, pin = pin, orbit = Orbit(seat, angle) }
-		local container = Container(seat)
-		s.orb = select(2, Slot(container, "orb", seat, i - 1, "stormOrb", true))
-		local spark, bar = Slot(container, "spark", seat, i - 1, "stormOrbSpark", false)
-		state.loops[#state.loops + 1] = { button = spark, group = ns.Slab.Flicker(bar) }
+		s.orb = select(2, Slot(Container(seat), "orb", seat, i - 1, "stormOrb", true))
+		for n, set in ipairs({ state.moving, state.still }) do
+			set[#set + 1] = Medals.Layer(seat, base + 4)
+			local spark, bar = Slot(Container(set[#set]), "spark", seat, i - 1, "stormOrbSpark", false)
+			if n == 1 then
+				state.loops[#state.loops + 1] = { button = spark, group = ns.Slab.Flicker(bar) }
+			end
+		end
 		s.ignite = Layer(seat, base + 6, IGNITE)
 		add(Medals.Texture(s.ignite, "ARTWORK", 0, "glow", "jewelStormCore", FLARE, "ADD"))
 		s.strike = add(Layer(holder, base + 6, STRIKE))
@@ -146,6 +152,9 @@ local function Build(hub)
 		add(Medals.Texture(s.strike, "ARTWORK", 0, "glow", "jewelStormCore", FLARE, "ADD"))
 		s.bolt = add(Medals.Texture(s.strike, "OVERLAY", 0, "stormBolt", "white", BOLT, "ADD"))
 		state.seats[i] = s
+	end
+	for _, loop in ipairs(state.loops) do
+		loop.button:AddAuraShownAnimation(loop.group)
 	end
 	ns.SlabHeat.Fed(Container(holder), "HELPFUL", SLOT, CHARGES, state.feeds)
 	state.flicker = ns.Slab.Flicker(state.seats[1].frame)
@@ -169,6 +178,13 @@ local function Place(hub)
 end
 
 local function Engine(on, loops, eased)
+	for _, layer in ipairs(state.moving) do
+		layer:SetAlpha(loops and 1 or 0)
+	end
+	for _, layer in ipairs(state.still) do
+		layer:SetAlpha(loops and 0 or 1)
+	end
+	state.looping = loops
 	if Restricted() then
 		return
 	end
@@ -181,17 +197,6 @@ local function Engine(on, loops, eased)
 			})
 		end
 		state.eased = eased
-	end
-	if state.looping ~= loops then
-		for _, loop in ipairs(state.loops) do
-			if loops then
-				loop.button:AddAuraShownAnimation(loop.group)
-			else
-				loop.button:RemoveAuraShownAnimation(loop.group)
-				loop.group:Stop()
-			end
-		end
-		state.looping, state.fed = loops, nil
 	end
 	if state.fed ~= on then
 		for _, container in ipairs(state.containers) do
