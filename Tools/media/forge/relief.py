@@ -147,6 +147,12 @@ class Emblem:
         self.H = np.where(mask, self.H - depth * shoulder(mask, r, "soft"), self.H)
         return self
 
+    def pierce(self, mask):
+        """Open a hole right through the figure, so the dark ground shows in it: an eye that still reads at HUD size."""
+        self.M &= ~mask
+        self.H = np.where(mask, 0, self.H).astype(np.float32)
+        return self
+
     def turn(self, degrees):
         """Turn the whole drawing about the box's centre (positive is clockwise on screen); fit() or seat() then brings it back inside."""
         size = 2 * N
