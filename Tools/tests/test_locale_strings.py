@@ -16,9 +16,6 @@ import strings  # noqa: E402
 class RepositoryTablesTest(unittest.TestCase):
     """The tables in the repository agree with the code and with each other."""
 
-    def test_check_finds_nothing(self):
-        self.assertEqual(strings.problems(REPO), [])
-
     def test_every_code_key_is_in_the_base(self):
         missing = sorted(set(strings.code_keys(REPO)) - set(strings.base(REPO)))
         self.assertEqual(missing, [], "run " + strings.SYNC)

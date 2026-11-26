@@ -64,6 +64,29 @@ for _, name in ipairs({ "__OK__", "__MISSING__", "OK" }) do
 end
 same(fs.list(dir), { "OK", "__MISSING__", "__OK__" }, "a file named like a status word is listed as a file")
 
+-- Intent: the approved faster-gate plan asks that a listing start one process per run, not one per call.
+local started, real = 0, fs.popen
+fs.popen = function(...)
+	started = started + 1
+	return real(...)
+end
+other.popen = fs.popen
+local first = fs.list(toc)
+first[1] = "changed by the caller"
+same(fs.list(toc), { "Core", "Fix.toc", "Fix_Mod" }, "a remembered listing is not the table an earlier caller changed")
+same(other.list(toc), { "Core", "Fix.toc", "Fix_Mod" }, "another fs in the same process answers from the same memory")
+fs.tracked(toc .. "/*.lua")
+fs.tracked(toc .. "/*.lua")
+assert(started == 2, "three listings of one folder and two of one pattern start 2 processes, not " .. started)
+same(fs.list(dir), { "OK", "__MISSING__", "__OK__" }, "the temp folder lists what it holds")
+assert(io.open(dir .. "/late", "wb")):close()
+same(fs.list(dir), { "OK", "__MISSING__", "__OK__", "late" }, "a listing under the temp folder is read again, so it shows a file written since")
+fs.mkdir(dir .. "/made")
+same(fs.list(dir, { dirs = true }), { "made" }, "and a folder made since")
+fs.rmtree(dir .. "/made")
+same(fs.list(dir, { dirs = true, allow_empty = true }), {}, "and not a folder removed since")
+other.popen = real
+
 local function printing(lines)
 	fs.popen = function()
 		local i = 0

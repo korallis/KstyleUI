@@ -168,12 +168,16 @@ class Slots:
             self.held.pop(token).close()
 
 
+def default_slots():
+    """A third of the CPUs, held to 6, or to 10 for the release gate's full run (KSTYLEUI_FULL=1)."""
+    return max(2, min((os.cpu_count() or 2) // 3, 10 if os.environ.get("KSTYLEUI_FULL") == "1" else 6))
+
+
 def make_slots():
     """Return the Slots for this run, or (None, why) when the limit is off or its folder cannot be made."""
     if os.environ.get("CI") == "true" and os.environ.get("RUNNER_ENVIRONMENT") != "self-hosted":
         return None, "worker slots: off in CI"
-    cpus = os.cpu_count() or 2
-    count = int(os.environ.get("KSTYLEUI_SLOTS") or max(2, cpus // 3))
+    count = int(os.environ.get("KSTYLEUI_SLOTS") or default_slots())
     if count <= 0:
         return None, "worker slots: off (KSTYLEUI_SLOTS=0)"
     folder = Path(os.environ.get("KSTYLEUI_SLOT_DIR") or Path.home() / ".cache" / "kstyleui")
@@ -358,7 +362,7 @@ def plan_affected(tests, base):
         merge_base, changes = affected.changed_files(base)
     except (OSError, RuntimeError) as error:
         return tests, ["affected: cannot compare with {0} ({1}); running every test file".format(base, error)], None
-    chosen, notes = affected.select(tests, changes, affected.load_cache(affected.cache_path()))
+    chosen, notes = affected.select(tests, changes, affected.load_records())
     lines = ["affected: {0} files changed against {1} (merge base {2})".format(len(changes), base, merge_base[:9])]
     lines += ["affected: " + note for note in notes]
     run = [test for test in tests if test in chosen]
@@ -400,8 +404,7 @@ def jobs_for(args):
     explicit = os.environ.get("JOBS")
     if explicit:
         return int(explicit)
-    cpus = os.cpu_count() or 2
-    return max(2, cpus // 3) if args.affected else cpus
+    return default_slots() if args.affected else os.cpu_count() or 2
 
 
 def main(argv):
@@ -540,7 +543,7 @@ def main(argv):
 
     if records:
         try:
-            affected.save_cache(affected.cache_path(), records)
+            affected.save_records(records)
         except OSError as error:
             print("affected: could not save what the tests load to {0}: {1}".format(affected.cache_path(), error))
 

@@ -1,5 +1,8 @@
 -- load_files.lua: run addon files in a stub environment, as the game loads them.
 
+-- Under run_all.py --affected, a language file (Core/Locales/<code>.lua) loaded where env.GetLocale is unset is
+-- reported to trace.lua as idle: it returns on its first line there, so a change to it cannot reach that test.
+-- test-locale-early-return.lua checks every language file does.
 -- Load(files, env) -> env
 -- Runs each file with setfenv(chunk, env) and the varargs the game passes: the addon name and the
 -- addon's private table. Files under a KstyleUI_<Module>/ folder belong to that module's addon; every
@@ -31,9 +34,13 @@ end
 
 return function(files, env)
 	env._addons = env._addons or {}
+	local idle = package.loaded["kstyleui.trace.idle"]
 	for _, path in ipairs(files) do
 		local addon = path:match("(KstyleUI_[%w_]+)/") or "KstyleUI"
 		env._addons[addon] = env._addons[addon] or {}
+		if idle and path:find("^Core/Locales/%a+%.lua$") and not env.GetLocale then
+			idle(path)
+		end
 		local chunk = assert(loadfile(path))
 		setfenv(chunk, env)
 		chunk(addon, env._addons[addon])

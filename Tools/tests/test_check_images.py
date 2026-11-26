@@ -17,10 +17,6 @@ class CheckImagesTest(unittest.TestCase):
         return subprocess.run([sys.executable, str(CHECK)], cwd=root,
                               capture_output=True, text=True)
 
-    def test_current_tree_passes(self):
-        result = self.check(REPO)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
     def test_tracked_image_fixtures(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

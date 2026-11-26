@@ -90,7 +90,7 @@ class WorkflowsTest(unittest.TestCase):
     def test_release_runs_no_test_suite_and_uploads_only_after_check(self):
         # The owner's ruling: Actions makes the release; lint and the suites run locally on the commit before the tag.
         text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
-        for needle in ("gate.sh", "run-all", "unittest discover", "proof"):
+        for needle in ("gate.sh", "run-all", "unittest discover", "run_suite", "proof"):
             self.assertNotIn(needle, text)
         self.assertEqual(re.findall(r"(?m)^    needs: (.+)$", jobs_of(text)["release"]), ["check"])
 

@@ -56,10 +56,11 @@ When a changed file is an addon `.lua` file (anything outside `Tools/` and `docs
 What a test file loads comes from running it, not from its name. `trace.lua` is loaded before the test through `LUA_INIT` and writes each file the test opens for reading (`io.open`, `io.lines`, `dofile`, `loadfile`) and each listing it makes through `fs.lua`, the only file that runs shell commands (`test-shell-guard.lua`). `affected.py` turns that into a record per test file:
 
 - **files:** the files read. A change to one of them selects the test. The test file itself counts.
+- **idle:** the language files (`Core/Locales/<code>.lua`) that `load_files.lua` ran only in an environment with no `GetLocale`. Each returns on its first line there (`test-locale-early-return.lua` checks it), so a change to one does not select the test. A test that sets a game language, or opens the file itself, has it under files and runs.
 - **listings:** the folders a test listed with `fs.list`, each with its glob (`KstyleUI_*`, `Tools/render/scenes/gallery_*.lua`). A name that appears or disappears in the folder selects the test: an added or deleted file there, or a file in a new or removed subfolder whose name the glob matches.
 - **names:** the patterns a test passed to `fs.tracked` (`git ls-files`). An added or deleted file that matches selects the test.
 
-Each record carries a hash of its test file, so a record made from another version of the test (another worktree changed it) does not count and the test runs. The records live in `~/.cache/kstyleui/regression-deps.json` (`KSTYLEUI_DEPS_CACHE` moves it), shared by every worktree of the Mac, outside the repository so branches never conflict on it. A test file that passes is traced and its record is replaced; a test file that fails keeps its old record, or has none and runs next time. Delete the file to rebuild every record; the next `--affected` run then runs and traces every test file.
+Each record carries a hash of its test file, so a record made from another version of the test (another worktree changed it) does not count and the test runs. The records live in the working copy's own git folder, `kstyleui-regression-deps.json` beside its `HEAD` (`git rev-parse --absolute-git-dir` names the folder; `KSTYLEUI_DEPS_CACHE` moves the file), so a run in another working copy on another branch never replaces them. A working copy with no records yet starts from `~/.cache/kstyleui/regression-deps.json`, which every run also updates, so its first run is not a run of every file. A test file that passes is traced and its record is replaced; a test file that fails keeps its old record, or has none and runs next time. Delete both files to rebuild every record; the next `--affected` run then runs and traces every test file.
 
 The choice is conservative in these cases:
 
@@ -71,11 +72,11 @@ The choice is conservative in these cases:
 
 What it cannot see: a file a test reads through a path it builds at run time is recorded when the test last passed, not when it will next run; a dependency that appeared after the record was made is missed until the test runs again. The record also cannot see files outside the repository; no test reads one. `bash scripts/gate.sh release` runs every file before a release, so a miss here is caught there, and the run says so on its last line.
 
-It uses `JOBS` files at a time, a third of the CPUs by default (6 on the 18-CPU Mac). The full run asks for all the CPUs, and the worker slots below hold it to their count.
+It uses `JOBS` files at a time, a third of the CPUs and never more than 6 by default. The full run asks for all the CPUs, and the worker slots below hold it to their count.
 
 ## Worker slots
 
-Every run takes a **worker slot** per test file, so all local runs together use at most a third of the CPUs by default (6 on the 18-CPU Mac, leaving room for the game). `KSTYLEUI_SLOTS` sets the count; `KSTYLEUI_SLOTS=0` disables it. A run waits and polls when every slot is held; waiting does not consume a test's CPU budget.
+Every run takes a **worker slot** per test file, so all local runs together use at most a third of the CPUs by default and never more than 6, leaving room for the game and for other runs; the release gate's full run (`KSTYLEUI_FULL=1`) may use up to 10. `KSTYLEUI_SLOTS` sets the count; `KSTYLEUI_SLOTS=0` disables it. A run waits and polls when every slot is held; waiting does not consume a test's CPU budget.
 
 The **Beast speed rule** refuses a local selection of more than 150 files when another run holds a shared slot. Preview with `--list`, pass explicit files to keep work focused, or set `KSTYLEUI_FULL=1` to force the selection. Explicit files still take shared slots. CI bypasses admission, including self-hosted CI.
 

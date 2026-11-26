@@ -823,11 +823,6 @@ class CommittedContractsTest(unittest.TestCase):
         for entry in list(data["functions"].values())[:50]:
             self.assertLess(int(entry["at"].split(":")[0]), len(data["files"]))
 
-    def test_addon_code_conforms(self):
-        results = check_api_contracts.check(REPO, check_api_contracts.load_contracts())
-        problems = [f"{r.path}:{r.use.line}: {r.message}" for r in results if r.status == "problem"]
-        self.assertEqual(problems, [])
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,8 +1,11 @@
--- test-locale-early-return.lua: unrelated locale chunks return before touching the addon namespace, while Spanish remains shared with esMX.
+-- test-locale-early-return.lua: unrelated locale chunks, and every one on a client with no GetLocale (run_all.py --affected relies on it), return before touching the addon namespace, while Spanish remains shared with esMX.
 local locales = { "deDE", "frFR", "esES", "zhCN" }
 for _, code in ipairs(locales) do
 	local chunk = assert(loadfile("Core/Locales/" .. code .. ".lua"))
 	setfenv(chunk, { GetLocale = function() return "enUS" end })
+	chunk("KstyleUI", nil)
+	chunk = assert(loadfile("Core/Locales/" .. code .. ".lua"))
+	setfenv(chunk, {})
 	chunk("KstyleUI", nil)
 end
 for _, client in ipairs({ "deDE", "frFR", "esES", "esMX", "zhCN" }) do

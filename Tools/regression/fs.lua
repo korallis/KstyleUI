@@ -10,7 +10,9 @@
 -- Lua 5.1 drops a pipe's exit status, so each command prints a status line only when it succeeded. A status line
 -- holds "//", which no file name can, so a file can never pass for one. Names are sorted bytewise and must be
 -- ASCII, and .DS_Store, desktop.ini and Thumbs.db are left out. match is a glob of * and ? on the name. fs.tmp()
--- is a new folder under KSTYLEUI_TMP (Tools/regression/.tmp by default), removed when Lua exits. With
+-- is a new folder under KSTYLEUI_TMP (Tools/regression/.tmp by default), removed when Lua exits. A listing is
+-- read once per process and remembered, except under that temp base, so a test that writes files to list them
+-- writes them in fs.tmp(). With
 -- KSTYLEUI_TRACE set, trace.lua records each listing as "n <dir>" or "n <dir>/<match>", and each tracked pattern
 -- as "t <pattern>", for run_all.py --affected.
 local fs = { popen = io.popen }
@@ -52,8 +54,42 @@ local function run(command)
 	return lines, status
 end
 
-local function must(command, what)
-	local lines, status = run(command)
+-- Windows starts a command process per listing (about 80 ms) and the TOC walk makes 19, so a listing is kept for
+-- the life of the process, shared by every fs a test loads. Nothing under the temp base is kept: tests write
+-- there. A replaced fs.popen has its own kept listings, so a test's stand-in never answers for the real one.
+local kept = package.loaded["kstyleui.fs.kept"] or setmetatable({}, { __mode = "k" })
+package.loaded["kstyleui.fs.kept"] = kept
+
+local function remembered(command, path)
+	path = path:gsub("\\", "/")
+	if path == BASE or path:sub(1, #BASE + 1) == BASE .. "/" then
+		return run(command)
+	end
+	local mine = kept[fs.popen] or {}
+	kept[fs.popen] = mine
+	local entry = mine[command]
+	if not entry then
+		local lines, status = run(command)
+		if status == "failed" then
+			return lines, status
+		end
+		entry = { lines = lines, status = status }
+		mine[command] = entry
+	end
+	local lines = {}
+	for i, line in ipairs(entry.lines) do
+		lines[i] = line
+	end
+	return lines, entry.status
+end
+
+local function must(command, what, keep)
+	local lines, status
+	if keep then
+		lines, status = remembered(command, "")
+	else
+		lines, status = run(command)
+	end
 	assert(status == "ok", "fs: " .. what .. " failed: " .. command)
 	return lines
 end
@@ -85,7 +121,7 @@ function fs.list(dir, opts)
 		command = string.format("if [ -d %s ]; then ls -1Ap %s 2>%s && echo %s; else echo %s; fi", q, q, NULL, OK, MISSING)
 	end
 	trace("n", opts.match and dir .. "/" .. opts.match or dir)
-	local lines, status = run(command)
+	local lines, status = remembered(command, dir)
 	assert(status ~= "failed", "fs: listing " .. dir .. " failed: " .. command)
 	assert(status == "ok" or opts.allow_empty, "fs: " .. dir .. " does not exist")
 	local keep = opts.match and globPattern(opts.match)
@@ -105,7 +141,7 @@ end
 function fs.tracked(pattern)
 	assert(not pattern:find('["\r\n]'), "fs: a pattern with quotes: " .. pattern)
 	trace("t", pattern)
-	local paths = must('git ls-files "' .. pattern .. '" && echo ' .. OK, "git ls-files " .. pattern)
+	local paths = must('git ls-files "' .. pattern .. '" && echo ' .. OK, "git ls-files " .. pattern, true)
 	for _, path in ipairs(paths) do
 		assert(path:sub(1, 1) ~= '"', "fs: git quoted a path that is not ASCII: " .. path)
 	end

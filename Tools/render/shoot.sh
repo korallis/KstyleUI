@@ -7,7 +7,8 @@
 #
 # <scene> is a file in Tools/render/scenes/ without .lua. The scene JSON lands in Tools/render/out/<scene>.json,
 # the page in Tools/render/out/<scene>.html and the PNG next to them. LUA (default luajit) runs the scene.
-# CHROME overrides the browser binary.
+# CHROME overrides the browser binary. RENDER_SCENE_DIR names another folder to read <scene>.lua from, so a test's
+# scene never sits in the working copy.
 #
 # Icons draw as a player with the icon pack installed sees them: set B's repaint for every file ID the pack has,
 # else Blizzard's icon (scenes/_common.lua, Common.IconDirs). --class picks the class a HUD scene that names none
@@ -70,7 +71,7 @@ if [ "$standins" = 1 ]; then
 		--height "$(python3 -c "import math,sys; print(math.ceil(1080 * float(sys.argv[1])))" "$ppu")"
 fi
 
-script="Tools/render/scenes/$scene.lua"
+script="${RENDER_SCENE_DIR:-Tools/render/scenes}/$scene.lua"
 if [ ! -f "$script" ]; then
 	echo "no scene script $script" >&2
 	exit 2

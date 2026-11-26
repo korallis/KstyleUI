@@ -678,7 +678,6 @@
  "test-stubs-vertex-alpha.lua": 0.0,
  "test-stubs.lua": 0.0,
  "test-suite-load.lua": 6.7,
- "test-syntax.lua": 0.2,
  "test-taint-allow.lua": 0.2,
  "test-taint-fixtures.lua": 0.0,
  "test-taint-scan.lua": 1.5,

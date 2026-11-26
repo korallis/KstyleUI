@@ -404,7 +404,7 @@ The checks are KstyleUI's own implementations of NaowhForever's checks. NaowhFor
 | `toc-files` | pre-commit | A file listed by a TOC or an XML include that is missing or has the wrong case |
 | `actionlint`, `zizmor` | pre-commit | Invalid or insecure GitHub Actions workflows |
 | `conventional-pre-commit` | commit-msg | A commit message that is not `type(scope): summary` |
-| `test-syntax.lua` | tests | A TOC-loaded file that real Lua 5.1 cannot compile |
+| `test-modules-load.lua` | tests | A TOC-loaded file that real Lua 5.1 cannot compile or run in the stub environment |
 | `test-taint-scan.lua` | tests | A call on a Blizzard frame, a protected call without a combat check, a write into a Blizzard table or a field write onto a Blizzard frame, `SetParent` without an Edit Mode guard nearby, or `Hide()` on a Blizzard layout frame. Each allowed site is listed with a count and a reason. |
 | `test-secrets.lua` | tests | Comparison, arithmetic, `#`, table-key use or a boolean test on a value from a secret source such as `UnitHealth`, `UnitPower`, `UnitCastingInfo` or aura data, without an `issecretvalue` guard first. Any use of `COMBAT_LOG_EVENT` or `CombatLogGetCurrentEventInfo`. |
 | `test-pixels.lua` | tests | A border or line that is not a whole number of physical pixels at 1080, 1440, 2160 and 2234 lines, including chamfer slices |

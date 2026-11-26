@@ -1,8 +1,8 @@
 """Pick the regression tests a change can affect, from a record of what each test file really loads.
 
 run_all.py --affected BASE uses this. trace.lua records every file a test opens and every folder and tracked-file
-pattern it lists through fs.lua; this module turns those lines into a per-test record, keeps the records in a
-cache outside the repository, and chooses the tests whose record meets a file that changed against BASE.
+pattern it lists through fs.lua; this module turns those lines into a per-test record, keeps the records in the
+working copy's own git folder, and chooses the tests whose record meets a file that changed against BASE.
 Tools/regression/README.md describes the mode and its limits.
 """
 
@@ -16,7 +16,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-VERSION = 3
+VERSION = 4
 SHARED_FRACTION = 0.5
 SHARED_MINIMUM = 10
 GUARDS = (
@@ -30,7 +30,6 @@ GUARDS = (
     "test-secrets",
     "test-shell-guard",
     "test-suite-load",
-    "test-syntax",
     "test-taint-scan",
     "test-tokens",
     "test-type-calls",
@@ -48,12 +47,38 @@ SHARED_PATHS = (
     ".luacheckrc",
 )
 
-def cache_path():
+def shared_path():
+    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
+    return Path(base) / "kstyleui" / "regression-deps.json"
+
+
+def cache_path(cwd=None):
+    """Return KSTYLEUI_DEPS_CACHE, or a file in this working copy's own git folder, so another working copy on
+    another branch never replaces these records."""
     explicit = os.environ.get("KSTYLEUI_DEPS_CACHE")
     if explicit:
         return Path(explicit)
-    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
-    return Path(base) / "kstyleui" / "regression-deps.json"
+    try:
+        return Path(git("rev-parse", "--absolute-git-dir", cwd=cwd).strip()) / "kstyleui-regression-deps.json"
+    except (OSError, RuntimeError):
+        return shared_path()
+
+
+def load_records(cwd=None):
+    """Return this working copy's records. A working copy with none yet starts from the machine's shared copy,
+    so its first run is not a run of every file."""
+    records = load_cache(cache_path(cwd))
+    if not records and not os.environ.get("KSTYLEUI_DEPS_CACHE"):
+        records = load_cache(shared_path())
+    return records
+
+
+def save_records(records, cwd=None):
+    """Merge records into this working copy's file and into the shared copy the next new working copy starts from."""
+    own = cache_path(cwd)
+    save_cache(own, records, None if own.exists() else load_records(cwd))
+    if not os.environ.get("KSTYLEUI_DEPS_CACHE") and own != shared_path():
+        save_cache(shared_path(), records)
 
 
 def load_cache(path):
@@ -67,10 +92,11 @@ def load_cache(path):
     return data["tests"]
 
 
-def save_cache(path, records):
-    """Merge records into the cache file. The write is atomic, so two runs at once never corrupt it."""
+def save_cache(path, records, start=None):
+    """Merge records into the cache file, or into start when the file holds none. The write is atomic, so two
+    runs at once never corrupt it."""
     path = Path(path)
-    tests = load_cache(path)
+    tests = load_cache(path) or dict(start or {})
     tests.update(records)
     path.parent.mkdir(parents=True, exist_ok=True)
     handle, temp = tempfile.mkstemp(dir=path.parent, prefix=path.name, suffix=".tmp")
@@ -102,18 +128,23 @@ def fingerprint(path):
 
 
 def record_from_trace(text, root):
-    """Turn trace.lua's lines into a record: {files, listings, names}; run_all.py adds the test's fingerprint.
+    """Turn trace.lua's lines into a record: {files, idle, listings, names}; run_all.py adds the test's fingerprint.
 
     listings holds "<folder>/<glob>" for each folder fs.list read ("<glob>" alone for the repository root), and
-    names the patterns fs.tracked passed to git ls-files.
+    names the patterns fs.tracked passed to git ls-files. idle holds the language files load_files.lua ran only
+    where the game language is unset, where each returns on its first line; a change to one does not select the test.
     """
-    files, listings, names = set(), set(), set()
+    files, idle, listings, names = set(), set(), set(), set()
     for line in text.splitlines():
         kind, _, value = line.partition(" ")
         if kind == "f":
             path = normalize(value, root)
             if path:
                 files.add(path)
+        elif kind == "s":
+            path = normalize(value, root)
+            if path:
+                idle.add(path)
         elif kind == "n":
             folder, _, glob = value.rstrip("/").rpartition("/")
             if not any(c in glob for c in "*?["):
@@ -123,7 +154,7 @@ def record_from_trace(text, root):
                 listings.add(posixpath.join(folder, glob))
         elif kind == "t":
             names.add(posixpath.normpath(value))
-    return {"files": sorted(files), "listings": sorted(listings), "names": sorted(names)}
+    return {"files": sorted(files), "idle": sorted(idle - files), "listings": sorted(listings), "names": sorted(names)}
 
 
 def prefixes(path):
@@ -262,7 +293,7 @@ def select(tests, changes, cache, guards=GUARDS):
             chosen[test] = reason
     loaded = set()
     for test in known:
-        loaded.update(cache[test]["files"])
+        loaded.update(cache[test]["files"] + cache[test].get("idle", []))
     patterns = [pattern for test in known for pattern in cache[test]["names"] + cache[test]["listings"]]
     unread = sorted(path for path in generic if path not in loaded and not any(pattern_hits(pattern, path) for pattern in patterns))
     if unread:

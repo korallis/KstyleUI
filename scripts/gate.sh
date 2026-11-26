@@ -3,8 +3,9 @@
 # lint also checks that luacheck is 1.2.0 and pre-commit is 4.7.0 and, with PR_TITLE set, the pull request's wording
 # (Tools/hooks/check-pr.sh reads PR_TITLE, PR_BODY or PR_BODY_FILE, and PR_LABELS).
 # lua runs Tools/regression/run-all.sh; with no options that is --affected against the base.
-# python runs the Python suite with the venv interpreter. all (the default) runs the three groups.
-# release is all with every Lua test file and LUA cleared, so run-all.sh picks its usual interpreter: run it on the exact commit before pushing a v* tag.
+# python runs the Python suite with the venv interpreter, one process per test file, 4 at a time, leaving out a tool's
+# own tests when the tool is unchanged against the base (Tools/tests/run_suite.py). all (the default) runs the three groups.
+# release is all with every Lua and Python test file and LUA cleared, so run-all.sh picks its usual interpreter: run it on the exact commit before pushing a v* tag.
 # A pass with nothing uncommitted ends "gate passed (<group>) at <commit>", the line the pull request's "local gate" mark quotes.
 # Environment: GATE_BASE is the base ref (default origin/staging); KSTYLEUI_PYTHON is the interpreter.
 set -uo pipefail
@@ -69,7 +70,7 @@ if [ "$group" = lua ] || [ "$group" = all ]; then
 fi
 
 if [ "$group" = python ] || [ "$group" = all ]; then
-	step "python suite" env -u PR_TITLE -u PR_BODY -u PR_BODY_FILE -u PR_LABELS "${py[@]}" -m unittest discover -s Tools/tests
+	step "python suite" env -u PR_TITLE -u PR_BODY -u PR_BODY_FILE -u PR_LABELS "${py[@]}" Tools/tests/run_suite.py "$base"
 fi
 
 if [ ${#failed[@]} -gt 0 ]; then

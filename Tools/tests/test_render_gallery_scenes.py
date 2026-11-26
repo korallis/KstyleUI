@@ -66,8 +66,9 @@ window.renderScene({ screen: { width: 100, height: 100 }, items: files.map(file 
 @unittest.skipUnless(LUA and shutil.which("bash"), "Lua and Bash are required")
 class StrictAssets(unittest.TestCase):
     def test_strict_rejects_a_grey_texture_box(self):
-        scenes = ROOT / "Tools" / "render" / "scenes"
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".lua", prefix="test_missing_", dir=scenes, delete=False) as script:
+        scenes = tempfile.TemporaryDirectory()
+        self.addCleanup(scenes.cleanup)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".lua", prefix="test_missing_", dir=scenes.name, delete=False) as script:
             script.write('''local Common = dofile("Tools/render/scenes/_common.lua")
 return Common.Run(function()
     return { screen = { width = 100, height = 100 }, items = {},
@@ -78,12 +79,11 @@ end)
         try:
             result = budgeted_run(
                 ["bash", "Tools/render/shoot.sh", path.stem, "--json-only", "--no-standins", "--strict"],
-                cwd=ROOT, env={**os.environ, "LUA": LUA}, text=True, capture_output=True, cpu_budget=15,
+                cwd=ROOT, env={**os.environ, "LUA": LUA, "RENDER_SCENE_DIR": Path(scenes.name).as_posix()}, text=True, capture_output=True, cpu_budget=15,
             )
             self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
             self.assertIn("guard: texture Interface/absent is drawn as a grey box", result.stderr)
         finally:
-            path.unlink()
             for output in (ROOT / "Tools" / "render" / "out").glob(path.stem + ".*"):
                 output.unlink()
 
