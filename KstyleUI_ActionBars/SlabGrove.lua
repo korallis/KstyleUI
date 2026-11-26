@@ -51,21 +51,37 @@ local function Bloom(parent, spec, level, form)
 			leaf:SetBlendMode("ADD")
 			leaf.angle = (k - 0.5) * 360 / LEAVES
 			leaf:SetRotation(-math.rad(leaf.angle))
-			r.ring[k] = r.ring[k] or leaf
+			if r.ring[k] then
+				r.ring[k].twin = leaf
+			else
+				r.ring[k] = leaf
+			end
 		end
 	end
 	if r.lit.container then
 		r.moving.lit:AddAuraShownAnimation(r.unfurl)
+		r.unfurl:SetScript("OnPlay", function()
+			r.late = r.moving:GetAlpha() == 0 and GetTime() + UNFURL or nil
+		end)
 	end
 	bloom = r
 	return r
 end
 
 local function Unfurl(_, full)
-	if bloom then
-		bloom.moving:SetAlpha(full and 1 or 0)
-		bloom.calm:SetAlpha(full and 0 or 1)
+	if not bloom then
+		return
 	end
+	bloom.full = full
+	local left = full and bloom.moving:GetAlpha() == 0 and bloom.late and bloom.late - GetTime() or 0
+	if left > 0 then
+		C_Timer.After(left, function()
+			Unfurl(nil, bloom.full)
+		end)
+		return
+	end
+	bloom.moving:SetAlpha(full and 1 or 0)
+	bloom.calm:SetAlpha(full and 0 or 1)
 end
 
 local function Emblem(parent, spec, level, form)
