@@ -103,7 +103,18 @@ do
 	Gain(env, Reck())
 	assert(awake:IsVisible() and set.awake:GetAlpha() == 1 and set.still:GetAlpha() == 0, "Recklessness lights the awake corona in combat")
 	assert(#awake.loops == 3 and Playing(awake.loops), "the corona's flipbook, its breath and the glyphs' turn loop through the engine")
-	assert(awake.flare.play:IsPlaying(), "the class burst grows out of the ring as the cooldown is assigned")
+	local burst = set.awake.burst
+	assert(burst.lit.flare.play:IsPlaying(), "the class burst grows out of the ring as the cooldown is assigned")
+	-- The burst is a crest flare the engine plays, which Lua may not stop under hidden values: a newer crest flare hides the burst's own layer, not the corona's.
+	assert(burst:GetAlpha() == 1 and burst.lit.container ~= awake.container, "the burst's slot has a container and a layer of its own")
+	local other, grow = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup()), burst.lit.flare.play
+	env._aurasSecret = true
+	other:Play()
+	env._aurasSecret = false
+	assert(other:IsPlaying() and grow:IsPlaying() and burst:GetAlpha() == 0 and set.awake:GetAlpha() == 1, "a newer crest flare hides the burst alone")
+	other:Stop()
+	env.RunTimers()
+	assert(burst:GetAlpha() == 1, "and its layer shows again once the burst's time is over")
 	assert(AB.W.LastCall(awake._cooldown, "SetCooldownFromDurationObject"), "the outer ring drains with the aura")
 	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 1719)
 	local lift = hub.crest.lift

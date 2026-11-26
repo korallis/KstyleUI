@@ -214,8 +214,8 @@ function Medals.Feed(parent, spec, level, share)
 	return button
 end
 
-local function Mirror(piece, lit, level)
-	local share = lit.share and lit.share.awake
+local function Mirror(piece, lit, level, key)
+	local share = lit.share and lit.share[key or "awake"]
 	local gate = share or Medals.Layer(piece, level)
 	gate.lit = Medals.Feed(gate, setmetatable({}, { __index = lit.spec }), level, share and share.lit)
 	lit.mirrors = lit.mirrors or {}
@@ -224,15 +224,31 @@ local function Mirror(piece, lit, level)
 end
 Medals.Mirror, Medals.Timer = Mirror, Timer
 
-function Medals.Flare(piece, lit, level, token, size, lua)
-	if lit.container and not lua then
-		lit.awake = lit.awake or Mirror(piece, lit, level)
+function Medals.Gate(gate, alpha)
+	gate.base = alpha or gate.base
+	gate:SetAlpha(gate.hushed and 0 or gate.base or 1)
+end
+
+function Medals.Awake(piece, lit, level)
+	lit.awake = lit.awake or Mirror(piece, lit, level)
+	if lit.flareGate and not lit.awake.gated then
+		lit.awake.gated = true
+		Medals.Gate(lit.awake, ns.Slab.Resting() and 0 or 1)
+		gates[#gates + 1] = lit.awake
 	end
-	local gate = not lua and lit.awake or Medals.Layer(lit.container and piece or lit, level)
+	return lit.awake
+end
+
+function Medals.Flare(piece, lit, level, token, size, lua)
+	local gate = lit.container and not lua and Mirror(piece, lit, level, "flareGate") or Medals.Layer(lit.container and piece or lit, level)
 	local flare = Medals.Layer(gate.lit or gate, level)
-	gate:SetAlpha(ns.Slab.Resting() and 0 or 1)
+	flare.gate = gate
+	Medals.Gate(gate, ns.Slab.Resting() and 0 or 1)
 	gates[#gates + 1] = gate
 	lit.flareGate = gate
+	if lit.awake then
+		Medals.Awake(piece, lit, level)
+	end
 	piece.add(Medals.Texture(flare, "ARTWORK", 0, token, "white", size, "ADD"))
 	flare:SetAlpha(0)
 	flare.play = Medals.Steps(flare, FLARE)
@@ -660,19 +676,38 @@ function Medals.Ensemble(hush, seconds)
 	end
 end
 
-function Medals.Arbitrate(group, engine)
-	group.engine = group.engine or engine
+function Medals.Arbitrate(group, engine, gate)
+	group.engine, group.gate = group.engine or engine, group.gate or gate
 	if group.claims then
 		return group
 	end
 	group.claims = true
 	local claiming
 	local function stop()
-		if not (claiming or group.engine and Medals.Restricted()) then
+		local hide = group.gate
+		if claiming then
+			return
+		elseif not (group.engine and Medals.Restricted()) then
 			group:Stop()
+		elseif hide then
+			local mark = {}
+			hide.hushed = mark
+			Medals.Gate(hide)
+			if C_Timer and C_Timer.After then
+				C_Timer.After(group.held or HELD, function()
+					if hide.hushed == mark then
+						hide.hushed = nil
+						Medals.Gate(hide)
+					end
+				end)
+			end
 		end
 	end
 	group:SetScript("OnPlay", function()
+		if group.gate and group.gate.hushed then
+			group.gate.hushed = nil
+			Medals.Gate(group.gate)
+		end
 		claiming = true
 		Medals.Claim(stop, group.held)
 		claiming = false
@@ -694,7 +729,7 @@ local function Wanted(button, mode)
 	local flare, flicker = button.flare, button.flicker
 	return {
 		AuraShown = mode == true and (button.loops or { button.loop }) or NONE,
-		AuraAssigned = { flare and (mode == true and Medals.Arbitrate(flare.play, true) or mode == "calm" and Hold(flare) and Medals.Arbitrate(flare.still, true)) or nil },
+		AuraAssigned = { flare and (mode == true and Medals.Arbitrate(flare.play, true, flare.gate) or mode == "calm" and Hold(flare) and Medals.Arbitrate(flare.still, true, flare.gate)) or nil },
 		PandemicActive = { flicker and (mode == true and flicker or mode == "calm" and ns.Slab.Still(flicker)) or nil },
 	}
 end
@@ -771,7 +806,7 @@ function Medals.Rest()
 	local dark, mode = not Effects.Allows("flare") or ns.Slab.Resting(), Effects.Allows("ambient") or Effects.Allows("flare") and "calm" or false
 	for _, gate in ipairs(gates) do
 		local bound = gate.lit and gate.lit.full
-		gate:SetAlpha((dark or bound ~= nil and bound ~= mode) and 0 or 1)
+		Medals.Gate(gate, (dark or bound ~= nil and bound ~= mode) and 0 or 1)
 	end
 	for _, loop in ipairs(breaths) do
 		if still or not loop:GetParent():IsVisible() then

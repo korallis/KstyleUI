@@ -160,7 +160,8 @@ do
 	Clean(env, K, "secret combat")
 end
 
--- A target change refreshes the paladin's judged brand once and its burst once, as one Judgement medal did: the schools share a container (review of 568555f1 #6).
+-- A target change refreshes the paladin's judged brand once, its looping light once and its burst once: the schools share a container (review of 568555f1 #6), and the burst has a
+-- container of its own so that its layer can hide alone when a newer crest flare takes its place under hidden values.
 do
 	local env, K = New("PALADIN", { 20154, 20271 })
 	local calls = 0
@@ -169,7 +170,7 @@ do
 		c.UpdateAllAuras = function(self) calls = calls + 1 return update(self) end
 	end
 	env.FireEvent("PLAYER_TARGET_CHANGED")
-	assert(calls <= 2, "a target change refreshes 2 containers, got " .. calls .. "; give the schools one container's slots")
+	assert(calls <= 3, "a target change refreshes 3 containers, got " .. calls .. "; give the schools one container's slots")
 	Clean(env, K, "target refresh")
 end
 
