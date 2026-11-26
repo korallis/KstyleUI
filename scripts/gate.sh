@@ -2,7 +2,7 @@
 # gate.sh [lint|lua|python|all|release] [run-all.sh options]: the one gate. Agents and CI both run it.
 # lua runs Tools/regression/run-all.sh; with no options that is --affected against the base, and CI passes --shard I/N.
 # python runs the Python suite with the venv interpreter. all (the default) runs the three groups.
-# release is all with every Lua test file under the default Lua 5.1 (LUA is ignored): run it on the exact commit before pushing a v* tag.
+# release is all with every Lua test file and LUA cleared, so run-all.sh picks its usual interpreter: run it on the exact commit before pushing a v* tag.
 # Environment: GATE_BASE is the base ref (default origin/staging, CI passes HEAD^1); KSTYLEUI_PYTHON is the interpreter.
 set -uo pipefail
 
