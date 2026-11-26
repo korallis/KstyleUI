@@ -234,21 +234,12 @@ def Serpent():
 
 @design
 def ViperSting():
-    """Viper Sting: a viper's flat wedge head in profile on a thick neck, jaws wide open, one long fang and a forked tongue flicking out past them."""
+    """Viper Sting: a viper seen from above, a broad arrow-shaped head with a forked tongue ahead of it, on a wavy body trailing down to a thin tail. Heads, fangs and coils could not be named at the Sting medal's size; blind readers called only this one a snake."""
     e = Emblem("ViperSting")
-    k = 0.72
-    at = inset(k, 0.55, 0.60)
-    e.add(stroke(at([(0.26, 1.05), (0.08, 0.80), (0.12, 0.52)]), 0.30 * k, 0.30 * k), h=0.7, r=0.07 * k, base=0.3)
-    lower = blob(at([(0.04, 0.56), (0.28, 0.58), (0.54, 0.72), (0.78, 0.94), (0.70, 1.00), (0.46, 0.92), (0.22, 0.84), (0.04, 0.76)]), 14)
-    e.add(lower, h=0.85, r=0.05 * k, base=0.4)
-    upper = blob(at([(0.00, 0.52), (0.02, 0.26), (0.18, 0.14), (0.54, 0.10), (0.86, 0.12), (0.88, 0.26), (0.62, 0.36), (0.36, 0.44), (0.18, 0.60)]), 14)
-    e.add(upper, h=1.0, r=0.09 * k, base=0.45)
-    e.add(stroke(at([(0.78, 0.24), (0.76, 0.48), (0.68, 0.64)]), 0.15 * k, 0.01), h=1.0, r=0.03 * k, base=0.55)
-    e.add(stroke(at([(0.36, 0.62), (0.62, 0.56), (0.92, 0.52)]), 0.09 * k, 0.08 * k), h=0.7, r=0.02 * k, base=0.4)
-    for dy in (-0.14, 0.12):
-        e.add(stroke(at([(0.90, 0.52), (1.10, 0.52 + dy)]), 0.08 * k, 0.04 * k, smooth=False), h=0.7, r=0.02 * k, base=0.4)
-    (ex, ey), = at([(0.38, 0.24)])
-    e.pierce(ellipse(ex, ey, 0.09 * k, 0.05 * k, 0))
+    e.add(stroke([(0.50, 0.40), (0.34, 0.58), (0.62, 0.74), (0.40, 0.94)], 0.16, 0.08), h=0.8, r=0.05, base=0.4)
+    e.add(blob([(0.50, 0.10), (0.66, 0.20), (0.78, 0.40), (0.62, 0.48), (0.50, 0.46), (0.38, 0.48), (0.22, 0.40), (0.34, 0.20)], 14), h=1.0, r=0.09, base=0.45)
+    for sx in (-1, 1):
+        e.add(stroke([(0.50, 0.14), (0.5 + sx * 0.10, 0.02)], 0.06, 0.03, smooth=False), h=0.8, r=0.02, base=0.5)
     return e.seat()
 
 
