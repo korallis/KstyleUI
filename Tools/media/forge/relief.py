@@ -147,6 +147,17 @@ class Emblem:
         self.H = np.where(mask, self.H - depth * shoulder(mask, r, "soft"), self.H)
         return self
 
+    def turn(self, degrees):
+        """Turn the whole drawing about the box's centre (positive is clockwise on screen); fit() or seat() then brings it back inside."""
+        size = 2 * N
+        for attr, mode in (("H", "F"), ("M", "L")):
+            src = getattr(self, attr)
+            big = Image.new(mode, (size, size), 0)
+            big.paste(Image.fromarray(src if mode == "F" else (src * 255).astype(np.uint8)), (N // 2, N // 2))
+            out = big.rotate(-degrees, Image.BICUBIC).resize((N, N), Image.BICUBIC)
+            setattr(self, attr, np.asarray(out, np.float32).copy() if mode == "F" else np.asarray(out) > 127)
+        return self
+
     def fit(self, margin=0.06):
         """Scale the drawing so its bounds fill the box with a margin, centred."""
         ys, xs = np.nonzero(self.M)

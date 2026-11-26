@@ -1,4 +1,4 @@
-"""finish.py: make a forged render into the texture the game draws: a thin dark outline baked in, then the size.
+"""finish.py: make a forged render into the texture the game draws: a dark outline baked in, then the size.
 
 Sizes are reduced in linear light on premultiplied colour, as the project's other art tools reduce theirs.
 """
@@ -21,7 +21,7 @@ def load(path):
 
 
 def outline(img, width=0.016, color=(0.045, 0.035, 0.03), strength=0.92):
-    """Bake a thin dark outline round the silhouette (width as a share of the picture), so a mark holds its shape over bright ground."""
+    """Bake a dark outline round the silhouette (width as a share of the picture), so a mark holds its shape over bright ground."""
     a = img[..., 3]
     n = a.shape[0]
     grown = np.clip(ndi.gaussian_filter(ndi.grey_dilation(a, size=int(max(3, width * n * 2)) | 1), 1.0), 0, 1) * strength

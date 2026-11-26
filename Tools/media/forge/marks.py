@@ -1,8 +1,8 @@
 """Forge the crest marks that are Blender renders into Media/Textures/Glyphs/ and Media/Textures/Sigils/.
 
 A forged mark is a small cast-metal object, not a flat sign: a hawk's head for Aspect of the Hawk. Each is a relief
-(relief.py) raised from layered shapes, lit and rendered by Blender in bright neutral metal (forge.py), given a thin dark
-outline and reduced to 128 px (finish.py). The crest tints the neutral metal (KstyleUI_ActionBars/SlabMedals.lua,
+(relief.py) raised from layered shapes, lit and rendered by Blender in bright neutral metal (forge.py), given a dark outline
+(thin on a plate, heavy on a figure with none) and reduced to 128 px (finish.py). The crest tints the neutral metal (KstyleUI_ActionBars/SlabMedals.lua,
 Medals.Mark): gold with a halo in the spell's colour at 24 units and over; below that the spell's colour, or white for a
 cooldown sigil; steel for an unlit perch. A texture drawn this way is flagged forged in Core/Tokens.lua.
 
@@ -32,17 +32,20 @@ from finish import load, outline, resize, save
 from relief import forge_lineart
 
 SIZE = 128
+FREE_EDGE = 0.036
 SIGILS = tuple(sorted(sigils.FORGED))
 GLYPHS = tuple(designs_hunter.D)
 
 
 def maps(work, only):
-    """Write each mark's height, silhouette and cavity maps; returns {kind: [names]}."""
-    done = {"glyphs": [], "sigils": []}
+    """Write each mark's maps; returns {kind: [names]} and, under "free", the glyphs that stand on no plate."""
+    done = {"glyphs": [], "sigils": [], "free": set()}
     for name in GLYPHS:
         if not only or name in only:
-            designs_hunter.D[name]().save(work / "maps" / "glyphs")
+            emblem = designs_hunter.D[name]().save(work / "maps" / "glyphs")
             done["glyphs"].append(name)
+            if emblem.dark is None:
+                done["free"].add(name)
     for name in SIGILS:
         if not only or name in only:
             pen = sigils.Pen()
@@ -67,7 +70,9 @@ def main(argv=None):
     if unknown:
         parser.error("unknown mark: " + ", ".join(sorted(unknown)))
     work = args.work or Path(tempfile.mkdtemp(prefix="forge-"))
-    for kind, names in maps(work, only).items():
+    done = maps(work, only)
+    free = done.pop("free")
+    for kind, names in done.items():
         if not names:
             continue
         renders = work / "renders" / kind
@@ -79,7 +84,8 @@ def main(argv=None):
         out.mkdir(parents=True, exist_ok=True)
         for name in names:
             path = out / f"{name}.png"
-            save(resize(outline(load(renders / f"{name}.png")), SIZE), path)
+            # a figure with no plate stands over the painted emblem, so its dark edge is heavy enough to part it from the paint
+            save(resize(outline(load(renders / f"{name}.png"), **({"width": FREE_EDGE} if name in free else {})), SIZE), path)
             print(f"{kind}/{path.name}", hashlib.sha256(path.read_bytes()).hexdigest())
     if not args.work:
         shutil.rmtree(work)
