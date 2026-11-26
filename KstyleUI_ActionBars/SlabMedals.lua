@@ -13,7 +13,7 @@ local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
 local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL, ABOVE = 118, 14, 4, 30, 12, 0.86, 20
 local SPARK, BLOOM, GLOW_LIT, FLARE_MAX = 0.3, 2.4, 0.75, 30
-local FLASH, BREATH, FADE_IN = { { 0.75, 1, 0.05 }, { 1, 0.75, 0.4 } }, { { 0.75, 1, 0.8 }, { 1, 0.75, 0.8 } }, { { 0, 1, 0.12 } }
+local FLASH, BREATH, FADE_IN = { { 0, 0.25, 0.05 }, { 0.25, 0, 0.4 } }, { { 0.75, 1, 0.8 }, { 1, 0.75, 0.8 } }, { { 0, 1, 0.12 } }
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
@@ -242,6 +242,30 @@ local function Hush(gate, mark, owner)
 	end
 end
 
+local function Now()
+	return type(GetTime) == "function" and GetTime() or 0
+end
+
+local function Dim(gate, seconds)
+	local mark = {}
+	Hush(gate, mark)
+	if C_Timer and C_Timer.After then
+		C_Timer.After(seconds, function()
+			if (gate.face or gate).hushed == mark then
+				Hush(gate)
+			end
+		end)
+	end
+end
+
+function Medals.Reveal(gate, alpha)
+	local left = alpha == 1 and (gate.base == 0 or not gate:IsVisible()) and gate.late and gate.late - Now() or 0
+	Medals.Gate(gate, alpha)
+	if left > 0 then
+		Dim(gate, left)
+	end
+end
+
 function Medals.Awake(piece, lit, level)
 	lit.awake = lit.awake or Mirror(piece, lit, level)
 	if lit.flareGate and not lit.awake.gated then
@@ -345,7 +369,7 @@ function Medals.Twins(piece, build)
 	end
 	piece.twins = { faces[2], faces[3] }
 	for n, lit in ipairs(piece.lits) do
-		if lit.hold then
+		if lit.hold and not lit.hold.face then
 			local face = { gates = {} }
 			for i, each in ipairs(faces) do
 				local hold = each.lits[n].hold
@@ -568,7 +592,23 @@ local function Sigil(r, lit, key, family, color, size, bloom)
 	r.add(button, size)
 	local back = r.add(Medals.Texture(button, "BACKGROUND", 0, "glow", bloom or "black", size * (bloom and BLOOM or SHADE), bloom and "ADD"))
 	back:SetAlpha(bloom and GLOW_LIT or 0.7)
-	button.loop = bloom and Medals.Steps(back, FLASH)
+	if bloom then
+		if not lit.flash then
+			lit.flash = Mirror(r, lit, r:GetFrameLevel() + ABOVE, false)
+			lit.flash.moving = true
+			gates[#gates + 1] = lit.flash
+		end
+		local slot = lit.flash.lit.container:AddAuraSlot(key, "HELPFUL", options)
+		pcall(slot.EnableMouse, slot, false)
+		slot:SetPoint("CENTER", r, "CENTER", 0, 0)
+		slot:SetFrameLevel(button:GetFrameLevel())
+		r.add(slot, size)
+		local glow = r.add(Medals.Texture(slot, "BACKGROUND", 0, "glow", bloom, size * BLOOM, "ADD"))
+		glow:SetAlpha(0)
+		button.flash, button.flashed = Medals.Steps(glow, FLASH), slot
+		slot.container = lit.flash.lit.container
+		slot:AddAuraShownAnimation(button.flash)
+	end
 	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
 	r.add(Medals.Texture(button, "ARTWORK", 0, "sigil" .. family.sigil, color, size * SIGIL, "ADD"))
 	r.add(Medals.Texture(button, "BORDER", 0, "medRing", "white", size))
@@ -730,12 +770,15 @@ local function Arrange(r)
 		local f = b.family
 		local on = f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
 		b.container:SetAuraSlotEnabled(b.key, on)
+		if b.flashed then
+			b.flashed.container:SetAuraSlotEnabled(b.key, on)
+		end
 		for _, slot in ipairs(b.ember.slots) do
 			slot.container:SetAuraSlotEnabled("lit", on and ns.Config("crestEmber") ~= false)
 		end
 		b.at = on and { r.left + n % r.per * r.pitch, r.first + floor(n / r.per) * r.rise } or nil
 		if b.at then
-			for _, slot in ipairs({ b, b.ember }) do
+			for _, slot in ipairs({ b, b.ember, b.flashed }) do
 				slot:ClearAllPoints()
 				slot:SetPoint("CENTER", r, "CENTER", Widgets.Snap(r, b.at[1]), Widgets.Snap(r, b.at[2]))
 			end
@@ -772,7 +815,7 @@ function Medals.Ensemble(hush, seconds)
 		hush()
 	end
 	return function()
-		local now = type(GetTime) == "function" and GetTime() or 0
+		local now = Now()
 		if not (held and at == now) then
 			held = Medals.Claim(stop, seconds) ~= nil
 			at = now
@@ -795,21 +838,14 @@ function Medals.Arbitrate(group, engine, gate)
 		elseif not (group.engine and Medals.Restricted()) then
 			group:Stop()
 		elseif hide and (hide.face or hide).owner == group then
-			local mark = {}
-			Hush(hide, mark)
-			if C_Timer and C_Timer.After then
-				C_Timer.After(group.held or HELD, function()
-					if (hide.face or hide).hushed == mark then
-						Hush(hide)
-					end
-				end)
-			end
+			Dim(hide, group.held or HELD)
 		end
 	end
 	group:SetScript("OnPlay", function()
 		local own = group.gate
 		if own then
 			if own.base == 0 or not own:IsVisible() then
+				own.late = Now() + (group.held or HELD)
 				return
 			end
 			Hush(own, nil, group)
@@ -931,10 +967,12 @@ function Medals.Rest()
 				end
 			end
 			for _, each in ipairs(gate.face.gates) do
-				Medals.Gate(each, each == pick and 1 or 0)
+				Medals.Reveal(each, each == pick and 1 or 0)
 			end
+		elseif gate.moving then
+			Medals.Gate(gate, mode == true and 1 or 0)
 		else
-			Medals.Gate(gate, (dark or bound ~= nil and bound ~= mode) and 0 or 1)
+			Medals.Reveal(gate, (dark or bound ~= nil and bound ~= mode) and 0 or 1)
 		end
 	end
 	for _, loop in ipairs(breaths) do

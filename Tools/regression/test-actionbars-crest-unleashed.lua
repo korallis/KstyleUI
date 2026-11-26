@@ -288,7 +288,13 @@ do
 	done(set.awake.timer)
 	env.C_Timer.After = after
 	Slots.Set(env, "player", nil)
+	local dims = {}
+	env.C_Timer.After = function(_, fn) dims[#dims + 1] = fn end
 	K.Options.Write("ActionBars", "crestUnleashed", true)
+	env.C_Timer.After = after
+	assert(set.awake.burst:IsShown() and set.awake.burst:GetAlpha() == 0, "switched back on inside the unseen burst's time, its layer stays dark: the burst took no place and may not show half played")
+	for _, fn in ipairs(dims) do fn() end
+	assert(set.awake.burst:GetAlpha() == 1, "and shows again once that time is over")
 	env.RunTimers()
 	assert(#held == 1, "the timer's end defers one check")
 	held[1]()

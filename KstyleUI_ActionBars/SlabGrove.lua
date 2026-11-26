@@ -35,7 +35,8 @@ local function Bloom(parent, spec, level, form)
 		return Medals.Figure(parent, { feed = "aura", spells = CLEARCASTING, figure = "trackerLeaf", burst = spec.burst, bloom = "schoolNature" }, level)
 	end
 	local r = Medals.Rim(parent, { feed = "aura", spells = CLEARCASTING, ambient = "medAmbientDruid", burst = spec.burst }, level)
-	r.ring, r.leaves = {}, Medals.Layer(r.lit, level + 2)
+	r.ring, r.moving, r.calm = {}, Medals.Mirror(r, r.lit, level + 2, false), Medals.Mirror(r, r.lit, level + 2, false)
+	r.leaves = Medals.Layer(r.moving.lit, level + 2)
 	r.unfurl = r.leaves:CreateAnimationGroup()
 	local grow = r.unfurl:CreateAnimation("Scale")
 	grow:SetScaleFrom(0.6, 0.6)
@@ -44,29 +45,27 @@ local function Bloom(parent, spec, level, form)
 	grow:SetSmoothing(K.Tokens.Smoothing.enter)
 	ns.Slab.Fade(r.unfurl, 0, 1, UNFURL)
 	for k = 1, LEAVES do
-		local leaf = r.add(r.leaves:CreateTexture(nil, "OVERLAY"), LEAF)
-		leaf:SetTexture((K.Tokens.Texture("trackerLeaf")))
-		leaf:SetBlendMode("ADD")
-		leaf.angle = (k - 0.5) * 360 / LEAVES
-		leaf:SetRotation(-math.rad(leaf.angle))
-		r.ring[k] = leaf
+		for _, layer in ipairs({ r.leaves, r.calm.lit }) do
+			local leaf = r.add(layer:CreateTexture(nil, "OVERLAY"), LEAF)
+			leaf:SetTexture((K.Tokens.Texture("trackerLeaf")))
+			leaf:SetBlendMode("ADD")
+			leaf.angle = (k - 0.5) * 360 / LEAVES
+			leaf:SetRotation(-math.rad(leaf.angle))
+			r.ring[k] = r.ring[k] or leaf
+		end
+	end
+	if r.lit.container then
+		r.moving.lit:AddAuraShownAnimation(r.unfurl)
 	end
 	bloom = r
 	return r
 end
 
 local function Unfurl(_, full)
-	local lit = bloom and bloom.lit
-	if not (lit and lit.container) or bloom.full == full or Medals.Restricted() then
-		return
+	if bloom then
+		bloom.moving:SetAlpha(full and 1 or 0)
+		bloom.calm:SetAlpha(full and 0 or 1)
 	end
-	if full then
-		lit:AddAuraShownAnimation(bloom.unfurl)
-	elseif bloom.full then
-		lit:RemoveAuraShownAnimation(bloom.unfurl)
-		bloom.unfurl:Stop()
-	end
-	bloom.full = full
 end
 
 local function Emblem(parent, spec, level, form)

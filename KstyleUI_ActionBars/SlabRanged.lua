@@ -273,7 +273,7 @@ local function Stacks(parent, spec, level, form)
 		pcall(slot.EnableMouse, slot, false)
 		slot:SetAllPoints(p)
 		slot:SetFrameLevel(level + 3)
-		slot.container = lit.container
+		slot.container, slot.hold = lit.container, lit.hold
 		local ember = p.add(Bar(slot, spec.ember, "white", "ADD"), 16 * h)
 		ember:SetStatusBarColor(Lift(spec.color))
 		local x, y = Polar(67, 166 + (n - 1) * 10)
@@ -457,7 +457,8 @@ local function Ward(parent, spec, level, form)
 end
 
 local function Gust(r, spec, level)
-	local feed = Medals.Feed(r, spec, level + 3)
+	local feed = Medals.Feed(r.lit.hold or r, spec, level + 3)
+	feed.hold = r.lit.hold
 	local gust = Medals.Layer(feed, level + 3)
 	r.gust = Medals.Texture(gust, "OVERLAY", 0, "trackerGust", spec.color, nil, "ADD")
 	local loop = gust:CreateAnimationGroup()
@@ -491,8 +492,10 @@ end
 local function Ring(piece, anchor, form, _, n)
 	if form == "crest" then
 		Medals.Place(piece, anchor, 0, 0)
-		if piece.gust and not Medals.Restricted() then
-			Widgets.Size(piece.gust, INNER, 28)
+		for _, face in ipairs(Medals.Restricted() and {} or { piece, unpack(piece.twins or {}) }) do
+			if face.gust then
+				Widgets.Size(face.gust, INNER, 28)
+			end
 		end
 		return n
 	end
@@ -600,7 +603,7 @@ local function Spire(p, container, i, s, angle, level)
 		pcall(b.EnableMouse, b, false)
 		b:SetAllPoints(t.spire)
 		b:SetFrameLevel(level + sublevel)
-		b.container = container
+		b.container, b.hold = container, p.hold
 		local bar = t.spire.add(Bar(b, art .. angle, color, blend), size)
 		bar:SetPoint("CENTER", t.spire, "CENTER", 0, 0)
 		Timed(b, bar)
@@ -632,7 +635,8 @@ local function Spires(parent, spec, level, form)
 	local p = CreateFrame("Frame", nil, parent)
 	p:SetFrameLevel(level)
 	p.spires, p.lits = {}, {}
-	p.container = CreateFrame("AuraContainer", nil, p, "CustomAuraContainerTemplate")
+	p.hold = Medals.Layer(p, level)
+	p.container = CreateFrame("AuraContainer", nil, p.hold, "CustomAuraContainerTemplate")
 	Widgets.KeepOut(p.container)
 	p.container:SetUnit("target")
 	for i, s in ipairs(spec.spires) do
@@ -644,7 +648,7 @@ end
 local function PlaceSpires(p, anchor, form, _, n)
 	local line = math.ceil(n / Medals.LINE) * Medals.LINE
 	local count = 0
-	for _, t in ipairs(p.spires) do
+	for k, t in ipairs(p.spires) do
 		local known = Medals.Known(t.def.spells) ~= nil
 		t.base:SetShown(known)
 		t.spire:SetShown(known)
@@ -655,8 +659,11 @@ local function PlaceSpires(p, anchor, form, _, n)
 			end
 			count = count + 1
 			local reach = BASE / 2 + LIFT + SPIRE / 2
-			Medals.Place(t.base, anchor, sx, sy)
-			Medals.Place(t.spire, anchor, sx + reach * cos(rad(t.angle)), sy + reach * sin(rad(t.angle)))
+			for _, face in ipairs({ p, unpack(p.twins or {}) }) do
+				local each = face.spires[k]
+				Medals.Place(each.base, anchor, sx, sy)
+				Medals.Place(each.spire, anchor, sx + reach * cos(rad(t.angle)), sy + reach * sin(rad(t.angle)))
+			end
 		end
 	end
 	return line + count

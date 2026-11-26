@@ -279,8 +279,8 @@ function Unleashed.Paint()
 		set.still:SetShown(on)
 		set.awake:SetAlpha(moving and 1 or 0)
 		if set.awake.burst then
+			Medals.Reveal(set.awake.burst, moving and 1 or 0)
 			set.awake.burst:SetShown(on)
-			Medals.Gate(set.awake.burst, moving and 1 or 0)
 		end
 		set.still:SetAlpha(moving and 0 or 1)
 		shown = shown or on and set.piece:IsVisible()

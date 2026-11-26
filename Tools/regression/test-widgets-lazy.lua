@@ -284,11 +284,12 @@ do
 	-- A healer, hunter, mage or warlock with every crest tracker known and lit (the render harness's RENDER_TRACKERS=lit
 	-- story) creates no more action bar regions than staging did before its crest broke out of its sockets (b4ec7887b); a
 	-- lit Rogue is 5,063, so 4,900 holds only the stock fixture above. The hunter, warlock, shaman and druid sit above that by the layers their owner chose to add so that a
-	-- motion level changed in combat shows at once and an older cue hides under a newer one: a second flare slot on each aura medal, and two more copies of the slots of
-	-- each piece with a cue on its own art.
+	-- motion level changed in combat shows at once and an older cue hides under a newer one: a second flare slot on each aura medal, two more copies of the slots of
+	-- each piece with a cue on its own art (a warlock's torment spires and the hunter's gust among them), and a moving and a still copy of the storm's halo and
+	-- sparks and of a druid's Clearcasting leaves.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4940, DRUID = 5219, SHAMAN = 4904, HUNTER = 4975, MAGE = 4943, WARLOCK = 5041 }) do
+	for class, limit in pairs({ PRIEST = 4940, DRUID = 5268, SHAMAN = 4917, HUNTER = 4985, MAGE = 4943, WARLOCK = 5097 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")
