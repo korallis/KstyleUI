@@ -321,7 +321,7 @@ def Counter():
     e.add(blade, h=1.0, r=0.045, base=0.45)
     e.cut(stroke([(0.30, 0.22), (0.82, 0.84)], 0.012), depth=0.16, r=0.008)
     e.add(stroke([(0.72, 0.96), (0.96, 0.72)], 0.065), h=0.9, r=0.028, base=0.5)
-    return e.seat()
+    return e.fit()
 
 
 @design
@@ -343,7 +343,7 @@ def Mongoose():
         e.add(stroke([(x, y), (x - 0.015, y + d * ln)], 0.04, 0.004), h=0.95, r=0.012, base=0.55)
     e.cut(ellipse(0.58, 0.40, 0.045, 0.032, 15), depth=0.36, r=0.016)
     e.add(ellipse(0.915, 0.50, 0.035, 0.03), h=1.08, r=0.02, base=0.85)
-    return e.seat()
+    return e.fit()
 
 
 @design
@@ -358,4 +358,4 @@ def Raptor():
         e.add(stroke([(0.50, 0.38), knee, tip], 0.13, 0.10), h=0.9, r=0.05, base=0.4)
         e.add(stroke([tip, ((tip[0] + hook[0]) / 2 + (tip[0] - 0.5) * 0.12, (tip[1] + hook[1]) / 2), hook], 0.10, 0.012), h=1.0, r=0.03, base=0.5)
     e.add(ellipse(0.50, 0.40, 0.13, 0.11), h=0.95, r=0.06, base=0.45)
-    return e.seat()
+    return e.fit()
