@@ -1,8 +1,9 @@
 """Run the Python suite one process per test file, a few at a time: run_suite.py [BASE] [--dir FOLDER].
 
 scripts/gate.sh starts this from the repository root. With BASE, a tool test in TOOL_TESTS runs only when its
-tool, its own file or a suite helper changed against BASE; KSTYLEUI_FULL=1 (the release gate) or no BASE runs
-every file. KSTYLEUI_PY_JOBS sets how many files run at once (4 by default).
+tool, its own file or a suite helper changed against BASE; KSTYLEUI_RELEASE=1 (the release gate) or no BASE runs
+every file. KSTYLEUI_PY_JOBS sets how many files run at once (4 by default). A file in WIDE starts several
+processes of its own, so it runs alone, before the others.
 """
 
 import argparse
@@ -18,6 +19,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 JOBS = 4
+WIDE = ("test_affected.py", "test_render_deterministic.py", "test_run_all.py", "test_run_suite.py")
 HELPERS = ("Tools/tests/run_suite.py", "Tools/tests/subprocess_budget.py")
 TOOL_TESTS = {
     "test_affected.py": ("Tools/regression/*.py", "Tools/regression/run-all.sh", "Tools/regression/trace.lua",
@@ -53,7 +55,9 @@ def run_file(folder, name):
     done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", str(folder), "-p", name],
                           capture_output=True, text=True, encoding="utf-8", errors="replace")
     ran = re.search(r"^Ran (\d+) tests? in", done.stderr, re.MULTILINE)
+    skips = re.search(r"^(?:OK|FAILED) \(.*?skipped=(\d+)", done.stderr, re.MULTILINE)
     return {"name": name, "ok": done.returncode == 0, "tests": int(ran.group(1)) if ran else 0,
+            "skipped": int(skips.group(1)) if skips else 0,
             "seconds": time.monotonic() - start, "output": done.stdout + done.stderr}
 
 
@@ -65,7 +69,7 @@ def main(argv):
     folder = Path(args.dir)
     names = sorted(path.name for path in folder.glob("test_*.py"))
     changes = None
-    if args.base and os.environ.get("KSTYLEUI_FULL") != "1":
+    if args.base and os.environ.get("KSTYLEUI_RELEASE") != "1":
         sys.path.insert(0, str(HERE.parent / "regression"))
         import affected
         try:
@@ -79,17 +83,22 @@ def main(argv):
         print("python suite: left out {0} tool tests whose tools did not change against {1}: {2}; "
               "bash scripts/gate.sh release runs them all".format(len(skipped), args.base, ", ".join(skipped)), flush=True)
     start = time.monotonic()
-    failed, tests = [], 0
+    failed, tests, unchecked = [], 0, 0
+    alone = [name for name in run if name in WIDE]
     with ThreadPoolExecutor(max_workers=jobs) as pool:
-        for result in pool.map(lambda name: run_file(folder, name), run):
-            tests += result["tests"]
-            if result["ok"]:
-                print("ok   {0} ({1} tests, {2:.1f} s)".format(result["name"], result["tests"], result["seconds"]), flush=True)
-            else:
-                failed.append(result["name"])
-                print("FAIL {0}\n{1}".format(result["name"], result["output"].rstrip()), flush=True)
-    print("python suite: ran {0} tests in {1} files in {2:.1f} s; failed files: {3}".format(
-        tests, len(run), time.monotonic() - start, ", ".join(failed) or "none"))
+        results = [run_file(folder, name) for name in alone]
+        results += pool.map(lambda name: run_file(folder, name), [name for name in run if name not in WIDE])
+    for result in results:
+        tests += result["tests"] - result["skipped"]
+        unchecked += result["skipped"]
+        if result["ok"]:
+            print("ok   {0} ({1} tests, {2} skipped, {3:.1f} s)".format(
+                result["name"], result["tests"] - result["skipped"], result["skipped"], result["seconds"]), flush=True)
+        else:
+            failed.append(result["name"])
+            print("FAIL {0}\n{1}".format(result["name"], result["output"].rstrip()), flush=True)
+    print("python suite: ran {0} tests and skipped {1} in {2} files in {3:.1f} s; failed files: {4}".format(
+        tests, unchecked, len(run), time.monotonic() - start, ", ".join(failed) or "none"))
     return 1 if failed or not run else 0
 
 

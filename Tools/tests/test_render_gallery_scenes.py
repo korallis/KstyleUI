@@ -79,7 +79,7 @@ end)
         try:
             result = budgeted_run(
                 ["bash", "Tools/render/shoot.sh", path.stem, "--json-only", "--no-standins", "--strict"],
-                cwd=ROOT, env={**os.environ, "LUA": LUA, "RENDER_SCENE_DIR": Path(scenes.name).as_posix()}, text=True, capture_output=True, cpu_budget=15,
+                cwd=ROOT, env={**os.environ, "LUA": LUA, "RENDER_SCENE_DIR": Path(scenes.name).as_posix(), "RENDER_OUTDIR": Path(scenes.name).as_posix()}, text=True, capture_output=True, cpu_budget=15,
             )
             self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
             self.assertIn("guard: texture Interface/absent is drawn as a grey box", result.stderr)

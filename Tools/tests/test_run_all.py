@@ -59,6 +59,13 @@ class PortableRunnerTest(unittest.TestCase):
         self.assertEqual(self.runner.shard(tests, 1, 2, weights), ["a", "d"])
         self.assertEqual(self.runner.shard(tests, 2, 2, weights), ["b", "c"])
 
+    def test_worker_slots_stop_at_six_and_only_the_release_gate_gets_ten(self):
+        # Intent: the approved faster-gate plan. Forcing a busy pull request run (KSTYLEUI_FULL=1) must not widen it.
+        for cpus, environment, expected in ((32, {}, 6), (32, {"KSTYLEUI_FULL": "1"}, 6), (32, {"KSTYLEUI_RELEASE": "1"}, 10),
+                                            (12, {"KSTYLEUI_RELEASE": "1"}, 4), (2, {}, 2)):
+            with self.subTest(cpus=cpus, environment=environment), mock.patch.dict(os.environ, environment, clear=True),                     mock.patch.object(self.runner.os, "cpu_count", return_value=cpus):
+                self.assertEqual(self.runner.default_slots(), expected)
+
     def test_python_picker_exports_the_selected_executable_without_a_cr(self):
         env = dict(os.environ, KSTYLEUI_PYTHON=sys.executable, RUNNER_SCRIPT=(REGRESSION / "run-all.sh").as_posix())
         result = subprocess.run([BASH, "-c", 'source "$RUNNER_SCRIPT"; pick_python || exit; printf "%s" "$KSTYLEUI_PYTHON"'],

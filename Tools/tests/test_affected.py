@@ -22,8 +22,11 @@ GIT_ENV = {
 }
 
 
-def record(files=(), listings=(), names=(), sha="", idle=()):
-    return {"files": sorted(files), "idle": sorted(idle), "listings": sorted(listings), "names": sorted(names), "sha": sha}
+def record(files=(), listings=(), names=(), sha="", idle=(), seen=None):
+    made = {"files": sorted(files), "idle": sorted(idle), "listings": sorted(listings), "names": sorted(names), "sha": sha}
+    if seen is not None:
+        made["seen"] = seen
+    return made
 
 
 def lua():
@@ -140,6 +143,8 @@ class SelectTest(unittest.TestCase):
         chosen, notes = affected.select(many, {"Core/Locales/deDE.lua": "M"}, cache, ())
         self.assertEqual(sorted(chosen), many[:2])
         self.assertEqual(notes, [])
+        chosen, _ = affected.select(many, {"Core/Locales/deDE.lua": "D"}, cache, ())
+        self.assertEqual(len(chosen), 20, "load_files.lua fails on a language file that is gone, so its deletion reaches every loader")
 
     def test_a_few_readers_of_a_small_suite_do_not_count_as_shared(self):
         cache = self.cache()
@@ -229,11 +234,17 @@ class CacheTest(unittest.TestCase):
             affected.git("worktree", "add", "-q", str(two), cwd=one)
             self.assertEqual(affected.cache_path(one), one / ".git" / "kstyleui-regression-deps.json")
             self.assertEqual(affected.cache_path(two), one / ".git" / "worktrees" / "two" / "kstyleui-regression-deps.json")
-            affected.save_records({"a": record(["x"]), "b": record(["y"])}, one)
-            self.assertEqual(sorted(affected.load_records(two)), ["a", "b"], "a working copy with no records starts from the shared copy")
-            affected.save_records({"a": record(["z"])}, two)
+            for folder in (one, two):
+                (folder / "x").write_text("same in both")
+                (folder / "y").write_text("made in " + folder.name)
+                (folder / "z").write_text("z")
+            affected.save_records({"a": record(["x"], seen=affected.seen(["x"], one)), "b": record(["y"], seen=affected.seen(["y"], one)),
+                                   "c": record(["x"])}, one)
+            self.assertEqual(sorted(affected.load_records(two)), ["a"],
+                             "a new working copy takes only the shared records whose files it holds byte for byte")
+            affected.save_records({"a": record(["z"], seen=affected.seen(["z"], two))}, two)
             self.assertEqual(affected.load_records(one)["a"]["files"], ["x"], "the other working copy's run left these records alone")
-            self.assertEqual({name: entry["files"] for name, entry in affected.load_records(two).items()}, {"a": ["z"], "b": ["y"]})
+            self.assertEqual({name: entry["files"] for name, entry in affected.load_records(two).items()}, {"a": ["z"]})
 
     def test_the_path_follows_the_environment(self):
         old = os.environ.get("KSTYLEUI_DEPS_CACHE")

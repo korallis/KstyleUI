@@ -24,7 +24,7 @@ lint | lua | python | all) ;;
 release)
 	group=all
 	set --
-	export KSTYLEUI_FULL=1
+	export KSTYLEUI_FULL=1 KSTYLEUI_RELEASE=1
 	unset LUA
 	;;
 *)

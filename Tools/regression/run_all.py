@@ -169,8 +169,8 @@ class Slots:
 
 
 def default_slots():
-    """A third of the CPUs, held to 6, or to 10 for the release gate's full run (KSTYLEUI_FULL=1)."""
-    return max(2, min((os.cpu_count() or 2) // 3, 10 if os.environ.get("KSTYLEUI_FULL") == "1" else 6))
+    """A third of the CPUs, held to 6, or to 10 for the release gate (KSTYLEUI_RELEASE=1, which gate.sh release sets)."""
+    return max(2, min((os.cpu_count() or 2) // 3, 10 if os.environ.get("KSTYLEUI_RELEASE") == "1" else 6))
 
 
 def make_slots():
@@ -473,7 +473,7 @@ def main(argv):
     order = sorted(tests, key=lambda test: -expected[test])
 
     start = time.monotonic()
-    records = {}
+    records, hashes = {}, {}
     with tempfile.TemporaryDirectory() as logs:
         progress_lock = threading.Lock()
         completed = 0
@@ -518,6 +518,7 @@ def main(argv):
                 try:
                     with open(os.path.join(logs, name + ".trace"), encoding="utf-8", errors="replace") as trace:
                         records[path] = dict(affected.record_from_trace(trace.read(), os.getcwd()), sha=affected.fingerprint(path))
+                        records[path]["seen"] = affected.seen(records[path]["files"], memo=hashes)
                 except OSError:
                     pass
             for line in lines:

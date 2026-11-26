@@ -29,8 +29,8 @@ class SelectTest(unittest.TestCase):
         self.assertEqual(run_suite.select(NAMES, None), (NAMES, []))
         self.assertEqual(run_suite.select(NAMES, {"Tools/tests/run_suite.py": "M"}), (NAMES, []))
 
-    def test_every_tool_test_names_a_file_in_the_suite(self):
-        self.assertEqual([name for name in run_suite.TOOL_TESTS if not (HERE / name).is_file()], [])
+    def test_every_tool_test_and_wide_file_names_a_file_in_the_suite(self):
+        self.assertEqual([name for name in (*run_suite.TOOL_TESTS, *run_suite.WIDE) if not (HERE / name).is_file()], [])
 
 
 class RunTest(unittest.TestCase):
@@ -47,22 +47,23 @@ class RunTest(unittest.TestCase):
     def test_a_failing_file_is_shown_and_fails_the_run_while_the_others_still_run(self):
         result = self.run_suite({
             "test_bad.py": "    def test_a(self):\n        self.assertEqual(1, 2, 'one is not two')\n",
-            "test_good.py": "    def test_a(self):\n        pass\n\n    def test_b(self):\n        pass\n",
+            "test_good.py": "    def test_a(self):\n        pass\n\n    def test_b(self):\n        pass\n\n"
+                            "    @unittest.skip('not here')\n    def test_c(self):\n        pass\n",
         })
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("FAIL test_bad.py", result.stdout)
         self.assertIn("one is not two", result.stdout)
-        self.assertIn("ok   test_good.py (2 tests", result.stdout)
-        self.assertIn("ran 3 tests in 2 files", result.stdout)
+        self.assertIn("ok   test_good.py (2 tests, 1 skipped", result.stdout)
+        self.assertIn("ran 3 tests and skipped 1 in 2 files", result.stdout)
         self.assertIn("failed files: test_bad.py", result.stdout)
 
     def test_the_release_gate_runs_a_tool_test_whose_tool_is_unchanged(self):
         files = {"test_crlf.py": "    def test_a(self):\n        pass\n", "test_other.py": "    def test_a(self):\n        pass\n"}
-        usual = self.run_suite(files, "HEAD", KSTYLEUI_FULL="")
+        usual = self.run_suite(files, "HEAD", KSTYLEUI_RELEASE="", KSTYLEUI_FULL="1")
         self.assertEqual(usual.returncode, 0, usual.stdout + usual.stderr)
         self.assertIn("1 of 2 test files", usual.stdout)
         self.assertIn("left out 1 tool tests whose tools did not change against HEAD: test_crlf.py", usual.stdout)
-        release = self.run_suite(files, "HEAD", KSTYLEUI_FULL="1")
+        release = self.run_suite(files, "HEAD", KSTYLEUI_RELEASE="1")
         self.assertEqual(release.returncode, 0, release.stdout + release.stderr)
         self.assertIn("2 of 2 test files", release.stdout)
         self.assertIn("ok   test_crlf.py", release.stdout)

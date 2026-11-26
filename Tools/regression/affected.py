@@ -64,13 +64,27 @@ def cache_path(cwd=None):
         return shared_path()
 
 
+def seen(files, root=".", memo=None):
+    """Return one hash of the bytes of every file a record names, as they are under root now."""
+    memo = {} if memo is None else memo
+    digest = hashlib.sha1()
+    for path in sorted(files):
+        if path not in memo:
+            memo[path] = fingerprint(os.path.join(root, path))
+        digest.update("{0}\0{1}\n".format(path, memo[path]).encode("utf-8"))
+    return digest.hexdigest()
+
+
 def load_records(cwd=None):
-    """Return this working copy's records. A working copy with none yet starts from the machine's shared copy,
-    so its first run is not a run of every file."""
+    """Return this working copy's records. A working copy with none yet starts from the shared copy's records
+    whose files are byte for byte what this working copy holds: a record made on a tree where one of them
+    differed may name the wrong files, so its test has no record and runs."""
     records = load_cache(cache_path(cwd))
-    if not records and not os.environ.get("KSTYLEUI_DEPS_CACHE"):
-        records = load_cache(shared_path())
-    return records
+    if records or os.environ.get("KSTYLEUI_DEPS_CACHE"):
+        return records
+    memo = {}
+    return {test: record for test, record in load_cache(shared_path()).items()
+            if record.get("seen") == seen(record.get("files", []), cwd or ".", memo)}
 
 
 def save_records(records, cwd=None):
@@ -233,6 +247,9 @@ def hit(test, record, changes, folders):
     for path in record["files"]:
         if path in changes:
             return path + " changed"
+    for path in record.get("idle", []):
+        if changes.get(path) in ("A", "D"):
+            return path + (" was added" if changes[path] == "A" else " was deleted")
     for path, status in sorted(changes.items()):
         if status in ("A", "D") and (
             any(pattern_hits(pattern, path) for pattern in record["names"])
