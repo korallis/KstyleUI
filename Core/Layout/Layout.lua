@@ -1961,7 +1961,7 @@ ns.Callbacks.Register("ModuleChanged", SECTION, function(_, name)
 end)
 
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
-	if module == "ActionBars" and key == "extraBarsApplied" or ns.Setup.Layouts.LiftSetting(module, key) then Restyle() end
+	if module == "ActionBars" and key == "extraBarsApplied" or ns.Setup and ns.Setup.Layouts.LiftSetting(module, key) then Restyle() end
 	if module == SECTION and key == "preset" and Style() then
 		if InCombatLockdown() then
 			Combat.Queue(Restyle)
