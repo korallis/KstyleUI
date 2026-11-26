@@ -255,7 +255,7 @@ def Scorpid():
 
 @design
 def Wyvern():
-    """Wyvern Sting: a wyvern seen from the front, bat wings raised high and open with long fingers and deep hollows between them, a horned head and a barbed tail."""
+    """Wyvern Sting: a wyvern seen from the front, bat wings raised high and open with long fingers and deep hollows between them, a small head and a barbed tail."""
     e = Emblem("Wyvern")
     for side in (-1, 1):
         def X(x, side=side):
