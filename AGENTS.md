@@ -1,104 +1,51 @@
-# AGENTS.md
+# Building KstyleUI for Forever
 
-KstyleUI is a World of Warcraft addon suite for the Forever client, written in Lua 5.1. This file holds the repository's facts: layout, commands, encoding, the Forever API rule and the mistakes that still need a person to remember them. Read the [design spec](docs/superpowers/specs/2026-11-07-kstyleui-design.md) and the [roadmap](docs/superpowers/plans/2026-11-07-kstyleui-roadmap.md) before you change code; the roadmap's Global Constraints and Core public API are binding. [`docs/DEVELOPING.md`](docs/DEVELOPING.md) has the contributor guide and [`docs/TESTING.md`](docs/TESTING.md) the test guide.
+These rules apply to every module. Edit `AGENTS.md` and copy it to `CLAUDE.md`; both entry points must contain the complete guide, byte for byte.
 
-Gate: bash scripts/gate.sh
-Known failing: none
-Evidence: see verify/SKILL.md
-Budget rule: the local gate checks every pull request and a release is gated by the full local run, `bash scripts/gate.sh release`; no workflow runs lint or tests. Functional, instruction-count and allocation checks fail on every computer, and so do the memory (4096 MB) and hang limits. CPU-time overruns warn on every computer and no machine enforces them: a default PUC Lua 5.1.5 file warns above 20 CPU s, or above its measured LEE-5827 allowance for files at or above 16 CPU s. The wall-clock hang guard is max(120 s, five times the adjusted CPU limit), or 120 s when CPU is not budgeted. LuaJIT and every `LUA` override print "not budgeted" for CPU. `test-perf` budgets remain at least five times measured Lua 5.1 CPU time; headroom and per-call timing overruns are reported, not fatal (Windows MSVC `os.clock` measures wall time). See `Tools/regression/README.md` for calibration.
+## Runtime rules
 
-## Layout
+**Cheap while on.** Be event-driven, not polling. Use `OnUpdate` only while something is actually animating or counting down, and stop it when it is done. No table churn in hot paths: reuse frames and buffers rather than allocating them per event. Code defaults leave modules off. Create frames and register handlers on enable, not on file load. Give each owner one handler per event and stop work when disabled.
 
-| Path | What it holds |
-| --- | --- |
-| `Core/` | The core addon: services, the widget kit, Layout Mode, the first-run setup (`Core/Setup/Layouts.lua`) |
-| `KstyleUI_<Module>/` | One addon per module, each with a README |
-| `Media/` | Fonts, textures and the logo, with their provenance |
-| `Tools/regression/` | Lua tests (`test-*.lua`), the stubs (`stubs/wow.lua`) and `run-all.sh` |
-| `Tools/tests/` | The Python suite for the tools and the release workflow |
-| `Tools/hooks/` | Checks the gate and the release workflow call, such as `check_toc.py`, `check-pr.sh` and `check-package.sh` |
-| `scripts/` | `gate.sh` and `check-suppressions.sh` |
-| `docs/` | The spec, the plans, the guides and the README's images |
+**No taint, no Lua errors.** A feature that can throw in combat or taint Blizzard's UI will not be merged.
 
-## The gate
+- Never drive Blizzard's own UI functions from addon code to open or refresh their frames. Calling `QuestMapFrame_OpenToQuestDetails` tainted the whole world map. Observe Blizzard opening the window instead.
+- Never `SetScript` on Blizzard frames. Use `hooksecurefunc` for a function or `HookScript` for a frame script. Keep addon state in `KstyleUI.Safe.Side(frame)`, not in fields on the frame.
+- Do not `Hide()` Blizzard frames that other Blizzard code lays out. Fade them with `SetAlpha` instead: hiding the XP bar containers tainted the action bars. Defer protected changes through `KstyleUI.Combat.Queue`.
+- Aura data goes secret during boss pulls, before `InCombatLockdown()` turns true. Guard aura reads with `C_Secrets.ShouldAurasBeSecret()` and freeze addon aura updates while it is true. Resume from a restriction-change event after checking again. Do not read state back from regions inside engine aura buttons.
+- Check `issecretvalue` before inspecting potentially secret data. Never compare, branch on, index by, take the length of, or do arithmetic on a secret. Pass it unchanged only to an API documented to accept it.
+- The combat log is closed to addons on Forever. Do not register `COMBAT_LOG_EVENT_UNFILTERED` or call `CombatLogGetCurrentEventInfo`.
 
-Run `bash scripts/gate.sh` from the repository root before every push. It is the only check a pull request gets: no workflow runs for a pull request or a push to `staging`, and `.github/workflows/` holds `release.yml` only. It runs, in order: a check that `luacheck` is 1.2.0 and `pre-commit` is 4.7.0, `Tools/dev/crlf.py --check`, `env -u SKIP pre-commit run --all-files` (including luacheck and `Tools/hooks/check_toc.py`), `Tools/locale/strings.py check`, `scripts/check-suppressions.sh` against `origin/staging`, `Tools/regression/run-all.sh --affected origin/staging` and the Python suite with the venv interpreter (`~/.local/share/wow-dev/venv/bin/python`, or `KSTYLEUI_PYTHON`). It runs every step, then lists the ones that failed and exits 1.
+**Forever only.** Do not add retail branches. Forever uses classic-era spell IDs; retail IDs do not match. Look IDs up on Wowhead Forever. The client does not load Blizzard's deprecated shims: use `C_SpellBook.IsSpellKnown`, not `IsPlayerSpell`.
 
-- Processors: the gate runs at most 6 Lua test files at a time (`KSTYLEUI_SLOTS` changes it) and 4 Python test files (`KSTYLEUI_PY_JOBS`), so a heavy run of it asks for 6 processors. `KSTYLEUI_FULL=1` only passes the Beast speed rule and leaves those counts alone. `bash scripts/gate.sh release` runs 10 Lua files at a time where the computer has 30 or more processors: ask for 10 processors and 17 GB of memory. `bash scripts/gate.sh lint` and one Lua test file are one process each and are not heavy runs.
-- The Python suite runs one process per test file (`Tools/tests/run_suite.py`). A tool's own tests, listed in its `TOOL_TESTS`, run only when the tool, the test or a suite helper changed against the base, and a file in its `WIDE`, which starts several processes itself, runs alone; the release gate runs every Python test file.
+Before using an API, event, template, mixin, CVar or Blizzard frame name, find it in the matching [Forever UI source](https://github.com/Gethe/wow-ui-source/tree/forever). Use the source revision recorded in `Tools/data/forever_api_contracts.json`. Check `Camelot/` overrides and the secret argument/return flags in `Blizzard_APIDocumentationGenerated/`. Name the proving file in the pull request. Check availability at runtime; if safety is uncertain, skip the operation. Do not silence an unknown Blizzard global in `.luacheckrc`.
 
-- `scripts/gate.sh lint`, `lua` and `python` run one group. `GATE_BASE` changes the base ref.
-- With `PR_TITLE` set, the lint group also runs `Tools/hooks/check-pr.sh` on the pull request's wording: the title, the changelog line and the version markers. Pass the body in `PR_BODY` or name its file in `PR_BODY_FILE`, and the labels in `PR_LABELS`. Run `bash scripts/gate.sh lint` with them again whenever the title, the body or the labels change.
-- A pass on a clean working copy ends `gate passed (all) at <commit>`. With uncommitted changes the last line says so and names no commit: commit and run again.
-- The pass mark: after every push to a pull request, Dependabot's included, run the whole gate with the wording variables on the exact pushed commit. When it passes, post a commit status on that commit: `POST /repos/korallis/KstyleUI/statuses/<commit>` with context `local gate`, state `success` and the gate's last line as the description. A failing run, a one-group run or a run with uncommitted changes posts nothing. A pull request whose newest commit lacks the mark is not ready to merge.
-- Before pushing a `v*` tag, a hotfix tag included, run `bash scripts/gate.sh release` on the exact commit to be tagged. It runs lint, every Lua test file (never `--affected`; it sets `KSTYLEUI_FULL=1` and `KSTYLEUI_RELEASE=1`, clears `LUA` and ignores run-all options) and every Python test file. Quote its last line, `gate passed (release) at <commit>`, in the release report. The release workflow runs no lint and no test suite: its `check` job verifies the tag is on `main`, the tag's changelog, the icon pack and a dry package build, and the upload needs only that job.
-- A PR touching `Tools/regression/run_all.py`, `scripts/gate.sh` or `Tools/regression/run-all.sh` shows native Windows exit codes for `bash scripts/gate.sh lint` and `bash scripts/gate.sh lua --affected origin/staging`.
-- `pre-commit run --all-files` checks tracked files only, so `git add` new files first. Do not run `pre-commit install`: worktrees share `.git/hooks`.
-- `check-suppressions.sh` fails on a new `-- luacheck: ignore`, workaround marker or lint suppression whose line carries no ticket id such as `LEE-1234`.
-- `run-all.sh --affected` runs the test files that load a file you changed plus the source guards, and prints why. Env helpers use read records; missing or stale records on an env change fall back to everything. A file that half the tests load, a stub or the runner runs every file. The first run on a machine runs everything once to record what each file loads. `--list` previews without running; explicit test filenames still take shared slots. The Beast speed rule refuses local selections over 150 files while another run holds slots; pass explicit files or set `KSTYLEUI_FULL=1` to force. `bash Tools/regression/run-all.sh` with no argument is the full suite. It runs under Lua 5.1 (`bash Tools/dev/install-lua51.sh` installs it) or `luajit -joff`. A file over 20 CPU s or its measured allowance prints a warning; allocation and instruction checks fail everywhere. Memory stays within 4096 MB and the hang guard is max(120 s, five times the adjusted CPU limit). [`Tools/regression/README.md`](Tools/regression/README.md) explains modes, budgets and worker slots.
-- `luacheck .` reads `.luacheckrc`. Addon code may read only the globals Forever gives it. `Tools/build/gen_globals.py` writes `Tools/data/forever_globals.lua` from the matching UI source and the client's FrameXML GlobalStrings names; regenerate when the build changes. A global your module creates (a named frame, a `BINDING_*` string, a `SLASH_*` command) goes on your module's line in `.luacheckrc`. "Accessing undefined variable" on a Blizzard name means the source does not prove it: never add a Blizzard name to your module's line.
-- `check_toc.py` reports files a TOC or XML include lists that are missing or differ in letter case from the file on disk. macOS loads such a file and a case-sensitive file system does not, so this check is the only guard.
-- A change to a player-facing string needs `python3 Tools/locale/strings.py sync`; the gate's `check` names the fix.
+## Design and implementation
 
-## Pull requests
+1. Read the [design spec](docs/superpowers/specs/2026-11-07-kstyleui-design.md) and the [roadmap](docs/superpowers/plans/2026-11-07-kstyleui-roadmap.md) before changing code. The roadmap's Global Constraints and Core public API are binding. Start with the affected module's README and its row in the [feature map](docs/feature-map.md).
+2. Match the surrounding code. Before building an options row, slider or popup, find the nearest existing example in the same module and copy its shape. Use the shared widget kit, theme tokens and pixel snapping. Create text with `K.Widgets.FontString`; place secure overlays with `K.Widgets.Cover`. Modules use the core public API, not each other's internals.
+3. Write your own code. Matching another addon's behavior is fine; lifting its source is not. Record generated assets in `Media/PROVENANCE.md`. Prefer the smallest change that solves the problem; do not introduce a library for a widget the kit already has.
+4. Use Lua 5.1 only. No `goto`, no `::labels::`, no integer division (`//`). A TOC-loaded Lua file has one comment, its first line: `-- <File>.lua: <what it is>.` Put the reasoning in the module README. If a player-facing string changes, run `python3 Tools/locale/strings.py sync`, not a hand edit of generated locales.
 
-Every change merges into `staging` by squash; `main` follows `staging` at a release. Pull requests target `staging`. The title is `type(scope): summary` (Conventional Commits). The body has a `## Changelog` section whose line starts with `Added:`, `Changed:` or `Fixed:`, and an `## In-game checks` list. A pull request that changes only tooling or docs gets the `no changelog` label instead. `Tools/hooks/check-pr.sh` enforces this when the gate runs with `PR_TITLE` set. There is no line limit; keep each pull request to one coherent piece of work.
-
-Change these only when the task needs it, and say why in the body: `.github/workflows/`, `.pkgmeta`, `Core/Tokens.lua`.
+**File format.** Addon `.lua`, `.toc` and `.xml` files are ASCII only in code, comments and strings. No em dashes or curly quotes. Use CRLF line endings: `.gitattributes` sets `* -text`, so Git never converts them. Keep your editor on CRLF and never use `sed -i` from Git Bash; it strips the line endings. `python3 Tools/dev/crlf.py` repairs changed addon files. The two root instruction files are also ASCII/CRLF; text in `Tools/` and `docs/` uses UTF-8/LF.
 
 ## App driver
 
-The render harness is the app driver. It runs the addon's real Lua in the stub environments on fixture data, puts a module into a state, and screenshots it with headless Chrome, so no game client is needed. One command renders a feature and captures it:
+Iterate on the affected feature without launching the game. From the repository root:
 
-```bash
-RENDER_SCREEN=1920x1080 RENDER_SIZE=auto RENDER_LAYOUT=DPS \
-  bash Tools/render/shoot.sh hud_reference --ppu 1 --backdrop --strict --out ~/.capy/work/<code>/hud_1080.png
-```
+- **Behavior:** run the feature map's regression file with `lua5.1 Tools/regression/test-<name>.lua`. Exercise the event or setting a player uses. For restricted paths, include the transition into and out of the restriction, not just steady combat.
+- **Appearance:** choose the feature map's scene and settings. For example, `RENDER_SCREEN=1920x1080 RENDER_LAYOUT=DPS bash Tools/render/shoot.sh hud_reference --ppu 1 --strict` draws the real addon Lua on fixtures with LuaJIT and headless Chrome. Inspect the picture and the guard output. A render shows layout, not freedom from taint in the client.
+- **Evidence:** use [the verification guide](verify/SKILL.md) for captures and [the in-game checklist](docs/TESTING.md) for checks only Forever can settle. Update the feature map when adding, removing or renaming a feature, and the [statecharts](docs/statecharts/) when changing a charted flow.
 
-- [`docs/feature-map.md`](docs/feature-map.md) names the scene (a file in `Tools/render/scenes/`) and the `RENDER_*` variables for each feature. `RENDER_HUD_STYLE` is `Medallions` (the default) or `Frames`, `RENDER_LAYOUT` is `DPS`, `Tank` or `Healer`, and `RENDER_ARRANGEMENT` is `centred` or `spread`.
-- `--ppu` is pixels per unit. Set it to the screen's height over 1080 so the PNG has the screen's own pixels: `--ppu 1` at 1920x1080, `--ppu 1.3333333333` with `RENDER_SCREEN=5120x1440`.
-- `--strict` fails the run (exit 3, after the PNG is written) on text the page truncated, content that spills past its card, a grey-box texture log, or a stale `Tools/render/guard_allow.tsv` line for the scene. Read the printed log before you trust a picture.
-- It needs `luajit` and Google Chrome (`CHROME` overrides the binary). Without `--out`, the scene's JSON, page and PNG land in `Tools/render/out/`, which git ignores.
-- [`Tools/render/README.md`](Tools/render/README.md) lists every scene and variable. `python3 Tools/render/readme.py` retakes the rendered README pictures; the `game_*` in-game captures are kept.
+## Check and deliver
 
-The regression harness drives behaviour the same way without pixels. A behaviour test in `Tools/regression/` boots a module's `*_env.lua` stub environment on fixtures, sends it events such as combat, a target or a setting change, and asserts on the frames; the source guards, such as `test-comments.lua` and `test-shell-guard.lua`, scan the tree instead. Run one alone with `lua5.1 Tools/regression/test-<name>.lua`, or `luajit -joff` where Lua 5.1 is missing.
+Gate: bash scripts/gate.sh
 
-[`docs/statecharts/`](docs/statecharts/) charts the HUD style switch, the first-run setup, the arrangement and layout-class switch and the other flows it lists. A PR that changes one of those flows updates its chart in the same PR, and a PR that adds, renames or removes a player-facing feature updates its row in the feature map.
+1. Branch from `origin/staging` in a separate worktree. Keep one coherent change per pull request. Review the diff against `origin/staging` and get the project's cross-family review before opening the pull request. Explain changes to `.github/workflows/`, `.pkgmeta` or `Core/Tokens.lua` in its body.
+2. Run `bash scripts/gate.sh` from the root before every push, with `PR_TITLE`, `PR_BODY` or `PR_BODY_FILE`, and `PR_LABELS` set. Stage new files so pre-commit sees them. Do not install shared Git hooks. Leave `LUA` unset: the gate runs lint (including encoding and locale checks), the affected Lua tests and the Python suite. Focused tests speed up iteration; they do not replace the gate. Read its exit code, not the last line of a pipe.
+3. Target `staging` for squash merge. Use `type(scope): summary`, a `## Changelog` line starting `Added:`, `Changed:` or `Fixed:` (the `no changelog` label instead for docs or tooling only), and `## In-game checks`. Recheck edited pull request wording with `bash scripts/gate.sh lint` and the same variables.
+4. After each push, run the full default gate with the actual wording on the exact pushed commit. Post the `local gate` success status only for a clean `gate passed (all) at <commit>` on that commit. No pull request workflow runs the tests. See [Developing KstyleUI](docs/DEVELOPING.md) for pinned tools and how to post the mark; see [regression modes and budgets](Tools/regression/README.md) for test selection and worker limits.
+5. Releases are separate: `main` follows the owner's in-game pass on `staging`. Before pushing any release tag, including a hotfix, run `bash scripts/gate.sh release` on its exact commit and quote the passing final line. This runs every Lua and Python test file, not just affected files.
 
-## Line endings and encoding
+The default gate runs up to six Lua files or four Python files at once; leave shared worker limits in place. `KSTYLEUI_FULL=1` admits a large selection without raising those limits. For a release on a computer with at least 30 processors, allow ten processors and 17 GB of memory.
 
-- Every `.lua`, `.toc` and `.xml` file outside `Tools/` and `docs/` is an addon file: ASCII only, CRLF line endings. `.gitattributes` sets `* -text`, so git never rewrites line endings.
-- Write LF, then run `python3 Tools/dev/crlf.py` to convert every changed or untracked addon file (pass paths to convert only those). `--check` changes nothing and exits 1 for any addon file with LF endings. Never rewrite an addon file with Python's `read_text` and `write_text`; that turns CRLF into LF.
-- Files in `Tools/` and `docs/` use LF and may contain non-ASCII text. `python3 Tools/dev/crlf.py --check` checks tracked and changed text there; Python writers open with `newline="\n"`. CSV fields may retain embedded CRLF, but record endings use LF.
-
-## The game and its test copy
-
-The addons load from a checkout through `bash Tools/dev/link-addons.sh` (`--dry-run` changes nothing; `KSTYLEUI_LIVE` and `WOW_ADDONS` override the folders). The repainted icons are a loose-file texture pack, not an addon: `python3 Tools/icons/iconset.py` builds and installs it, and [`docs/icons.md`](docs/icons.md) has the details. `install --dry-run` lists what it would copy into the game folder.
-
-## Forever API
-
-- Blizzard's UI source for the live build (1.60.1.70862, commit `9dc84f0`) is the `forever` branch of [Gethe/wow-ui-source](https://github.com/Gethe/wow-ui-source/tree/forever). Grep it before you use any API, event, template, mixin, CVar or Blizzard frame name, and name the proving file in the pull request. `Blizzard_APIDocumentationGenerated/` lists every C API with its `SecretReturns` and `SecretArguments` flags.
-- Forever does not load the `Blizzard_Deprecated*` folders. Forever overrides live in `Camelot/` subfolders.
-- Code defensively, as the spec's "Build mode" section says: check that an API exists before you call it, check `issecretvalue` before any comparison, and fall back to a safer path when the preferred one is unavailable.
-
-## Conventions the tests enforce
-
-Each is a test; its failure message names the fix.
-
-- A TOC-loaded Lua file has one comment, its first line (`test-comments.lua`). Contracts go in `docs/` or the module's README.
-- Make font strings with `K.Widgets.FontString(parent, layer)`, never a raw `CreateFontString` (`test-fontstrings.lua`).
-- Place a secure overlay with `K.Widgets.Cover(overlay, visual)`, never by anchoring to the region it covers (the stub raises the game's error).
-- Insert tracking thin spaces only where `KstyleUI.Locale.TrackMode(fontPath)` answers `"space"`; headings use the `caps` role (`test-thin-space.lua`).
-- Never read state back from regions inside engine aura buttons; keep the wanted state yourself (`test-unitframes-auras.lua`).
-- Register one event handler per owner and event in `Core/Events.lua`; give each piece of work its own owner (`Tools/regression/event_guard.lua`).
-- Add no top-level local to `Core/Setup/Layouts.lua` (`test-layouts-locals.lua` keeps a margin under Lua's 200-local limit).
-- The stubs raise what the client raises: nil rects, nil and NaN scales, and methods a Font object lacks (`test-stub-refusals.lua`); restricted measurements and secret values too (`test-stubs.lua`).
-- In any Lua file, list folders and files and make temp folders only through `Tools/regression/fs.lua`, never `io.popen`, `os.execute` or `os.tmpname`, and open files only with a literal binary mode such as `"rb"` or `"wb"`, never `io.lines` or `io.input` (`test-shell-guard.lua`).
-
-## Learned mistakes
-
-- Piping `run-all.sh` or a test into `tail` hid two failures. Read the exit code of every check. Ends: judgment.
-- A `test-perf` budget set from LuaJIT times failed on CI, and a new test took 53 s and 10 GB under Lua 5.1 against 0.5 s under LuaJIT. Decide a push from `run-all.sh` with no `LUA` set, never from `LUA=luajit`. Ends: judgment.
-
-## How we work
-- Minimal code: if it can be done in a few lines, do it in a few lines. Add dependencies, frameworks or abstractions only when the task truly needs them; prefer deleting to adding.
+If changing `scripts/gate.sh`, `Tools/regression/run-all.sh` or `Tools/regression/run_all.py`, include native Windows exit codes for `bash scripts/gate.sh lint` and `bash scripts/gate.sh lua --affected origin/staging`.
