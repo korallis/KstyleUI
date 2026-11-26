@@ -63,7 +63,9 @@ def snapshot(folder):
 class CascExportTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self._tmp.name)
+        # resolve(): on macOS the temp folder is a /var link to /private/var, and the export's absolute() of a
+        # relative path reads the real one, so the fake tools would not match and would run unwrapped.
+        self.root = Path(self._tmp.name).resolve()
         self.wow = self.root / "World of Warcraft"
         (self.wow / "Data" / "data").mkdir(parents=True)
         (self.wow / ".build.info").write_text(BUILD_INFO, encoding="utf-8")
