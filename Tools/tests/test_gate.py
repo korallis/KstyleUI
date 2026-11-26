@@ -140,29 +140,46 @@ class GateTest(unittest.TestCase):
         result = subprocess.run(["bash", str(GATE), "nonsense"], cwd=REPO, capture_output=True, text=True)
         self.assertEqual(result.returncode, 2)
 
-    def test_release_group_runs_lint_every_lua_file_and_the_python_suite(self):
-        # The owner's ruling: a pull request runs the tests its change can reach; a release runs every test first.
+    def run_release_gate(self, failing=""):
+        """Run gate.sh release beside stand-ins that log each command; return (exit code, stdout lines, logged commands)."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             for folder in ("scripts", "Tools/regression", "bin"):
                 (root / folder).mkdir(parents=True)
             (root / "scripts/gate.sh").write_bytes(GATE.read_bytes())
-            (root / "scripts/check-suppressions.sh").write_text("exit 0\n", encoding="utf-8", newline="\n")
-            (root / "bin/pre-commit").write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8", newline="\n")
-            os.chmod(root / "bin/pre-commit", 0o755)
+            log = 'echo "$(basename "$0") $*" >> gate.log\n[ "${GATE_FAIL:-}" != "$(basename "$0")" ]\n'
+            for name in ("bin/pre-commit", "bin/py-stub", "scripts/check-suppressions.sh"):
+                (root / name).write_text("#!/usr/bin/env bash\n" + log, encoding="utf-8", newline="\n")
+                os.chmod(root / name, 0o755)
             (root / "Tools/regression/run-all.sh").write_text(
-                'pick_python() { py=(true); }\n'
-                'if [ "${BASH_SOURCE[0]}" = "$0" ]; then echo "lua args=[$*] full=${KSTYLEUI_FULL:-unset}"; fi\n',
-                encoding="utf-8", newline="\n")
-            env = {key: value for key, value in os.environ.items() if key != "KSTYLEUI_FULL"}
-            env["PATH"] = str(root / "bin") + os.pathsep + env["PATH"]
-            result = subprocess.run(["bash", "scripts/gate.sh", "release"], cwd=root, env=env, capture_output=True, text=True)
-        lines = result.stdout.splitlines()
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("lua args=[] full=1", lines)
-        for step in ("crlf --check", "pre-commit", "strings.py check", "python suite"):
-            self.assertIn("== gate: " + step, lines)
-        self.assertEqual(lines[-1], "gate passed (release)")
+                'pick_python() { py=(py-stub); }\n'
+                'if [ "${BASH_SOURCE[0]}" = "$0" ]; then\n'
+                '\techo "run-all.sh [$*] KSTYLEUI_FULL=${KSTYLEUI_FULL:-unset} LUA=${LUA-unset}" >> gate.log\n'
+                'fi\n', encoding="utf-8", newline="\n")
+            env = {key: value for key, value in os.environ.items() if key not in ("KSTYLEUI_FULL", "GATE_BASE")}
+            env.update(PATH=str(root / "bin") + os.pathsep + env["PATH"], LUA="luajit", GATE_FAIL=failing)
+            result = subprocess.run(["bash", "scripts/gate.sh", "release", "--shard", "1/8"], cwd=root, env=env,
+                                    capture_output=True, text=True)
+            return result.returncode, result.stdout.splitlines(), (root / "gate.log").read_text(encoding="utf-8").splitlines()
+
+    def test_release_group_runs_lint_every_lua_file_and_the_python_suite(self):
+        # The owner's ruling: a pull request runs the tests its change can reach; a release runs every test first.
+        code, lines, commands = self.run_release_gate()
+        self.assertEqual(commands, [
+            "py-stub Tools/dev/crlf.py --check",
+            "pre-commit run --all-files --show-diff-on-failure",
+            "py-stub Tools/locale/strings.py check",
+            "check-suppressions.sh origin/staging",
+            "run-all.sh [] KSTYLEUI_FULL=1 LUA=unset",
+            "py-stub -m unittest discover -s Tools/tests",
+        ])
+        self.assertEqual((code, lines[-1]), (0, "gate passed (release)"))
+
+    def test_release_group_fails_when_one_check_fails(self):
+        code, lines, commands = self.run_release_gate(failing="pre-commit")
+        self.assertEqual(code, 1)
+        self.assertNotIn("gate passed (release)", lines)
+        self.assertEqual(len(commands), 6, "the later checks still run")
 
     def test_ci_calls_the_gate_in_each_job_that_has_a_group(self):
         text = CHECKS.read_text(encoding="utf-8")
