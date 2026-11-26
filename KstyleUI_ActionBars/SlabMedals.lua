@@ -737,7 +737,7 @@ function Medals.Arbitrate(group, engine, gate)
 		if own then
 			own.owner, own.hushed = group, nil
 			Medals.Gate(own)
-			if own.base == 0 then
+			if own.base == 0 or not own:IsVisible() then
 				return
 			end
 		end

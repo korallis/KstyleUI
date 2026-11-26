@@ -139,7 +139,11 @@ function Unleashed.Dress(piece, spec, form)
 			end)
 			local taken = ns.Slab.Group(set.awake.lit)
 			ns.Slab.Fade(taken, 1, 1, 0.01)
-			taken:SetScript("OnPlay", function() set.up, state.lit = true, true end)
+			taken:SetScript("OnPlay", function()
+				if set.awake:IsVisible() then
+					set.up, state.lit = true, true
+				end
+			end)
 			set.awake.lit:AddAuraAssignedAnimation(taken)
 			set.taken = taken
 		end

@@ -116,8 +116,10 @@ local function Warnings(ns, class)
 		check(e.flicker, "ember watch")
 	end
 	check(ns.SlabStorm and ns.SlabStorm.state.flicker, "storm orb")
-	for _, loop in ipairs(ns.SlabStorm and ns.SlabStorm.state.loops or {}) do
-		if rawget(loop.group, "low") then check(loop.group, "storm spark") end
+	-- The storm's loops are the halo's clouds, all on the halo's one slot, and then a spark on each orb's own slot, whatever builds its loop.
+	local storm = ns.SlabStorm and ns.SlabStorm.state.loops or {}
+	for _, loop in ipairs(storm) do
+		if loop.button ~= storm[1].button then check(loop.group, "storm spark") end
 	end
 	for _, socket in ipairs(ns.Totems and ns.Totems.state.sockets or {}) do
 		check(socket.spire and socket.spire.flicker.anim, "totem spire")
@@ -206,7 +208,7 @@ end
 for _, class in ipairs(CLASSES) do
 	assert(named[class] > 0, class .. ": the walk by caller meets a warning")
 end
-for _, what in ipairs({ "ember watch", "storm orb", "totem spire", "rune stone", "Inner Fire", "crestMark refresh cue", "crestCurse refresh cue", "crestFlameShock refresh cue",
+for _, what in ipairs({ "ember watch", "storm orb", "storm spark", "totem spire", "rune stone", "Inner Fire", "crestMark refresh cue", "crestCurse refresh cue", "crestFlameShock refresh cue",
 	"crestSting burn", "crestYourSpell burn", "crestCurse burn", "crestDemon burn", "crestHipLeft flame", "crestHipRight flame" }) do
 	assert(met[what], "the walk by caller meets the " .. what)
 end
