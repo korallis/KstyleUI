@@ -91,13 +91,13 @@ for _, scale in ipairs({ 768 / 1080, 1 }) do
 	end
 end
 
--- The edit box opens inside the card over every docked window's last lines, and Blizzard's own anchors come back when the module turns off.
+-- Every docked window's edit box hangs 2 units under the window, never over its lines (the captain's report: "the edit box overlaps the chat"), and Blizzard's own right anchor comes back when the module turns off.
 do
 	local env, K = C.New()
 	C.Enable(env, K)
 	for _, frame in ipairs({ env.ChatFrame1, env.ChatFrame2 }) do
 		local p, rel, relp, x, y = frame.editBox:GetPoint(1)
-		assert(p == "TOPLEFT" and rel == frame and relp == "BOTTOMLEFT" and x == -5 and y > 0, frame:GetName() .. "'s box opens over the window's foot, got " .. tostring(y))
+		assert(p == "TOPLEFT" and rel == frame and relp == "BOTTOMLEFT" and x == -5 and y == -2, frame:GetName() .. "'s box hangs under the window, got " .. tostring(y))
 	end
 	K.Modules.Disable("Chat")
 	env.RunTimers()
@@ -118,7 +118,9 @@ do
 	env.FCF_DockFrame(whisper)
 	env.RunTimers()
 	local p, rel, _, _, y = whisper.editBox:GetPoint(1)
-	assert(p == "TOPLEFT" and rel == whisper and y > 0, "a window opened into the dock gets the overlay box, got " .. tostring(y))
+	local p2, rel2, relp2, x2 = whisper.editBox:GetPoint(2)
+	assert(p == "TOPLEFT" and rel == whisper and y == -2, "a window opened into the dock gets its box under the window, got " .. tostring(y))
+	assert(p2 == "TOPRIGHT" and rel2 == whisper and relp2 == "BOTTOMRIGHT" and x2 == 8, "and the box ends on the window's own right edge, not the scroll bar's")
 	env.FCF_UnDockFrame(env.ChatFrame2)
 	env.RunTimers()
 	local _, _, _, _, hung = env.ChatFrame2.editBox:GetPoint(1)
