@@ -69,7 +69,7 @@ The choice is conservative in these cases:
 - The source guards in `GUARDS` (the scanners and loaders that read the whole tree) run on every affected run, even when nothing they read changed.
 - A module's own TOC or XML only lists that module's files, so a change to `KstyleUI_<Module>/*.toc` or `*.xml` selects the tests that load that module's Lua files, not every test that walks the TOCs.
 
-What it cannot see: a file a test reads through a path it builds at run time is recorded when the test last passed, not when it will next run; a dependency that appeared after the record was made is missed until the test runs again. The record also cannot see files outside the repository; no test reads one. CI runs every file, so a miss here is caught there, and the run says so on its last line.
+What it cannot see: a file a test reads through a path it builds at run time is recorded when the test last passed, not when it will next run; a dependency that appeared after the record was made is missed until the test runs again. The record also cannot see files outside the repository; no test reads one. `bash scripts/gate.sh release` runs every file before a release, so a miss here is caught there, and the run says so on its last line.
 
 It uses `JOBS` files at a time, a third of the CPUs by default (6 on the 18-CPU Mac). The full run asks for all the CPUs, and the worker slots below hold it to their count.
 
