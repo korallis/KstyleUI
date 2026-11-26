@@ -16,8 +16,6 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parent / "regression"))
-import affected  # noqa: E402
 
 JOBS = 4
 HELPERS = ("Tools/tests/run_suite.py", "Tools/tests/subprocess_budget.py")
@@ -68,6 +66,8 @@ def main(argv):
     names = sorted(path.name for path in folder.glob("test_*.py"))
     changes = None
     if args.base and os.environ.get("KSTYLEUI_FULL") != "1":
+        sys.path.insert(0, str(HERE.parent / "regression"))
+        import affected
         try:
             changes = affected.changed_files(args.base)[1]
         except (OSError, RuntimeError) as error:

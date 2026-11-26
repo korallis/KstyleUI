@@ -11,9 +11,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import run_suite
+
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
-import run_suite  # noqa: E402
 
 NAMES = ["test_check_pr.py", "test_crlf.py", "test_fonts.py", "test_gate.py"]
 
