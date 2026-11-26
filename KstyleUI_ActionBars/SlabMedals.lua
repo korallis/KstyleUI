@@ -635,6 +635,9 @@ local function Sigil(r, lit, key, family, color, size, bloom)
 		button.flash, button.flashed = Medals.Steps(glow, FLASH), slot
 		slot.container = lit.flash.lit.container
 		slot:AddAuraShownAnimation(button.flash)
+		button.flash:SetScript("OnPlay", function()
+			lit.flash.late = lit.flash.base == 0 and Now() + FLASH[1][3] + FLASH[2][3] or nil
+		end)
 	end
 	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
 	local art = "sigil" .. family.sigil
@@ -999,7 +1002,7 @@ function Medals.Rest()
 				Medals.Reveal(each, each == pick and 1 or 0)
 			end
 		elseif gate.moving then
-			Medals.Gate(gate, mode == true and 1 or 0)
+			Medals.Reveal(gate, mode == true and 1 or 0)
 		else
 			Medals.Reveal(gate, (dark or bound ~= nil and bound ~= mode) and 0 or 1)
 		end

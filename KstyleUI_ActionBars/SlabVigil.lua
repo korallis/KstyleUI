@@ -70,8 +70,10 @@ local function Ring(piece, anchor, form, _, n)
 	end
 	for _, seat in ipairs(piece.ring) do
 		local a = rad(seat.angle)
-		seat:ClearAllPoints()
-		seat:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, ORBIT * sin(a)), Widgets.Snap(anchor, ORBIT * cos(a)))
+		for _, each in ipairs({ seat, seat.twin }) do
+			each:ClearAllPoints()
+			each:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, ORBIT * sin(a)), Widgets.Snap(anchor, ORBIT * cos(a)))
+		end
 	end
 	return n
 end

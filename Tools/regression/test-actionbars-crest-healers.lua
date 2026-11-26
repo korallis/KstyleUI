@@ -299,6 +299,19 @@ do
 	assert(bloom.unfurl and Registered(moving) and not Registered(calm), "the engine unfurls one copy of the leaves as Clearcasting shows, and never the other")
 	assert(moving.container ~= calm.container and moving.container ~= bloom.lit.container, "each copy has an aura feed of its own")
 	assert(bloom.moving:GetAlpha() == 1 and bloom.calm:GetAlpha() == 0, "at Full the unfurling copy shows")
+	-- Both copies stand on the same ring: a still leaf with no anchor would draw nothing at Calm and Off.
+	Slots.Set(env, "player", { { id = 16870, count = 1, start = 0, duration = 15 } })
+	local placed = {}
+	for k, leaf in ipairs(bloom.ring) do
+		local a, b = { leaf:GetPoint(1) }, { assert(leaf.twin, "leaf " .. k .. " has a still copy"):GetPoint(1) }
+		assert(a[1] == "CENTER" and b[1] == "CENTER" and a[2] == b[2] and a[4] == b[4] and a[5] == b[5], "still leaf " .. k .. " stands where its unfurling copy stands")
+		assert(leaf.twin:GetParent() == calm and leaf:GetParent() ~= calm, "leaf " .. k .. ": one copy in each slot")
+		placed[a[4] .. ":" .. a[5]] = true
+	end
+	local seats = 0
+	for _ in pairs(placed) do seats = seats + 1 end
+	assert(#bloom.ring == 8 and seats == 8, "eight leaves at eight places round the ring, not " .. seats)
+	Slots.Set(env, "player", nil)
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "Calm shows the still copy")
 	K.Options.Write("Medallions", "motion", "full")
@@ -306,6 +319,23 @@ do
 	env.SetCombat(true)
 	K.Options.Write("Medallions", "motion", "off")
 	assert(Registered(moving) and bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "a level chosen under hidden values shows at once: the copy the engine still unfurls is dark")
+	-- An unfurl that began unseen is not shown half grown: Full inside its time keeps the still leaves, and the moving copy takes over when it has ended.
+	env.GetTime = function() return env._now end
+	local after, armed = env.C_Timer.After, {}
+	env.C_Timer.After = function(_, fn) armed[#armed + 1] = fn end
+	Slots.Set(env, "player", { { id = 16870, count = 1, start = 0, duration = 15 } })
+	env._engine = true
+	assert(bloom.unfurl:IsPlaying(), "the engine unfurls the dark copy as Clearcasting shows")
+	env._engine = nil
+	K.Options.Write("Medallions", "motion", "full")
+	assert(bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "Off to Full inside the unfurl: the still leaves stay and the half-grown copy stays dark")
+	env._now = env._now + 1
+	for _, fn in ipairs(armed) do fn() end
+	assert(bloom.moving:GetAlpha() == 1 and bloom.calm:GetAlpha() == 0, "and the moving copy takes over once the unfurl is over")
+	K.Options.Write("Medallions", "motion", "off")
+	K.Options.Write("Medallions", "motion", "full")
+	assert(bloom.moving:GetAlpha() == 1 and bloom.calm:GetAlpha() == 0, "an unfurl whose time is over delays nothing")
+	env.C_Timer.After = after
 	env._aurasSecret = false
 	env.SetCombat(false)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
@@ -950,6 +980,27 @@ do
 	env.RunTimers()
 	assert(calls == 2, "Full to Calm resets the shared container once (off, on), not " .. calls .. " times")
 	assert(flashed._shownAnimations[1] == sigil.flash and rim.lit.flash:GetAlpha() == 0, "Calm darkens the flash's layer and leaves the engine its group")
+	-- A flash that began unseen is not shown half played: Full inside its time keeps its layer dark, with the sigil still up.
+	env.GetTime = function() return env._now end
+	env._aurasSecret = true
+	env.SetCombat(true)
+	local after, armed = env.C_Timer.After, {}
+	env.C_Timer.After = function(_, fn) armed[#armed + 1] = fn end
+	Slots.Set(env, "player", { { id = 10060, count = 0, icon = 135939, start = 0, duration = 15 } })
+	env._engine = true
+	assert(sigil:IsShown() and sigil.flash:IsPlaying(), "the engine flashes the dark slot as the cooldown shows")
+	K.Options.Write("Medallions", "motion", "full")
+	assert(rim.lit.flash:GetAlpha() == 0 and sigil:IsShown() and sigil:GetEffectiveAlpha() > 0, "Calm to Full inside the flash: its layer stays dark and the sigil stays up")
+	env._engine = nil
+	env._now = env._now + 1
+	for _, fn in ipairs(armed) do fn() end
+	assert(rim.lit.flash:GetAlpha() == 1, "and the layer shows again once the flash is over")
+	K.Options.Write("Medallions", "motion", "calm")
+	K.Options.Write("Medallions", "motion", "full")
+	assert(rim.lit.flash:GetAlpha() == 1, "a flash whose time is over hides nothing")
+	env.C_Timer.After = after
+	env._aurasSecret = false
+	env.SetCombat(false)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
