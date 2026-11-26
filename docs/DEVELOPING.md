@@ -50,6 +50,35 @@ The gate rejects tracked evidence images: put them in the PR body; published pic
 
 With no options the `lua` group runs only the Lua test files that load a file you changed, plus the source guards, and prints what it chose and why. `bash Tools/regression/run-all.sh` with no argument runs every file, as the release run does.
 
+### Set up the gate on macOS
+
+Start with Git, the Xcode Command Line Tools, and Homebrew's `luajit`, `luarocks` and `uv` packages (`brew install luajit luarocks uv`). From the repository root, install the gate tools in your user directory:
+
+```bash
+gate_tools="$HOME/.local/share/wow-dev"
+PREFIX="$gate_tools" bash Tools/dev/install-lua51.sh
+luarocks --lua-version=5.1 --lua-dir="$(brew --prefix luajit)" --tree "$gate_tools/rocks" install luacheck 1.2.0
+if [ ! -x "$gate_tools/venv/bin/python" ]; then
+    uv venv --python 3.12 "$gate_tools/venv"
+fi
+uv pip install --python "$gate_tools/venv/bin/python" 'pre-commit==4.7.0' 'Pillow==13.0.0'
+```
+
+In each shell that runs the gate, put those tools first and leave `LUA` unset:
+
+```bash
+export PATH="$HOME/.local/share/wow-dev/bin:$HOME/.local/share/wow-dev/rocks/bin:$HOME/.local/share/wow-dev/venv/bin:$PATH"
+unset LUA
+lua5.1 -v
+luacheck --version
+pre-commit --version
+bash scripts/gate.sh
+```
+
+LuaJIT runs `luacheck`; the regression runner uses Lua 5.1.5. The gate finds the Python environment at its default path unless `KSTYLEUI_PYTHON` selects another interpreter. Pillow lets the image tests run instead of skipping for lack of Pillow.
+
+On a new setup the Lua runner may select every test to learn which files each test uses. If it refuses because another run holds worker slots, wait for that run or use `KSTYLEUI_FULL=1 bash scripts/gate.sh` to let the larger selection proceed. The worker slots and all checks still apply.
+
 ### Pull requests are checked locally
 
 No workflow runs for a pull request or for a push to `staging`. The gate on the computer that made the change is the only check, so run it on the exact commit you push.
