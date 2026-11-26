@@ -26,7 +26,7 @@ These apply to every task in every phase:
 - Protected work in combat goes through `KstyleUI.Combat.Queue`.
 - Nothing copied from another addon. Every generated asset gets a row in `Media/PROVENANCE.md`.
 - Branch `<type>/<scope>-<slug>` from `origin/staging`, in its own worktree under `~/KstyleUI.worktrees/`. PR into `staging`, one coherent piece of work with no line limit (waived by the owner on 2026-11-07), title `type(scope): summary`, body with a `## Changelog` line (`Added:`, `Changed:` or `Fixed:`) or the `no changelog` label.
-- Before opening a PR: `bash scripts/gate.sh`, then one cross-family review of the diff against `origin/staging`.
+- For the local gate and the independent review by the latest GPT Sol model, follow [Check and deliver](../../../AGENTS.md#check-and-deliver).
 
 ## Review Focus
 

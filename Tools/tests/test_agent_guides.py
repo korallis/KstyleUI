@@ -11,6 +11,7 @@ class AgentGuidesTest(unittest.TestCase):
         guide = (ROOT / "AGENTS.md").read_bytes()
         self.assertTrue(guide == (ROOT / "CLAUDE.md").read_bytes(),
                         "Copy AGENTS.md to CLAUDE.md after editing the guide.")
+        self.assertTrue(guide.strip(), "Both guides must contain instructions.")
         self.assertTrue(guide.isascii(), "Save the guide as ASCII.")
         self.assertTrue(guide.endswith(b"\r\n"), "End the guide with CRLF.")
         lines = guide.split(b"\r\n")

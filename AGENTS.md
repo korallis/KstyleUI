@@ -17,7 +17,7 @@ These rules apply to every module. Edit `AGENTS.md` and copy it to `CLAUDE.md`; 
 
 **Forever only.** Do not add retail branches. Forever uses classic-era spell IDs; retail IDs do not match. Look IDs up on Wowhead Forever. The client does not load Blizzard's deprecated shims: use `C_SpellBook.IsSpellKnown`, not `IsPlayerSpell`.
 
-Before using an API, event, template, mixin, CVar or Blizzard frame name, find it in the matching [Forever UI source](https://github.com/Gethe/wow-ui-source/tree/forever). Use the source revision recorded in `Tools/data/forever_api_contracts.json`. Check `Camelot/` overrides and the secret argument/return flags in `Blizzard_APIDocumentationGenerated/`. Name the proving file in the pull request. Check availability at runtime; if safety is uncertain, skip the operation. Do not silence an unknown Blizzard global in `.luacheckrc`.
+Before using an API, event, template, mixin, CVar or Blizzard frame name, find it in the matching [Forever UI source](https://github.com/Gethe/wow-ui-source/tree/forever). Use the source revision recorded in `Tools/data/forever_api_contracts.json`. Check `Camelot/` overrides and the secret argument/return flags in `Blizzard_APIDocumentationGenerated/`. If the source does not name an engine CVar, use the catalog's [build-matched client proof](docs/API_CONFORMANCE.md#cvar-proof) and check `GetCVarInfo` before writing. Cite the source file or native proof in the pull request. Check availability at runtime; if safety is uncertain, skip the operation. Do not silence an unknown Blizzard global in `.luacheckrc`.
 
 ## Design and implementation
 
@@ -40,7 +40,7 @@ Iterate on the affected feature without launching the game. From the repository 
 
 Gate: bash scripts/gate.sh
 
-1. Branch from `origin/staging` in a separate worktree. Keep one coherent change per pull request. Review the diff against `origin/staging` and get the project's cross-family review before opening the pull request. Explain changes to `.github/workflows/`, `.pkgmeta` or `Core/Tokens.lua` in its body.
+1. Branch from `origin/staging` in a separate worktree. Keep one coherent change per pull request. Before opening the pull request, have the latest GPT Sol model independently review the diff against `origin/staging`. Explain changes to `.github/workflows/`, `.pkgmeta` or `Core/Tokens.lua` in its body.
 2. Run `bash scripts/gate.sh` from the root before every push, with `PR_TITLE`, `PR_BODY` or `PR_BODY_FILE`, and `PR_LABELS` set. Stage new files so pre-commit sees them. Do not install shared Git hooks. Leave `LUA` unset: the gate runs lint (including encoding and locale checks), the affected Lua tests and the Python suite. Focused tests speed up iteration; they do not replace the gate. Read its exit code, not the last line of a pipe.
 3. Target `staging` for squash merge. Use `type(scope): summary`, a `## Changelog` line starting `Added:`, `Changed:` or `Fixed:` (the `no changelog` label instead for docs or tooling only), and `## In-game checks`. Recheck edited pull request wording with `bash scripts/gate.sh lint` and the same variables.
 4. After each push, run the full default gate with the actual wording on the exact pushed commit. Post the `local gate` success status only for a clean `gate passed (all) at <commit>` on that commit. No pull request workflow runs the tests. See [Developing KstyleUI](docs/DEVELOPING.md) for pinned tools and how to post the mark; see [regression modes and budgets](Tools/regression/README.md) for test selection and worker limits.

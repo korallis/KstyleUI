@@ -25,4 +25,4 @@ A change to a TOC "## Version" line or to CODE_BUILD also needs the "release" la
 - [ ] `pre-commit run --all-files`
 - [ ] `luacheck .` and `python3 Tools/hooks/check_toc.py`
 - [ ] `bash scripts/gate.sh` with `PR_TITLE`, `PR_BODY_FILE` and `PR_LABELS` set, on the pushed commit, then the `local gate` mark (no workflow runs the tests)
-- [ ] One cross-family review of the diff against `origin/staging`
+- [ ] One independent review of the diff against `origin/staging` by the latest GPT Sol model

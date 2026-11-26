@@ -416,7 +416,7 @@ The checks are KstyleUI's own implementations of NaowhForever's checks. NaowhFor
 | `pr-rules` | CI | A PR that changes shipped files without a `## Changelog` line starting `Added:`, `Changed:` or `Fixed:`, or that changes a TOC version outside a release |
 | `title` | CI | A PR title that is not `type(scope): summary` |
 
-`Tools/regression/run-all.sh` runs every `test-*.lua` with `$LUA`. On the Mac use `LUA=luajit`. CI on Ubuntu installs `lua5.1`. One Lua module, `Tools/regression/toc_files.lua`, walks the TOCs and XML includes, and every test and the package check uses it. GitHub Actions are pinned by commit SHA, set `persist-credentials: false` and request minimal permissions.
+Use the [local gate](../../../AGENTS.md#check-and-deliver) for pull requests and releases, with `LUA` unset. One Lua module, `Tools/regression/toc_files.lua`, walks the TOCs and XML includes, and every test and the package check uses it. GitHub Actions are pinned by commit SHA, set `persist-credentials: false` and request minimal permissions.
 
 ## In-game testing
 
@@ -435,7 +435,7 @@ Every PR description lists its in-game checks. A release candidate also runs wit
 ## Branches and releases
 
 - Each task gets a branch named `<type>/<scope>-<slug>`, such as `feat/unitframes-player-frame`, in its own worktree under `~/KstyleUI.worktrees/`.
-- Before a PR opens, the task's checks and tests pass locally and one cross-family review of the diff against `origin/staging` runs.
+- Before a PR opens, run the [local gate](../../../AGENTS.md#check-and-deliver) and have the latest GPT Sol model independently review the diff against `origin/staging`.
 - A PR targets `staging`, covers one coherent piece of work, and is squash-merged. KstyleUI has no PR line limit: the owner waived the global 400-line rule on 2026-11-07.
 - When the owner confirms in-game tests pass on `staging`, `staging` fast-forwards to `main`, `bash scripts/gate.sh release` (lint, every Lua test file and the Python suite) passes on that commit, and `main` is tagged `vX.Y.Z`. The tag starts the release workflow, which runs no test suite: it packages with the BigWigs packager and uploads to CurseForge, Wago and GitHub. The CurseForge and Wago API tokens live in GitHub Actions secrets, set by the owner. They are never printed or committed.
 
