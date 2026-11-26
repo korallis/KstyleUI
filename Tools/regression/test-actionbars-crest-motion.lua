@@ -125,10 +125,7 @@ local function Warnings(ns, class)
 		check(socket.spire and socket.spire.flicker.anim, "totem spire")
 	end
 	local crest = ns.SlabTrackers.state.forms.crest
-	for _, piece in pairs(crest and crest.pieces or {}) do
-		local key = tostring(piece.spec and piece.spec.key)
-		check(piece.gutter, "rune stone")
-		check(piece.ring and piece.flicker, "Inner Fire")
+	local function walk(piece, key)
 		for _, lit in ipairs(piece.lits or { piece.lit }) do
 			check(lit.flicker, key .. " refresh cue")
 			-- The looks that burn with the one flicker while their aura shows: a fuse's head, and a flame or a crackle on a warrior's or paladin's hip.
@@ -136,6 +133,16 @@ local function Warnings(ns, class)
 			for _, group in ipairs(lit.awake and lit.awake.lit.loops or {}) do
 				if rawget(group, "low") then check(group, key .. " flame") end
 			end
+		end
+	end
+	for _, piece in pairs(crest and crest.pieces or {}) do
+		local key = tostring(piece.spec and piece.spec.key)
+		check(piece.gutter, "rune stone")
+		check(piece.ring and piece.flicker, "Inner Fire")
+		walk(piece, key)
+		-- A piece with cues on its own art is built three times, once for each motion level, and each copy carries the same callers.
+		for _, twin in ipairs(piece.twins or {}) do
+			walk(twin, key)
 		end
 	end
 	return n
@@ -170,9 +177,49 @@ local function Drive(env, ns, class)
 	end
 end
 
-local flickers, steps, named = {}, { enter = 0, exit = 0, loop = 0 }, {}
+-- A piece with cues on its own art has two more copies, one for each other motion level. A copy is the slots alone: it sits exactly on the piece, each slot under a layer
+-- of its own, and with those layers dark nothing of a copy reaches the screen, so the piece's chrome is drawn once.
+local function Copies(env, ns, class)
+	local n = 0
+	local function Rect(region)
+		local x, y, w, h = region:GetRect()
+		return string.format("%.2f,%.2f,%.2f,%.2f", x, y, w, h)
+	end
+	local function Seen(frame, what)
+		for _, region in ipairs({ frame:GetRegions() }) do
+			assert(not (region:IsVisible() and region:GetEffectiveAlpha() > 0), what .. " draws a part of its own (" .. tostring(region._origin) .. ")")
+		end
+		for _, child in ipairs({ frame:GetChildren() }) do
+			Seen(child, what)
+		end
+	end
+	env._resolveRects = true
+	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+		for i, twin in ipairs(piece.twins or {}) do
+			local what = class .. " " .. piece.spec.key .. " copy " .. i
+			assert(#twin.lits == #piece.lits and twin:IsShown() == piece:IsShown(), what .. " has the piece's slots and shows with it")
+			for k, lit in ipairs(piece.lits) do
+				local copy = twin.lits[k]
+				assert(lit.hold and copy.hold and lit.hold ~= copy.hold and lit.hold:GetAlpha() == 1 and copy.hold:GetAlpha() == 0, what .. ": the piece's own slot shows and the copy's is dark")
+				assert(copy.container ~= lit.container, what .. " has an aura feed of its own")
+				if piece:IsShown() then
+					assert(Rect(copy) == Rect(lit), what .. ": slot " .. k .. " sits at " .. Rect(copy) .. ", not on the piece's at " .. Rect(lit))
+				end
+			end
+			env._engine = true
+			Seen(twin, what)
+			env._engine = nil
+			n = n + 1
+		end
+	end
+	env._resolveRects = nil
+	return n
+end
+
+local flickers, steps, named, copies = {}, { enter = 0, exit = 0, loop = 0 }, {}, {}
 for _, class in ipairs(CLASSES) do
 	local env, _, ns = New(class)
+	copies[class] = Copies(env, ns, class)
 	Drive(env, ns, class)
 	named[class] = Warnings(ns, class)
 	flickers[class] = 0
@@ -214,6 +261,9 @@ for _, what in ipairs({ "ember watch", "storm orb", "storm spark", "totem spire"
 end
 assert(flickers.WARRIOR > 0 and flickers.HUNTER > 0 and flickers.SHAMAN > 0 and flickers.WARLOCK > 0, "the walk meets the flicker on warriors, hunters, shamans and warlocks")
 assert(steps.enter > 0 and steps.exit > 0 and steps.loop > 0, "and steps of all three kinds")
+for _, class in ipairs({ "HUNTER", "WARLOCK", "MAGE", "PRIEST", "SHAMAN", "DRUID" }) do
+	assert(copies[class] > 0, class .. ": a ranged crest has pieces with copies for the other motion levels")
+end
 
 local function Has(list, item)
 	for _, each in ipairs(list) do
@@ -288,41 +338,115 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- Under hidden values the engine keeps the flare it was given, and Lua may not touch it: the flare's own layer, which the addon owns, goes dark for as long as the slot is
--- bound for another motion level, so Calm and Off show no moving flare, and the slot is bound again when the restriction ends.
+-- Under hidden values the engine keeps the animations it was given, and Lua may not touch them. A medal's flare therefore has two slots, each under a layer the addon
+-- owns: one holds Full's flare and one Calm's still mark, whatever the level in use. A level changed in combat shows at once, because the layer bound for it lights
+-- and the other goes dark; Off darkens both. The slots are bound again when the restriction ends.
 do
 	local env, K, ns = New("WARRIOR")
 	K.Options.Write("Medallions", "restingCrest", false)
 	env.RunTimers()
 	local fed = assert(Piece(ns, "crestEnrage"), "an aura medal")
-	local gate, slot = fed.lit.flareGate, fed.lit.flareGate.lit
-	assert(gate:GetAlpha() == 1 and Has(slot._assignedAnimations, slot.flare.play), "at Full the flare's layer shows and the engine has the flare")
+	local gate = fed.lit.flareGate
+	local other = assert(gate.other, "the flare has a second slot")
+	local slot, alt = gate.lit, other.lit
+	assert(gate ~= other and slot.container ~= alt.container and other:GetParent() == fed, "under a layer and an aura feed of its own")
+	local function Bound()
+		return Has(slot._assignedAnimations, slot.flare.play) and #slot._assignedAnimations == 1 and Has(alt._assignedAnimations, alt.flare.still) and #alt._assignedAnimations == 1
+	end
+	assert(Bound() and gate:GetAlpha() == 1 and other:GetAlpha() == 0, "at Full the first slot has the flare and shows; the second has the still mark and is dark")
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	local function Gain()
+		Slots.Set(env, "player", nil)
+		Slots.Set(env, "player", { { id = fed.lit.spec.spells[1], start = 0, duration = 12 } })
+	end
+	local showing = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
 	env._aurasSecret = true
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
-	for _, level in ipairs({ "calm", "off" }) do
-		Motion(env, K, level)
-		assert(Has(slot._assignedAnimations, slot.flare.play) and #slot._assignedAnimations == 1, level .. " under hidden values: the engine still has the moving flare")
-		assert(gate:GetAlpha() == 0, level .. " under hidden values: so its layer is dark")
-		-- What a person sees when a new aura lands now: the engine does play the flare it has, and none of it reaches the screen. A flare nobody sees takes no place: one
-		-- that is showing plays on.
-		local showing = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
-		showing:Play()
-		Slots.Set(env, "player", { { id = fed.lit.spec.spells[1], start = 0, duration = 12 } })
-		env._engine = true
-		local playing, seen = slot.flare.play:IsPlaying(), slot.flare:GetEffectiveAlpha()
-		env._engine = nil
-		assert(playing and seen == 0, level .. " under hidden values: a new aura's flare plays unseen (" .. seen .. ")")
-		assert(showing:IsPlaying(), level .. " under hidden values: and leaves the flare that is showing alone")
-		showing:Stop()
-		Slots.Set(env, "player", nil)
-	end
+
+	Motion(env, K, "calm")
+	assert(Bound(), "calm under hidden values: the engine keeps what it was given")
+	assert(gate:GetAlpha() == 0 and other:GetAlpha() == 1, "calm under hidden values: the flare's layer is dark and the still mark's shows")
+	showing:Play()
+	Gain()
+	assert(Engine(function() return slot.flare.play:IsPlaying() and slot.flare:GetEffectiveAlpha() == 0 end), "calm under hidden values: a new aura's flare plays unseen")
+	assert(Engine(function() return alt.flare.still:IsPlaying() end) and not showing:IsPlaying(), "and its still mark shows at once, taking the crest's flare place as it does out of combat")
+
+	Motion(env, K, "off")
+	assert(Bound() and gate:GetAlpha() == 0 and other:GetAlpha() == 0, "off under hidden values: both layers are dark")
+	showing:Play()
+	Gain()
+	assert(Engine(function() return slot.flare:GetEffectiveAlpha() == 0 and alt.flare:GetEffectiveAlpha() == 0 end), "off under hidden values: nothing of a new aura's cue reaches the screen")
+	assert(showing:IsPlaying(), "and a cue nobody sees takes no place: a flare that is showing plays on")
+	showing:Stop()
+
 	Motion(env, K, "full")
-	assert(gate:GetAlpha() == 1, "back at Full, the level the slot is bound for, the layer shows again")
+	assert(gate:GetAlpha() == 1 and other:GetAlpha() == 0, "full under hidden values: the flare's layer shows again")
+	Motion(env, K, "off")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	env.RunTimers()
+	assert(Bound() and gate:GetAlpha() == 0 and other:GetAlpha() == 0, "at Off out of combat the slots keep both cues under dark layers, ready for a level changed in the next fight")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	Motion(env, K, "full")
+	assert(gate:GetAlpha() == 1 and other:GetAlpha() == 0, "so Off to Full in combat shows the flare")
 	Motion(env, K, "calm")
 	env._aurasSecret = false
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
 	env.RunTimers()
-	assert(Has(slot._assignedAnimations, slot.flare.still) and #slot._assignedAnimations == 1 and gate:GetAlpha() == 1, "when the restriction ends the slot gets Calm's still mark and its layer shows")
+	assert(Has(slot._assignedAnimations, slot.flare.still) and #slot._assignedAnimations == 1 and gate:GetAlpha() == 1, "when the restriction ends at Calm the first slot gets the still mark and shows")
+	assert(Has(alt._assignedAnimations, alt.flare.play) and #alt._assignedAnimations == 1 and other:GetAlpha() == 0, "and the second gets the flare, dark")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A cue on a ranged piece's own art (a refresh flicker, a bloom, a loop) cannot sit under a layer apart from the art. Such a piece has two copies of its slots, so each
+-- motion level has a slot bound for it: the level in use shows its slot's layer and the other two are dark. A level changed in combat swaps the layers at once.
+do
+	local env, K, ns = New("HUNTER")
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	local sting = assert(Piece(ns, "crestSting"), "the hunter's sting")
+	assert(sting.twins and #sting.twins == 2, "has two copies")
+	local full, calm, off = sting.lits[1], sting.twins[1].lits[1], sting.twins[2].lits[1]
+	local function Alphas()
+		return full.hold:GetAlpha() .. "," .. calm.hold:GetAlpha() .. "," .. off.hold:GetAlpha()
+	end
+	local function Bound()
+		return Has(full._pandemicAnimations, full.flicker) and #full._pandemicAnimations == 1 and #full._shownAnimations > 0
+			and Has(calm._pandemicAnimations, calm.flicker.still) and #calm._pandemicAnimations == 1 and #calm._shownAnimations == 0
+			and #off._pandemicAnimations == 0 and #off._shownAnimations == 0 and #off._assignedAnimations == 0
+	end
+	assert(Bound(), "the piece's slot has Full's flicker and loops, one copy Calm's still mark and no loop, the other nothing")
+	assert(Alphas() == "1,0,0", "at Full the piece's own slot shows (" .. Alphas() .. ")")
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	local harmful = (full.spec.filter or "HELPFUL"):find("HARMFUL", 1, true) ~= nil
+	Slots.Set(env, full.spec.unit or "player", { { id = full.spec.spells[1], start = 0, duration = 30, harmful = harmful, mine = true, pandemic = true } })
+	assert(Engine(function() return full.flicker:IsPlaying() and calm.flicker.still:IsPlaying() and off:IsShown() end), "one aura lights all three slots, each with its own cue")
+	Motion(env, K, "calm")
+	assert(Bound() and Alphas() == "0,1,0", "calm under hidden values: the still mark's slot shows and the flickering one is dark (" .. Alphas() .. ")")
+	assert(Engine(function() return full.flicker:GetParent():GetEffectiveAlpha() == 0 end), "so the flicker the engine still plays does not reach the screen")
+	Motion(env, K, "off")
+	assert(Bound() and Alphas() == "0,0,1", "off under hidden values: the slot with no cue shows (" .. Alphas() .. ")")
+	Motion(env, K, "full")
+	assert(Bound() and Alphas() == "1,0,0", "full under hidden values: the flickering slot shows again (" .. Alphas() .. ")")
+	Motion(env, K, "calm")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	env.RunTimers()
+	assert(Has(full._pandemicAnimations, full.flicker.still) and #full._shownAnimations == 0 and Alphas() == "1,0,0", "when the restriction ends the piece's own slot is bound for Calm and shows (" .. Alphas() .. ")")
+	assert(Has(calm._pandemicAnimations, calm.flicker) and #off._pandemicAnimations == 0, "and the copies take the other two levels")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -385,7 +509,8 @@ do
 	Motion(env, K, "off")
 	ready(cool.timer)
 	Gain(true)
-	assert(not cool.flare.play:IsPlaying() and not still:IsPlaying() and #slot._assignedAnimations == 0 and Effects.Holder("crestFlare") == nil, "Off plays no flare, shows no mark and claims nothing")
+	assert(not cool.flare.play:IsPlaying() and not still:IsPlaying() and Effects.Holder("crestFlare") == nil, "Off plays no flare, shows no mark and claims nothing")
+	assert(fed.lit.flareGate:GetAlpha() == 0 and fed.lit.flareGate.other:GetAlpha() == 0, "the aura medal's two cue layers are dark")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -434,8 +559,8 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- A melee seat's schools share one container, so their flares share one layer: the second school's flare, landing while the first still plays, shows at once, and the
--- first one's ending does not hide the layer under it.
+-- A melee seat's schools share one container for their art, and each school's flare has slots and a layer of its own: the second school's flare, landing while the
+-- first still plays, shows at once and hides the first one's layer.
 do
 	local env, K, ns = New("PALADIN")
 	K.Options.Write("Medallions", "restingCrest", false)
@@ -443,16 +568,16 @@ do
 	local seat
 	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
 		local a, b = piece.lits and piece.lits[1], piece.lits and piece.lits[2]
-		if a and b and a.flareGate and a.flareGate == b.flareGate and not piece.spec.unit then seat = piece end
+		if a and b and a.flareGate and b.flareGate and a.container == b.container and not piece.spec.unit then seat = piece end
 	end
-	assert(seat, "a paladin's crest has a seat whose schools share a flare layer")
-	local gate, slots = seat.lits[1].flareGate, {}
+	assert(seat, "a paladin's crest has a seat whose schools share a container")
+	local gates, slots = { seat.lits[1].flareGate, seat.lits[2].flareGate }, {}
+	assert(gates[1] ~= gates[2], "each school's flare has a layer of its own")
 	for i = 1, 2 do
-		for _, mirror in ipairs(seat.lits[i].mirrors) do
-			slots[i] = mirror.flare and mirror or slots[i]
-		end
-		assert(slots[i] and slots[i].flare.gate == gate, "each school has a flare slot of its own under the shared layer")
+		slots[i] = gates[i].lit
+		assert(slots[i].flare.gate == gates[i] and slots[i].container ~= slots[3 - i] and gates[i]:GetParent() == seat, "and a slot of its own under it")
 	end
+	assert(slots[1].container ~= slots[2].container, "on aura feeds of their own")
 	local unit = seat.lits[1].spec.unit or "player"
 	local first, second = { id = slots[1].spec.spells[1], auraInstanceID = 31, start = 0, duration = 12 }, { id = slots[2].spec.spells[1], auraInstanceID = 32, start = 0, duration = 12 }
 	local function Plays(i)
@@ -463,15 +588,22 @@ do
 	end
 	env._aurasSecret = true
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	local after, armed = env.C_Timer.After, {}
+	env.C_Timer.After = function(_, fn) armed[#armed + 1] = fn end
 	Slots.Set(env, unit, { first })
-	assert(Plays(1) and gate:GetAlpha() == 1, "hidden values: the first school's flare plays")
+	assert(Plays(1) and gates[1]:GetAlpha() == 1, "hidden values: the first school's flare plays")
 	Slots.Set(env, unit, { first, second })
-	assert(Plays(2) and gate:GetAlpha() == 1, "the second school's flare shows at once, its shared layer still lit")
+	assert(Plays(2) and gates[2]:GetAlpha() == 1, "the second school's flare shows at once")
+	assert(Plays(1) and gates[1]:GetAlpha() == 0, "and the first one's, which Lua may not stop, is hidden by its own layer")
+	assert(seat:IsShown() and seat:GetAlpha() == 1, "nothing else of the seat is")
+	for _, fn in ipairs(armed) do fn() end
+	env.C_Timer.After = after
+	assert(gates[1]:GetAlpha() == 1, "the layer shows again once the hidden flare's time is over")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- A ranged piece's bloom is a crest flare the engine plays too. Newer, it shows at once and hides the older flare's layer; older, the newer flare shows at once over it
--- (the bloom is the sigil's own art growing to its size, which has no layer of its own to hide without hiding the sigil).
+-- A ranged piece's bloom is a crest flare the engine plays too, on the sigil's own art. Newer, it shows at once and hides the older flare's layer. Older, it is hidden
+-- when a newer flare shows: the piece swaps to the copy of its slots that has no cue for the rest of the bloom's time, so the sigil stays on screen and only its growth goes.
 do
 	local env, K, ns = New("HUNTER")
 	K.Options.Write("Medallions", "restingCrest", false)
@@ -484,6 +616,10 @@ do
 	end
 	assert(older, "a hunter's crest has an aura medal with a flare")
 	local gate, slot, bloom = older.lit.flareGate, older.lit.flareGate.lit, lit.flare.play
+	local calm, off = aspect.twins[1].lits[1], aspect.twins[2].lits[1]
+	local function Alphas()
+		return lit.hold:GetAlpha() .. "," .. calm.hold:GetAlpha() .. "," .. off.hold:GetAlpha()
+	end
 	local function Engine(fn)
 		env._engine = true
 		local value = fn()
@@ -497,13 +633,23 @@ do
 	end
 	env._aurasSecret = true
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	local after, armed = env.C_Timer.After, {}
+	env.C_Timer.After = function(_, fn) armed[#armed + 1] = fn end
 	Auras(true, false)
 	assert(Engine(function() return slot.flare.play:IsPlaying() end) and gate:GetAlpha() == 1, "hidden values: the medal's flare plays")
 	Auras(true, true)
 	assert(Engine(function() return bloom:IsPlaying() end) and gate:GetAlpha() == 0, "the Aspect's bloom shows at once and the older flare's layer hides")
+	assert(Alphas() == "1,0,0", "the bloom plays on the piece's own slot (" .. Alphas() .. ")")
+	armed = {}
 	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
 	other:Play()
-	assert(other:IsPlaying() and Engine(function() return bloom:IsPlaying() end), "a newer flare shows at once over a bloom, which finishes its growth")
+	assert(other:IsPlaying() and Engine(function() return bloom:IsPlaying() end), "a newer flare shows at once, and Lua may not stop the bloom")
+	assert(Alphas() == "0,0,1", "so the blooming slot is hidden and the copy with no cue shows the sigil in its place (" .. Alphas() .. ")")
+	assert(Engine(function() return off:IsShown() and #off._assignedAnimations == 0 end), "that copy is lit by the same aura and has no bloom")
+	assert(#armed > 0, "a timer waits out the bloom")
+	for _, fn in ipairs(armed) do fn() end
+	env.C_Timer.After = after
+	assert(Alphas() == "1,0,0", "the piece's own slot shows again once the bloom's time is over (" .. Alphas() .. ")")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

@@ -286,10 +286,13 @@ do
 	-- lit Rogue is 5,063, so 4,900 holds only the stock fixture above. A hunter's forged marks each add a solid body, and
 	-- the perched and emblem ones a shadow and a halo (49 regions); each of the six Sting marks, drawn at 24 units so it
 	-- reads, adds a shadow, a halo and two dark shades (24 regions), and each lit Aspect but the Hawk a dark silhouette
-	-- over the unlit hawk (6 regions), which takes its limit from 4,915 to 4,980.
+	-- over the unlit hawk (6 regions), which takes its limit from 4,915 to 4,980. The hunter,
+	-- warlock, shaman and druid sit above that by the layers their owner chose to add so that a motion level changed in combat
+	-- shows at once and an older cue hides under a newer one: a second flare slot on each aura medal, and two more copies of the
+	-- slots of each piece with a cue on its own art.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4940, DRUID = 5183, SHAMAN = 4889, HUNTER = 4980, MAGE = 4943, WARLOCK = 4978 }) do
+	for class, limit in pairs({ PRIEST = 4940, DRUID = 5219, SHAMAN = 4904, HUNTER = 5040, MAGE = 4943, WARLOCK = 5041 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")

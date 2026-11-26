@@ -171,11 +171,12 @@ local function Light(m, look, each, level, size, top, share, form)
 		lit:SetShown(each.feed == "cooldown")
 	end
 	m.timer = m.timer or lit.timer
-	Medals.Flare(m, lit, top + 1, each.burst or "glow", size * BURST)
-	if hub and each.flash then
-		local band = m.add(Medals.Texture((lit.flareGate.lit or lit).flare, "ARTWORK", 1, ART .. "BandFlash.png", color, RIM, "ADD"))
-		band:SetPoint("CENTER", hub, "CENTER", 0, 0)
-		band:SetTexCoord(each.flash == "left" and 1 or 0, each.flash == "left" and 0 or 1, 0, 1)
+	for _, flare in ipairs(Medals.Flare(m, lit, top + 1, each.burst or "glow", size * BURST)) do
+		if hub and each.flash then
+			local band = m.add(Medals.Texture(flare:GetParent(), "ARTWORK", 1, ART .. "BandFlash.png", color, RIM, "ADD"))
+			band:SetPoint("CENTER", hub, "CENTER", 0, 0)
+			band:SetTexCoord(each.flash == "left" and 1 or 0, each.flash == "left" and 0 or 1, 0, 1)
+		end
 	end
 	if fed and (each.loop or look.loop) then
 		Medals.Awake(m, lit, top + 1)
