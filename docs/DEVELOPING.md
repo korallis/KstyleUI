@@ -77,6 +77,8 @@ bash scripts/gate.sh
 
 LuaJIT runs `luacheck`; the regression runner uses Lua 5.1.5. The gate finds the Python environment at its default path unless `KSTYLEUI_PYTHON` selects another interpreter. Pillow lets the image tests run instead of skipping for lack of Pillow.
 
+For additional coverage, install Node (`brew install node`) for the cooldown canvas and gallery texture-path tests. Install NumPy (`uv pip install --python "$HOME/.local/share/wow-dev/venv/bin/python" numpy`) for the crest tracker and Medallions regeneration tests. The glyph-table comparison still skips if Pillow was built without Raqm text layout; the Python suite prints that reason.
+
 On a new setup the Lua runner may select every test to learn which files each test uses. If it refuses because another run holds worker slots, wait for that run or use `KSTYLEUI_FULL=1 bash scripts/gate.sh` to let the larger selection proceed. The worker slots and all checks still apply.
 
 ### Pull requests are checked locally
