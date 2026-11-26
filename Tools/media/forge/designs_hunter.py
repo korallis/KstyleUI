@@ -227,7 +227,7 @@ def Serpent():
 
 @design
 def ViperSting():
-    """Viper Sting: a viper's head in profile, jaws thrown wide open, one long fang, a forked tongue."""
+    """Viper Sting: a viper's head in profile, jaws thrown wide open, one long fang, a single tapered tongue."""
     e = Emblem("ViperSting")
     e.add(stroke([(0.02, 0.98), (0.10, 0.62)], 0.30, 0.30, smooth=False), h=0.7, r=0.07, base=0.3)
     lower = blob([(0.06, 0.62), (0.30, 0.62), (0.56, 0.74), (0.86, 0.96), (0.80, 1.02), (0.50, 0.94), (0.24, 0.86), (0.06, 0.80)], 14)
