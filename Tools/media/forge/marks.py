@@ -47,7 +47,7 @@ def maps(work, only):
         if not only or name in only:
             pen = sigils.Pen()
             sigils.GLYPHS[name](pen)
-            forge_lineart(name, pen.image, work / "maps" / "sigils", fill=False)
+            forge_lineart(name, pen.image, work / "maps" / "sigils")
             done["sigils"].append(name)
     return done
 

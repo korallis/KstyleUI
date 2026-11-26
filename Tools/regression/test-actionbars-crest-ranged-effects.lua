@@ -183,6 +183,8 @@ do
 	local counter = shot.shots[shot.spec.shots[19306]]
 	assert(counter:IsShown() and not multi:IsShown() and Art(counter._regions[2]):find("Counter"), "Counterattack after a parry crosses two crimson blades over the emblem")
 	assert(shot.flare == counter and counter.play:IsPlaying() and #AB.W.Calls(counter.play, "Play") == 1, "the parry's opening double-flashes even with Multi-Shot already up")
+	local bite = shot.shots[shot.spec.shots[1495]]
+	assert(Drawn(counter, "Counter.png", false).units == 36 and Drawn(bite, "Mongoose.png", false).units == 36, "the forged shots' solid bodies are 36 units, 0.45 of the 80-unit emblem, so its painting shows round them")
 	local writes = #AB.W.Calls(counter, "Show") + #AB.W.Calls(counter, "Hide") + #AB.W.Calls(multi, "Show") + #AB.W.Calls(multi, "Hide")
 	for _ = 1, 50 do
 		env.FireEvent("SPELL_UPDATE_USABLE")

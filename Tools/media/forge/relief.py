@@ -182,17 +182,10 @@ class Emblem:
         return self
 
 
-def forge_lineart(name, image, folder, plate=0.42, ridge=1.0, fill=True, r=0.022, fit=True):
-    """Forge a generator's white line drawing: strokes become raised ridges; enclosed areas become a plate under them."""
-    lines = from_image(image)
+def forge_lineart(name, image, folder):
+    """Forge a generator's white line drawing: its strokes become raised ridges, the gaps between them left open."""
     e = Emblem(name)
-    if fill:
-        closed = ndi.binary_fill_holes(lines)
-        inner = closed & ~lines
-        if inner.sum() > 0.004 * N * N:
-            e.add(closed, h=plate, r=0.03, base=0.2 * plate)
-    e.add(lines, h=ridge, r=r, base=(plate if fill else 0.3) * 0.9)
-    if fit:
-        e.fit()
+    e.add(from_image(image), h=1.0, r=0.022, base=0.27)
+    e.fit()
     e.save(folder)
     return e
