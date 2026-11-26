@@ -161,6 +161,27 @@ for _, case in ipairs({ { "HUNTER", "crestMark" }, { "HUNTER", "crestSting" }, {
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- A ranged piece that blooms itself as it lands (a hunter's Aspect) keeps a still ready mark at Calm too: the engine holds the sigil at its bloom's size for one short pass
+-- on each new aura, in place of the growth.
+do
+	local env, K, ns = New("HUNTER")
+	local aspect = assert(Piece(ns, "crestAspect"), "the Aspect perch")
+	local lit = aspect.lits[1]
+	local bloom, still = assert(lit.flare.play, "an Aspect blooms"), assert(lit.flare.still, "and has a still mark")
+	assert(Has(lit._assignedAnimations, bloom) and not Has(lit._assignedAnimations, still), "at Full the engine plays the bloom")
+	Motion(env, K, "calm")
+	assert(Has(lit._assignedAnimations, still) and #lit._assignedAnimations == 1, "at Calm the engine gets the still mark instead")
+	local hold, grow = still._anims[1], bloom._anims[1]
+	assert(#still._anims == 1 and hold._type == "Scale" and Set(hold, "ScaleFrom") == Set(hold, "ScaleTo") and Set(hold, "ScaleTo") == Set(grow, "ScaleFrom") and Set(still, "Looping") == nil,
+		"the mark holds the sigil at the size its bloom starts from, for one pass, and never moves")
+	Slots.Set(env, "player", { { id = lit.spec.spells[1], start = 0, duration = 600 } })
+	assert(lit:IsShown() and still:IsPlaying() and not bloom:IsPlaying(), "a new Aspect shows the still mark")
+	assert(K.Effects.Holder("crestFlare") == K.Effects.PRIORITY.ready, "and it takes the crest's flare place as any ready cue does")
+	Motion(env, K, "off")
+	assert(#lit._assignedAnimations == 0 and not still:IsPlaying(), "Off shows neither")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- A warning Lua plays itself follows the same rule through ns.Slab.Warn: the flicker at Full, the still mark at Calm, nothing at Off.
 do
 	local env, K, ns = New("WARRIOR")
@@ -271,6 +292,34 @@ do
 	Seen(3, 620)
 	env.RunTimers()
 	assert(not call:IsPlaying(), "once")
+
+	-- The late call follows the timer the horn shows: a new length with the same end moves it, and it checks the shout is still there before it calls.
+	-- The stub runs every timer whatever the clock says, so this part keeps the timers itself and runs each at the moment it was set for.
+	local after, armed = env.C_Timer.After, {}
+	env.C_Timer.After = function(delay, fn) armed[#armed + 1] = { at = env._now + delay, fn = fn } end
+	local function Reach(now)
+		env._now = now
+		local due = {}
+		for i = #armed, 1, -1 do
+			if armed[i].at <= now then table.insert(due, 1, table.remove(armed, i)) end
+		end
+		for _, t in ipairs(due) do t.fn() end
+	end
+	env._now = 700
+	Seen(4, 820)
+	env._auraData["player" .. SHOUT] = { auraInstanceID = 4, expirationTime = 820, duration = 60, sourceUnit = "player" }
+	env.FireEvent("UNIT_AURA", "player")
+	Reach(796)
+	assert(not call:IsPlaying(), "the same shout given a shorter length no longer calls at the old last fifth")
+	Reach(808)
+	assert(call:IsPlaying(), "it calls at the new one")
+	call:Stop()
+	env._now = 900
+	Seen(5, 1020)
+	env._auraData["player" .. SHOUT] = nil
+	Reach(996)
+	assert(not call:IsPlaying(), "a shout that went away without a readable event gets no late call")
+	env.C_Timer.After = after
 
 	Motion(env, K, "calm")
 	horn.recall()

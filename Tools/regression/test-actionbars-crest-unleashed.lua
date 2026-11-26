@@ -38,6 +38,7 @@ end
 -- The game runs a slot's OnHide when it hides it; the stub's Hide runs no script, so the tests run it by hand, with the script read before combat forbids the slot.
 local function Hidden(set)
 	set.hidden = assert(set.awake.lit:GetScript("OnHide"), "the hot line's slot tells the crest when the game hides it")
+	set.shown = assert(set.awake.lit:GetScript("OnShow"), "and when it shows it")
 end
 
 local function Dark(env, set, unit)
@@ -233,6 +234,31 @@ do
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "switched off in combat, the slots the game still drives fold nothing")
 	K.Options.Write("ActionBars", "crestUnleashed", true)
+	-- Hiding the crest hides every slot with it, which is no cooldown ending: nothing folds then, when the crest comes back with its cooldown still up, or later from a
+	-- cooldown that ended while the crest was hidden.
+	Slots.Set(env, "player", Reck())
+	set.shown(set.awake.lit)
+	set.piece:Hide()
+	set.hidden(set.awake.lit)
+	set.piece:Show()
+	set.shown(set.awake.lit)
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "hiding the crest and showing it again before the next frame folds nothing")
+	set.piece:Hide()
+	set.hidden(set.awake.lit)
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "nor does leaving it hidden")
+	Slots.Set(env, "player", nil)
+	set.piece:Show()
+	done(set.awake.timer)
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "a cooldown that ended while the crest was hidden leaves no ending behind to fold later")
+	Slots.Set(env, "player", Reck())
+	set.shown(set.awake.lit)
+	Dark(env, set)
+	env.RunTimers()
+	assert(Folding(), "and the next real ending still folds")
+	Reset()
 	env._aurasSecret = false
 	env.SetCombat(false)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)

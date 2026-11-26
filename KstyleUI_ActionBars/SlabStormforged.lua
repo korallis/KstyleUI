@@ -83,14 +83,14 @@ local function Stones()
 	local info = C_PaperDollInfo
 	local read = info and type(info.GetTemporaryEnchantmentInfo) == "function" and info.GetTemporaryEnchantmentInfo
 	local now = type(GetTime) == "function" and GetTime()
-	local pulse, calm = Effects.Allows("pulse"), ns.Slab.Resting()
+	local pulse, flare, calm = Effects.Allows("pulse"), Effects.Allows("flare"), ns.Slab.Resting()
 	for _, s in ipairs(stones) do
-		local moving = pulse and not (s.crest and calm)
+		local moving, warn = pulse and not (s.crest and calm), flare and not (s.crest and calm)
 		if s.wake then
 			s.wake:Cancel()
 			s.wake = nil
 		end
-		s.gutter:Stop()
+		ns.Slab.Warn(s.gutter, false)
 		local shown = s:IsVisible()
 		local enchant = shown and read and read(s.slot)
 		local id, left = enchant and enchant.enchantID, enchant and enchant.remainingTimeMs
@@ -109,9 +109,9 @@ local function Stones()
 			s.pulse:Stop()
 		end
 		local due = element and type(left) == "number" and now and now + left / 1000 - LAST
-		if due and moving and due <= now then
-			s.gutter:Play()
-		elseif due and moving and C_Timer and C_Timer.NewTicker then
+		if due and warn and due <= now then
+			ns.Slab.Warn(s.gutter, true)
+		elseif due and warn and C_Timer and C_Timer.NewTicker then
 			s.wake = C_Timer.NewTicker(due - now, Stones, 1)
 		end
 	end

@@ -446,8 +446,22 @@ do
 	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
 	other:Play()
 	assert(other:IsPlaying() and not Fired(state.blast) and not state.seats[1].ignite:IsShown() and not Fired(state.seats[3].ignite), "a crest flare from elsewhere stops the whole ensemble")
+	env.GetTime = function() return env._now end
+	env._now = 200
 	Cast(env, RANK1)
 	assert(Fired(state.blast) and Fired(state.seats[2].ignite) and not other:IsPlaying(), "and the next cast stops that one in turn")
+	-- A charge spent a moment later is a different trigger, not part of the cast's ensemble: its strike takes the place and the cast's flourish stops.
+	env._now = 200.3
+	Shield(env, 2, RANK1)
+	assert(Fired(state.seats[3].strike) and not Fired(state.blast) and not Fired(state.seats[1].ignite) and not Fired(state.seats[2].ignite), "a strike a moment after the cast cancels the cast's burst and ignitions")
+	env.RunTimers()
+	assert(Effects.Holder("crestFlare") == nil, "the place frees itself")
+	-- A change of charges that plays nothing claims nothing.
+	Cast(env, RANK1)
+	env.RunTimers()
+	env._now = 210
+	Shield(env, 1, RANK1)
+	assert(Effects.Holder("crestFlare") == nil and not Fired(state.seats[3].strike) and not Fired(state.crackle), "two charges gone at once play nothing and take no place")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
