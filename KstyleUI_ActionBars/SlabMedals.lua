@@ -636,7 +636,11 @@ local function Sigil(r, lit, key, family, color, size, bloom)
 		slot.container = lit.flash.lit.container
 		slot:AddAuraShownAnimation(button.flash)
 		button.flash:SetScript("OnPlay", function()
-			lit.flash.late = lit.flash.base == 0 and Now() + FLASH[1][3] + FLASH[2][3] or nil
+			local gate, length = lit.flash, FLASH[1][3] + FLASH[2][3]
+			gate.late = gate:GetAlpha() == 0 and Now() + length or nil
+			if gate.late and gate.base == 1 then
+				Dim(gate, length)
+			end
 		end)
 	end
 	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
