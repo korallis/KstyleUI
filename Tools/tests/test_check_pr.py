@@ -1,7 +1,6 @@
 """Tests for Tools/hooks/check-pr.sh against a throwaway git repository."""
 
 import os
-import shutil
 import subprocess
 import tempfile
 import unittest
@@ -25,23 +24,16 @@ BASE_FILES = {
 
 
 class CheckPrTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        """Build the base repository once; each test works on its own copy."""
-        cls._template = tempfile.TemporaryDirectory()
-        cls.addClassCleanup(cls._template.cleanup)
-        self = cls()
-        self.repo = Path(cls._template.name) / "repo"
-        self.repo.mkdir()
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self._tmp.name)
         self.git("init", "-q", "-b", "base")
         self.write(BASE_FILES)
         self.commit("base")
         self.git("checkout", "-q", "-b", "pr")
 
-    def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self._tmp.cleanup)
-        self.repo = Path(shutil.copytree(Path(self._template.name) / "repo", Path(self._tmp.name) / "repo"))
+    def tearDown(self):
+        self._tmp.cleanup()
 
     def git(self, *args):
         return subprocess.run(
