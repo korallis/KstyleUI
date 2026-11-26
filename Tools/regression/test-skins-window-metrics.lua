@@ -43,6 +43,14 @@ for _, spec in ipairs(Windows.LIST) do
 	end
 	assert(count > 0, spec.key .. ": opt this window family into the shared native window measures")
 	if spec.key == "merchant" then
+		env.MerchantFrame_UpdateMerchantInfo()
+		local countWrites = dofile("Tools/regression/readout_count.lua")
+		local styles = countWrites(ns.Style, "Text")
+		for _ = 1, 10 do env.MerchantFrame_UpdateMerchantInfo() end
+		assert(styles() == 0, "unchanged merchant fonts: " .. styles())
+		env.MerchantItem1.MoneyFrame:SetFont("native", 8, "")
+		env.MerchantFrame_UpdateMerchantInfo()
+		assert(styles() > 0 and select(2, env.MerchantItem1.MoneyFrame:GetFont()) == K.Widgets.FontSize(env.MerchantItem1.MoneyFrame, 12))
 		for _ = 1, 5 do
 			env.MerchantFrame_UpdateMerchantInfo()
 			local point, relative, on, _, y = env.MerchantItem2.AltCurrencyFrame:GetPoint(1)

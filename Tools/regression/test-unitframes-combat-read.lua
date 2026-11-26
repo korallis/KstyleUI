@@ -192,6 +192,10 @@ env.FireEvent("PLAYER_TARGET_CHANGED")
 if b1.auras and b1.auras.container then
 	assert(b1.auras.container:GetAlpha() < 0.5, "once the sigil shows them too, they step back")
 end
+K.Options.Write("UnitFrames", "target.auraHidden", "772")
+env.FireEvent("PLAYER_TARGET_CHANGED")
+assert(b1.auras.container:GetAlpha() == 1, "Rend stays beside the targeted boss when the target excludes it")
+K.Options.Write("UnitFrames", "target.auraHidden", "")
 K.Options.Write("UnitFrames", "target.auraFilter", "mine")
 K.Options.Write("UnitFrames", "boss.auraFilter", "mine")
 env.FireEvent("PLAYER_TARGET_CHANGED")

@@ -248,13 +248,20 @@ local function Refresh()
 	PaintRange()
 end
 
+local function SetTimeText(bar, value)
+	if value ~= bar.lastTimeText then
+		bar.time:SetText(value)
+		bar.lastTimeText = value
+	end
+end
+
 local function Clear(slot, linger)
 	local st, bar = Swing.state[slot.type], Swing.bars[slot.type]
 	st.running, st.engine = false, false
 	st.idleAt = linger and Now() or nil
 	bar:SetMinMaxValues(0, 1)
 	bar:SetValue(linger and 1 or 0)
-	bar.time:SetText("")
+	SetTimeText(bar, "")
 end
 
 local function OnUpdate()
@@ -272,7 +279,7 @@ local function OnUpdate()
 				local bar = Swing.bars[slot.type]
 				bar:SetValue(fraction)
 				if showTime then
-					bar.time:SetText(Logic.FormatSeconds(left))
+					SetTimeText(bar, Logic.FormatSeconds(left))
 				end
 				any = true
 			end
@@ -303,7 +310,7 @@ local function StartEngine(slot, duration)
 	local ok = pcall(st.durationObject.SetTimeFromStart, st.durationObject, GetTime(), duration)
 	if ok and bar:SetBarDuration(st.durationObject) then
 		st.running, st.engine = false, true
-		bar.time:SetText("")
+		SetTimeText(bar, "")
 		ns.LogOnce("swingEngine", "a swing arrived with a secret duration; the engine fills the bar from a duration object")
 	else
 		ns.LogOnce("swingEngineFailed", "a swing arrived with a secret duration that a duration object refused; that swing is not shown")
@@ -340,7 +347,7 @@ local function OnSwing(duration, swingType)
 	bar:SetMinMaxValues(0, 1)
 	bar:SetValue(0)
 	if Swing.showTime then
-		bar.time:SetText(Logic.FormatSeconds(duration))
+		SetTimeText(bar, Logic.FormatSeconds(duration))
 	end
 	Swing.driver:SetScript("OnUpdate", OnUpdate)
 	Refresh()
@@ -386,6 +393,8 @@ local function CheckRange()
 	end
 end
 
+local rangeAsked = {}
+
 local function EnableRangeChecks()
 	local timer = C_SwingTimer
 	if not (timer and type(timer.EnableRangeCheck) == "function") then
@@ -393,7 +402,8 @@ local function EnableRangeChecks()
 		return
 	end
 	for _, slot in ipairs(SLOTS) do
-		if Enabled(slot) then
+		if Enabled(slot) and not rangeAsked[slot.type] then
+			rangeAsked[slot.type] = true
 			pcall(timer.EnableRangeCheck, slot.type, true)
 		end
 	end
@@ -467,7 +477,7 @@ local function Style()
 		end
 		bar.time:SetShown(showTime)
 		if not showTime then
-			bar.time:SetText("")
+			SetTimeText(bar, "")
 		end
 		ns.ApplyFont(bar.label, "swing", nil, attached and "caps" or nil)
 		Widgets.TextColor(bar.label, "text")
@@ -570,6 +580,7 @@ function Swing:Stop()
 	end
 	ns.UnwatchAll(self)
 	self.driver:SetScript("OnUpdate", nil)
+	rangeAsked = {}
 	for _, slot in ipairs(SLOTS) do
 		Clear(slot)
 		K.Motion.Stop(self.bars[slot.type].resetMotion)

@@ -306,6 +306,10 @@ do
 	local function tint() return painted(cross.h) end
 	env._target, env._range[ATTACK], env._range[FIREBALL] = true, false, false
 	env.FireEvent("PLAYER_TARGET_CHANGED")
+	local countWrites = dofile("Tools/regression/readout_count.lua")
+	local formats = countWrites(ns, "RangeText")
+	for _ = 1, 40 do env.RunTickers() end
+	assert(formats() == 0)
 	assert(same(tint(), hostile), "out of reach: the crosshair turns the out-of-range colour")
 	env._range[FIREBALL] = true
 	env.RunTickers()
@@ -337,6 +341,7 @@ do
 	env.FireEvent("BAG_UPDATE_COOLDOWN")
 	env.FireEvent("BAG_UPDATE_COOLDOWN")
 	assert(#env._held == 1, "one wait per cooldown")
+	env._potionCd = { 0, 0, 1 }
 	env.Release()
 	local flash = ns.noticeLines.flash
 	assert(flash and flash.wanted and flash.text:GetText() == "Potion ready", "the potion flash shows")
@@ -488,6 +493,17 @@ do
 	env.FireEvent("BAG_UPDATE_COOLDOWN")
 	env.Release()
 	assert(not (ns.noticeLines.flash and ns.noticeLines.flash.wanted), "a cooldown put on hold does not flash")
+	for _, updated in ipairs({ true, false }) do
+		env._potionCd = { 100, 120, 1 }
+		env.FireEvent("BAG_UPDATE_COOLDOWN")
+		env._potionCd = { env.Secret(100), 120, 1 }
+		if updated then
+			env.FireEvent("BAG_UPDATE_COOLDOWN")
+			env._potionCd = { 0, 0, 1 }
+		end
+		env.Release()
+		assert(not (ns.noticeLines.flash and ns.noticeLines.flash.wanted), "an unreadable update or expiry suppresses the pending notice")
+	end
 	clean(env, K)
 end
 

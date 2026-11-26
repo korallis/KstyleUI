@@ -89,12 +89,17 @@ local function PadKey(name)
 	return found
 end
 
-function ns.UpdateHotkey(b, family)
+function ns.KeyHint(b, name, family)
 	if family == nil then family = Family() end
-	local name = b.kbar.def.binding .. b.index
 	local pad = family and PadKey(name)
 	local glyphs = pad and Glyphs(b, pad, family)
-	local text = glyphs or pad and K.Widgets.ShortKey(pad) or K.Widgets.ShortKey(ns.FirstKey(name), BindingText)
+	local key = pad or ns.FirstKey(name)
+	local text = glyphs or K.Widgets.ShortKey(key, not pad and BindingText or nil)
+	return text, glyphs, key
+end
+
+function ns.UpdateHotkey(b, family)
+	local text, glyphs = ns.KeyHint(b, b.kbar.def.binding .. b.index, family)
 	local unbound = ns.Config("bindingHints") and text == "" and b.kind == "action" and b.hasAction ~= false
 	b.keyHasAction = b.hasAction
 	if glyphs then K.Widgets.SetText(b.hotkey, glyphs) else b:SetHotkey(unbound and "-" or text) end
@@ -111,6 +116,7 @@ function ns.UpdateHotkeys()
 			end
 		end
 	end
+	if ns.Consumables.Bindings then ns.Consumables.Bindings(family) end
 	K.Widgets.SetActionKeys(ns.Button.KeyFor)
 end
 

@@ -187,19 +187,25 @@ local function Potions()
 	end
 end
 
-local function Potion()
+local function Cooldown()
 	local api = C_Container and C_Container.GetItemCooldown
 	if not potion or type(api) ~= "function" then return end
 	local start, length, enabled = api(potion)
-	start, length, enabled = ns.Number(start), ns.Number(length), ns.Number(enabled)
-	if enabled == 0 then potionEnds = nil end
-	if not (start and length and enabled == 1 and length > GCD and C_Timer and type(C_Timer.After) == "function") then return end
+	if ns.Number(enabled) == 1 then return ns.Number(start), ns.Number(length) end
+end
+
+local function Potion()
+	local start, length = Cooldown()
+	if not start or not length then potionEnds = nil; return end
+	if not (length > GCD and C_Timer and type(C_Timer.After) == "function") then return end
 	local ends = start + length
 	if ends == potionEnds then return end
 	potionEnds = ends
 	C_Timer.After(math.max(0, ends - GetTime()), function()
 		if ends == potionEnds and ns.running and ns.Get("potionAlert") then
 			potionEnds = nil
+			local since, duration = Cooldown()
+			if not since or not duration or since + duration > GetTime() then return end
 			local r, g, b = Tokens.Color("friendly")
 			Flash("potionAlert", L["Potion ready"], r, g, b)
 		end

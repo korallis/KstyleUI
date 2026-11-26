@@ -124,6 +124,34 @@ K.Options.Write("Minimap", "drawer.behaviour", "click")
 assert(not drawer.panel:GetScript("OnUpdate") and drawer.open, "switching away from mouseover stops the watch and leaves the drawer open")
 W.Click(toggle)
 M.Settle(env)
+
+-- Idle-redundant-work finding 72: a still pointer over a hover drawer tests the pointer once, not once a frame; leaving
+-- the drawer, its button or an addon button in it starts the half-second grace again, and the drawer then closes.
+K.Options.Write("Minimap", "drawer.behaviour", "hover")
+local tests, over = 0, drawer.panel.IsMouseOver
+drawer.panel.IsMouseOver = function(...) tests = tests + 1; return over(...) end
+local function frames(n)
+	for _ = 1, n do
+		local step = drawer.panel:GetScript("OnUpdate")
+		if step then step(drawer.panel, 1 / 60) end
+	end
+end
+for _, left in ipairs({ drawer.panel, toggle, alpha }) do
+	toggle._mouseOver = true
+	W.Enter(toggle)
+	drawer.panel._mouseOver, toggle._mouseOver = left ~= toggle, left == toggle
+	tests = 0
+	frames(600)
+	assert(tests == 1 and drawer.open, "ten still seconds at 60 frames a second test the pointer once: " .. tests)
+	drawer.panel._mouseOver, toggle._mouseOver = false, false
+	W.Leave(left)
+	frames(29)
+	assert(drawer.open, "the grace holds the drawer open for half a second")
+	frames(2)
+	M.Settle(env)
+	assert(not drawer.panel:IsShown() and not drawer.panel:GetScript("OnUpdate"), "leaving closes it after the grace and stops watching")
+end
+drawer.panel.IsMouseOver = nil
 K.Options.Write("Minimap", "drawer.behaviour", "open")
 M.Settle(env)
 assert(drawer.panel:IsShown(), "an always-open drawer opens as soon as it is chosen")

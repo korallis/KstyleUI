@@ -1497,8 +1497,8 @@ local function Start(cb, channel, update)
 			Who(cb, nil)
 		end
 		cb.castStart = not issecretvalue(startMs) and type(startMs) == "number" and startMs or nil
-		cb.castEnd = not issecretvalue(endMs) and type(endMs) == "number" and endMs or nil
 	end
+	cb.castEnd = not issecretvalue(endMs) and type(endMs) == "number" and endMs or nil
 	CastBars.SetName(cb, text, SpellTarget(cb))
 	Icon(cb, texture)
 	if not cb.styled then
@@ -1640,9 +1640,11 @@ local HANDLERS = {
 			local by = event == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...)
 			if issecretvalue(by) or type(by) == "string" and by ~= "" then
 				Finish(cb, L["Interrupted"], by)
-			elseif Outcomes() then
+			elseif Outcomes() and cb.castEnd and cb.castEnd > 0 and GetTime() * MS >= cb.castEnd then
 				Land(cb)
 			else
+				EndTimer(cb, 0)
+				Paint(cb, BarColor(cb))
 				Hide(cb)
 			end
 		end

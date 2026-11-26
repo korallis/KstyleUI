@@ -204,6 +204,12 @@ local linkR, linkG, linkB
 
 local function LinkWord(word)
 	local lead, core, trail = match(word, "^([%(%[\"']*)(.-)([%.,!?;:%)%]\"']*)$")
+	if core and trail:find("^%)") then
+		local _, opened = gsub(core, "%(", "")
+		local _, closed = gsub(core, "%)", "")
+		local keep = math.min(math.max(0, opened - closed), #match(trail, "^%)*"))
+		core, trail = core .. sub(trail, 1, keep), sub(trail, keep + 1)
+	end
 	if not core or core == "" or not IsURL(core) then
 		return word
 	end

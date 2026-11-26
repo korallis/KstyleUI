@@ -2,6 +2,21 @@
 local M = dofile("Tools/regression/worldmap_env.lua")
 local env, K, R, state, map = M.New()
 
+local countWrites = dofile("Tools/regression/readout_count.lua")
+do
+	assert(R.Pick(R.Search("Chasm")[1]))
+	local writes = countWrites(R.distance, "SetText")
+	local tick = R.panel:GetScript("OnUpdate")
+	for _ = 1, 40 do tick(R.panel, 0.25) end
+	assert(writes() == 0)
+	local x, y = state.playerX, state.playerY
+	state.playerX, state.playerY = state.dungeon.position:GetXY()
+	tick(R.panel, 0.25)
+	assert(writes() == 1 and R.distance:GetText() == "Arrived")
+	state.playerX, state.playerY = x, y
+	R.Clear()
+	assert(not R.panel:GetScript("OnUpdate"))
+end
 assert(state.cvar == "1", "entrance filter defaults on")
 state.cvar = "0"
 map:SetMapID(2)
@@ -178,6 +193,16 @@ local external = env.UiMapPoint.CreateFromCoordinates(1, 0.9, 0.9)
 state.waypoint = external
 R.Clear()
 assert(state.waypoint == external, "clear leaves a waypoint another addon or the player set afterward")
+R.Pick(R.Search("Chasm")[1])
+local destination = R.Search("Chasm")[1]
+state.playerX, state.playerY = destination.x, destination.y
+R.panel:GetScript("OnUpdate")(R.panel, 1)
+assert(R.distance:GetText() == "Arrived", "the destination does not quote another minute")
+local moved = env.UiMapPoint.CreateFromCoordinates(1, 0.90, 0.90)
+state.waypoint = moved
+R.Pick(R.Search("Harpies")[1])
+R.Clear()
+assert(state.waypoint == moved, "clearing the second route restores the manual move between routes")
 K = env.KstyleUI
 K.Options.Write("Skins", "worldMap.entrances", false)
 state.cvar = "1"

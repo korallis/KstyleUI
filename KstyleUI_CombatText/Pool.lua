@@ -83,6 +83,7 @@ function Pool:Release(number)
 		return
 	end
 	number.live = false
+	number.fieldLane, number.fieldLevel = nil, nil
 	number.eviction:Stop()
 	number.retiring, number.amount, number.stamp = nil, nil, nil
 	number.group:Stop()

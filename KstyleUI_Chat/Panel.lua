@@ -69,6 +69,7 @@ local state = {
 	trimmed = false,
 	bare = false,
 	hover = false,
+	open = false,
 }
 local logged = {}
 local HookHover, SideAlpha
@@ -191,7 +192,7 @@ function Panel.Geometry(chat)
 	local snap = Scale.Snap
 	local pad = snap(Pad())
 	local foot = pad
-	if EditAlways() and not state.settings.inputOnTop then
+	if (EditAlways() or state.open) and not state.settings.inputOnTop then
 		local tile = max(0, (EDIT_HEIGHT * k - Tile()) / 2)
 		foot = snap(pad + (EDIT_DROP + EDIT_HEIGHT) * k - tile)
 	end
@@ -410,11 +411,15 @@ local function EditAlpha(frame)
 		box:HookScript("OnEditFocusGained", function(self)
 			ApplyEdit(self, info)
 			state.typing = true
+			state.open = info.frame.isDocked ~= nil
+			Panel.Place()
 			Panel.Wake()
 		end)
 		box:HookScript("OnEditFocusLost", function(self)
 			ApplyEdit(self, info)
 			state.typing = false
+			state.open = false
+			Panel.Place()
 			Panel.Wake()
 		end)
 	end
@@ -580,7 +585,7 @@ local function PlaceGlass(g)
 	end
 end
 
-local function PlaceEdit(frame, k, over, own)
+local function PlaceEdit(frame, own)
 	local box, bar = frame.editBox, frame.ScrollBar
 	if type(box) ~= "table" or type(box.SetPoint) ~= "function" or type(bar) ~= "table" then
 		return
@@ -592,9 +597,6 @@ local function PlaceEdit(frame, k, over, own)
 		return
 	end
 	local y = -EDIT_DROP
-	if over then
-		y = EDIT_HEIGHT - max(0, (EDIT_HEIGHT - Tile() / k) / 2)
-	end
 	box:ClearAllPoints()
 	box:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -EDIT_LEFT, y)
 	if own then
@@ -883,7 +885,7 @@ function Panel.Place()
 	for _, frame in ipairs(Windows.List()) do
 		local name = frame:GetName()
 		HookHover(IsText(name) and _G[name .. "Tab"] or nil)
-		PlaceEdit(frame, g.k, frame.isDocked ~= nil and not EditAlways(), frame.isDocked ~= nil)
+		PlaceEdit(frame, frame.isDocked ~= nil)
 		if frame ~= chat and frame.isDocked and g.spacing and type(frame.SetSpacing) == "function" then
 			frame:SetSpacing(g.spacing)
 		end
@@ -1332,6 +1334,7 @@ end
 
 function Panel.Stop()
 	state.active = false
+	state.open = false
 	Release()
 	if state.bounds and state.chat then
 		state.chat:SetResizeBounds(unpack(state.bounds))
@@ -1349,7 +1352,7 @@ function Panel.Stop()
 	SetChatAlpha(1)
 	RestoreDock()
 	for _, frame in ipairs(Windows.List()) do
-		PlaceEdit(frame, 1, false, false)
+		PlaceEdit(frame, false)
 	end
 	if state.holder then
 		state.holder:Hide()

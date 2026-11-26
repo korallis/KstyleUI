@@ -413,11 +413,12 @@ function Profiles.ImportAccount(text)
 	for name, payload in pairs(payloads) do
 		names[name], count, sent = Store.AddProfile(payload, payload.name), count + 1, payload.namedLayouts or sent
 	end
-	local characters, me = Store.Data().characters, Store.CharacterKey()
+	local characters, me, assignments = Store.Data().characters, Store.CharacterKey(), 0
 	for key, name in pairs(data.characters or {}) do
 		if ValidKey(key) and names[name] then
 			if key ~= me then before[key] = characters[key] or false end
 			characters[key] = names[name]
+			assignments = assignments + 1
 		end
 	end
 	local mine = names[(data.characters or {})[Store.CharacterKey() or ""] or ""]
@@ -427,7 +428,7 @@ function Profiles.ImportAccount(text)
 		for character, config in pairs(Store.Account().specializationProfiles or {}) do choices.specs[character] = choices.specs[character] or Copy(config) end
 		SetAccount(choices)
 	end
-	return true, count
+	return true, count, assignments
 end
 
 function Profiles.Presets()

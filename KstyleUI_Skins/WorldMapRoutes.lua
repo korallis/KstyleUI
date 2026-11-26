@@ -364,6 +364,14 @@ local function RoadRoute(mounted, playerMap, x, y, moving)
 	return route, not route and L["No connected road route."] or nil, continent
 end
 
+local lastTitle, lastDistance
+local function TravelTime(yards, minutes)
+	local whole = math.floor(yards + 0.5)
+	if whole == 0 then return L["Arrived"] end
+	if minutes < 1 then return string.format(L["%d yd - less than a minute"], whole) end
+	return string.format(L["%d yd - about %d min"], whole, math.ceil(minutes))
+end
+
 local RefreshRoute
 local function Tick(_, delta)
 	elapsed = elapsed + delta
@@ -375,12 +383,16 @@ RefreshRoute = function()
 	local show = On("routes") and target ~= nil
 	card:SetShown(show and not Listing())
 	panel:SetScript("OnUpdate", show and not target.notice and Tick or nil)
-	if not show then routeMap = nil; DrawRoute() return end
-	title:SetText(target.name)
+	if not show then routeMap, lastTitle, lastDistance = nil, nil, nil; DrawRoute() return end
+	if Secret(target.name) then
+		title:SetText(target.name); lastTitle = nil
+	elseif lastTitle ~= target.name then
+		title:SetText(target.name); lastTitle = target.name
+	end
 	if target.notice then
 		routeMap, routeTarget, Routes.road = nil, nil, nil
 		DrawRoute()
-		distance:SetText("")
+		if lastDistance ~= "" then distance:SetText(""); lastDistance = "" end
 		chip:SetText("")
 		note:SetText(target.notice)
 		steps:Hide(); Hide(stepRows); Hide(stepAmounts)
@@ -389,7 +401,7 @@ RefreshRoute = function()
 		note:SetPoint("TOPLEFT", 14, -61)
 		return
 	end
-	distance:SetText(L["Distance unavailable"])
+	local label = L["Distance unavailable"]
 	local mounted = type(IsMounted) == "function" and Plain(IsMounted(), "boolean") or false
 	local playerMap = Number(Call(C_Map, "GetBestMapForUnit", "player"))
 	local playerX, playerY
@@ -424,19 +436,22 @@ RefreshRoute = function()
 		routeWidth, routeHeight, routeScale, routeContinent = width, height, scale, continent
 	end
 	if Routes.road then
-		distance:SetText(string.format(L["%d yd - about %d min"], math.floor(Routes.road.yards + 0.5), math.max(1, math.ceil(Routes.road.seconds / 60))))
+		label = TravelTime(Routes.road.yards, Routes.road.seconds / 60)
 	elseif x then
 		local worldWidth, worldHeight = Call(C_Map, "GetMapWorldSize", target.mapID)
 		local yards, minutes = Routes.Measure(x, y, target.x, target.y, worldWidth, worldHeight, mounted)
-		if yards then distance:SetText(string.format(L["%d yd - about %d min"], math.floor(yards + 0.5), math.max(1, math.ceil(minutes)))) end
+		if yards then label = TravelTime(yards, minutes) end
 	end
+	if label ~= lastDistance then distance:SetText(label); lastDistance = label end
+end
+
+local function IsOwned(current)
+	local x, y = XY(Field(current, "position", "table"))
+	return ownsWaypoint and target and Field(current, "uiMapID", "number") == target.mapID and x == target.x and y == target.y
 end
 
 function Routes.Clear()
-	local current = Call(C_Map, "GetUserWaypoint")
-	local x, y = XY(Field(current, "position", "table"))
-	local own = ownsWaypoint and target and Field(current, "uiMapID", "number") == target.mapID and x == target.x and y == target.y
-	if own then
+	if IsOwned(Call(C_Map, "GetUserWaypoint")) then
 		if previousWaypoint then Call(C_Map, "SetUserWaypoint", previousWaypoint) else Call(C_Map, "ClearUserWaypoint") end
 		if previousTrack ~= nil then Call(C_SuperTrack, "SetSuperTrackedUserWaypoint", previousTrack) end
 	end
@@ -452,13 +467,13 @@ function Routes.Pick(row)
 	if type(C_SuperTrack) ~= "table" or type(C_SuperTrack.SetSuperTrackedUserWaypoint) ~= "function" then return end
 	if type(UiMapPoint) ~= "table" or type(UiMapPoint.CreateFromCoordinates) ~= "function" then return end
 	local can = Call(C_Map, "CanSetUserWaypointOnMap", row.mapID)
-	if Secret(can) or can == false then return end
+	if Secret(can) or can == false then return nil, L["The game does not allow a waypoint there."] end
 	local waypoint = UiMapPoint.CreateFromCoordinates(row.mapID, row.x, row.y)
 	local old = Call(C_Map, "GetUserWaypoint")
 	local tracked = Plain(Call(C_SuperTrack, "IsSuperTrackingUserWaypoint"), "boolean")
 	local set = Call(C_Map, "SetUserWaypoint", waypoint)
-	if Secret(set) or set ~= true then return end
-	if not ownsWaypoint then previousWaypoint, previousTrack = Plain(old, "table"), tracked end
+	if Secret(set) or set ~= true then return nil, L["The game does not allow a waypoint there."] end
+	if not IsOwned(old) then previousWaypoint, previousTrack = Plain(old, "table"), tracked end
 	ownsWaypoint, target = true, row
 	Call(C_SuperTrack, "SetSuperTrackedUserWaypoint", true)
 	Hide(results)
@@ -560,10 +575,18 @@ function Routes.ShowSteps(road)
 	steps:SetVerticalScroll(math.min(steps:GetVerticalScroll(), math.max(0, top - steps:GetHeight())))
 end
 
-local function SearchChanged(query)
+local matches, offset = {}, 0
+local function SelectResult(index)
+	local row = matches[index]
+	if not row then return end
+	local ok, reason = Routes.Pick(row)
+	if not ok and reason then results[index - offset].Text:SetText(reason) end
+end
+
+local function ShowResults()
 	Hide(results)
-	for i, row in ipairs(search.focused and Routes.Search(query) or {}) do
-		if i > 6 then break end
+	for i = 1, math.min(6, #matches - offset) do
+		local row = matches[offset + i]
 		local button = results[i]
 		if not button then
 			button = CreateFrame("Button", nil, panel)
@@ -584,13 +607,25 @@ local function SearchChanged(query)
 			text:SetPoint("LEFT", 10, 0)
 			text:SetPoint("RIGHT", -10, 0)
 			button.Text = text
+			button:EnableMouseWheel(true)
+			button:SetScript("OnMouseWheel", function(_, delta)
+				offset = math.max(0, math.min(#matches - 6, offset - delta))
+				ShowResults()
+			end)
+			button:SetScript("OnClick", function() SelectResult(offset + i) end)
 			results[i] = button
 		end
-		button.Text:SetText(row.name)
-		button:SetScript("OnClick", function() Routes.Pick(row) end)
+		local before, after = matches[offset + i - 1], matches[offset + i + 1]
+		local duplicate = before and before.name == row.name or after and after.name == row.name
+		button.Text:SetText(duplicate and row.x and string.format("%s (%.1f, %.1f)", row.name, row.x * 100, row.y * 100) or row.name)
 		button:Show()
 	end
 	RefreshRoute()
+end
+
+local function SearchChanged(query)
+	matches, offset = search.focused and Routes.Search(query) or {}, 0
+	ShowResults()
 end
 
 local navOffset
@@ -604,7 +639,7 @@ local function Build()
 	panel:SetAllPoints(map)
 	panel:SetFrameLevel(map:GetFrameLevel() + 30)
 	search = Widgets.EditBox(panel, { width = 180, height = 28, placeholder = L["Search the map"], onChange = SearchChanged,
-		onBlur = function() Hide(results); RefreshRoute() end, onEnter = function(query) if Plain(query, "string") ~= "" then Routes.Pick(Routes.Search(query)[1]) end end,
+		onBlur = function() Hide(results); RefreshRoute() end, onEnter = function(query) if Plain(query, "string") ~= "" then SelectResult(offset + 1) end end,
 		onFocus = function(box) if On("services") then SearchChanged(box:GetText()) end end })
 	search.HasStickyFocus = function()
 		for _, row in ipairs(results) do

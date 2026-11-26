@@ -596,6 +596,8 @@ do
 	assert(hide.Text:GetText() == "2/4 Riverglade Crocolisk Hide" and not hideCount:IsShown(), "and leaves it alone on the next layout")
 	K.Options.Write("Skins", "tracker.counts", true)
 	assert(hide.Text:GetText() == "Riverglade Crocolisk Hide" and hideCount:IsShown(), "switched back on, the count moves right again")
+	hide.Text:SetText("Riverglade Crocolisk Hide")
+	assert(not hideCount:IsShown(), "an external assignment of the same words without progress clears the obsolete count")
 
 	-- Each quest's POI button loses Blizzard's 32-unit art and gets a 13-unit accent disc with a dark numeral in
 	-- the block's order; the super-tracked quest and the hovered button show a ring.

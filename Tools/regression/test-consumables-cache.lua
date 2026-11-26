@@ -31,7 +31,7 @@ env.FireEvent("BAG_UPDATE_COOLDOWN")
 assert(bindings == 0 and countWrites == 0 and queries == before, "cooldowns must reuse bindings, counts and travel spells")
 env.FireEvent("BAG_UPDATE_DELAYED")
 assert(bindings == 0 and queries == before, "bag changes reuse bindings and resolved travel spells")
-env._game.bindings["CLICK KstyleUI_Consumable1:LeftButton"] = { "SHIFT-1" }
+env._game.bindings["CLICK KstyleUI_Use_healing:LeftButton"] = { "SHIFT-1" }
 env.FireEvent("UPDATE_BINDINGS")
 assert(bindings > 0 and C.buttons[1].hotkey:GetText() == "S1", "UPDATE_BINDINGS refreshes cached keys")
 itemID = 90001

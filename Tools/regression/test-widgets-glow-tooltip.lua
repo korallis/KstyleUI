@@ -166,7 +166,8 @@ do
 	local tp = tip.used[1].left._points[1]
 	assert(W.Near(tp[4], Widgets.Snap(tip, 9.5 + 50 + 11)), "the text column starts 11 units right of the icon")
 	local y3, y4 = tip.used[3].left._points[1][5], tip.used[4].left._points[1][5]
-	assert(W.Near(y3 - y4, Widgets.TextHeight(tip.used[3].left, Tokens.Size("body") * 1.2) + 0.5), "body lines are pitched half a unit apart")
+	local pitch = Widgets.TextHeight(tip.used[3].left, Tokens.Size("body") * 1.2) + 0.5
+	assert(W.Near(y3 - y4, Widgets.Snap(tip, pitch)), "body lines retain the half-unit gap rounded to a physical pixel")
 	assert(tip:GetHeight() > 0 and tip:GetWidth() >= Widgets.TOOLTIP_MIN_WIDTH, "the tooltip has a size")
 	local p = tip._points[1]
 	assert(p[1] == "LEFT" and p[2] == owner and p[3] == "RIGHT", "ANCHOR_RIGHT puts it right of the owner")

@@ -880,7 +880,7 @@ function modules.actionbars(opts)
 			GetContainerItemInfo = function(_, slot) return { itemID = items[slot][1], iconFileID = items[slot][2], stackCount = slot + 2 } end,
 		}
 		local rows = tonumber(os.getenv("RENDER_CONSUMABLE_ROWS") or "2")
-		for i = 1, 12 do env._game.bindings["CLICK KstyleUI_Consumable" .. i .. ":LeftButton"] = { "SHIFT-" .. ((i - 1) % 9 + 1) } end
+		for i = 1, 12 do env._game.bindings["CLICK KstyleUI_Use_" .. ns.Consumables.kinds[i].key .. ":LeftButton"] = { "SHIFT-" .. ((i - 1) % 9 + 1) } end
 		env.C_Item = { GetItemCooldown = function(id) return id == 13446 and 5 or 0, id == 13446 and 120 or 0, 1 end }
 		K.Options.Write("ActionBars", "consumables.rows", rows)
 		K.Options.Write("ActionBars", "consumables.hotkey", os.getenv("RENDER_CONSUMABLE_KEYS") == "1")

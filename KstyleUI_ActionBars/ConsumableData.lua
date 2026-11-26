@@ -37,7 +37,7 @@ function C.TravelChanged(event, id)
 	C.Refresh()
 end
 
-local function Classify(id, cfg)
+local function Classify(id, cfg, playerLevel)
 	if travel[id] then return end
 	if not ranks then
 		ranks = {}
@@ -45,9 +45,14 @@ local function Classify(id, cfg)
 			for rank, item in ipairs(kind.ids) do ranks[item] = { key = kind.key, rank = rank } end
 		end
 	end
+	local item = C_Item
+	if UnitLevel and item and item.GetItemInfo then
+		if not playerLevel then return end
+		local required = Plain(select(5, item.GetItemInfo(id)), "number")
+		if not required or required > playerLevel then return end
+	end
 	local known = ranks[id]
 	if known then return cfg[known.key] ~= false and known.key or nil, known.rank end
-	local item = C_Item
 	if cfg.other == false or not (item and item.GetItemInfoInstant and item.GetItemSpell and item.GetItemInfo) then return end
 	local _, _, _, _, _, class = item.GetItemInfoInstant(id)
 	if Plain(class, "number") ~= 0 then return end
@@ -75,6 +80,7 @@ function C.Scan(cfg)
 	if not (api and api.GetContainerNumSlots and api.GetContainerItemInfo) then return picked, counts end
 	local inventory = Constants and Constants.InventoryConstants or {}
 	local bags = (Plain(inventory.NumBagSlots, "number") or 4) + (Plain(inventory.NumReagentBagSlots, "number") or 1)
+	local playerLevel = UnitLevel and Plain(UnitLevel("player"), "number")
 	for bag = 0, bags do
 		local slots = Plain(api.GetContainerNumSlots(bag), "number") or 0
 		for slot = 1, slots do
@@ -83,7 +89,7 @@ function C.Scan(cfg)
 				local id, count = Plain(info.itemID, "number"), Plain(info.stackCount, "number")
 				if id and count and count > 0 then
 					counts[id] = (counts[id] or 0) + count
-					local key, rank = Classify(id, cfg)
+					local key, rank = Classify(id, cfg, playerLevel)
 					local old = key and candidates[key]
 					if key and (not old or rank < old.rank or rank == old.rank and id < old.id) then
 						candidates[key] = { id = id, rank = rank, key = key, icon = Plain(info.iconFileID, "number") or Plain(info.iconFileID, "string") }

@@ -134,7 +134,7 @@ s.ilvl = env.Secret(80)
 hover()
 assert(#s.asks == 2, "a stale level is asked again out of combat")
 env.FireEvent("INSPECT_READY", "Player-1-2")
-assert(find(T.Lines(tip), K.L["Item level"]) == "71", "a secret answer keeps the last readable level")
+assert(find(T.Lines(tip), K.L["Last inspected"]) == "71", "a secret answer keeps the last readable level")
 s.player = false
 assert(not find(hover(), K.L["Item level"]), "creatures get no item level")
 s.player = true

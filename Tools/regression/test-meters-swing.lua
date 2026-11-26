@@ -12,6 +12,30 @@ M.Write(env, K, "swing.attached", false)
 local Swing = ns.Swing
 local main, off, ranged = Swing.bars[MAIN], Swing.bars[OFF], Swing.bars[RANGED]
 
+local countWrites = dofile("Tools/regression/readout_count.lua")
+do
+	local e, k, n = M.New()
+	M.Enable(e, k)
+	M.Write(e, k, "swing.time", true)
+	local swing = n.Swing
+	local text = swing.bars[MAIN].time
+	local writes = countWrites(text, "SetText")
+	e.SetTime(10)
+	e.FireEvent("PLAYER_SWING", 2, MAIN)
+	local labels = {}
+	for i = 1, 120 do
+		e.SetTime(10 + i / 120)
+		swing.driver:GetScript("OnUpdate")()
+		labels[text:GetText()] = true
+	end
+	assert(writes() == 11)
+	for i = 10, 20 do assert(labels[string.format("%.1f", i / 10)]) end
+	M.Write(e, k, "swing.time", false)
+	assert(text:GetText() == "")
+	M.Disable(e, k)
+	assert(not swing.driver:GetScript("OnUpdate"))
+end
+
 -- Each bar is the bible's square bar (KSTY-60 item 10): a black pixel round a dark track, no capsule or grey rim.
 for _, bar in ipairs({ main, off, ranged }) do
 	local edge = bar.barEdge
@@ -263,6 +287,39 @@ do
 	local r, g, b = time:GetTextColor()
 	assert(r == 1 and g == 1 and b == 1, "readable text off gives the swing time its white back: " .. tostring(r) .. "," .. tostring(g) .. "," .. tostring(b))
 	assert(#env4._errors == 0, "no Lua error: " .. tostring(env4._errors[1]))
+end
+
+-- Idle-redundant-work finding 72: while the timer runs each enabled hand asks for its range check once, however often
+-- its settings apply; nothing switches one off, because Blizzard's own swing timer shares the client's flag
+-- (Blizzard_SwingTimer.lua, UpdateRangeCheckRegistration); a restart asks again.
+do
+	local e, k = M.New()
+	local function asked()
+		local on, released, hands = {}, 0, 0
+		for _, check in ipairs(e._rangeChecks) do
+			if check[2] then
+				hands = hands + (on[check[1]] and 0 or 1)
+				on[check[1]] = (on[check[1]] or 0) + 1
+			else
+				released = released + 1
+			end
+		end
+		return on, released, hands
+	end
+	M.Enable(e, k)
+	for i = 1, 10 do M.Write(e, k, "swing.time", i % 2 == 1) end
+	M.Write(e, k, "swing.offHand", false)
+	M.Write(e, k, "swing.offHand", true)
+	local on, released, hands = asked()
+	assert(on[MAIN] == 1 and released == 0, string.format("12 settings applies ask the main hand %d times and switch %d off", on[MAIN] or 0, released))
+	for hand, n in pairs(on) do assert(n == 1, "each hand asks once, " .. hand .. " asked " .. n) end
+	M.Disable(e, k)
+	assert(select(2, asked()) == 0, "stopping switches no check off")
+	M.Enable(e, k)
+	local again = asked()
+	for hand in pairs(on) do assert(again[hand] == 2, "a restart asks each hand again") end
+	assert(select(3, asked()) == hands, "and only the hands it asked before")
+	assert(#e._errors == 0, "no Lua error: " .. tostring(e._errors[1]))
 end
 
 print("meters swing ok")

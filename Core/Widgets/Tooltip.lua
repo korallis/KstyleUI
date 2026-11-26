@@ -233,6 +233,7 @@ function Tip:Layout()
 	local width, inner = Measure(self, x0, pad)
 	local y = inset
 	for _, line in ipairs(self.used) do
+		y = Widgets.Snap(self, y)
 		if line.kind == "rule" then
 			local gap = Widgets.Snap(self, RULE_GAP)
 			y = y + gap
@@ -315,7 +316,7 @@ local function Position(self, width, height)
 	end
 	local a = ANCHORS[side]
 	self:ClearAllPoints()
-	self:SetPoint(a[1], owner, a[2], a[3] * (gap + extra) + x, a[4] * (gap + extra) + y)
+	Widgets.Point(self, a[1], owner, a[2], a[3] * (gap + extra) + x, a[4] * (gap + extra) + y, true)
 end
 
 function Tip:Restyle()

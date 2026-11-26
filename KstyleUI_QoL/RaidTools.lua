@@ -173,7 +173,7 @@ local function Build()
 		Aim()
 	end
 	holder:Hide()
-	Widgets.Place(holder, KEY, { anchor = "TOPLEFT", x = 16, y = -320 }, { label = L["Raid tools"], module = ns.MODULE, scalable = true })
+	Widgets.Place(holder, KEY, { anchor = "TOPLEFT", x = 16, y = -368 }, { label = L["Raid tools"], module = ns.MODULE, scalable = true })
 end
 
 local function Refresh(event)

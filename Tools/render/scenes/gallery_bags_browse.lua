@@ -44,6 +44,14 @@ return Common.Run(function()
 		free = 31, total = 40, bankFree = 44, bankTotal = 52, money = 4518263,
 	}
 
+	local bankState = os.getenv("RENDER_BANK_STATE")
+	if bankState == "empty" or bankState == "unvisited" then
+		local alt = saved.characters["Lordaeron-Thargor"]
+		alt.bank = {}
+		alt.bankTotal = bankState == "empty" and 52 or nil
+		alt.bankFree = alt.bankTotal
+	end
+
 	env.ToggleAllBags()
 	env.RunTimers()
 	local win = ns.Inventory.window

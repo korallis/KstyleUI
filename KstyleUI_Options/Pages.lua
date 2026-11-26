@@ -792,28 +792,58 @@ function Pages.ExportProfile()
 	return text
 end
 
-function Pages.ImportProfile(text, name)
+function Pages.ImportProfile(text, name, onError)
 	local ok, result = K.Store.Import(text, name, Extras())
 	ns.Changed()
 	if ok then
 		Notify(L["Profile imported"], format(L["Imported the profile as %s. This character now uses it."], tostring(result)))
+	elseif onError then
+		onError(result)
 	else
 		Notify(L["Import failed"], tostring(result))
 	end
 	return ok, result
 end
 
-function Pages.ReviewImport(text)
+local function OpenImport(paste, reason)
+	local guide = L["Paste a profile (KSUI1:), selected settings (KSS1:) or an account backup (KSA1:)."]
+	K.Widgets.Popup({ title = L["Import profile"], text = reason or guide,
+		editBox = { text = paste }, buttons = {
+			{ label = L["Cancel"] }, { label = L["Import"], primary = true, onClick = function(handle)
+				local text = handle:GetText()
+				Pages.ReviewImport(text, function(why) OpenImport(text, why) end)
+			end },
+		} })
+end
+
+function Pages.ReviewImport(text, onError)
+	local function Failed(why)
+		if onError then onError(why) else Notify(L["Import failed"], tostring(why)) end
+		return false, why
+	end
+	if type(text) == "string" then text = text:match("^%s*(.-)%s*$") end
+	if type(text) == "string" and text ~= "" and not text:match("^KS[AS]%d+:") and not text:match("^KSUI%d+:") then
+		return Failed(L["Use a KstyleUI share starting with KSUI1:, KSS1: or KSA1:."])
+	end
 	if type(text) == "string" and text:match("^%s*KSA1:") then
 		K.Widgets.Confirm({ title = L["Import profile"], text = K.Store.Module("ProfileTools").accountChoices
 			and L["Add every profile in this string with its character and specialization choices? Its account preferences and profile hotkeys replace yours. Your other profiles stay."]
 			or L["Add every profile in this string and its character choices? Your other profiles stay."],
-			acceptLabel = L["Import"], onAccept = function() Report(K.Profiles.ImportAccount(text:match("^%s*(.-)%s*$"))) end })
+			acceptLabel = L["Import"], onAccept = function()
+				local ok, count, assignments = K.Profiles.ImportAccount(text)
+				if not ok then Failed(count); return end
+				ns.Changed()
+				local message = format(L["Profiles imported: %d. Active profile: %s."], count, K.Store.ProfileName())
+				if assignments > 0 then message = message .. "\n" .. format(L["Character assignments applied: %d."], assignments) end
+				Notify(L["Profile imported"], message)
+			end })
 		return true
 	end
-	if not K.Store.Module("ProfileTools").review then return Pages.ImportProfile(text) end
+	local review = K.Store.Module("ProfileTools").review
+	if not review and not (type(text) == "string" and text:match("^KSS1:")) then return Pages.ImportProfile(text, nil, onError) end
 	local preview, why = K.Profiles.Preview(text, ShareScope(), Pages.includeLayout ~= false, Extras())
-	if not preview then Notify(L["Import failed"], tostring(why)); return false, why end
+	if not preview then return Failed(why) end
+	if not review then return Pages.ImportProfile(preview.text, nil, onError) end
 	local message = K.Store.Module("ProfileTools").backups and L["Will change: %s. A Before import backup will be saved."] or L["Will change: %s."]
 	local labels = {}
 	for _, module in ipairs(preview.changes) do labels[#labels + 1] = Pages.ModuleLabel(module) end
@@ -823,7 +853,7 @@ function Pages.ReviewImport(text)
 		editBox = { placeholder = L["Profile name (optional)"], maxLetters = 48 }, buttons = {
 			{ label = L["Cancel"] }, { label = L["Apply"], primary = true, onClick = function(handle)
 				local name = handle:GetText():match("^%s*(.-)%s*$")
-				Pages.ImportProfile(preview.text, name ~= "" and name or nil)
+				Pages.ImportProfile(preview.text, name ~= "" and name or nil, onError)
 			end },
 		} })
 	return true, preview
@@ -1038,25 +1068,10 @@ local function ProfileItems()
 				editBox = { text = text }, buttons = { { label = L["Close"], primary = true } } }))
 		end } } })
 	add({
-		kind = "button", label = L["Import"], help = L["Adds a profile from a string, then switches this character to it."],
+		kind = "button", label = L["Import"], help = L["Import a shared profile, selected settings or an account backup."],
 		buttons = { {
 			label = L["Import"],
-			onClick = function()
-				K.Widgets.Popup({
-					title = L["Import profile"],
-					text = L["Paste a KstyleUI profile string."],
-					editBox = { placeholder = "KSUI1:" },
-					buttons = {
-						{ label = L["Cancel"] },
-						{
-							label = L["Import"], primary = true,
-							onClick = function(handle)
-								Pages.ReviewImport(handle:GetText())
-							end,
-						},
-					},
-				})
-			end,
+			onClick = function() OpenImport() end,
 		} },
 	})
 	add({ kind = "header", level = 1, label = L["Profile hotkeys"] })

@@ -212,7 +212,7 @@ local function Inspect(unit, guid)
 end
 
 local function ItemLevel(tooltip, unit, guid)
-	local level
+	local level, stale
 	if Yes(UnitIsUnit, unit, "player") then
 		if type(GetAverageItemLevel) == "function" then
 			level = select(2, GetAverageItemLevel())
@@ -220,12 +220,13 @@ local function ItemLevel(tooltip, unit, guid)
 	else
 		local known = levels[guid]
 		level = known and known.level
-		if not known or GetTime() - known.time > INSPECT_AGE then
+		stale = known and GetTime() - known.time > INSPECT_AGE
+		if not known or stale then
 			Inspect(unit, guid)
 		end
 	end
 	if Logic.IsNumber(level) and level > 0 then
-		Units.AddID(tooltip, L["Item level"], math.floor(level))
+		Units.AddID(tooltip, stale and L["Last inspected"] or L["Item level"], math.floor(level))
 	end
 end
 

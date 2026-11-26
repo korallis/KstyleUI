@@ -55,14 +55,6 @@ local function stand(env)
 	env.ClassTrainerFrame:SetPoint("CENTER")
 	frame("ClassTrainerTrainButton", env.ClassTrainerFrame):SetSize(80, 22)
 	env.ClassTrainerTrainButton:SetPoint("BOTTOMRIGHT")
-	env.Enum = env.Enum or {}
-	env.Enum.TrainerType = { General = 0, TalentsObsolete = 1, Tradeskills = 2, Pet = 3 }
-	env._trainer = 0
-	env.C_Trainer = { GetTrainerType = function() return env._trainer end }
-	env._services = { { "available", 100 }, { "unavailable", 10 }, { "available", 99999 }, { "used", 0 }, { "available", 50 } }
-	env.GetNumTrainerServices = function() return #env._services end
-	env.GetTrainerServiceInfo = function(i) return "Skill " .. i, env._services[i][1] end
-	env.GetTrainerServiceCost = function(i) return env._services[i][2] end
 	env.BuyTrainerService = record(env, "BuyTrainerService")
 	env.NUM_BAG_SLOTS = 4
 	env._bags = { [0] = { { itemID = 5, hasLoot = false, stackCount = 1, isLocked = false }, { itemID = 7, hasLoot = true, stackCount = 2, isLocked = false } },
@@ -141,7 +133,7 @@ end
 do
 	local env, K, ns = boot({ enabled = true, fastLoot = true, lootFeed = true, skipCinematics = true, cursorRing = true })
 	for key, value in pairs({ rollsClose = 0, autoLogDelay = false, openSkipWarbound = true, skipAuto = true, cursorTexture = "ring", cursorDot = false, cursorHidden = false, cursorTrail = false, castRing = false,
-		stats = false, dialogKeys = false, numberKeys = false, confirmPopups = false, hideToasts = "none", trainAll = false, autoOpen = false, autoUnwrap = false }) do
+		stats = false, dialogKeys = false, numberKeys = false, confirmPopups = false, hideToasts = "none", autoOpen = false, autoUnwrap = false }) do
 		assert(ns.Get(key) == value, key .. " keeps today's behaviour by default")
 	end
 	assert(not ns.StatsFrame() and not ns.KeyCatcher() and not select(3, ns.AidFrames()), "no stats, key catcher or cast circle is built")
@@ -150,7 +142,6 @@ do
 	assert(ring.texture:GetTexture():find("Ring.png", 1, true) and not ring.texture:GetTexture():find("Bevel", 1, true), "the plain ring")
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	env.FireEvent("NEW_MOUNT_ADDED", 55)
-	env.FireEvent("TRAINER_SHOW")
 	env.FireEvent("CINEMATIC_START", true)
 	env.GroupLootHistoryFrame:Show()
 	env.Release()
@@ -158,7 +149,6 @@ do
 	assert(#Q.Calls(env, "StopCinematic") == 1, "cinematics still skip at once")
 	assert(#Q.Calls(env, "UseContainerItem") == 0 and #Q.Calls(env, "MountFanfare") == 0, "no container or fanfare is touched")
 	for _, event in ipairs(LOOT_TOASTS) do assert(env.AlertFrame:IsEventRegistered(event), event .. " toasts stay") end
-	assert(select("#", env.ClassTrainerFrame:GetChildren()) == 1, "no Train all button")
 	clean(env, K)
 end
 
@@ -175,12 +165,15 @@ do
 	assert(x >= 0 and y <= K.Scale.Root():GetTop(), "the stats sit on the screen")
 	env._crit = 20
 	env.FireEvent("COMBAT_RATING_UPDATE")
-	assert(shows(frame.lines[1]):find("20.00%", 1, true), "a rating change refreshes the value")
+	env.RunTimers()
+	assert(shows(frame.lines[1]):find("20.00%", 1, true), "a rating change refreshes the value on the next frame")
 	env._crit = 21
 	env.FireEvent("UNIT_AURA", "player")
+	env.RunTimers()
 	assert(shows(frame.lines[1]):find("21.00%", 1, true), "an aura change refreshes the value")
 	env._crit = env.Secret(30)
 	env.FireEvent("UNIT_AURA", "player")
+	env.RunTimers()
 	assert(shows(frame.lines[1]) == "<secret>" and env.issecretvalue(frame.lines[1]:IsShown()) == false, "a secret value still draws")
 	env._crit = 12.5
 	Q.Write(env, K, "statsShort", true)
@@ -196,6 +189,12 @@ do
 	local hex = string.format("%02x%02x%02x", math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
 	assert(shows(frame.lines[1]) ~= plain and shows(frame.lines[1]):find(hex, 1, true), "coloured values use the accent")
 	local size, width = select(2, frame.lines[1]:GetFont()), frame:GetWidth()
+	local height = frame:GetHeight()
+	assert(K.Theme.SetFontScale(1.3))
+	env.RunTimers()
+	assert(select(2, frame.lines[1]:GetFont()) > size and frame:GetHeight() > height and frame:GetWidth() > width, "global text size grows the stat rows and their block")
+	assert(K.Theme.SetFontScale(1))
+	env.RunTimers()
 	Q.Write(env, K, "statsScale", 150)
 	assert(select(2, frame.lines[1]:GetFont()) > size and frame:GetWidth() > width, "Stats size grows the text and the block")
 	local list = {}
@@ -337,7 +336,7 @@ do
 	clean(env, K)
 end
 
--- Toasts, loot rolls, Escape skipping, Train all, containers and new mounts and toys: each works on and puts back exactly what it changed.
+-- Toasts, loot rolls, Escape skipping, containers and new mounts and toys: each works on and puts back exactly what it changed.
 do
 	local env, K = boot()
 	Q.Write(env, K, "hideToasts", "loot")
@@ -380,22 +379,6 @@ do
 	env.CinematicFrame.closeDialog:Hide()
 	env.CinematicFrame.closeDialog:Show()
 	assert(#Q.Calls(env, "CancelCinematic") == 1, "Skip at once on leaves the prompt to the player")
-
-	env._repair.money = 1000
-	Q.Write(env, K, "trainAll", true)
-	env.FireEvent("TRAINER_SHOW")
-	env.RunTimers()
-	local button = select(2, env.ClassTrainerFrame:GetChildren())
-	assert(button and button:IsShown() and select(2, button:GetPoint(1)) == env.ClassTrainerTrainButton, "Train all sits beside Train")
-	env.SetCombat(true)
-	Q.W.Click(button)
-	assert(#Q.Calls(env, "BuyTrainerService") == 0, "refused in combat")
-	env.SetCombat(false)
-	Q.W.Click(button)
-	local bought = Q.Calls(env, "BuyTrainerService")
-	assert(#bought == 2 and bought[1][1] == 5 and bought[2][1] == 1, "every affordable available service, last first")
-	Q.Write(env, K, "trainAll", false)
-	assert(not button:IsShown(), "off hides the button")
 
 	Q.Write(env, K, "autoOpen", true)
 	local used = Q.Calls(env, "UseContainerItem")
@@ -475,7 +458,7 @@ do
 	assert(select(4, preview.dot:GetVertexColor()) < 0.7 * 0.5, "the dot is dimmed while off")
 	for key, value in pairs({ rollsClose = 3, skipAuto = false, cursorTexture = "ringBevel", cursorDot = true, cursorHidden = true, cursorTrail = true, castRing = true, castSpark = false,
 		castAttach = false, autoLogDelay = true, stats = true, statsValue = "both", statsColored = true, statsShort = true, statsScale = 120, dialogKeys = true, numberKeys = true,
-		confirmPopups = true, hideToasts = "both", trainAll = true, autoOpen = true, openSkipWarbound = false, autoUnwrap = true, crosshairX = 120, crosshairY = 90 }) do
+		confirmPopups = true, hideToasts = "both", autoOpen = true, openSkipWarbound = false, autoUnwrap = true, crosshairX = 120, crosshairY = 90 }) do
 		assert(K.Options.Row("QoL", key), key .. " has a row")
 		Q.Write(env, K, key, value)
 	end
@@ -511,39 +494,14 @@ do
 	clean(env, K)
 end
 
+-- The game refuses BuyTrainerService from addon code (ADDON_ACTION_FORBIDDEN), so KstyleUI offers no Train all: a profile saved with that option on has nothing to turn on, adds nothing to the trainer window and buys nothing.
 do
-	local env, K = boot()
-	env._repair.money = 1000
-	env._services = { { "available", 100 } }
-	env.GetTrainerServiceCost = function() return 100, true end
-	Q.Write(env, K, "trainAll", true)
+	local env, K, ns = boot({ enabled = true, trainAll = true })
 	env.FireEvent("TRAINER_SHOW")
 	env.RunTimers()
-	local button = select(2, env.ClassTrainerFrame:GetChildren())
-	Q.W.Click(button)
-	assert(#Q.Calls(env, "BuyTrainerService") == 0, "a new profession is left to the trainer's confirmation")
-	env.GetTrainerServiceCost = function() return 100 end
-	env._trainer = env.Enum.TrainerType.Pet
-	env.FireEvent("TRAINER_SHOW")
-	env.RunTimers()
-	Q.W.Click(button)
-	assert(not button:IsShown() and #Q.Calls(env, "BuyTrainerService") == 0, "pet training, priced in training points, is left to the trainer")
-	env.C_Trainer = nil
-	env.FireEvent("TRAINER_SHOW")
-	env.RunTimers()
-	Q.W.Click(button)
-	assert(not button:IsShown() and #Q.Calls(env, "BuyTrainerService") == 0, "an unknown trainer trains nothing")
-	clean(env, K)
-end
-
--- Train all fits between the money and the Train button at every screen size (money frame right edge: Blizzard_TrainerUI.xml, MoneyBg 5 + 148, then 8).
-for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	local env, K = boot({ enabled = true, trainAll = true }, size)
-	env.FireEvent("TRAINER_SHOW")
-	env.RunTimers()
-	local frame, button = env.ClassTrainerFrame, select(2, env.ClassTrainerFrame:GetChildren())
-	local left, right = button:GetLeft() - frame:GetLeft(), button:GetRight() - frame:GetLeft()
-	assert(button:IsShown() and left >= 161 and right <= frame:GetWidth() - 80, size[1] .. "x" .. size[2] .. ": Train all spans " .. left .. " to " .. right)
+	assert(ns.Get("trainAll") == nil and not K.Options.Row("QoL", "trainAll"), "no Train all setting or row is left")
+	assert(select("#", env.ClassTrainerFrame:GetChildren()) == 1, "the trainer window keeps only the game's own Train button")
+	assert(#Q.Calls(env, "BuyTrainerService") == 0, "nothing buys from addon code")
 	clean(env, K)
 end
 
@@ -641,9 +599,11 @@ do
 	assert(shows(line):find("125|r", 1, true), "spell power is the lowest school, as the character sheet shows it: " .. shows(line))
 	reads = 0
 	env.FireEvent("UNIT_AURA", "player")
+	env.RunTimers()
 	assert(reads == 0, "percent mode reads no ratings")
 	env.GetSpellBonusDamage = function(school) return school == 3 and env.Secret(1) or 125 end
 	env.FireEvent("UNIT_AURA", "player")
+	env.RunTimers()
 	assert(shows(line) == "", "a restricted school leaves spell power blank rather than wrong")
 	clean(env, K)
 end

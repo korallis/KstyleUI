@@ -132,6 +132,18 @@ do
 	assert(cap == 6, "the native row stops at the grid's six sockets, got " .. tostring(cap))
 	Visible(viewer, Span(1, 7), "six active buffs and the inactive slot between them")
 	Folded(viewer, Span(8, 16), "past the sixth active buff")
+	local countWrites = dofile("Tools/regression/readout_count.lua")
+	local alpha, motion = {}, {}
+	for i, item in ipairs(viewer._items) do
+		alpha[i], motion[i] = countWrites(item, "SetAlpha"), countWrites(item, "SetMouseMotionEnabled")
+	end
+	for _ = 1, 10 do ns.Cap.Refresh() end
+	for i in ipairs(alpha) do assert(alpha[i]() == 0 and motion[i]() == 0) end
+	viewer._items[9]:SetAlpha(1)
+	viewer._items[9]:SetMouseMotionEnabled(true)
+	viewer._items[9]:UpdateShownState()
+	env.RunTimers()
+	assert(viewer._items[9]:GetAlpha() == 0 and Mouse(viewer._items[9]) == false)
 	-- Active past the sixth: 9 and 10.
 	local chip = Chip(ns)
 	assert(Shown(chip), "a chip counts the active buffs past the sixth")
@@ -332,6 +344,30 @@ do
 	assert(K.Setup.EditMode.Tracked("buffs") == 7, "a fallen-back row counts as capped, got " .. tostring(K.Setup.EditMode.Tracked("buffs")))
 	ns.Path.Restyles = restyles
 	ns.Data.Count = count
+end
+
+-- Idle-redundant-work finding 72: a stopped cap leaves Blizzard's later layouts alone, whether the path changed or the
+-- module stopped, and the restyled path takes the row again.
+do
+	local env, K, ns, viewer = Boot("reskin")
+	local scans, children = 0, viewer.GetChildren
+	viewer.GetChildren = function(...) scans = scans + 1; return children(...) end
+	local function layouts()
+		scans = 0
+		for _ = 1, 10 do viewer:Layout(); viewer._items[1]:UpdateShownState(); env.RunTimers() end
+		return scans
+	end
+	assert(layouts() == 10, "a running cap scans once a frame for each frame of native layouts: " .. scans)
+	local capped = Chip(ns).text:GetText()
+	K.Options.Write("Cooldowns", "path", "mirror")
+	env.RunTimers()
+	assert(layouts() == 0, "the mirror path's cap scans nothing on 10 native layouts: " .. scans)
+	K.Options.Write("Cooldowns", "path", "reskin")
+	env.RunTimers()
+	assert(layouts() == 10 and Shown(Chip(ns)) and Chip(ns).text:GetText() == capped, "the restyled path caps the row again: " .. scans)
+	K.Modules.Disable("Cooldowns")
+	env.RunTimers()
+	assert(layouts() == 0, "a stopped module's cap scans nothing: " .. scans)
 end
 
 -- The KstyleUI icons path draws its own row; Blizzard's faded viewer keeps every item as it is.

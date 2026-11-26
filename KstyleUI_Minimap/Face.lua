@@ -429,7 +429,10 @@ end
 
 function Face:SetClock(text)
 	local time, suffix = SplitClock(text)
-	self.clock:SetText(time)
+	if self.clockText ~= time then
+		self.clock:SetText(time)
+		self.clockText = time
+	end
 	if self.meridiem:GetText() ~= suffix then
 		self.meridiem:SetText(suffix)
 		self:PlaceClock()

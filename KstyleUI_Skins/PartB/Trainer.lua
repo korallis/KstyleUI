@@ -19,32 +19,43 @@ local function LineHeight(text)
 	return K.Widgets.LineHeight(text) + (text:GetSpacing() or 0)
 end
 
-local function SkillRow(row)
+local function SkillRow(row, grow)
 	Kit.Hush(row, Texture(row, "GetNormalTexture"), Texture(row, "GetHighlightTexture"), row.selectedTex)
 	Kit.CropIcon(row.icon)
 	Kit.Select(row, row.selectedTex)
 	if ns.Style.MetricsEnabled() and row.name and row.subText and K.Widgets.MayMove(row) then
 		local width = row:GetWidth()
 		if IsSecret(width) or type(width) ~= "number" then return end
+		local height, cap = row:GetHeight()
+		if not grow then
+			if IsSecret(height) or type(height) ~= "number" then return end
+			local line, size = K.Widgets.LineHeight(row.subText)
+			cap = (height - 4) / 3 * size / line
+		end
 		ns.Style.Sweep(row)
-		ns.Style.MetricText(row.name)
-		ns.Style.MetricText(row.subText)
-		local line, pad = LineHeight(row.subText), K.Widgets.Snap(row, 6)
-		row:SetHeight(K.Widgets.Snap(row, 3 * line + 12))
+		ns.Style.MetricText(row.name, nil, cap)
+		ns.Style.MetricText(row.subText, nil, cap)
+		local line, pad = LineHeight(row.subText), 6
+		if grow then
+			row:SetHeight(K.Widgets.Snap(row, 3 * line + 12))
+		else
+			pad = math.max(0, (height - 3 * line) / 2)
+		end
+		pad = K.Widgets.Snap(row, pad)
 		row.name:ClearAllPoints()
 		row.name:SetPoint("TOPLEFT", row, "TOPLEFT", 48, -pad)
 		row.name:SetHeight(line)
 		row.name:SetWordWrap(false)
 		row.subText:ClearAllPoints()
 		row.subText:SetPoint("TOPLEFT", row.name, "BOTTOMLEFT", 0, 0)
-		row.subText:SetWidth(math.max(1, width - 48 - pad))
+		row.subText:SetWidth(math.max(1, width - 60))
 		row.subText:SetHeight(2 * line)
 		row.subText:SetJustifyV("TOP")
 		row.subText:SetWordWrap(true)
 		row.subText:SetMaxLines(2)
 		if row.money then
 			row.money:ClearAllPoints()
-			row.money:SetPoint("TOPRIGHT", row, "TOPRIGHT", -pad, -pad)
+			row.money:SetPoint("TOPRIGHT", row, "TOPRIGHT", -K.Widgets.Snap(row, 6), -pad)
 		end
 	end
 end
@@ -137,8 +148,6 @@ local function Layout()
 		if not box or not K.Widgets.MayMove(frame) then return end
 		local width, height = frame:GetSize()
 		if IsSecret(width) or IsSecret(height) or type(width) ~= "number" or type(height) ~= "number" then return end
-		local measure = K.Safe.Side(frame).trainerLayout.measure
-		ns.Style.MetricText(measure)
 		if frame.TrainButton then
 			frame.TrainButton:ClearAllPoints()
 			frame.TrainButton:SetPoint("BOTTOMRIGHT", frame, "TOPLEFT", K.Widgets.Snap(frame.TrainButton, width - 12), -K.Widgets.Snap(frame.TrainButton, height - 12))
@@ -148,20 +157,13 @@ local function Layout()
 			frame.money:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", K.Widgets.Snap(frame.money, 12), -K.Widgets.Snap(frame.money, height - 18))
 		end
 		if frame.skillStepButton and frame.skillStepButton:IsShown() then
-			SkillRow(frame.skillStepButton)
+			SkillRow(frame.skillStepButton, true)
 			K.Widgets.Point(box, "TOPLEFT", frame.skillStepButton, "BOTTOMLEFT", 0, -6)
 		else
 			local point, relative, on, x, y = box:GetPoint(1)
 			if point == "TOPLEFT" then K.Widgets.Point(box, point, relative, on, x, y) end
 		end
 		box:SetPoint("BOTTOMRIGHT", frame, "TOPLEFT", K.Widgets.Snap(box, width - 24), -K.Widgets.Snap(box, height - 52))
-		local view = type(box.GetView) == "function" and box:GetView()
-		if view and type(view.SetElementExtentCalculator) == "function" then
-			view:SetElementExtentCalculator(function(_, node)
-				return node:GetData().categoryInfo and 25 or K.Widgets.Snap(box, 3 * LineHeight(measure) + 12)
-			end)
-			if type(box.FullUpdate) == "function" then box:FullUpdate() end
-		end
 		if type(box.ForEachFrame) == "function" then box:ForEachFrame(Row) end
 	end)
 end
@@ -189,17 +191,12 @@ local function Apply()
 		Kit.Inset(frame.bottomInset)
 	end
 	if frame.skillStepButton then
-		SkillRow(frame.skillStepButton)
+		SkillRow(frame.skillStepButton, true)
 	end
 	if frame.ScrollBox then
 		Kit.Rows(frame.ScrollBox, Row)
 	end
-	local layout = { Restyle = Layout }
-	if ns.Style.MetricsEnabled() then
-		layout.measure = K.Widgets.FontString(frame, "OVERLAY")
-		layout.measure:Hide()
-	end
-	K.Safe.Side(frame).trainerLayout = ns.Style.Track(layout)
+	K.Safe.Side(frame).trainerLayout = ns.Style.Track({ Restyle = Layout })
 	Layout()
 	if type(ClassTrainerFrame_InitCategoryButton) == "function" then
 		hooksecurefunc("ClassTrainerFrame_InitCategoryButton", CategoryInit)

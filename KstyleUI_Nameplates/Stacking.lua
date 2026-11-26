@@ -68,19 +68,24 @@ end
 
 local function Register(plate)
 	local base = plate.base
-	if plate.boundTo == base or type(base.SetStackingBoundsFrame) ~= "function" then
+	if not plate.unit or plate.boundsTried or plate.boundTo == base or type(base.SetStackingBoundsFrame) ~= "function" then
 		return
 	end
+	plate.boundsTried = true
 	local ok, err = pcall(base.SetStackingBoundsFrame, base, plate.stackBounds)
 	if ok then
 		plate.boundTo = base
-	elseif not plate.boundQueued then
-		plate.boundQueued = true
-		LogOnce("stacking-bounds-refused", "SetStackingBoundsFrame refused a plate: " .. tostring(err) .. "; it is tried again out of combat")
-		K.Combat.Queue(function()
-			plate.boundQueued = nil
-			Register(plate)
-		end)
+	else
+		LogOnce("stacking-bounds-refused", "SetStackingBoundsFrame refused a plate: " .. tostring(err) .. "; the game keeps its bounds")
+		if InCombatLockdown() then
+			local function retry()
+				if plate.boundsTried ~= retry then return end
+				plate.boundsTried = nil
+				if Bounding() then Register(plate) end
+			end
+			plate.boundsTried = retry
+			K.Combat.Queue(retry)
+		end
 	end
 end
 

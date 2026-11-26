@@ -248,6 +248,66 @@ do
 	assert(K.ErrorCount() == 0)
 end
 
+-- The idle-work audit's finding 75: 40 different drops before any row settled made 80 frames and kept 37 spare rows,
+-- and 20 drops of one uncached item asked the client for its data 20 times. Departing rows are now capped at the line
+-- count, the oldest reused, and an item already awaited is not asked for again.
+do
+	local env, K, ns = New()
+	local cap = K.Setup.Layouts.FEED_LINES
+	local function Rows()
+		local count, holder = 0, ns.Feed.Holder()
+		for _, frame in ipairs(env._frames) do
+			if frame.tile and frame:GetParent() == holder then count = count + 1 end
+		end
+		return count
+	end
+	Loot(env, "You receive loot: " .. BUG_EYE)
+	local drops = {
+		{ 2592, "Wool Cloth" }, { 4306, "Silk Cloth" }, { 4338, "Mageweave Cloth" }, { 14047, "Runecloth" }, { 2318, "Light Leather" },
+		{ 2319, "Medium Leather" }, { 4234, "Heavy Leather" }, { 8170, "Rugged Leather" }, { 2770, "Copper Ore" }, { 2771, "Tin Ore" },
+		{ 2772, "Iron Ore" }, { 3858, "Mithril Ore" }, { 10620, "Thorium Ore" }, { 2835, "Rough Stone" }, { 2836, "Coarse Stone" },
+		{ 2838, "Heavy Stone" }, { 7912, "Solid Stone" }, { 765, "Silverleaf" }, { 2447, "Peacebloom" }, { 785, "Mageroyal" },
+		{ 2450, "Briarthorn" }, { 2452, "Swiftthistle" }, { 2453, "Bruiseweed" }, { 3820, "Stranglekelp" }, { 3355, "Wild Steelbloom" },
+		{ 3356, "Kingsblood" }, { 3357, "Liferoot" }, { 3818, "Fadeleaf" }, { 3821, "Goldthorn" }, { 3358, "Khadgar's Whisker" },
+		{ 8831, "Purple Lotus" }, { 4625, "Firebloom" }, { 8836, "Arthas' Tears" }, { 8838, "Sungrass" }, { 8839, "Blindweed" },
+		{ 8845, "Ghost Mushroom" }, { 8846, "Gromsblood" }, { 13464, "Golden Sansam" }, { 2449, "Earthroot" }, { 13463, "Dreamfoil" },
+	}
+	for _, item in ipairs(drops) do
+		env._items[item[1]] = { icon = 134187, quality = 1 }
+		env.FireEvent("CHAT_MSG_LOOT", "You receive loot: |cffffffff|Hitem:" .. item[1] .. "::::::::38:::::|h[" .. item[2] .. "]|h|r")
+	end
+	assert(Rows() == 2 * cap, "one row and 40 more drops before any settles make only " .. cap .. " live and " .. cap .. " departing rows, got " .. Rows())
+	assert(#ns.Feed.lines == cap and #ns.Feed.leaving == cap, "a burst keeps at most " .. cap .. " departing rows")
+	Settle(env)
+	assert(Names(ns) == "Gromsblood|Golden Sansam|Earthroot|Dreamfoil", "the newest four drops stay: " .. Names(ns))
+	for _, line in ipairs(ns.Feed.lines) do
+		assert(line.entry and line:IsShown() and line:GetAlpha() == 1, "a reused row keeps its new drop after the old fade would have ended")
+	end
+	local seen = {}
+	for _, line in ipairs(ns.Feed.free) do
+		assert(not seen[line], "no row is in the free pool twice")
+		seen[line] = true
+	end
+	assert(#ns.Feed.leaving == 0 and #ns.Feed.free + #ns.Feed.lines == 2 * cap, "every departing row settles into the free pool")
+	assert(K.ErrorCount() == 0 and #env._errors == 0)
+end
+
+do
+	local env, K, ns = New()
+	env._items[2589] = { icon = 132889, quality = 2, cached = false }
+	for _ = 1, 20 do env.FireEvent("CHAT_MSG_LOOT", "You receive loot: " .. CLOTH) end
+	assert(#ns.Feed.lines == 1 and ns.Feed.lines[1].entry.count == 20, "20 drops merge into one x20 row")
+	assert(#Q.Calls(env, "RequestLoadItemDataByID") == 1, "an awaited item is asked for once, got " .. #Q.Calls(env, "RequestLoadItemDataByID"))
+	env.FireEvent("ITEM_DATA_LOAD_RESULT", 2589, false)
+	Loot(env, "You receive loot: " .. CLOTH)
+	assert(#Q.Calls(env, "RequestLoadItemDataByID") == 2, "a failed load lets a later drop ask again")
+	Q.Disable(env, K)
+	Q.Enable(env, K)
+	Loot(env, "You receive loot: " .. CLOTH)
+	assert(#Q.Calls(env, "RequestLoadItemDataByID") == 3, "turning the module off forgets what it awaited")
+	assert(K.ErrorCount() == 0 and #env._errors == 0)
+end
+
 -- Money gains merge into one amount and never show a stack count ------------------------------------------------
 do
 	local env, K, ns = New()

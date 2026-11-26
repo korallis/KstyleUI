@@ -100,7 +100,7 @@ local BAR_TEXT = {
 		return Format.Short(current) .. " / " .. Format.Short(max)
 	end,
 	remaining = function(current, max)
-		return format(L["%s to go"], Format.Number(max - current))
+		return format(L["%s to go"], Format.Number(math.max(0, max - current)))
 	end,
 	label = function(_, _, label)
 		return label

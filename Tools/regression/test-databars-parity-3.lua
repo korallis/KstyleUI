@@ -56,7 +56,7 @@ local function apart(view)
 		for j = i + 1, #order do
 			local ax, _, aw = rect(item(order[i], view).button)
 			local bx, _, bw = rect(item(order[j], view).button)
-			assert(ax + aw <= bx + 0.01 or bx + bw <= ax + 0.01, order[i] .. " overlaps " .. order[j])
+			assert(not item(order[i], view).button:IsShown() or not item(order[j], view).button:IsShown() or ax + aw <= bx + 0.01 or bx + bw <= ax + 0.01, order[i] .. " overlaps " .. order[j])
 		end
 	end
 end

@@ -11,6 +11,14 @@ for _, name in ipairs({ "Point", "Fill", "Size" }) do
 	end
 end
 
+local countWrites = dofile("Tools/regression/readout_count.lua")
+local clock = countWrites(face.clock, "SetText")
+for _ = 1, 60 do M.RunTickers(env) end
+assert(clock() == 0)
+env._clock.minute = env._clock.minute + 1
+for _ = 1, 60 do M.RunTickers(env) end
+assert(clock() == 1 and face.clock:GetText() == "14:33")
+
 local function Reuse()
 	calls = 0
 	for _ = 1, 10 do

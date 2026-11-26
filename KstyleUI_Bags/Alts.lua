@@ -224,6 +224,11 @@ function Alts.Characters()
 			list[#list + 1] = { key = key, name = character.name or key, realm = character.realm, class = character.class, own = key == myKey }
 		end
 	end
+	local names = {}
+	for _, row in ipairs(list) do names[row.name] = (names[row.name] or 0) + 1 end
+	for _, row in ipairs(list) do
+		if names[row.name] > 1 then row.name = row.realm and row.name .. "-" .. row.realm or row.key end
+	end
 	sort(list, function(a, b)
 		if a.own ~= b.own then
 			return a.own
@@ -292,20 +297,13 @@ function Alts.Lines(id)
 		return {}
 	end
 	local lines = {}
-	for key, character in pairs(saved.characters) do
-		if type(character) == "table" then
-			local text, total = Counts(character, id, key == myKey)
-			if text then
-				lines[#lines + 1] = { key = key, name = character.name or key, class = character.class, text = text, total = total, own = key == myKey }
-			end
+	for _, row in ipairs(Alts.Characters()) do
+		local text, total = Counts(saved.characters[row.key], id, row.own)
+		if text then
+			row.text, row.total = text, total
+			lines[#lines + 1] = row
 		end
 	end
-	sort(lines, function(a, b)
-		if a.own ~= b.own then
-			return a.own
-		end
-		return tostring(a.name) < tostring(b.name)
-	end)
 	local warband = Plain(saved.warband[id], "number")
 	if warband and warband > 0 then
 		lines[#lines + 1] = { name = L["Warband bank"], text = tostring(warband), total = warband }
@@ -326,7 +324,7 @@ local function OnTooltip(tooltip, data)
 	local shown = 0
 	local rest, restTotal = 0, 0
 	for _, line in ipairs(lines) do
-		if shown < Alts.MAX_LINES then
+		if not line.key or shown < Alts.MAX_LINES then
 			shown = shown + 1
 			local lr, lg, lb
 			if line.class then
@@ -341,7 +339,7 @@ local function OnTooltip(tooltip, data)
 	end
 	if rest > 0 then
 		local mr, mg, mb = Tokens.Color("muted")
-		tooltip:AddDoubleLine(format(L["%d more characters"], rest), tostring(restTotal), mr, mg, mb, rr, rg, rb)
+		tooltip:AddDoubleLine(rest == 1 and L["1 more character"] or format(L["%d more characters"], rest), tostring(restTotal), mr, mg, mb, rr, rg, rb)
 	end
 end
 

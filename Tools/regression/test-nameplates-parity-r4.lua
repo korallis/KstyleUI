@@ -374,6 +374,46 @@ do
 end
 collectgarbage()
 
+-- Idle-redundant-work finding 72: with no plate the distance and range tickers make no callback; a plate's attach, a target and the setting start them again, and the last plate's removal, the setting and the module's stop end them.
+do
+	local calls = 0
+	local env, K, ns, set = boot({}, { setup = function(env)
+		local new = env.C_Timer.NewTicker
+		env.C_Timer.NewTicker = function(interval, fn, ...)
+			if not debug.getinfo(fn, "S").source:find("Plates.lua", 1, true) then return new(interval, fn, ...) end
+			return new(interval, function(...) calls = calls + 1; return fn(...) end, ...)
+		end
+	end })
+	local function ticks()
+		calls = 0
+		for _ = 1, 40 do env.RunTickers() end
+		return calls
+	end
+	set("range.fade", true)
+	set("target.distance", true)
+	assert(ticks() == 0, "no plate makes no callback in 10 seconds: " .. calls)
+	N.Add(env, "nameplate1", { distance = 12 })
+	assert(ticks() == 40, "an attached plate runs the range ticker alone: " .. calls)
+	N.Target(env, "nameplate1")
+	assert(ticks() == 80, "a targeted plate adds the distance ticker: " .. calls)
+	assert(ns.Plates.Get("nameplate1").distanceText:GetText() == "5-20", "and the distance still reads")
+	N.Target(env, nil)
+	assert(ticks() == 40, "no target ends the distance ticker: " .. calls)
+	set("range.fade", false)
+	assert(ticks() == 0, "the setting off ends the range ticker: " .. calls)
+	set("range.fade", true)
+	assert(ticks() == 40, "the setting on starts it again: " .. calls)
+	N.Remove(env, "nameplate1")
+	assert(ticks() == 0, "the last plate's removal ends it: " .. calls)
+	N.Add(env, "nameplate1", { distance = 12 })
+	N.Target(env, "nameplate1")
+	K.Modules.Disable("Nameplates")
+	env.RunTimers()
+	assert(ticks() == 0, "the module's stop ends both: " .. calls)
+	clean(env, K)
+end
+collectgarbage()
+
 -- The Options preview draws each new option on a sample that has it.
 do
 	local env, K, ns, set = boot({})

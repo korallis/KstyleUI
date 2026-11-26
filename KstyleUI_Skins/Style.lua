@@ -364,6 +364,8 @@ local function IsBlizzardYellow(r, g, b)
 	return IsUnit(r) and IsUnit(g) and IsUnit(b) and r >= YELLOW_MIN_R and g >= YELLOW_MIN_G and g <= YELLOW_MAX_G and b <= YELLOW_MAX_B
 end
 
+local caps = setmetatable({}, WEAK)
+
 local function PaintSwept(text, entry)
 	if entry.busy then
 		return
@@ -373,6 +375,9 @@ local function PaintSwept(text, entry)
 	local size = entry.size and entry.size * Style.Setting("text", "size") or nil
 	if size == nil or size < minimum then
 		size = minimum
+	end
+	if caps[text] and size > caps[text] then
+		size = caps[text]
 	end
 	local ok, err = pcall(Style.ApplyFont, text, SWEEP_ROLE, size)
 	if ok and err == false then
@@ -495,23 +500,25 @@ function Style.KeepPitch(text)
 	text:SetSpacing(0)
 end
 
-function Style.MetricText(text, title)
+function Style.MetricText(text, title, cap)
 	local role = roles[text]
 	if kept[text] or not title and (role == "number" or role == "caps" or role == "display") then
 		return
 	end
 	local units = title and 16 or role == "caption" and 12 or 13
+	caps[text] = cap or caps[text]
+	cap = caps[text]
 	local entry = swept[text]
 	if entry then
 		entry.size = units * K.Theme.FontScale()
 		PaintSwept(text, entry)
 	else
 		Style.Text(text, role or "body", nil, function()
-			return units * K.Theme.FontScale() * Style.Setting("text", "size")
+			return math.min(units * K.Theme.FontScale() * Style.Setting("text", "size"), cap or math.huge)
 		end)
 	end
 	if type(text.SetSpacing) == "function" then
-		text:SetSpacing(math.max(0, Widgets.Snap(text, 16 * K.Theme.FontScale()) - Widgets.LineHeight(text)))
+		text:SetSpacing(cap and 0 or math.max(0, Widgets.Snap(text, 16 * K.Theme.FontScale()) - Widgets.LineHeight(text)))
 	end
 end
 

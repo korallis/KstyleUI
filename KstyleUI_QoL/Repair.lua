@@ -48,7 +48,8 @@ local function OnMerchant()
 		return
 	end
 	local money = ns.Number(GetMoney())
-	if money and money >= cost then
+	if not money then return end
+	if money >= cost then
 		RepairAllItems()
 		K.Print(format(L["Repaired for %s."], Money(cost)))
 	else
