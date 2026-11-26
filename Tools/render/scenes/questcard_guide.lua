@@ -1,4 +1,4 @@
--- questcard_guide.lua: the Medallions quest card, open RestedXP guide and docked boxes in one environment; RENDER_COMBAT=1 RENDER_COMBAT_STEP=1 grows the guide's step to five lines in combat.
+-- questcard_guide.lua: the Medallions quest card, open RestedXP guide and docked boxes in one environment; RENDER_QUEST_COLLAPSED=1 clicks the card's header to fold it; RENDER_COMBAT=1 RENDER_COMBAT_STEP=1 grows the guide's step to five lines in combat.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 
@@ -47,6 +47,11 @@ return Common.Run(function()
 		R.log.Fire("QUEST_LOG_UPDATE")
 		R.settle()
 		p.Hover(R.ns, os.getenv("RENDER_QUEST_PARTY") == "before")
+		R.settle()
+	end
+	if os.getenv("RENDER_QUEST_COLLAPSED") == "1" then
+		local toggle = R.ns.Quests.Parts().toggle
+		toggle:GetScript("OnClick")(toggle, "LeftButton")
 		R.settle()
 	end
 	local scene = Common.Scene.Build(R.env, { iconDirs = Common.IconDirs() })

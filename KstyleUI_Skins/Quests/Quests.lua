@@ -367,6 +367,7 @@ local function Apply()
 	state.on = Skins.IsOn(KEY)
 	ns.QuestParty.Sync(state.on)
 	SyncQuestie()
+	Card.SetCollapsed(Skins.Setting(KEY, "collapsed"))
 	Evaluate()
 end
 
@@ -384,6 +385,9 @@ local function OnSetting(_, field)
 		if state.active then
 			Card.Render()
 		end
+	end
+	if field == nil or field == "collapsed" then
+		Card.SetCollapsed(Skins.Setting(KEY, "collapsed"))
 	end
 end
 
@@ -426,7 +430,7 @@ Skins.Add({
 	help = L["Shows your tracked quests in the story rail, a few at a time; the wheel scrolls to the rest."],
 	addon = "Blizzard_ObjectiveTracker",
 	live = true,
-	defaults = { shown = DEFAULT_SHOWN, continuation = true, partyProgress = true },
+	defaults = { shown = DEFAULT_SHOWN, continuation = true, partyProgress = true, collapsed = false },
 	rows = {
 		{ type = "toggle", key = "partyProgress", label = L["Show party progress on quests"], help = L["Show party members' objectives when you hover a quest."] },
 		{ type = "toggle", key = "continuation", label = L["Show the next quest"], help = L["Let the next quest continue under a soft fade. Off shows only complete quest rows."] },
