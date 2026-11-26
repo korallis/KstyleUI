@@ -3,9 +3,9 @@
 `run-all.sh` runs every `test-*.lua` in this folder from the repository root and prints the last 5 lines of each failing test. Tests run in parallel, `JOBS` at a time (default: the number of CPUs), never more than the machine-wide worker slots allow (below), and report in file order; a test must write only to its own temporary paths. `run-all.sh` starts `run_all.py`, which does the work.
 
 ```bash
-bash Tools/regression/run-all.sh                            # every file, as CI's lua shards together run them
+bash Tools/regression/run-all.sh                            # every file, as the release gate runs them
 bash Tools/regression/run-all.sh --affected origin/staging  # only the files a change can reach
-bash Tools/regression/run-all.sh --shard 2/4                # slice 2 of 4, how CI splits the files across jobs
+bash Tools/regression/run-all.sh --shard 2/4                # slice 2 of 4, to split the files across runs
 bash Tools/regression/run-all.sh --affected origin/staging --list # preview without running tests
 bash Tools/regression/run-all.sh test-layout-tag-budget.lua     # explicit files, still using shared slots
 ```
@@ -14,23 +14,23 @@ To see a failing test's full output, run that test alone, for example `lua5.1 To
 
 ## HUD reach gate
 
-`test-hud-reach*.lua` runs the full live HUD in all three styles, roles and both arrangements across the four required screens and the existing layout edge cases (378 combinations). It checks visible ornaments, labels, mouse targets and empty-slot reservations against the screen margin and each other. The commented stacking allow list is in `hud_reach_lib.lua`; failures name the pair and the placement fix. `test-hud-saved-columns*.lua` also reloads off-screen and valid player/target positions in every style at the four required sizes, including ultrawide Centred and Spread at scale 0.6, and asserts Store is unchanged. These files are discovered by the normal Lua suite and therefore by `bash scripts/gate.sh` and Mac CI.
+`test-hud-reach*.lua` runs the full live HUD in all three styles, roles and both arrangements across the four required screens and the existing layout edge cases (378 combinations). It checks visible ornaments, labels, mouse targets and empty-slot reservations against the screen margin and each other. The commented stacking allow list is in `hud_reach_lib.lua`; failures name the pair and the placement fix. `test-hud-saved-columns*.lua` also reloads off-screen and valid player/target positions in every style at the four required sizes, including ultrawide Centred and Spread at scale 0.6, and asserts Store is unchanged. These files are discovered by the normal Lua suite and therefore by `bash scripts/gate.sh`.
 
 ## Modes
 
-CI runs the whole suite on hosted `ubuntu-latest` as eight `--shard I/8` jobs for pull requests when Lua is in scope, staging pushes and manual runs; these hosted shards are the gate. Staging always runs Lua, even with green PR markers, to check cumulative instruction budgets. Each staging push also starts `mac-budgets.yml`, five `--shard I/5` jobs on the self-hosted Macs that measure CPU limits and report failures; nothing requires or awaits it. Hosted per-file CPU warnings use a 2.5 factor; per-call timing is informational and CPU headroom is skipped there. Functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure; `bash scripts/gate.sh release` makes it, with lint and the Python suite, on the commit a release tag will point at.
+No workflow runs these tests: the local gate does. A developer's pre-push run is `--affected`, which `bash scripts/gate.sh` uses. The full run with no argument is what `bash scripts/gate.sh release` makes, with lint and the Python suite, on the commit a release tag will point at. Functional tests, instruction budgets, memory limits and hang guards fail on every computer; CPU-time overruns print a warning.
 
 | Option | What it runs | Last line |
 | --- | --- | --- |
 | none | Every `test-*.lua` | `passed N, failed M` |
 | `--shard I/N` | Slice I of N of the files; prints `shard I/N: X of Y test files`. | `passed N, failed M` for the slice |
-| `--affected [BASE]` | The files that load something changed against BASE (default `origin/staging`) | `passed N, failed M (affected mode: X of Y test files ran; the other Z did not, and CI runs them all)` |
+| `--affected [BASE]` | The files that load something changed against BASE (default `origin/staging`) | `passed N, failed M (affected mode: X of Y test files ran; the other Z did not; bash scripts/gate.sh release runs them all)` |
 | `--margins` | The files one at a time, then the files within 20% of a budget | `passed N, failed M` |
 | `--write-weights` | Every file, then writes `weights.json` | `passed N, failed M` |
 | `--list` | Prints selected paths without needing Lua, taking slots, checking locales or writing records | `N test files selected; no tests run` |
 | explicit filenames or `Tools/regression/test-*.lua` paths | Only those tests, with normal slots and budgets | `passed N, failed M` |
 
-`--shard`, `--affected` and `--margins` can be combined with each other, but none of them with `--write-weights`. A shard exits 0 only when its own files pass; CI requires every Lua shard job and the parallel `lint, python and package` job to pass.
+`--shard`, `--affected` and `--margins` can be combined with each other, but none of them with `--write-weights`. A shard exits 0 only when its own files pass.
 Explicit files cannot be combined with `--shard`, `--affected` or `--write-weights`. `--list` previews any selection but cannot write weights.
 
 ### Shards and weights
@@ -51,7 +51,7 @@ The AMD pilot on 2026-11-20 kept PR Lua on hosted runners: the full 839-file sui
 
 `--affected BASE` compares the working tree (staged, unstaged and untracked files included) with the merge base of BASE and HEAD, and runs the test files whose record meets a changed file. It prints how many files it runs and why each one runs.
 
-When a changed file is an addon `.lua` file (anything outside `Tools/` and `docs/`) or is under `Tools/locale/`, `--affected` also runs `python3 Tools/locale/strings.py check`, which is the cheap part of `test_locale_strings` in CI's Python job. A failure prints `FAIL locale`, each problem and the fix (`python3 Tools/locale/strings.py sync`, then commit `Tools/locale` and `Core/Locales`), and counts as one failed file. A change that touches neither skips it.
+When a changed file is an addon `.lua` file (anything outside `Tools/` and `docs/`) or is under `Tools/locale/`, `--affected` also runs `python3 Tools/locale/strings.py check`, which is the cheap part of `test_locale_strings` in the Python suite. A failure prints `FAIL locale`, each problem and the fix (`python3 Tools/locale/strings.py sync`, then commit `Tools/locale` and `Core/Locales`), and counts as one failed file. A change that touches neither skips it.
 
 What a test file loads comes from running it, not from its name. `trace.lua` is loaded before the test through `LUA_INIT` and writes each file the test opens for reading (`io.open`, `io.lines`, `dofile`, `loadfile`) and each listing it makes through `fs.lua`, the only file that runs shell commands (`test-shell-guard.lua`). `affected.py` turns that into a record per test file:
 
@@ -81,7 +81,7 @@ The **Beast speed rule** refuses a local selection of more than 150 files when a
 
 Each slot is a lock file, `~/.cache/kstyleui/worker-slot-N.lock` (`KSTYLEUI_SLOT_DIR` moves the folder), held with nonblocking `flock` on POSIX or `msvcrt.locking` on Windows. The OS releases a crashed or killed runner's locks. A hung runner keeps its slots until it exits or is killed; stop only a runner you started, by its PID. The runner never kills a process it did not start, and nobody needs a `pkill` or a full-suite `lockf`. On a GitHub-hosted runner `CI=true` turns the limit off, because that runner has no other runs. CI's self-hosted Mac runners set `RUNNER_ENVIRONMENT=self-hosted`, so there CI takes slots like any other run on the Mac.
 
-Each completed file prints `progress: N/T test files done`. Each file also prints `usage: NAME cpu=SECONDS wall=SECONDS peak_mb=MB`, including passing files, so CI logs contain calibration data. Load averages print `n/a` where the OS does not provide them. The summary reports slot waiting separately from test wall time.
+Each completed file prints `progress: N/T test files done`. Each file also prints `usage: NAME cpu=SECONDS wall=SECONDS peak_mb=MB`, including passing files, so run logs contain calibration data. Load averages print `n/a` where the OS does not provide them. The summary reports slot waiting separately from test wall time.
 
 ### Python test subprocesses
 
@@ -128,9 +128,9 @@ A bug a property finds is filed, and until it is fixed the file's `known` list c
 
 ## Interpreter
 
-CI runs the tests with Lua 5.1.5 on GitHub-hosted Ubuntu, and `mac-budgets.yml` on the owner's self-hosted Mac runners. With no `LUA` set, `run-all.sh` picks the first of these and prints its choice on the first line:
+The tests are written for Lua 5.1.5. With no `LUA` set, `run-all.sh` picks the first of these and prints its choice on the first line:
 
-1. `lua5.1` on the `PATH`. This is what CI runs.
+1. `lua5.1` on the `PATH`.
 2. `~/.local/bin/lua5.1` (`lua5.1.exe` on Windows). `bash Tools/dev/install-lua51.sh` builds Lua 5.1.5 on POSIX and installs the SHA-256-checked LuaBinaries 5.1.5 Win64 archive plus luacheck 1.2.0 on Windows; Homebrew has no Lua 5.1.
 3. `luajit -joff`, LuaJIT with its compiler off. These runs print `not budgeted`. It is not the same interpreter: it accepts `goto`, and `test-widgets-statusbar` fails its allocation check in about one run in ten under it.
 
@@ -140,13 +140,13 @@ CI runs the tests with Lua 5.1.5 on GitHub-hosted Ubuntu, and `mac-budgets.yml` 
 
 ## Time and memory budget
 
-The **Mac CI runners are the CPU budget of record**, using default PUC Lua 5.1.5. They run in `mac-budgets.yml`, which never blocks staging or a release: a Mac CPU failure is a report to act on, not a gate. Their default file limit is **20 CPU seconds**. Windows and every non-CI run print a warning naming a file and its measured CPU time when it exceeds its CPU limit; they do not fail for CPU overruns. The **4096 MB peak-memory limit and hang guard fail everywhere**, including interpreter overrides. CPU time is user plus system time: POSIX `wait4` supplies it alongside `ru_maxrss`; Windows `GetProcessTimes` and `PeakPagefileUsage` supply process CPU time and peak committed memory. Peak committed memory cannot be hidden by working-set trimming. Measurements are collected after exit; missing measurements print `n/a` and an explicit `not budgeted` note. Wall time remains in the summary and sharding weights, so the scheduler is unchanged.
+**No machine enforces CPU time.** The limits below were calibrated on the owner's Mac runners with default PUC Lua 5.1.5, which measured them on every `staging` push until the project stopped running tests on Actions; the calibration tables further down are that record. The default file limit is **20 CPU seconds**. Every run prints a warning naming a file and its measured CPU time when it exceeds its CPU limit; they do not fail for CPU overruns. The **4096 MB peak-memory limit and hang guard fail everywhere**, including interpreter overrides. CPU time is user plus system time: POSIX `wait4` supplies it alongside `ru_maxrss`; Windows `GetProcessTimes` and `PeakPagefileUsage` supply process CPU time and peak committed memory. Peak committed memory cannot be hidden by working-set trimming. Measurements are collected after exit; missing measurements print `n/a` and an explicit `not budgeted` note. Wall time remains in the summary and sharding weights, so the scheduler is unchanged.
 
-CPU limits fail only on macOS with `CI=true`; other platforms and local runs use them as warning thresholds. `cpu_allowances.tsv` holds the measured LEE-5827 exceptions: name, CPU seconds, ticket, one file per line. Every file whose worst recorded Mac time is **at least 16 CPU seconds** receives an allowance of that worst time plus 25%, rounded up to a whole second. The list currently has 19 files, with every raw worst value and source run in the allowance-input table below. This covers the 10-16% same-runner variation measured by verification; in particular, `test-text-floor.lua` initially measured 19.918132 CPU seconds (25-second allowance); its newer 20.662359-second maximum now receives 26 seconds. On Mac CI a listed file fails above its allowance and an unlisted file fails above 20 seconds. On Windows and non-CI runs both overruns are warnings. The runner rejects any added or changed baseline line against `origin/staging` locally or the shallow CI checkout's `HEAD^1`, once the initial approved list has merged; deletions remain allowed. The runner probes `_VERSION == "Lua 5.1"`, `jit == nil`, and the `Lua 5.1.5` release banner before applying CPU thresholds. Any `LUA` override, including an empty override, and LuaJIT with or without `-joff` print **not budgeted**. The memory limit, hang guard and functional failures still fail those runs. `TEST_TIME_BUDGET` (CPU seconds) and `TEST_MEMORY_BUDGET` (MB) override the limits for runner checks; CI does not set them.
+The runner still fails a CPU overrun on macOS with `CI=true`, which no workflow sets any more; every other run uses the limits as warning thresholds. `cpu_allowances.tsv` holds the measured LEE-5827 exceptions: name, CPU seconds, ticket, one file per line. Every file whose worst recorded Mac time is **at least 16 CPU seconds** receives an allowance of that worst time plus 25%, rounded up to a whole second. The list currently has 19 files, with every raw worst value and source run in the allowance-input table below. This covers the 10-16% same-runner variation measured by verification; in particular, `test-text-floor.lua` initially measured 19.918132 CPU seconds (25-second allowance); its newer 20.662359-second maximum now receives 26 seconds. With `CI=true` on macOS a listed file fails above its allowance and an unlisted file fails above 20 seconds. On Windows and non-CI runs both overruns are warnings. The runner rejects any added or changed baseline line against `origin/staging` locally or the shallow CI checkout's `HEAD^1`, once the initial approved list has merged; deletions remain allowed. The runner probes `_VERSION == "Lua 5.1"`, `jit == nil`, and the `Lua 5.1.5` release banner before applying CPU thresholds. Any `LUA` override, including an empty override, and LuaJIT with or without `-joff` print **not budgeted**. The memory limit, hang guard and functional failures still fail those runs. `TEST_TIME_BUDGET` (CPU seconds) and `TEST_MEMORY_BUDGET` (MB) override the limits for runner checks; CI does not set them.
 
 The wall-clock hang guard is **max(120 seconds, five times the file CPU limit)**, including its allowance and platform factor. The 120-second floor applies when a run is not budgeted. POSIX kills the owned process group; Windows kills and waits for the direct test process. Tests must limit shell children to short commands. CPU diagnostics and memory failures name the fix: make the file cheaper, use less memory, or split it. Never raise a budget without measured calibration evidence.
 
-The perf tests retain per-call clock measurements and allocation checks. Timing budgets and the fivefold PUC Lua 5.1 CPU headroom check fail on **Mac CI only** (`CI=true`, `RUNNER_OS=macOS`); timing overruns are informational elsewhere. Windows MSVC `os.clock` measures wall time, so `HeadroomProblem` prints a skip note there; hosted CI and LuaJIT also skip headroom. Allocation checks fail everywhere. Layout selection has a 1,100,000-addon-instruction budget for 200 selections (measured 866,944); nameplate construction has a sampled 180,000-instruction budget per plate over all 40 cold builds (measured 142,443), alongside its existing frame and region caps. The instruction helper counts exactly by default; these 40 builds sample every 100 instructions, as `path_budget.lua` already does, to keep the measurement itself within the file CPU limit.
+The perf tests retain per-call clock measurements and allocation checks. Timing budgets and the fivefold PUC Lua 5.1 CPU headroom check fail only with `CI=true` and `RUNNER_OS=macOS`, which no workflow sets any more; timing overruns are informational elsewhere. Windows MSVC `os.clock` measures wall time, so `HeadroomProblem` prints a skip note there; hosted CI and LuaJIT also skip headroom. Allocation checks fail everywhere. Layout selection has a 1,100,000-addon-instruction budget for 200 selections (measured 866,944); nameplate construction has a sampled 180,000-instruction budget per plate over all 40 cold builds (measured 142,443), alongside its existing frame and region caps. The instruction helper counts exactly by default; these 40 builds sample every 100 instructions, as `path_budget.lua` already does, to keep the measurement itself within the file CPU limit.
 
 ### Per-path noise calibration (2026-11-17)
 

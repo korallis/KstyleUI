@@ -1,4 +1,4 @@
-"""Run every Tools/regression/test-*.lua in parallel under CI's interpreter, with a time and memory budget per file.
+"""Run every Tools/regression/test-*.lua in parallel under Lua 5.1, with a time and memory budget per file.
 
 run-all.sh starts this from the repository root. Tools/regression/README.md describes the interpreter
 choice, the budgets, the output, --shard (one slice of the files, for CI) and --affected (only the files a change can reach).
@@ -58,11 +58,11 @@ def interpreter():
     if not found and os.access(home, os.X_OK):
         found = str(home)
     if found:
-        return [found], "lua: {0} (Lua 5.1, as CI runs)".format(found)
+        return [found], "lua: {0} (Lua 5.1)".format(found)
     found = shutil.which("luajit")
     if found:
         return [found, "-joff"], ("lua: luajit -joff (not budgeted). "
-                                     "For CI's exact interpreter: bash Tools/dev/install-lua51.sh")
+                                     "For Lua 5.1 itself: bash Tools/dev/install-lua51.sh")
     return None, "No Lua found: lua5.1, ~/.local/bin/lua5.1 and luajit are missing. " + LUA51_HELP
 
 
@@ -374,7 +374,7 @@ def plan_affected(tests, base):
 def locale_check(changes):
     """Return (lines, ok) for the string tables, or ([], True) when no addon Lua or locale file changed.
 
-    CI's Python job fails test_locale_strings on an L[...] key the English base lacks; this is its cheap part.
+    The Python suite fails test_locale_strings on an L[...] key the English base lacks; this is its cheap part.
     """
     script = Path("Tools/locale/strings.py")
     if not script.exists():
@@ -572,7 +572,7 @@ def main(argv):
         print("wrote {0} weights to {1}".format(len(measured), HERE / "weights.json"))
     summary = "passed {0}, failed {1}".format(passed, failed)
     if args.affected:
-        summary += " (affected mode: {0} of {1} test files ran; the other {2} did not, and CI runs them all)".format(
+        summary += " (affected mode: {0} of {1} test files ran; the other {2} did not; bash scripts/gate.sh release runs them all)".format(
             len(tests), len(every), len(every) - len(tests))
     print(summary)
     return 0 if failed == 0 else 1

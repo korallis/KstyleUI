@@ -339,7 +339,7 @@ class RunAllAffectedTest(GitRepoCase):
         self.assertEqual(self.ran(result), ["test-a", "test-d"])
         self.assertIn("affected: running 2 of 4 test files", result.stdout)
         self.assertIn("Mod/a.lua changed", result.stdout)
-        self.assertTrue(result.stdout.rstrip().endswith("(affected mode: 2 of 4 test files ran; the other 2 did not, and CI runs them all)"))
+        self.assertTrue(result.stdout.rstrip().endswith("(affected mode: 2 of 4 test files ran; the other 2 did not; bash scripts/gate.sh release runs them all)"))
 
     def test_a_new_file_in_a_listed_folder_selects_the_test_that_lists_it(self):
         self.affected()

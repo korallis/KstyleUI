@@ -55,8 +55,11 @@ class CheckPrTest(unittest.TestCase):
         self.write(files)
         self.commit()
 
-    def run_check(self, body="", labels="", ref="base", args=None):
-        env = dict(os.environ, PR_BODY=body, PR_LABELS=labels)
+    def run_check(self, body="", labels="", ref="base", args=None, **wording):
+        env = {key: value for key, value in os.environ.items() if key not in ("PR_TITLE", "PR_BODY_FILE")}
+        env.update(PR_BODY=body, PR_LABELS=labels, **wording)
+        if body is None:
+            del env["PR_BODY"]
         argv = [os.environ.get("TEST_BASH", "bash"), str(SCRIPT)] + ([ref] if args is None else args)
         return subprocess.run(argv, cwd=self.repo, env=env, capture_output=True, text=True)
 
@@ -224,6 +227,38 @@ class CheckPrTest(unittest.TestCase):
 
     def test_missing_ref_exits_2(self):
         self.assertEqual(self.run_check(args=[]).returncode, 2)
+
+
+    def test_a_title_that_reads_type_scope_summary_passes(self):
+        for title in ("ci(repo): add CI workflows", "feat: add the minimap", "fix(unit-frames): keep the bar", "revert(core): undo"):
+            with self.subTest(title=title):
+                self.assertPasses(self.run_check(PR_TITLE=title))
+
+    def test_any_other_title_fails(self):
+        for title in ("Add CI", "Feat: add", "feat(Core): add", "feat(core):add", "feat(core): ", "style: tidy", "feat!: break", "feat(): x", ""):
+            with self.subTest(title=title):
+                self.assertFails(self.run_check(PR_TITLE=title), "check-pr: title: " + title, "type(scope): summary")
+
+    def test_the_body_can_come_from_a_file(self):
+        # The owner's ruling, checks run locally: the gate is run with PR_BODY or PR_BODY_FILE; a body file keeps a long body off the command line.
+        self.change({"Core/Init.lua": BASE_FILES["Core/Init.lua"] + "local x = 1\r\n"})
+        body = self.repo.parent / (self.repo.name + "-body.md")
+        self.addCleanup(body.unlink)
+        body.write_text(CHANGELOG, encoding="utf-8", newline="\n")
+        self.assertPasses(self.run_check(body=None, PR_BODY_FILE=str(body)))
+        body.write_text("## Summary\nNo changelog line.\n", encoding="utf-8", newline="\n")
+        self.assertFails(self.run_check(body=None, PR_BODY_FILE=str(body)), "## Changelog")
+        self.assertEqual(self.run_check(body=None, PR_BODY_FILE=str(body) + ".missing").returncode, 2)
+
+    def test_pr_template_has_the_sections_the_rules_read(self):
+        text = (SCRIPT.parents[2] / ".github" / "PULL_REQUEST_TEMPLATE.md").read_text(encoding="utf-8")
+        for needle in (
+            "## Summary", "## Changelog", "## In-game checks", "addonCombatRestrictionsForced",
+            "addonEncounterRestrictionsForced", "addonMapRestrictionsForced", "addonChatRestrictionsForced",
+            "taintLog", "python3 Tools/dev/crlf.py", "pre-commit run --all-files", "bash scripts/gate.sh", "PR_TITLE", "local gate",
+            "cross-family review", "no changelog",
+        ):
+            self.assertIn(needle, text)
 
 
 if __name__ == "__main__":

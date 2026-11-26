@@ -1,4 +1,4 @@
-"""Tests for scripts/check-suppressions.sh and scripts/gate.sh: what the suppression check flags, and that CI calls the gate."""
+"""Tests for scripts/check-suppressions.sh and scripts/gate.sh: what the suppression check flags, and what the gate runs and prints."""
 
 import os
 import re
@@ -10,7 +10,6 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 SUPPRESSIONS = REPO / "scripts" / "check-suppressions.sh"
 GATE = REPO / "scripts" / "gate.sh"
-CHECKS = REPO / ".github" / "workflows" / "checks.yml"
 IGNORE = "luacheck" + ": ignore 211"
 NOQA = "# no" + "qa: F401"
 PROSE = "a work" + "around that is described here\n"
@@ -140,27 +139,43 @@ class GateTest(unittest.TestCase):
         result = subprocess.run(["bash", str(GATE), "nonsense"], cwd=REPO, capture_output=True, text=True)
         self.assertEqual(result.returncode, 2)
 
-    def run_release_gate(self, failing=""):
-        """Run gate.sh release beside stand-ins that log each command; return (exit code, stdout lines, logged commands)."""
+    def run_gate(self, *args, failing="", versions=("Luacheck: 1.2.0", "pre-commit 4.7.0"), dirty=False, **pr):
+        """Run gate.sh in a committed repository of stand-ins that log each command; return (exit code, stdout lines, logged commands)."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            for folder in ("scripts", "Tools/regression", "bin"):
+            for folder in ("scripts", "Tools/regression", "Tools/hooks", "bin"):
                 (root / folder).mkdir(parents=True)
             (root / "scripts/gate.sh").write_bytes(GATE.read_bytes())
             log = 'echo "$(basename "$0") $*" >> gate.log\n[ "${GATE_FAIL:-}" != "$(basename "$0")" ]\n'
-            for name in ("bin/pre-commit", "bin/py-stub", "scripts/check-suppressions.sh"):
-                (root / name).write_text("#!/usr/bin/env bash\n" + log, encoding="utf-8", newline="\n")
+            version = '[ "$1" = --version ] && { echo "%s"; exit 0; }\n'
+            suite = 'case "$*" in *unittest*) echo "py-stub $* wording=${PR_TITLE-unset},${PR_BODY-unset},${PR_LABELS-unset}" >> gate.log; exit 0 ;; esac\n'
+            stubs = {"bin/luacheck": version % versions[0], "bin/pre-commit": version % versions[1] + log, "bin/py-stub": suite + log,
+                     "scripts/check-suppressions.sh": log, "Tools/hooks/check-pr.sh": 'echo "$(basename "$0") $* title=$PR_TITLE" >> gate.log\n'}
+            for name, body in stubs.items():
+                (root / name).write_text("#!/usr/bin/env bash\n" + body, encoding="utf-8", newline="\n")
                 os.chmod(root / name, 0o755)
             (root / "Tools/regression/run-all.sh").write_text(
                 'pick_python() { py=(py-stub); }\n'
                 'if [ "${BASH_SOURCE[0]}" = "$0" ]; then\n'
                 '\techo "run-all.sh [$*] KSTYLEUI_FULL=${KSTYLEUI_FULL:-unset} LUA=${LUA-unset}" >> gate.log\n'
                 'fi\n', encoding="utf-8", newline="\n")
-            env = {key: value for key, value in os.environ.items() if key not in ("KSTYLEUI_FULL", "GATE_BASE")}
-            env.update(PATH=str(root / "bin") + os.pathsep + env["PATH"], LUA="luajit", GATE_FAIL=failing)
-            result = subprocess.run(["bash", "scripts/gate.sh", "release", "--shard", "1/8"], cwd=root, env=env,
-                                    capture_output=True, text=True)
-            return result.returncode, result.stdout.splitlines(), (root / "gate.log").read_text(encoding="utf-8").splitlines()
+            (root / ".gitignore").write_text("gate.log\n", encoding="utf-8", newline="\n")
+            git(root, "init", "-q")
+            git(root, "add", "-A")
+            git(root, "commit", "-q", "-m", "stand-ins")
+            if dirty:
+                (root / "scripts/check-suppressions.sh").write_text("#!/usr/bin/env bash\n" + log + "# edited\n", encoding="utf-8", newline="\n")
+            commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+            env = {key: value for key, value in os.environ.items()
+                   if key not in ("KSTYLEUI_FULL", "GATE_BASE", "PR_TITLE", "PR_BODY", "PR_BODY_FILE", "PR_LABELS")}
+            env.update(PATH=str(root / "bin") + os.pathsep + env["PATH"], LUA="luajit", GATE_FAIL=failing, **pr)
+            result = subprocess.run(["bash", "scripts/gate.sh", *args], cwd=root, env=env, capture_output=True, text=True)
+            logged = root / "gate.log"
+            commands = logged.read_text(encoding="utf-8").splitlines() if logged.exists() else []
+            return result.returncode, [line.replace(commit, "<commit>") for line in result.stdout.splitlines()], commands
+
+    def run_release_gate(self, failing=""):
+        return self.run_gate("release", "--shard", "1/8", failing=failing)
 
     def test_release_group_runs_lint_every_lua_file_and_the_python_suite(self):
         # The owner's ruling: a pull request runs the tests its change can reach; a release runs every test first.
@@ -171,21 +186,44 @@ class GateTest(unittest.TestCase):
             "py-stub Tools/locale/strings.py check",
             "check-suppressions.sh origin/staging",
             "run-all.sh [] KSTYLEUI_FULL=1 LUA=unset",
-            "py-stub -m unittest discover -s Tools/tests",
+            "py-stub -m unittest discover -s Tools/tests wording=unset,unset,unset",
         ])
-        self.assertEqual((code, lines[-1]), (0, "gate passed (release)"))
+        self.assertEqual((code, lines[-1]), (0, "gate passed (release) at <commit>"))
 
     def test_release_group_fails_when_one_check_fails(self):
         code, lines, commands = self.run_release_gate(failing="pre-commit")
         self.assertEqual(code, 1)
-        self.assertNotIn("gate passed (release)", lines)
+        self.assertFalse([line for line in lines if line.startswith("gate passed")])
         self.assertEqual(len(commands), 6, "the later checks still run")
 
-    def test_ci_calls_the_gate_in_each_job_that_has_a_group(self):
-        text = CHECKS.read_text(encoding="utf-8")
-        for group in ("lint", "lua", "python"):
-            self.assertRegex(text, r"bash scripts/gate\.sh " + group)
-        self.assertIn("GATE_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}", text)
+    def test_a_pass_with_uncommitted_changes_names_no_commit(self):
+        # The owner's ruling, checks run locally: the "local gate" mark quotes the last line, so only a run of the committed tree may name the commit.
+        code, lines, _ = self.run_gate("lint", dirty=True)
+        self.assertEqual(code, 0)
+        self.assertTrue(lines[-1].startswith("gate passed (lint) with uncommitted changes"), lines[-1])
+        self.assertNotIn("<commit>", lines[-1])
+
+    def test_lint_fails_unless_luacheck_and_pre_commit_are_the_pinned_versions(self):
+        # The owner's ruling, checks run locally: the gate checks the two lint tool versions, as no workflow does.
+        for versions, step in ((("Luacheck: 1.1.2", "pre-commit 4.7.0"), "luacheck is 1.2.0"),
+                               (("Luacheck: 1.2.0", "pre-commit 4.7.10"), "pre-commit is 4.7.0")):
+            with self.subTest(step=step):
+                code, lines, _ = self.run_gate("lint", versions=versions)
+                self.assertEqual(code, 1)
+                self.assertFalse([line for line in lines if line.startswith("gate passed")])
+        self.assertEqual(self.run_gate("lint")[0], 0)
+
+    def test_the_wording_check_runs_only_when_the_title_is_given(self):
+        # The owner's ruling, checks run locally: the gate checks the pull request's wording when PR_TITLE is set.
+        _, _, commands = self.run_gate("lint", PR_TITLE="fix(core): keep the bar")
+        self.assertIn("check-pr.sh origin/staging title=fix(core): keep the bar", commands)
+        _, _, commands = self.run_gate("lint")
+        self.assertFalse([command for command in commands if command.startswith("check-pr.sh")])
+
+    def test_the_python_suite_does_not_inherit_the_pull_request_wording(self):
+        # The suite's own check-pr.sh tests set their own wording; the gate's must not leak into them.
+        _, _, commands = self.run_gate("python", PR_TITLE="Not a title", PR_BODY="body", PR_LABELS="release")
+        self.assertEqual(commands, ["py-stub -m unittest discover -s Tools/tests wording=unset,unset,unset"])
 
 
 if __name__ == "__main__":

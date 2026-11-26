@@ -24,5 +24,5 @@ A change to a TOC "## Version" line or to CODE_BUILD also needs the "release" la
 - [ ] `python3 Tools/dev/crlf.py`
 - [ ] `pre-commit run --all-files`
 - [ ] `luacheck .` and `python3 Tools/hooks/check_toc.py`
-- [ ] `bash Tools/regression/run-all.sh --affected origin/staging` (CI runs every test file and the Python suite)
+- [ ] `bash scripts/gate.sh` with `PR_TITLE`, `PR_BODY_FILE` and `PR_LABELS` set, on the pushed commit, then the `local gate` mark (no workflow runs the tests)
 - [ ] One cross-family review of the diff against `origin/staging`

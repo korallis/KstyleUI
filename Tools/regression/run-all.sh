@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-all.sh: run every Tools/regression/test-*.lua from the repository root under CI's interpreter, with a time and memory budget per file.
+# run-all.sh: run every Tools/regression/test-*.lua from the repository root under Lua 5.1, with a time and memory budget per file.
 pick_python() {
 	local candidate
 	for candidate in "${KSTYLEUI_PYTHON:-}" "$HOME/.local/share/wow-dev/venv/bin/python" \

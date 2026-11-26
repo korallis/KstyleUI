@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# check-pr.sh: check a pull request's changelog line and version changes against <base-ref>.
-# Usage: PR_BODY=<body> PR_LABELS=<labels> bash Tools/hooks/check-pr.sh <base-ref>
+# check-pr.sh: check a pull request's title, changelog line and version changes against <base-ref>.
+# Usage: PR_TITLE=<title> PR_BODY=<body> PR_LABELS=<labels> bash Tools/hooks/check-pr.sh <base-ref>
+# PR_BODY_FILE names a file holding the body, read when PR_BODY is unset. The title is checked when PR_TITLE is set.
 # PR_LABELS holds label names separated by commas or newlines. Exit 0 passes, 1 fails, 2 is a usage error.
 set -uo pipefail
 
@@ -12,6 +13,12 @@ fi
 if ! merge_base=$(git merge-base "$base" HEAD); then
 	echo "check-pr: '$base' and HEAD share no history" >&2
 	exit 2
+fi
+if [ -z "${PR_BODY+set}" ] && [ -n "${PR_BODY_FILE:-}" ]; then
+	if ! PR_BODY=$(cat -- "$PR_BODY_FILE"); then
+		echo "check-pr: cannot read PR_BODY_FILE '$PR_BODY_FILE'" >&2
+		exit 2
+	fi
 fi
 
 # Folders that never ship. Every other path is part of the addon.
@@ -154,6 +161,15 @@ for kind in toc lua; do
 done
 
 failed=0
+if [ -n "${PR_TITLE+set}" ]; then
+	pattern='^(feat|fix|perf|refactor|docs|test|ci|build|chore|revert)(\([a-z0-9-]+\))?: [^[:space:]]'
+	if ! [[ $PR_TITLE =~ $pattern ]]; then
+		printf 'check-pr: title: %s\n' "$PR_TITLE"
+		echo "  The title must read 'type(scope): summary'. Types: feat fix perf refactor docs test ci build chore revert."
+		echo "  The scope is optional and uses lowercase letters, digits and hyphens."
+		failed=1
+	fi
+fi
 if [ "${#shipped[@]}" -gt 0 ] && ! has_label "no changelog" && [ "$(has_changelog)" != 1 ]; then
 	echo "check-pr: this PR changes shipped files (${shipped[0]}$([ "${#shipped[@]}" -gt 1 ] && echo " and $((${#shipped[@]} - 1)) more"))."
 	echo "  Add a line under '## Changelog' in the PR body that starts 'Added:', 'Changed:' or 'Fixed:'."
