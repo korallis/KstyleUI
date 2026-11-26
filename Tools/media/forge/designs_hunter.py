@@ -319,17 +319,16 @@ def Counter():
 
 @design
 def Mongoose():
-    """Mongoose Bite: a mongoose leaping up to the right, a long thin body on the diagonal so it crosses the emblem's bow, short legs, a long tail trailing, jaws open."""
+    """Mongoose Bite: a beast's head in profile, tilted up, an ear behind, a pierced eye and jaws wide open with a tooth in each. A whole mongoose could not be named over the emblem at the strike's size in three poses; blind readers called this an animal's head."""
     e = Emblem("Mongoose")
-    e.add(stroke([(0.30, 0.72), (0.14, 0.82), (0.05, 0.93)], 0.14, 0.07, smooth=False), h=0.7, r=0.04, base=0.3)
-    for leg in ([(0.32, 0.72), (0.40, 0.88), (0.50, 0.88)], [(0.42, 0.62), (0.54, 0.74), (0.64, 0.72)], [(0.64, 0.42), (0.78, 0.52), (0.88, 0.48)]):
-        e.add(stroke(leg, 0.10, 0.07, smooth=False), h=0.7, r=0.03, base=0.3)
-    e.add(stroke([(0.30, 0.72), (0.50, 0.52), (0.68, 0.32)], 0.21, 0.18), h=0.9, r=0.08, base=0.4)
-    e.add(ellipse(0.74, 0.22, 0.11, 0.11), h=1.0, r=0.06, base=0.5)
-    e.add(blob([(0.72, 0.12), (0.86, 0.05), (0.97, 0.04), (0.96, 0.12), (0.86, 0.18), (0.76, 0.22)], 12), h=1.0, r=0.04, base=0.5)
-    e.add(blob([(0.74, 0.25), (0.86, 0.27), (0.96, 0.36), (0.93, 0.42), (0.82, 0.37), (0.72, 0.33)], 12), h=0.95, r=0.04, base=0.5)
-    e.add(ellipse(0.64, 0.14, 0.045, 0.045), h=1.05, r=0.02, base=0.7)
-    return e.fit()
+    e.add(blob([(0.06, 0.40), (0.20, 0.22), (0.44, 0.18), (0.56, 0.30), (0.50, 0.56), (0.34, 0.74), (0.14, 0.70)], 14), h=0.9, r=0.10, base=0.4)
+    e.add(blob([(0.40, 0.20), (0.66, 0.14), (0.94, 0.10), (0.96, 0.22), (0.70, 0.36), (0.50, 0.40)], 12), h=1.0, r=0.05, base=0.5)
+    e.add(blob([(0.34, 0.56), (0.56, 0.60), (0.86, 0.76), (0.84, 0.88), (0.54, 0.82), (0.32, 0.74)], 12), h=0.95, r=0.05, base=0.5)
+    e.add(poly([(0.80, 0.20), (0.90, 0.18), (0.84, 0.38)]), h=1.0, r=0.02, base=0.6)
+    e.add(poly([(0.72, 0.72), (0.82, 0.76), (0.80, 0.56)]), h=1.0, r=0.02, base=0.6)
+    e.add(ellipse(0.16, 0.24, 0.09, 0.09), h=1.0, r=0.03, base=0.6)
+    e.pierce(ellipse(0.36, 0.32, 0.045))
+    return e.turn(-20).fit()
 
 
 @design
