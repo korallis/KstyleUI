@@ -788,12 +788,17 @@ local function PaintWisps(w, moving)
 	w.count = n
 	w.number:SetShown(total > WISPS)
 	w.number:SetText(total)
+	local claimed = moving and n < was and Medals.Claim(function()
+		for _, s in ipairs(w.seats) do
+			s.flare.play:Stop()
+		end
+	end) ~= nil
 	for i, s in ipairs(w.seats) do
 		s.wisp:SetShown(i <= n)
 		s.come:Stop()
 		if moving and i > was and i <= n then
 			s.come:Play()
-		elseif moving and i <= was and i > n then
+		elseif claimed and i <= was and i > n then
 			s.flare.play:Stop()
 			s.flare.play:Play()
 		end

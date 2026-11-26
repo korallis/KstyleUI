@@ -60,8 +60,8 @@ end
 
 local function Pop(sigil)
 	local group = sigil:CreateAnimationGroup()
-	Grow(group, LIFT_FROM, LIFT_PEAK, LIFT_UP, 1, "OUT")
-	Grow(group, 1, 1 / LIFT_PEAK, SETTLE, 2, "IN_OUT")
+	Grow(group, LIFT_FROM, LIFT_PEAK, LIFT_UP, 1)
+	Grow(group, 1, 1 / LIFT_PEAK, SETTLE, 2)
 	return group
 end
 
@@ -169,7 +169,7 @@ local function BuildPair(hub)
 		a:SetFromAlpha(0)
 		a:SetToAlpha(1)
 		a:SetDuration(PAIR_FADE)
-		a:SetSmoothing("OUT")
+		a:SetSmoothing(Tokens.Smoothing.enter)
 		pair.dawn[i] = group
 	end
 	pair.breath = pair.glow:CreateAnimationGroup()
@@ -178,7 +178,7 @@ local function BuildPair(hub)
 	a:SetFromAlpha(1)
 	a:SetToAlpha(ns.SlabEffects.CAP_LOW)
 	a:SetDuration(ns.SlabEffects.CAP_BREATH)
-	a:SetSmoothing("IN_OUT")
+	a:SetSmoothing(Tokens.Smoothing.loop)
 	state.pair = pair
 	return pair
 end

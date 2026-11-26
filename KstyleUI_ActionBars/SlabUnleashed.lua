@@ -125,13 +125,16 @@ function Unleashed.Dress(piece, spec, form)
 			set.awake.lit:HookScript("OnShow", function() set.up, state.lit = true, true end)
 			set.awake.lit:HookScript("OnHide", function()
 				set.up = nil
-				if piece:IsVisible() then
+				if piece:IsVisible() and set.awake:IsShown() then
 					Settle()
 				else
 					state.lit = nil
 				end
 			end)
-			set.awake.timer:SetScript("OnCooldownDone", Settle)
+			set.awake.timer:SetScript("OnCooldownDone", function()
+				set.up = nil
+				Settle()
+			end)
 		end
 		sets[#sets + 1] = set
 	end

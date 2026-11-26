@@ -797,9 +797,10 @@ function Medals.Rest()
 	for _, r in ipairs(rims) do
 		Medals.Still(r, still, 1)
 	end
-	local dark = not Effects.Allows("flare") or ns.Slab.Resting()
+	local dark, mode = not Effects.Allows("flare") or ns.Slab.Resting(), Effects.Allows("ambient") or Effects.Allows("flare") and "calm" or false
 	for _, gate in ipairs(gates) do
-		gate:SetAlpha(dark and 0 or 1)
+		local bound = gate.lit and gate.lit.full
+		gate:SetAlpha((dark or bound ~= nil and bound ~= mode) and 0 or 1)
 	end
 	for _, loop in ipairs(breaths) do
 		if still or not loop:GetParent():IsVisible() then

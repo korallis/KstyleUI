@@ -232,11 +232,12 @@ do
 			assert(left > 1 / 12 - 1e-9 or a == 0, "and no amber inside its last twelfth")
 			sawAmber, sawRed = sawAmber or a > 0, sawRed or r > 0
 		end
-		assert(sawRed and (sawAmber or span < 12), "a running " .. span .. " s timer does reach its colours")
+		assert(sawRed and sawAmber, "a running " .. span .. " s timer does reach its colours")
+		-- Each fade takes at most a quarter of the time its colour has, so a short timer shows both at full strength too.
 		local a, r = Colours(late, 50 + span * 0.85)
-		assert(span < 12 or a == 1 and r == 0, "15 percent left: amber alone")
+		assert(a == 1 and r == 0, "15 percent of " .. span .. " s left: amber alone, at full strength (" .. a .. ")")
 		a, r = Colours(late, 50 + span * 0.95)
-		assert(a == 0 and r > 0, "5 percent left: red alone")
+		assert(a == 0 and r == 1, "5 percent of " .. span .. " s left: red alone, at full strength (" .. r .. ")")
 	end
 	env._now = 50
 	timer:SetCooldown(50, 12)

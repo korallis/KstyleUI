@@ -450,10 +450,10 @@ do
 	env._now = 200
 	Cast(env, RANK1)
 	assert(Fired(state.blast) and Fired(state.seats[2].ignite) and not other:IsPlaying(), "and the next cast stops that one in turn")
-	-- A charge spent a moment later is a different trigger, not part of the cast's ensemble: its strike takes the place and the cast's flourish stops.
-	env._now = 200.3
+	-- A charge spent is a different trigger, not part of the cast's ensemble, even in the frame of the cast with the clock not moved: its strike takes the place and the
+	-- cast's flourish stops.
 	Shield(env, 2, RANK1)
-	assert(Fired(state.seats[3].strike) and not Fired(state.blast) and not Fired(state.seats[1].ignite) and not Fired(state.seats[2].ignite), "a strike a moment after the cast cancels the cast's burst and ignitions")
+	assert(Fired(state.seats[3].strike) and not Fired(state.blast) and not Fired(state.seats[1].ignite) and not Fired(state.seats[2].ignite), "a strike in the cast's own frame cancels the cast's burst and ignitions")
 	env.RunTimers()
 	assert(Effects.Holder("crestFlare") == nil, "the place frees itself")
 	-- A change of charges that plays nothing claims nothing.

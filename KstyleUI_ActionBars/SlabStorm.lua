@@ -58,7 +58,9 @@ local function Hush()
 	end
 end
 
-local Claim = Medals.Ensemble(Hush, CLAIM)
+local function Claim()
+	return Medals.Claim(Hush, CLAIM) ~= nil
+end
 
 local function Fire(frame)
 	frame.play:Stop()
