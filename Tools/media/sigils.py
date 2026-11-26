@@ -21,7 +21,6 @@ from healer_trackers import additive, blur
 SIZE, SCALE = 64, 8
 N = SIZE * SCALE
 WIDTH = 0.085
-BOLD = 0.13
 OUT = Path(__file__).resolve().parents[2] / "Media/Textures/Sigils"
 
 
@@ -291,14 +290,14 @@ def Ghost(p):
 # Hunter
 @glyph
 def Volley(p):
-    for x in (0.2, 0.5, 0.8):
-        arrow(p, x, 0.88, x, 0.14, 0.14, width=BOLD)
+    for x, y, half in ((0.13, 0.44, 0.13), (0.5, 0.04, 0.25), (0.87, 0.44, 0.13)):
+        p.fill((x - half, y + half * 1.6), (x, y), (x + half, y + half * 1.6))
+        p.line((x, y + half), (x, 0.92), width=half * 0.6)
 
 
 @glyph
 def Deflect(p):
-    p.poly((0.16, 0.14), (0.84, 0.14), (0.84, 0.52), (0.5, 0.9), (0.16, 0.52), width=BOLD)
-    p.line((0.5, 0.34), (0.5, 0.58), width=BOLD)
+    p.fill((0.12, 0.1), (0.88, 0.1), (0.88, 0.52), (0.5, 0.94), (0.12, 0.52))
 
 
 @glyph

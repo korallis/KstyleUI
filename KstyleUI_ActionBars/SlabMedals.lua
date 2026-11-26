@@ -480,7 +480,9 @@ local function Sigil(r, container, key, family, color, size, bloom)
 	back:SetAlpha(bloom and GLOW_LIT or 0.7)
 	button.loop = bloom and Medals.Steps(back, FLASH)
 	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
-	Medals.Mark(r, button, "sigil" .. family.sigil, size * SIGIL, color)
+	local art = "sigil" .. family.sigil
+	local pale = select(4, Tokens.Texture(art)) and 1 or nil
+	Medals.Mark(r, button, art, size * SIGIL, color, pale, pale, pale)
 	r.add(Medals.Texture(button, "BORDER", 0, "medRing", "white", size))
 	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
 	button.timer:SetAllPoints(button)

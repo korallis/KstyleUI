@@ -1,7 +1,7 @@
 """designs_hunter.py: the hunter's crest marks as layered relief: seven Aspects, six Stings, the two openings and Raptor Strike."""
 import math
 
-from relief import Emblem, blob, ellipse, poly, spline, stroke, transform, mask_poly
+from relief import Emblem, blob, ellipse, poly, stroke, transform, mask_poly
 
 D = {}
 
@@ -52,7 +52,7 @@ def Hawk():
     # feather veins
     for (x0, y0, x1, y1) in [(0.30, 0.50, 0.09, 0.72), (0.34, 0.58, 0.12, 0.87), (0.40, 0.64, 0.26, 0.95), (0.46, 0.66, 0.41, 0.96)]:
         e.cut(stroke([(x0, y0), (x1, y1)], 0.012, 0.004), depth=0.16)
-    return e.fit()
+    return e.seat()
 
 
 @design
@@ -81,39 +81,36 @@ def Monkey():
         e.cut(ellipse(0.5 + sx * 0.035, 0.635, 0.018, 0.024, sx * 20), depth=0.35, r=0.012)
     e.cut(stroke([(0.37, 0.77), (0.44, 0.815), (0.5, 0.825), (0.56, 0.815), (0.63, 0.77)], 0.02), depth=0.38, r=0.012)
     e.cut(stroke([(0.5, 0.67), (0.5, 0.815)], 0.012), depth=0.2)
-    return e.fit()
+    return e.seat()
 
 
-def cat_run(e, dx=0.0, dy=0.0, s=1.0, h=1.0, spots=True, fat=1.0):
+def cat_run(e, fat):
     """A cheetah at full stretch, running right; fat thickens the limbs, tail and neck so they survive at HUD size."""
-    def T(pts):
-        return [(0.5 + (x - 0.5) * s + dx, 0.5 + (y - 0.5) * s + dy) for x, y in pts]
-    w = s * fat
-    tail = stroke(T([(0.20, 0.44), (0.10, 0.40), (0.04, 0.30), (0.06, 0.20), (0.12, 0.16)]), 0.05 * w, 0.03 * w)
-    e.add(tail, h=0.6 * h, r=0.02, base=0.3 * h)
-    far_hind = stroke(T([(0.26, 0.52), (0.17, 0.60), (0.07, 0.62), (0.01, 0.66)]), 0.07 * w, 0.03 * w)
-    far_fore = stroke(T([(0.66, 0.54), (0.78, 0.62), (0.88, 0.60), (0.95, 0.62)]), 0.06 * w, 0.028 * w)
-    e.add(far_hind, h=0.5 * h, r=0.02, base=0.25 * h)
-    e.add(far_fore, h=0.5 * h, r=0.02, base=0.25 * h)
-    body = blob(T([(0.20, 0.40), (0.34, 0.345), (0.50, 0.37), (0.64, 0.345), (0.74, 0.38), (0.76, 0.50), (0.66, 0.56), (0.52, 0.52),
-                   (0.40, 0.50), (0.28, 0.56), (0.19, 0.50)]), 16)
-    e.add(body, h=0.85 * h, r=0.07 * w, base=0.35 * h)
-    hind = stroke(T([(0.27, 0.48), (0.32, 0.62), (0.24, 0.70), (0.12, 0.76), (0.05, 0.82)]), 0.105 * w, 0.03 * w)
-    fore = stroke(T([(0.68, 0.48), (0.74, 0.62), (0.84, 0.72), (0.95, 0.76)]), 0.085 * w, 0.03 * w)
-    e.add(hind, h=0.95 * h, r=0.03 * w, base=0.5 * h)
-    e.add(fore, h=0.95 * h, r=0.028 * w, base=0.5 * h)
-    neck = stroke(T([(0.70, 0.40), (0.79, 0.33)]), 0.12 * w, 0.10 * w)
-    e.add(neck, h=0.9 * h, r=0.04 * w, base=0.45 * h)
-    head = blob(T([(0.76, 0.24), (0.84, 0.21), (0.92, 0.25), (0.985, 0.32), (0.975, 0.37), (0.90, 0.39), (0.81, 0.37), (0.76, 0.32)]), 14)
-    e.add(head, h=1.0 * h, r=0.045 * w, base=0.5 * h)
-    e.add(blob(T([(0.775, 0.245), (0.785, 0.155), (0.835, 0.215)]), 10), h=0.95 * h, r=0.015 * w, base=0.5 * h)
-    e.cut(ellipse(*T([(0.895, 0.285)])[0], 0.014 * w), depth=0.3 * h, r=0.008)
-    e.cut(stroke(T([(0.905, 0.30), (0.915, 0.345), (0.955, 0.365)]), 0.009 * w), depth=0.22 * h, r=0.006)
-    if spots:
-        for (x, y, r) in [(0.30, 0.42, 0.020), (0.37, 0.40, 0.017), (0.44, 0.425, 0.019), (0.51, 0.42, 0.017), (0.58, 0.405, 0.019),
-                          (0.65, 0.42, 0.017), (0.34, 0.475, 0.016), (0.46, 0.475, 0.015), (0.61, 0.475, 0.016), (0.71, 0.455, 0.015),
-                          (0.26, 0.47, 0.014), (0.535, 0.47, 0.013), (0.40, 0.445, 0.011)]:
-            e.cut(ellipse(*T([(x, y)])[0], r * w), depth=0.22 * h, r=0.01)
+    w = fat
+    tail = stroke([(0.20, 0.44), (0.10, 0.40), (0.04, 0.30), (0.06, 0.20), (0.12, 0.16)], 0.05 * w, 0.03 * w)
+    e.add(tail, h=0.6, r=0.02, base=0.3)
+    far_hind = stroke([(0.26, 0.52), (0.17, 0.60), (0.07, 0.62), (0.01, 0.66)], 0.07 * w, 0.03 * w)
+    far_fore = stroke([(0.66, 0.54), (0.78, 0.62), (0.88, 0.60), (0.95, 0.62)], 0.06 * w, 0.028 * w)
+    e.add(far_hind, h=0.5, r=0.02, base=0.25)
+    e.add(far_fore, h=0.5, r=0.02, base=0.25)
+    body = blob([(0.20, 0.40), (0.34, 0.345), (0.50, 0.37), (0.64, 0.345), (0.74, 0.38), (0.76, 0.50), (0.66, 0.56), (0.52, 0.52),
+                 (0.40, 0.50), (0.28, 0.56), (0.19, 0.50)], 16)
+    e.add(body, h=0.85, r=0.07 * w, base=0.35)
+    hind = stroke([(0.27, 0.48), (0.32, 0.62), (0.24, 0.70), (0.12, 0.76), (0.05, 0.82)], 0.105 * w, 0.03 * w)
+    fore = stroke([(0.68, 0.48), (0.74, 0.62), (0.84, 0.72), (0.95, 0.76)], 0.085 * w, 0.03 * w)
+    e.add(hind, h=0.95, r=0.03 * w, base=0.5)
+    e.add(fore, h=0.95, r=0.028 * w, base=0.5)
+    neck = stroke([(0.70, 0.40), (0.79, 0.33)], 0.12 * w, 0.10 * w)
+    e.add(neck, h=0.9, r=0.04 * w, base=0.45)
+    head = blob([(0.76, 0.24), (0.84, 0.21), (0.92, 0.25), (0.985, 0.32), (0.975, 0.37), (0.90, 0.39), (0.81, 0.37), (0.76, 0.32)], 14)
+    e.add(head, h=1.0, r=0.045 * w, base=0.5)
+    e.add(blob([(0.775, 0.245), (0.785, 0.155), (0.835, 0.215)], 10), h=0.95, r=0.015 * w, base=0.5)
+    e.cut(ellipse(0.895, 0.285, 0.014 * w), depth=0.3, r=0.008)
+    e.cut(stroke([(0.905, 0.30), (0.915, 0.345), (0.955, 0.365)], 0.009 * w), depth=0.22, r=0.006)
+    for (x, y, r) in [(0.30, 0.42, 0.020), (0.37, 0.40, 0.017), (0.44, 0.425, 0.019), (0.51, 0.42, 0.017), (0.58, 0.405, 0.019),
+                      (0.65, 0.42, 0.017), (0.34, 0.475, 0.016), (0.46, 0.475, 0.015), (0.61, 0.475, 0.016), (0.71, 0.455, 0.015),
+                      (0.26, 0.47, 0.014), (0.535, 0.47, 0.013), (0.40, 0.445, 0.011)]:
+        e.cut(ellipse(x, y, r * w), depth=0.22, r=0.01)
     return e
 
 
@@ -121,17 +118,24 @@ def cat_run(e, dx=0.0, dy=0.0, s=1.0, h=1.0, spots=True, fat=1.0):
 def Cheetah():
     """Aspect of the Cheetah: a spotted cheetah at full stretch, limbs heavy enough to read small."""
     e = Emblem("Cheetah")
-    cat_run(e, fat=1.6)
-    return e.fit(0.04)
+    cat_run(e, fat=1.9)
+    return e.seat()
 
 
 @design
 def Pack():
-    """Aspect of the Pack: two cheetahs running together."""
+    """Aspect of the Pack: three cats' faces together, one in front of two."""
     e = Emblem("Pack")
-    cat_run(e, dx=-0.10, dy=-0.20, s=0.80, h=0.8, spots=False, fat=1.7)
-    cat_run(e, dx=0.10, dy=0.20, s=0.80, h=1.0, spots=False, fat=1.7)
-    return e.fit(0.04)
+    for (cx, cy, k, h) in ((0.23, 0.30, 0.44, 0.8), (0.77, 0.30, 0.44, 0.8), (0.50, 0.74, 0.56, 1.0)):
+        def P(x, y, cx=cx, cy=cy, k=k):
+            return (cx + x * k, cy + y * k)
+        for side in (-1, 1):
+            e.add(poly([P(side * 0.14, -0.30), P(side * 0.46, -0.62), P(side * 0.50, -0.06)]), h=0.8 * h, r=0.03, base=0.4 * h)
+        e.add(ellipse(cx, cy, 0.46 * k, 0.40 * k), h=0.95 * h, r=0.12 * k, base=0.4 * h)
+        for side in (-1, 1):
+            e.cut(ellipse(*P(side * 0.19, -0.06), 0.085 * k, 0.05 * k, side * 20), depth=0.4 * h, r=0.012)
+        e.cut(poly([P(-0.07, 0.12), P(0.07, 0.12), P(0, 0.22)]), depth=0.35 * h, r=0.01)
+    return e.seat()
 
 
 @design
@@ -152,7 +156,7 @@ def Wild():
         for sx in (-1, 1):
             vein = transform(stroke([(0.5, y + 0.06), (0.5 + sx * half * 0.55, y - 0.01), (0.5 + sx * half, y - 0.045)], 0.022, 0.008), rot=-12)
             e.add(vein, h=0.92, r=0.012, base=0.62)
-    return e.fit()
+    return e.seat()
 
 
 @design
@@ -172,7 +176,7 @@ def Beast():
     pad = blob([(0.5, 0.52), (0.64, 0.56), (0.76, 0.70), (0.72, 0.87), (0.60, 0.93), (0.5, 0.89), (0.40, 0.93), (0.28, 0.87), (0.24, 0.70),
                 (0.36, 0.56)])
     e.add(pad, h=1.0, r=0.1, base=0.45)
-    return e.fit()
+    return e.seat()
 
 
 @design
@@ -202,69 +206,57 @@ def Viper():
         x = 0.285 + (0.50 - 0.285) * k
         y = 0.50 - 0.19 * k - 0.04 * math.sin(math.pi * k)
         e.cut(stroke([(x - 0.045, y + 0.02), (x + 0.04, y - 0.03)], 0.011), depth=0.13, r=0.008)
-    return e.fit()
+    return e.seat()
 
 
 @design
 def Serpent():
-    """Serpent Sting: a serpent's head striking down, jaws wide, two fangs."""
+    """Serpent Sting: a serpent reared in an S, its broad head striking right with one long fang."""
     e = Emblem("Serpent")
-    body = stroke([(0.20, 0.96), (0.14, 0.78), (0.26, 0.62), (0.50, 0.56), (0.66, 0.44), (0.62, 0.28)], 0.12, 0.17)
-    e.add(body, h=0.7, r=0.055, base=0.3)
-    skull = blob([(0.40, 0.20), (0.50, 0.07), (0.68, 0.04), (0.86, 0.12), (0.95, 0.27), (0.90, 0.36), (0.74, 0.34), (0.60, 0.36), (0.46, 0.34)], 14)
-    jaw = blob([(0.46, 0.40), (0.58, 0.44), (0.70, 0.58), (0.80, 0.70), (0.74, 0.76), (0.58, 0.66), (0.46, 0.54)], 14)
-    e.add(jaw, h=0.8, r=0.04, base=0.4)
+    body = stroke([(0.34, 0.96), (0.66, 0.88), (0.74, 0.70), (0.46, 0.58), (0.26, 0.42), (0.36, 0.24), (0.56, 0.20)], 0.15, 0.19)
+    e.add(body, h=0.75, r=0.06, base=0.3)
+    jaw = blob([(0.56, 0.30), (0.72, 0.34), (0.88, 0.46), (0.84, 0.53), (0.68, 0.46), (0.56, 0.40)], 12)
+    e.add(jaw, h=0.8, r=0.03, base=0.4)
+    skull = blob([(0.46, 0.14), (0.62, 0.04), (0.82, 0.06), (0.98, 0.18), (0.99, 0.28), (0.84, 0.31), (0.66, 0.30), (0.50, 0.30)], 14)
     e.add(skull, h=1.0, r=0.07, base=0.5)
-    for (x, y, ln) in ((0.83, 0.34, 0.20), (0.70, 0.34, 0.15)):
-        fang = stroke([(x, y), (x - 0.015, y + ln * 0.6), (x - 0.045, y + ln)], 0.05, 0.004)
-        e.add(fang, h=0.95, r=0.016, base=0.55)
-    e.cut(ellipse(0.70, 0.17, 0.035, 0.024, 20), depth=0.35, r=0.014)
-    e.cut(ellipse(0.90, 0.24, 0.012, 0.009), depth=0.25, r=0.006)
-    for k in range(4):
-        x, y = 0.19 + 0.05 * k * k * 0.5 + 0.03 * k, 0.86 - 0.085 * k
-        e.cut(stroke([(x - 0.05, y), (x + 0.06, y - 0.03)], 0.011), depth=0.12, r=0.008)
-    return e.fit()
+    e.add(stroke([(0.90, 0.29), (0.885, 0.40), (0.86, 0.47)], 0.07, 0.006), h=0.95, r=0.016, base=0.55)
+    e.cut(ellipse(0.74, 0.15, 0.04, 0.028, 15), depth=0.35, r=0.014)
+    return e.seat()
 
 
 @design
 def ViperSting():
-    """Viper Sting: a viper's hooked fang in its gum, venom dripping from the tip."""
+    """Viper Sting: a viper's two long fangs curving in toward each other, a drop of venom falling between their tips."""
     e = Emblem("ViperSting")
-    fang = blob([(0.20, 0.20), (0.44, 0.16), (0.62, 0.22), (0.74, 0.38), (0.78, 0.58), (0.72, 0.76), (0.66, 0.60), (0.56, 0.46), (0.42, 0.38), (0.26, 0.36)], 14)
-    e.add(fang, h=0.9, r=0.075, base=0.35)
-    e.cut(stroke([(0.34, 0.26), (0.54, 0.31), (0.66, 0.46), (0.70, 0.62)], 0.022, 0.006), depth=0.2, r=0.01)
-    gum = blob([(0.06, 0.10), (0.26, 0.02), (0.50, 0.04), (0.64, 0.14), (0.56, 0.24), (0.40, 0.22), (0.24, 0.30), (0.10, 0.34)], 12)
-    e.add(gum, h=1.0, r=0.06, base=0.6)
-    for (x, y, s) in ((0.72, 0.90, 1.0), (0.86, 0.72, 0.6)):
-        drop = blob([(x, y - 0.10 * s), (x + 0.06 * s, y - 0.01 * s), (x + 0.045 * s, y + 0.07 * s), (x, y + 0.09 * s), (x - 0.045 * s, y + 0.07 * s),
-                     (x - 0.06 * s, y - 0.01 * s)], 14)
-        e.add(drop, h=1.0, r=0.05 * s, base=0.45)
-    return e.fit()
+    for side in (-1, 1):
+        fang = stroke([(0.5 + side * 0.30, 0.06), (0.5 + side * 0.36, 0.34), (0.5 + side * 0.28, 0.60), (0.5 + side * 0.12, 0.80)], 0.26, 0.008)
+        e.add(fang, h=1.0, r=0.05, base=0.7)
+    x, y = 0.5, 0.84
+    drop = blob([(x, y - 0.20), (x + 0.10, y - 0.01), (x + 0.07, y + 0.11), (x, y + 0.14), (x - 0.07, y + 0.11), (x - 0.10, y - 0.01)], 14)
+    e.add(drop, h=1.0, r=0.06, base=0.45)
+    return e.seat()
 
 
 @design
 def Scorpid():
-    """Scorpid Sting: a scorpion, pincers forward, its tail arched over its back to the barb."""
+    """Scorpid Sting: a scorpion in few heavy parts: two open pincers, a body and a tail arched over it to the barb."""
     e = Emblem("Scorpid")
     for sy in (-1, 1):
-        for k, x in enumerate((0.36, 0.46, 0.56)):
-            e.add(stroke([(x, 0.70), (x - 0.03, 0.70 + sy * 0.10), (x - 0.10, 0.70 + sy * 0.17)], 0.03, 0.012), h=0.5, r=0.012, base=0.25)
-    for sy in (-1, 1):
-        arm = stroke([(0.66, 0.70 + sy * 0.05), (0.76, 0.70 + sy * 0.15), (0.84, 0.70 + sy * 0.16)], 0.05, 0.04)
-        e.add(arm, h=0.7, r=0.02, base=0.35)
-        claw = blob([(0.82, 0.70 + sy * 0.22), (0.92, 0.70 + sy * 0.24), (0.99, 0.70 + sy * 0.12), (0.93, 0.70 + sy * 0.05), (0.91, 0.70 + sy * 0.13),
-                     (0.84, 0.70 + sy * 0.10)], 10)
-        e.add(claw, h=0.9, r=0.035, base=0.45)
-    body = blob([(0.28, 0.70), (0.36, 0.60), (0.56, 0.58), (0.70, 0.64), (0.74, 0.70), (0.70, 0.76), (0.56, 0.82), (0.36, 0.80)], 14)
-    e.add(body, h=0.85, r=0.08, base=0.4)
-    for x in (0.40, 0.49, 0.58):
-        e.cut(stroke([(x, 0.61), (x - 0.01, 0.79)], 0.012), depth=0.14, r=0.008)
-    tail = [(0.26, 0.70, 0.085), (0.15, 0.62, 0.08), (0.09, 0.49, 0.075), (0.11, 0.35, 0.072), (0.20, 0.24, 0.068), (0.33, 0.18, 0.064), (0.46, 0.20, 0.06)]
+        arm = stroke([(0.60, 0.70 + sy * 0.06), (0.72, 0.70 + sy * 0.18), (0.82, 0.70 + sy * 0.19)], 0.09, 0.08)
+        e.add(arm, h=0.7, r=0.03, base=0.35)
+        claw = blob([(0.78, 0.70 + sy * 0.28), (0.92, 0.70 + sy * 0.30), (1.02, 0.70 + sy * 0.14), (0.94, 0.70 + sy * 0.03), (0.91, 0.70 + sy * 0.14),
+                     (0.82, 0.70 + sy * 0.12)], 10)
+        e.add(claw, h=0.9, r=0.045, base=0.45)
+    body = blob([(0.24, 0.70), (0.34, 0.57), (0.56, 0.55), (0.70, 0.62), (0.74, 0.70), (0.70, 0.78), (0.56, 0.85), (0.34, 0.83)], 14)
+    e.add(body, h=0.85, r=0.09, base=0.4)
+    for x in (0.40, 0.52):
+        e.cut(stroke([(x, 0.59), (x - 0.01, 0.81)], 0.014), depth=0.14, r=0.008)
+    tail = [(0.22, 0.68, 0.11), (0.10, 0.54, 0.10), (0.10, 0.36, 0.095), (0.21, 0.21, 0.09), (0.38, 0.15, 0.085)]
     for (x, y, r) in tail:
         e.add(ellipse(x, y, r), h=0.95, r=r * 0.8, base=0.45)
-    e.add(ellipse(0.56, 0.25, 0.07, 0.06, 30), h=1.0, r=0.05, base=0.5)
-    e.add(stroke([(0.60, 0.26), (0.68, 0.33), (0.66, 0.46)], 0.055, 0.004), h=1.0, r=0.018, base=0.55)
-    return e.fit(0.04)
+    e.add(ellipse(0.53, 0.20, 0.09, 0.08, 30), h=1.0, r=0.05, base=0.5)
+    e.add(stroke([(0.57, 0.22), (0.68, 0.30), (0.66, 0.46)], 0.09, 0.006), h=1.0, r=0.02, base=0.55)
+    return e.seat()
 
 
 @design
@@ -277,15 +269,15 @@ def Wyvern():
         web = [(X(0.06), 0.34), (X(0.24), 0.12), (X(0.47), 0.10), (X(0.44), 0.40), (X(0.36), 0.33), (X(0.30), 0.56), (X(0.21), 0.44),
                (X(0.12), 0.62), (X(0.06), 0.50)]
         e.add(mask_poly(web), h=0.5, r=0.03, base=0.22)
-        e.add(stroke([(X(0.05), 0.36), (X(0.24), 0.13), (X(0.47), 0.10)], 0.075, 0.035), h=1.0, r=0.02, base=0.5)
+        e.add(stroke([(X(0.05), 0.36), (X(0.24), 0.13), (X(0.47), 0.10)], 0.11, 0.06), h=1.0, r=0.03, base=0.5)
         for tip in ((0.44, 0.40), (0.30, 0.56), (0.12, 0.62)):
-            e.add(stroke([(X(0.24), 0.14), (X(tip[0]), tip[1])], 0.045, 0.015, smooth=False), h=0.85, r=0.014, base=0.45)
+            e.add(stroke([(X(0.24), 0.14), (X(tip[0]), tip[1])], 0.07, 0.03, smooth=False), h=0.85, r=0.014, base=0.45)
         e.add(stroke([(X(0.045), 0.17), (X(0.10), 0.03)], 0.05, 0.008, smooth=False), h=1.0, r=0.014, base=0.5)
-    e.add(ellipse(0.5, 0.42, 0.085, 0.17), h=0.9, r=0.06, base=0.4)
+    e.add(ellipse(0.5, 0.42, 0.11, 0.19), h=0.9, r=0.06, base=0.4)
     e.add(blob([(0.5, 0.10), (0.585, 0.17), (0.56, 0.30), (0.5, 0.35), (0.44, 0.30), (0.415, 0.17)], 12), h=1.0, r=0.05, base=0.5)
-    e.add(stroke([(0.5, 0.56), (0.47, 0.72), (0.55, 0.84), (0.50, 0.93)], 0.07, 0.03), h=0.9, r=0.02, base=0.45)
-    e.add(poly([(0.50, 0.99), (0.41, 0.87), (0.59, 0.87)]), h=1.0, r=0.02, base=0.5)
-    return e.fit()
+    e.add(stroke([(0.5, 0.56), (0.47, 0.72), (0.55, 0.84), (0.50, 0.93)], 0.10, 0.05), h=0.9, r=0.02, base=0.45)
+    e.add(poly([(0.50, 1.04), (0.37, 0.87), (0.63, 0.87)]), h=1.0, r=0.02, base=0.5)
+    return e.seat()
 
 
 @design
@@ -298,7 +290,7 @@ def Lacerate():
         e.add(rip, h=0.9, r=0.045, base=0.3)
         e.cut(stroke([(0.62 + dx, 0.12), (0.57 + dx, 0.44), (0.42 + dx, 0.84)], 0.022, 0.006), depth=0.3, r=0.012)
     e.add(blob([(0.86, 0.72), (0.93, 0.84), (0.86, 0.94), (0.79, 0.84)], 14), h=1.0, r=0.06, base=0.45)
-    return e.fit()
+    return e.seat()
 
 
 @design
@@ -314,7 +306,7 @@ def BlackArrow():
             y = 0.06 + 0.085 * k
             vane = poly([(0.5, y + 0.06), (0.5 + sx * 0.19, y - 0.05), (0.5 + sx * 0.19, y + 0.03), (0.5, y + 0.14)])
             e.add(vane, h=0.8, r=0.03, base=0.4)
-    return e.fit()
+    return e.seat()
 
 
 @design
@@ -329,7 +321,7 @@ def Counter():
     e.add(blade, h=1.0, r=0.045, base=0.45)
     e.cut(stroke([(0.30, 0.22), (0.82, 0.84)], 0.012), depth=0.16, r=0.008)
     e.add(stroke([(0.72, 0.96), (0.96, 0.72)], 0.065), h=0.9, r=0.028, base=0.5)
-    return e.fit()
+    return e.seat()
 
 
 @design
@@ -351,7 +343,7 @@ def Mongoose():
         e.add(stroke([(x, y), (x - 0.015, y + d * ln)], 0.04, 0.004), h=0.95, r=0.012, base=0.55)
     e.cut(ellipse(0.58, 0.40, 0.045, 0.032, 15), depth=0.36, r=0.016)
     e.add(ellipse(0.915, 0.50, 0.035, 0.03), h=1.08, r=0.02, base=0.85)
-    return e.fit()
+    return e.seat()
 
 
 @design
@@ -366,4 +358,4 @@ def Raptor():
         e.add(stroke([(0.50, 0.38), knee, tip], 0.13, 0.10), h=0.9, r=0.05, base=0.4)
         e.add(stroke([tip, ((tip[0] + hook[0]) / 2 + (tip[0] - 0.5) * 0.12, (tip[1] + hook[1]) / 2), hook], 0.10, 0.012), h=1.0, r=0.03, base=0.5)
     e.add(ellipse(0.50, 0.40, 0.13, 0.11), h=0.95, r=0.06, base=0.45)
-    return e.fit()
+    return e.seat()

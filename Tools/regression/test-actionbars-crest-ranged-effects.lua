@@ -270,11 +270,12 @@ do
 	Clean(env, K)
 end
 
--- The approved plan forges the hunter's three cooldown sigils too: under 24 units, a solid body under the lit pass at 0.6.
+-- A forged cooldown sigil must read on its medal's face: a white solid body, never the medal's colour, under the lit pass at 0.6.
 do
 	local env, K, ns = New("HUNTER", { known = { 3045 } })
 	local volley = Piece(ns, "crestCooldowns").sigils[1]
-	assert(Drawn(volley, "Volley.png", false) and Drawn(volley, "Volley.png", true):GetAlpha() == 0.6, "Rapid Fire's cooldown sigil is a solid body under its lit pass")
+	Same("Rapid Fire's forged sigil has a white body", { Drawn(volley, "Volley.png", false):GetVertexColor() }, 1, 1, 1)
+	assert(Drawn(volley, "Volley.png", true):GetAlpha() == 0.6, "its lit pass stays at 0.6")
 	Clean(env, K)
 end
 

@@ -7,7 +7,7 @@ Medals.Mark): gold with a halo in the spell's colour at 24 units and over, the s
 unlit perch. A texture drawn this way is flagged forged in Core/Tokens.lua.
 
 The hunter's 16 glyphs are drawn in designs_hunter.py. The hunter's three cooldown sigils (Volley, Deflect, Paw) keep
-the drawing Tools/media/sigils.py gives them, with its strokes raised as bold ridges and the gaps between them left open.
+the drawing Tools/media/sigils.py gives them, with its shapes raised as ridges and the gaps between them left open.
 
     python3 Tools/media/forge/marks.py [--blender PATH] [--work DIR] [--only Hawk,Volley] [--glyphs DIR] [--sigils DIR]
 

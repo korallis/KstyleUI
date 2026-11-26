@@ -127,6 +127,7 @@ class Emblem:
         self.name = name
         self.H = np.zeros((N, N), np.float32)
         self.M = np.zeros((N, N), bool)
+        self.dark = None
 
     def add(self, mask, h=1.0, r=0.05, base=None, prof="round"):
         """Raise a layer. base is the height at its edge (default: 35% of h, so the wall shows)."""
@@ -166,6 +167,21 @@ class Emblem:
         self.M = np.asarray(M) > 127
         return self
 
+    def seat(self, reach=0.40, rim=0.045):
+        """Seat the fitted figure on a round dark plate inside a raised rim, so it reads over any ground and covers what lies beneath."""
+        self.fit()
+        yy, xx = np.mgrid[0:N, 0:N]
+        far = np.hypot(xx - N / 2, yy - N / 2)
+        k = reach * N / max(float(far[self.M].max()), 1.0)
+        box = (1 / k, 0, N / 2 * (1 - 1 / k), 0, 1 / k, N / 2 * (1 - 1 / k))
+        H = np.asarray(Image.fromarray(self.H).transform((N, N), Image.AFFINE, box, Image.BICUBIC), np.float32)
+        M = np.asarray(Image.fromarray((self.M * 255).astype(np.uint8)).transform((N, N), Image.AFFINE, box, Image.BICUBIC)) > 127
+        disc = far <= 0.49 * N
+        self.dark = disc & ~M & (far <= (0.49 - rim) * N)
+        self.H = np.where(M, 0.3 + H, np.where(self.dark, 0.12, 0.0)).astype(np.float32)
+        self.M = disc
+        return self.add(disc & (far > (0.49 - rim) * N), h=0.5, r=rim / 2, base=0.2)
+
     def save(self, folder):
         os.makedirs(folder, exist_ok=True)
         H = np.clip(self.H, 0, None)
@@ -175,6 +191,8 @@ class Emblem:
         cav = np.clip((ndi.gaussian_filter(Hn, 14) - Hn) * 3.2, 0, 1)
         edge = np.clip(1 - ndi.distance_transform_edt(self.M) / (0.012 * N), 0, 1) * 0.55
         cav = np.clip(np.maximum(cav, edge), 0, 1)
+        if self.dark is not None:
+            cav = np.maximum(cav, ndi.gaussian_filter(self.dark.astype(np.float32), 1.5))
         Image.fromarray((Hn * 65535).astype(np.uint16)).save(os.path.join(folder, self.name + "_h.png"))
         soft = ndi.gaussian_filter(self.M.astype(np.float32), 0.8)
         Image.fromarray((np.clip(soft, 0, 1) * 255).astype(np.uint8)).save(os.path.join(folder, self.name + "_m.png"))
