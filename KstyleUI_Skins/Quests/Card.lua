@@ -17,13 +17,15 @@ local BAR_WIDTH, BAR_GAP, THUMB_MIN = 3, 5, 10
 local THUMB_ALPHA, TRACK_ALPHA = 0.35, 0.5
 local MORE_SCALE = 0.85
 local COMPACT_PAD = 6
+local CHEVRON, CHEVRON_GAP = 10, 8
 
-local card, glass, cap, view, more, track, thumb, ruler, countRuler, fade
+local card, glass, cap, view, more, track, thumb, ruler, countRuler, fade, toggle, chevron
 local rows, buttons, heights = {}, {}, {}
 local pitch, lead, rowWidth = 0, 0, 0
 local offset, wanted, maxHeight, naturalHeight = 1, 4, 0, 0
 local pending, waiting, active = false, false, false
 local pointed = false
+local collapsed = false
 
 local function Snap(units)
 	return Widgets.Snap(card, units)
@@ -479,6 +481,64 @@ local function SyncAfterCombat()
 	Card.SyncButtons()
 end
 
+local function Chevron()
+	return Snap(Lumen.Size(card, CHEVRON))
+end
+
+local function PlaceCount()
+	cap.count:ClearAllPoints()
+	Widgets.Point(cap.count, "RIGHT", cap, "RIGHT", -(Chevron() + Snap(Lumen.Size(card, CHEVRON_GAP))), 0)
+end
+
+local function PaintChevron()
+	chevron:SetTexCoord(0, 1, toggle.down and 0 or 1, toggle.down and 1 or 0)
+	Widgets.Tint(chevron, toggle.hover and "textHover" or "text")
+end
+
+local function PlaceHeader(inset, top, capHeight, foot)
+	cap:ClearAllPoints()
+	Widgets.Point(cap, "TOPLEFT", card, "TOPLEFT", inset, -top)
+	Widgets.Point(cap, "TOPRIGHT", card, "TOPRIGHT", -inset, -top)
+	cap:SetHeight(capHeight)
+	local size = Chevron()
+	chevron:SetSize(size, size)
+	chevron:ClearAllPoints()
+	toggle:ClearAllPoints()
+	if foot then
+		local line = MoreRow() - Snap(ROW_GAP)
+		Widgets.Point(toggle, "BOTTOMLEFT", card, "BOTTOMLEFT", 0, 0)
+		Widgets.Point(toggle, "BOTTOMRIGHT", card, "BOTTOMRIGHT", 0, 0)
+		toggle:SetHeight(foot + line)
+		Widgets.Point(chevron, "RIGHT", card, "BOTTOMRIGHT", -inset, foot + line / 2)
+	else
+		Widgets.Point(toggle, "TOPLEFT", card, "TOPLEFT", 0, 0)
+		Widgets.Point(toggle, "TOPRIGHT", card, "TOPRIGHT", 0, 0)
+		toggle:SetHeight(top + capHeight)
+		Widgets.Point(chevron, "RIGHT", card, "TOPRIGHT", -inset, -(top + capHeight / 2))
+	end
+	toggle.down = collapsed
+	PaintChevron()
+end
+
+local function Finish(height)
+	naturalHeight = Snap(height)
+	card:SetHeight(naturalHeight)
+	card:Show()
+	Card.CheckDiagnostic()
+	if InCombatLockdown() then
+		if not waiting then
+			waiting = true
+			K.Combat.Queue(SyncAfterCombat)
+		end
+		return
+	end
+	Card.SyncButtons()
+	local rail = ns.Guide
+	if rail and rail.Schedule then
+		rail.Schedule()
+	end
+end
+
 function Card.Render()
 	if not card or not active then
 		return
@@ -502,6 +562,22 @@ function Card.Render()
 		card:Hide()
 		Card.SyncButtons()
 		Card.CheckDiagnostic()
+		return
+	end
+	view:SetShown(not collapsed)
+	if collapsed then
+		for i = 1, #rows do
+			rows[i]:Hide()
+			rows[i].questID = nil
+		end
+		track:Hide()
+		thumb:Hide()
+		fade:Hide()
+		more:Hide()
+		cap:Show()
+		local top, capHeight = Snap(HEAD), Snap(CAP_ROW)
+		PlaceHeader(Inset(), top, capHeight)
+		Finish(top + capHeight + Snap(HEAD))
 		return
 	end
 	local n = math.min(wanted, total)
@@ -560,10 +636,7 @@ function Card.Render()
 		rows[i]:Hide()
 		rows[i].questID = nil
 	end
-	cap:ClearAllPoints()
-	Widgets.Point(cap, "TOPLEFT", card, "TOPLEFT", inset, -top)
-	Widgets.Point(cap, "TOPRIGHT", card, "TOPRIGHT", -inset, -top)
-	cap:SetHeight(capHeight)
+	PlaceHeader(inset, top, capHeight, compact and foot)
 	view:ClearAllPoints()
 	Widgets.Point(view, "TOPLEFT", card, "TOPLEFT", inset, -(top + capHeight + capGap))
 	Widgets.Point(view, "TOPRIGHT", card, "TOPRIGHT", -inset, -(top + capHeight + capGap))
@@ -586,26 +659,16 @@ function Card.Render()
 		more:SetText("")
 		more:Hide()
 	end
-	naturalHeight = Snap(chrome + viewHeight)
-	card:SetHeight(naturalHeight)
-	card:Show()
-	Card.CheckDiagnostic()
-	if InCombatLockdown() then
-		if not waiting then
-			waiting = true
-			K.Combat.Queue(SyncAfterCombat)
-		end
-		return
-	end
-	Card.SyncButtons()
-	local rail = ns.Guide
-	if rail and rail.Schedule then
-		rail.Schedule()
-	end
+	Finish(chrome + viewHeight)
+end
+
+function Card.SetCollapsed(on)
+	collapsed = on == true
+	Card.Render()
 end
 
 function Card.Scroll(steps)
-	if not card or Card.Locked() then
+	if not card or collapsed or Card.Locked() then
 		return
 	end
 	local before = offset
@@ -743,6 +806,32 @@ function Card.Build(root)
 	glass.chrome = Widgets.Chrome(glass, { shape = "window", fill = "surface" })
 	cap = Lumen.SectionCap(card)
 	cap:SetText(L["Quests"])
+	local restyleCap = cap.Restyle
+	cap.Restyle = function(self)
+		restyleCap(self)
+		PlaceCount()
+	end
+	PlaceCount()
+	toggle = CreateFrame("Button", nil, card)
+	toggle:SetFrameLevel(card:GetFrameLevel() + 3)
+	toggle:EnableMouseWheel(true)
+	toggle:SetScript("OnMouseWheel", OnWheel)
+	toggle:SetScript("OnClick", function()
+		Widgets.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON")
+		K.Options.Write("Skins", "quests.collapsed", not collapsed)
+	end)
+	toggle:SetScript("OnEnter", function(self)
+		self.hover = true
+		PaintChevron()
+		Peek()
+	end)
+	toggle:SetScript("OnLeave", function(self)
+		self.hover = false
+		PaintChevron()
+		Peek()
+	end)
+	chevron = toggle:CreateTexture(nil, "OVERLAY")
+	chevron:SetTexture((Tokens.Texture("glyphChevron")))
 	view = CreateFrame("Frame", nil, card)
 	view:SetClipsChildren(true)
 	view:SetFrameLevel(card:GetFrameLevel() + 2)
@@ -796,7 +885,7 @@ function Card.Offset()
 end
 
 function Card.Parts()
-	return { card = card, glass = glass, cap = cap, view = view, more = more, track = track, thumb = thumb, fade = fade }
+	return { card = card, glass = glass, cap = cap, view = view, more = more, track = track, thumb = thumb, fade = fade, toggle = toggle, chevron = chevron }
 end
 
 local function DiagnosticText(value)
@@ -891,7 +980,7 @@ local function DiagnosticPixels(frame, clipLeft, clipBottom, clipWidth, clipHeig
 end
 
 function Card.CheckDiagnostic()
-	if not active or not card or automaticDiagnostics >= 3 or (Data.Count() == 0 and not (Data.watches and Data.watches > 0)) then
+	if not active or not card or collapsed or automaticDiagnostics >= 3 or (Data.Count() == 0 and not (Data.watches and Data.watches > 0)) then
 		return
 	end
 	local clip, left, bottom, width, height = DiagnosticPixels(view)
