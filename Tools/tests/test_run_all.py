@@ -65,6 +65,9 @@ class PortableRunnerTest(unittest.TestCase):
                                             (12, {"KSTYLEUI_RELEASE": "1"}, 4), (2, {}, 2)):
             with self.subTest(cpus=cpus, environment=environment), mock.patch.dict(os.environ, environment, clear=True),                     mock.patch.object(self.runner.os, "cpu_count", return_value=cpus):
                 self.assertEqual(self.runner.default_slots(), expected)
+                self.assertEqual(self.runner.jobs_for(SimpleNamespace(margins=False, affected=None)),
+                                 expected if environment.get("KSTYLEUI_RELEASE") else cpus,
+                                 "the release gate's own pool keeps its ceiling where the slot locks are off")
 
     def test_python_picker_exports_the_selected_executable_without_a_cr(self):
         env = dict(os.environ, KSTYLEUI_PYTHON=sys.executable, RUNNER_SCRIPT=(REGRESSION / "run-all.sh").as_posix())

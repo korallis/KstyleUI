@@ -87,6 +87,7 @@ class Children:
     def __init__(self):
         self.lock = threading.Lock()
         self.children = set()
+        self.peak = 0
         self.stopping = False
 
     def start(self, args, out, env=None):
@@ -95,6 +96,7 @@ class Children:
                 raise KeyboardInterrupt
             child = subprocess.Popen(args, stdout=out, stderr=subprocess.STDOUT, start_new_session=not runner_platform.WINDOWS, env=env)
             self.children.add(child)
+            self.peak = max(self.peak, len(self.children))
             return child
 
     def done(self, child):
@@ -404,7 +406,7 @@ def jobs_for(args):
     explicit = os.environ.get("JOBS")
     if explicit:
         return int(explicit)
-    return default_slots() if args.affected else os.cpu_count() or 2
+    return default_slots() if args.affected or os.environ.get("KSTYLEUI_RELEASE") == "1" else os.cpu_count() or 2
 
 
 def main(argv):
@@ -518,7 +520,7 @@ def main(argv):
                 try:
                     with open(os.path.join(logs, name + ".trace"), encoding="utf-8", errors="replace") as trace:
                         records[path] = dict(affected.record_from_trace(trace.read(), os.getcwd()), sha=affected.fingerprint(path))
-                        records[path]["seen"] = affected.seen(records[path]["files"], memo=hashes)
+                        records[path]["seen"] = affected.seen(records[path], memo=hashes)
                 except OSError:
                     pass
             for line in lines:
@@ -564,6 +566,7 @@ def main(argv):
                 fmt(result["load"]), Path(path).stem))
     total = sum(result["seconds"] for result in results.values())
     print("total {0:.1f} s of test time in {1:.1f} s, {2} at a time".format(total, wall, jobs))
+    print("peak: at most {0} test processes alive at once".format(CHILDREN.peak))
     loads = [result["load"] for result in results.values() if result["load"] is not None]
     seen = "machine load {0} at the start, {1} at the end, {2} at most when a test started".format(
         fmt(start_load), fmt(load_now()), fmt(max(loads, default=start_load)))

@@ -64,27 +64,48 @@ def cache_path(cwd=None):
         return shared_path()
 
 
-def seen(files, root=".", memo=None):
-    """Return one hash of the bytes of every file a record names, as they are under root now."""
+def seen(record, root=".", memo=None):
+    """Return one hash of what a record's test read, as it is under root now: the bytes of each file, the names
+    each listing matches and the paths git tracks for each pattern."""
     memo = {} if memo is None else memo
+
+    def answer(kind, value):
+        if (kind, value) not in memo:
+            if kind == "f":
+                found = fingerprint(os.path.join(root, value))
+            elif kind == "n":
+                folder, _, glob = value.rpartition("/")
+                try:
+                    found = "/".join(sorted(name for name in os.listdir(os.path.join(root, folder)) if fnmatch.fnmatchcase(name, glob)))
+                except OSError:
+                    found = "missing"
+            else:
+                found = git("ls-files", "-z", "--", value, cwd=root)
+            memo[kind, value] = found
+        return memo[kind, value]
+
     digest = hashlib.sha1()
-    for path in sorted(files):
-        if path not in memo:
-            memo[path] = fingerprint(os.path.join(root, path))
-        digest.update("{0}\0{1}\n".format(path, memo[path]).encode("utf-8"))
+    for kind, key in (("f", "files"), ("n", "listings"), ("t", "names")):
+        for value in sorted(record.get(key, [])):
+            digest.update("{0} {1}\0{2}\n".format(kind, value, answer(kind, value)).encode("utf-8"))
     return digest.hexdigest()
 
 
 def load_records(cwd=None):
     """Return this working copy's records. A working copy with none yet starts from the shared copy's records
-    whose files are byte for byte what this working copy holds: a record made on a tree where one of them
-    differed may name the wrong files, so its test has no record and runs."""
+    whose files, listings and tracked names are what this working copy holds: a record made on a tree where one
+    of them differed may name the wrong files, so its test has no record and runs."""
     records = load_cache(cache_path(cwd))
     if records or os.environ.get("KSTYLEUI_DEPS_CACHE"):
         return records
-    memo = {}
-    return {test: record for test, record in load_cache(shared_path()).items()
-            if record.get("seen") == seen(record.get("files", []), cwd or ".", memo)}
+    memo, records = {}, {}
+    for test, record in load_cache(shared_path()).items():
+        try:
+            if record.get("seen") == seen(record, cwd or ".", memo):
+                records[test] = record
+        except (OSError, RuntimeError):
+            pass
+    return records
 
 
 def save_records(records, cwd=None):

@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -50,7 +51,21 @@ def select(names, changes):
     return run, skipped
 
 
+ALIVE = {"lock": threading.Lock(), "now": 0, "peak": 0}
+
+
 def run_file(folder, name):
+    with ALIVE["lock"]:
+        ALIVE["now"] += 1
+        ALIVE["peak"] = max(ALIVE["peak"], ALIVE["now"])
+    try:
+        return run_counted(folder, name)
+    finally:
+        with ALIVE["lock"]:
+            ALIVE["now"] -= 1
+
+
+def run_counted(folder, name):
     start = time.monotonic()
     done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", str(folder), "-p", name],
                           capture_output=True, text=True, encoding="utf-8", errors="replace")
@@ -84,21 +99,24 @@ def main(argv):
               "bash scripts/gate.sh release runs them all".format(len(skipped), args.base, ", ".join(skipped)), flush=True)
     start = time.monotonic()
     failed, tests, unchecked = [], 0, 0
-    alone = [name for name in run if name in WIDE]
     with ThreadPoolExecutor(max_workers=jobs) as pool:
-        results = [run_file(folder, name) for name in alone]
-        results += pool.map(lambda name: run_file(folder, name), [name for name in run if name not in WIDE])
-    for result in results:
-        tests += result["tests"] - result["skipped"]
-        unchecked += result["skipped"]
-        if result["ok"]:
-            print("ok   {0} ({1} tests, {2} skipped, {3:.1f} s)".format(
-                result["name"], result["tests"] - result["skipped"], result["skipped"], result["seconds"]), flush=True)
-        else:
-            failed.append(result["name"])
-            print("FAIL {0}\n{1}".format(result["name"], result["output"].rstrip()), flush=True)
-    print("python suite: ran {0} tests and skipped {1} in {2} files in {3:.1f} s; failed files: {4}".format(
-        tests, unchecked, len(run), time.monotonic() - start, ", ".join(failed) or "none"))
+        def results():
+            for name in run:
+                if name in WIDE:
+                    yield run_file(folder, name)
+            yield from pool.map(lambda name: run_file(folder, name), [name for name in run if name not in WIDE])
+
+        for result in results():
+            tests += result["tests"] - result["skipped"]
+            unchecked += result["skipped"]
+            if result["ok"]:
+                print("ok   {0} ({1} tests, {2} skipped, {3:.1f} s)".format(
+                    result["name"], result["tests"] - result["skipped"], result["skipped"], result["seconds"]), flush=True)
+            else:
+                failed.append(result["name"])
+                print("FAIL {0}\n{1}".format(result["name"], result["output"].rstrip()), flush=True)
+    print("python suite: ran {0} tests and skipped {1} in {2} files in {3:.1f} s, at most {4} files at once; failed files: {5}".format(
+        tests, unchecked, len(run), time.monotonic() - start, ALIVE["peak"], ", ".join(failed) or "none"))
     return 1 if failed or not run else 0
 
 

@@ -238,13 +238,20 @@ class CacheTest(unittest.TestCase):
                 (folder / "x").write_text("same in both")
                 (folder / "y").write_text("made in " + folder.name)
                 (folder / "z").write_text("z")
-            affected.save_records({"a": record(["x"], seen=affected.seen(["x"], one)), "b": record(["y"], seen=affected.seen(["y"], one)),
-                                   "c": record(["x"])}, one)
-            self.assertEqual(sorted(affected.load_records(two)), ["a"],
-                             "a new working copy takes only the shared records whose files it holds byte for byte")
-            affected.save_records({"a": record(["z"], seen=affected.seen(["z"], two))}, two)
+            (two / "more").write_text("only in two")
+            affected.git("add", "more", cwd=two)
+
+            def made(**parts):
+                return record(seen=affected.seen(record(**parts), one), **parts)
+
+            affected.save_records({"a": made(files=["x"]), "b": made(files=["y"]), "c": record(["x"]),
+                                   "d": made(files=["x"], listings=["m*"]), "e": made(files=["x"], names=["m*"]),
+                                   "f": made(files=["x"], listings=["z*"], names=["*.lua"])}, one)
+            self.assertEqual(sorted(affected.load_records(two)), ["a", "f"],
+                             "a new working copy takes only the shared records whose files, listings and tracked names it holds")
+            affected.save_records({"a": record(["z"], seen=affected.seen(record(["z"]), two)), "f": record(["z"])}, two)
             self.assertEqual(affected.load_records(one)["a"]["files"], ["x"], "the other working copy's run left these records alone")
-            self.assertEqual({name: entry["files"] for name, entry in affected.load_records(two).items()}, {"a": ["z"]})
+            self.assertEqual({name: entry["files"] for name, entry in affected.load_records(two).items()}, {"a": ["z"], "f": ["z"]})
 
     def test_the_path_follows_the_environment(self):
         old = os.environ.get("KSTYLEUI_DEPS_CACHE")

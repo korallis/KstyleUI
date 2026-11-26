@@ -122,9 +122,9 @@ class GateTest(unittest.TestCase):
             "Tools/locale/strings.py check",
             "scripts/check-suppressions.sh",
             "Tools/regression/run-all.sh",
-            "Tools/tests/run_suite.py",
         ):
             self.assertIn(needle, text)
+        self.assertRegex(text, r'(?m)^\s*step "python suite" .*"\$\{py\[@\]\}" Tools/tests/run_suite\.py "\$base"$')
         self.assertIn("env -u SKIP pre-commit run --all-files", text)
         self.assertNotIn('step "luacheck"', text)
         self.assertNotIn('step "check_toc"', text)
