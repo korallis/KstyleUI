@@ -21,6 +21,7 @@ from healer_trackers import additive, blur
 SIZE, SCALE = 64, 8
 N = SIZE * SCALE
 WIDTH = 0.085
+BOLD = 0.13
 OUT = Path(__file__).resolve().parents[2] / "Media/Textures/Sigils"
 
 
@@ -76,11 +77,11 @@ def blade(p, x0, y0, x1, y1):
     p.line((gx + nx * 0.09, gy + ny * 0.09), (gx - nx * 0.09, gy - ny * 0.09))
 
 
-def arrow(p, x0, y0, x1, y1, head=0.12):
-    p.line((x0, y0), (x1, y1))
+def arrow(p, x0, y0, x1, y1, head=0.12, width=WIDTH):
+    p.line((x0, y0), (x1, y1), width=width)
     a = math.atan2(y1 - y0, x1 - x0)
     for side in (-1, 1):
-        p.line((x1, y1), (x1 - head * math.cos(a + side * 0.55), y1 - head * math.sin(a + side * 0.55)))
+        p.line((x1, y1), (x1 - head * math.cos(a + side * 0.55), y1 - head * math.sin(a + side * 0.55)), width=width)
 
 
 def eye(p, cx=0.5, cy=0.5, w=0.34, h=0.2):
@@ -290,22 +291,21 @@ def Ghost(p):
 # Hunter
 @glyph
 def Volley(p):
-    for x in (0.28, 0.5, 0.72):
-        arrow(p, x, 0.84, x, 0.18, 0.11)
+    for x in (0.2, 0.5, 0.8):
+        arrow(p, x, 0.88, x, 0.14, 0.14, width=BOLD)
 
 
 @glyph
 def Deflect(p):
-    p.arc(0.94, 0.5, 0.34, 140, 220)
-    p.line((0.14, 0.26), (0.58, 0.5))
-    arrow(p, 0.58, 0.5, 0.2, 0.8, 0.13)
+    p.poly((0.16, 0.14), (0.84, 0.14), (0.84, 0.52), (0.5, 0.9), (0.16, 0.52), width=BOLD)
+    p.line((0.5, 0.34), (0.5, 0.58), width=BOLD)
 
 
 @glyph
 def Paw(p):
-    p.curve(lambda t: (0.5 + 0.18 * math.cos(t), 0.64 + 0.15 * math.sin(t)), 0, 2 * math.pi)
-    for x, y in ((0.26, 0.42), (0.4, 0.28), (0.6, 0.28), (0.74, 0.42)):
-        p.dot(x, y, 0.07)
+    p.dot(0.5, 0.68, 0.19)
+    for x, y in ((0.14, 0.44), (0.36, 0.2), (0.64, 0.2), (0.86, 0.44)):
+        p.dot(x, y, 0.1)
 
 
 # Mage

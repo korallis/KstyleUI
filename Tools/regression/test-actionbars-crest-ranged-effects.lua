@@ -126,13 +126,20 @@ do
 	assert(Shown(lit, lit.flare.play) and Shown(lit, lit.loop), "the fuse's mark ignites and its head flickers as the engine's animations")
 	local r, g, b = lit.mark:GetVertexColor()
 	assert(r + g + b < 2.6, "the serpent keeps its colour rather than burning white")
-	local burn = lit.head._kids[1]
-	assert(#lit._regions + #lit.head._regions == 0 and #burn._regions == 1 and #burn._kids == 1 and #burn._kids[1]._regions == 2,
-		"the head is the flame and the forged mark (a body under its sheen) alone, no glow or flare of its own")
-	-- The approved plan for the crest marks: a mark under 24 units is a solid body in the spell's colour with the lit pass over it at 0.6.
-	local body = Drawn(lit.mark:GetParent(), "Serpent.png", false)
-	Same("Serpent Sting's small body takes its colour, schoolNature 6fdc5a lifted 0.3 toward white", { body:GetVertexColor() }, 0.3 + 0.7 * 0x6f / 255, 0.3 + 0.7 * 0xdc / 255, 0.3 + 0.7 * 0x5a / 255)
-	assert(lit.mark:GetAlpha() == 0.6 and lit.flare.play:GetParent() == lit.mark:GetParent(), "the lit pass rides the body at 0.6 and the ignition grows both together")
+	local burn, seat = lit.head._kids[1], lit.head._kids[2]
+	assert(#lit._regions + #lit.head._regions == 0 and #burn._regions == 1 and #burn._kids == 0, "the head's flicker holds the flame alone")
+	-- A Sting's mark cannot be read at 16 units over the ring's runes, so it draws at 24 units,
+	-- moved 14 units in from the fuse onto a dark shade, steady while the flame flickers; at that size the gold rule applies.
+	local whole = lit.mark:GetParent()
+	local body = Drawn(whole, "Serpent.png", false)
+	assert(body.units == 24 and select(4, seat:GetPoint(1)) == -14 and whole:GetParent() == seat, "Serpent Sting's mark is 24 units, 14 in from the fuse's head")
+	Same("its body is gold, coinGold f0c75e", { body:GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
+	Same("its halo is the Sting's colour, schoolNature 6fdc5a", { Drawn(whole, "Glow.png", true):GetVertexColor() }, 0x6f / 255, 0xdc / 255, 0x5a / 255)
+	assert(#seat._regions == 2 and Drawn(seat, "Glow.png", false) and not Drawn(seat, "Glow.png", true), "it sits on a soft dark shade, never a socket")
+	assert(lit.mark:GetAlpha() == 0.15 and lit.flare.play:GetParent() == whole, "the lit pass is a sheen and the ignition grows the whole mark")
+	Same("Wyvern Sting's halo is schoolFire ff8a3d, apart from Black Arrow's violet", { Drawn(sting.lits[4].mark:GetParent(), "Glow.png", true):GetVertexColor() }, 0xff / 255, 0x8a / 255, 0x3d / 255)
+	Same("Black Arrow's halo is schoolShadow 9d7bff", { Drawn(sting.lits[6].mark:GetParent(), "Glow.png", true):GetVertexColor() }, 0x9d / 255, 0x7b / 255, 0xff / 255)
+	assert(aspect.rest:GetAlpha() == 0.85, "an unlit forged Aspect rests at 0.85 so its outline shows on the ring")
 	-- The captain's answer on the plan: a lit mark is a gold body with the spell's colour as a halo behind it (24 units and above).
 	Slots.Set(env, "player", { { id = 415423, start = 0 } })
 	local viper = aspect.lits[7]
@@ -201,6 +208,7 @@ do
 	-- The approved plan for the crest marks puts the flash under the forged rule: the flash is all a strike shows on the crest.
 	Same("Raptor Strike's flash is the gold talon, coinGold f0c75e", { Drawn(raptor.flare, "Raptor.png", false):GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
 	Same("haloed in its colour, gilt d3b574", { Drawn(raptor.flare, "Glow.png", true):GetVertexColor() }, 0xd3 / 255, 0xb5 / 255, 0x74 / 255)
+	assert(math.abs(Drawn(raptor.flare, "Raptor.png", false).units - 41.4) < 1e-6, "at 41.4 units (the 36-unit flash at the orb look's 1.15), so the painted emblem shows round it")
 	assert(#arcane.flare._regions == 1 and arcane.flare._regions[1]._state.BlendMode[1] == "ADD", "Arcane Shot's flat orb still flashes as one additive texture")
 	Same("in white, not its spell's colour", { arcane.flare._regions[1]:GetVertexColor() }, 1, 1, 1)
 	Clean(env, K)

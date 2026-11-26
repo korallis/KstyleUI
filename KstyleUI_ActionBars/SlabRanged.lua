@@ -23,6 +23,7 @@ local BREATH = { { 0.6, 1, 0.9 }, { 1, 0.6, 0.9 } }
 local GLEAM = { { 0.8, 1, 0.7 }, { 1, 0.8, 0.7 } }
 local BURN = { { 1, 0.7, 0.1 }, { 0.7, 1, 0.08 }, { 1, 0.8, 0.12 }, { 0.8, 1, 0.1 } }
 local BLINK = { { 1, 0.2, 0.1 }, { 0.2, 1, 0.1 } }
+local MARK, MARK_IN, MARK_BACK, REST_FORGED, SHOT_FLAT, SHOT_FORGED = 24, 14, 2.6, 0.85, 0.82, 0.45
 local OPENING = { { 0, 1, 0.06 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.08 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.1 } }
 local GROW = { { 0, 1, 0.6 } }
 local BAND = {
@@ -135,7 +136,7 @@ local function Light(p, each, level, look)
 		Medals.Fire(p)
 	end)
 	lit:SetShown(each.feed == "cooldown")
-	Medals.Flare(p, lit, level + 6, art, size * 1.8, nil, each.color)
+	Medals.Flare(p, lit, level + 6, art, size * (select(4, Tokens.Texture(art)) and 1 or 1.8), nil, each.color)
 end
 
 local function Shadow(p, form)
@@ -152,8 +153,9 @@ local function Effect(parent, spec, level, form)
 		Light(p, each == spec and spec or setmetatable(each, { __index = spec }), level + 1, look)
 	end
 	p.rest = Medals.Layer(spec.feed == "item" and p.lit or p, level)
-	p.rest:SetAlpha(look.rest or STEEL)
-	p.add(Medals.Texture(p.rest, "ARTWORK", 0, look.steel or spec.glyph or look.art, "steel", p.units * look.k)):SetDesaturated(true)
+	local art = look.steel or spec.glyph or look.art
+	p.rest:SetAlpha(look.rest or select(4, Tokens.Texture(art)) and REST_FORGED or STEEL)
+	p.add(Medals.Texture(p.rest, "ARTWORK", 0, art, "steel", p.units * look.k)):SetDesaturated(true)
 	return p
 end
 
@@ -217,7 +219,17 @@ local function Fuse(parent, spec, level, form)
 		flame:SetDesaturated(true)
 		flame:SetPoint("CENTER", lit.head, "CENTER", 0, 5 * h)
 		local r, g, b = Lift(each.color, 0.3)
-		local mark, cast = Medals.Mark(p, burn, each.glyph, 16 * h, each.color, r, g, b, level + 3)
+		local seat, size = burn, 16 * h
+		if select(4, Tokens.Texture(each.glyph)) then
+			seat, size = CreateFrame("Frame", nil, lit.head), MARK * h
+			seat:SetFrameLevel(level + 3)
+			seat:SetSize(1, 1)
+			seat:SetPoint("CENTER", lit.head, "CENTER", -MARK_IN * h, 0)
+			for sub = -2, -1 do
+				p.add(Medals.Texture(seat, "BACKGROUND", sub, "glow", "black", size * MARK_BACK))
+			end
+		end
+		local mark, cast = Medals.Mark(p, seat, each.glyph, size, each.color, r, g, b, level + (seat == burn and 3 or 4))
 		lit.mark = mark
 		lit.loop = Medals.Steps(burn, BURN, true)
 		lit.flare = Bloom(cast, 1.5)
@@ -328,7 +340,7 @@ local function Shot(parent, spec, level, form)
 			if look.arrows then
 				p.add(Medals.Texture(layer, "ARTWORK", 0, "pipArrow" .. art, "white", p.units))
 			else
-				Medals.Mark(p, layer, art, p.units * 0.82, look.color, Lift(look.color, 0.2))
+				Medals.Mark(p, layer, art, p.units * (select(4, Tokens.Texture(art)) and SHOT_FORGED or SHOT_FLAT), look.color, Lift(look.color, 0.2))
 			end
 		end
 		layer.play = Medals.Steps(layer, look.arrows and { { 0, 1, 0.15 } } or OPENING)
@@ -842,7 +854,7 @@ if CLASS == "HUNTER" then
 		{ spells = { 1978, 13549, 13550, 13551, 13552, 13553, 13554, 13555, 25295 }, color = "schoolNature", glyph = "glyphSerpent" },
 		{ spells = { 3034, 14279, 14280 }, color = "magic", glyph = "glyphViperSting" },
 		{ spells = { 3043, 14275, 14276, 14277 }, color = "neutral", glyph = "glyphScorpid" },
-		{ spells = { 19386, 24132, 24133, 24131, 24134, 24135 }, color = "jewelShard", glyph = "glyphWyvern" },
+		{ spells = { 19386, 24132, 24133, 24131, 24134, 24135 }, color = "schoolFire", glyph = "glyphWyvern" },
 		{ spells = { 24118, 24119, 24120, 1299332 }, color = "hostile", glyph = "glyphLacerate" },
 		{ spells = { 3674, 14296 }, color = "schoolShadow", glyph = "glyphBlackArrow" },
 	}
