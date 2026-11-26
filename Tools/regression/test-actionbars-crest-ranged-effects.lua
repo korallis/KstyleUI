@@ -140,6 +140,9 @@ do
 	Same("Wyvern Sting's halo is schoolFire ff8a3d, apart from Black Arrow's violet", { Drawn(sting.lits[4].mark:GetParent(), "Glow.png", true):GetVertexColor() }, 0xff / 255, 0x8a / 255, 0x3d / 255)
 	Same("Black Arrow's halo is schoolShadow 9d7bff", { Drawn(sting.lits[6].mark:GetParent(), "Glow.png", true):GetVertexColor() }, 0x9d / 255, 0x7b / 255, 0xff / 255)
 	assert(aspect.rest:GetAlpha() == 0.85, "an unlit forged Aspect rests at 0.85 so its outline shows on the ring")
+	local hawk, monkey = aspect.lits[1].art:GetParent(), aspect.lits[2].art:GetParent()
+	local cover = Drawn(monkey, "Hawk.png", false)
+	assert(cover and cover.units == 35 and cover:GetVertexColor() == 0 and not Drawn(hawk, "Monkey.png", false) and #hawk._regions + 1 == #monkey._regions, "a lit Aspect other than the Hawk blacks out the unlit hawk behind it at its 35 units (the 28-unit perch at the look's 1.25), so no grey hawk shows round a cheetah")
 	-- The captain's answer on the plan: a lit mark is a gold body with the spell's colour as a halo behind it (24 units and above).
 	Slots.Set(env, "player", { { id = 415423, start = 0 } })
 	local viper = aspect.lits[7]
