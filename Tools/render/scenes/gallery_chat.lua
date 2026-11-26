@@ -133,7 +133,7 @@ return Common.Run(function()
 	Lines(env, chat)
 	Lines(env, trade)
 
-	-- The undocked window's edit box where the module places it: over the window's foot, inside its glass, as the
+	-- The undocked window's edit box where the module places it: under the window, inside its glass, as the
 	-- docked panel's box opens. Its height is FloatingChatFrame.xml's.
 	local glass = assert(K.Skin.Parts(trade).backdrop, "the undocked window has its glass")
 	local box = trade.editBox
@@ -199,7 +199,7 @@ return Common.Run(function()
 	})
 	frames:Add(env, box, {
 		name = "chat_editbox", title = "Chat edit box", grade = "button", reference = "datastrip",
-		caption = "The Trade window's edit box skinned by Skin.EditBox (Frames.lua:254) while the player types, over the window's foot inside its glass as the docked panel's box opens: Blizzard's art stripped, the kit's input backdrop with its hairline lit in the accent while the box has focus.",
+		caption = "The Trade window's edit box skinned by Skin.EditBox (Frames.lua:254) while the player types, under the window inside its glass as the docked panel's box opens: Blizzard's art stripped, the kit's input backdrop with its hairline lit in the accent while the box has focus.",
 		match = "A one-border line as the mockup's data strip pill, but the body is Core/Skin.lua's raised tone, not the button body #101214: Skin.EditBox is the skins wave's, outside this module.",
 		pad = 6,
 	})

@@ -299,35 +299,52 @@ do
 	assert(ns.Frames, "frames stay exposed")
 end
 
--- While the edit box shows only when typing, it opens over the window's last lines instead of hanging under the card, so it
--- stays inside the card and on screen wherever the chat window's units are larger than the root's (Blizzard UI scale 1)
--- and wherever Layout puts the card. The tile the box draws sits on the window's foot, flush with the padding.
-do
+-- The captain's report: "the edit box overlaps the chat making it hard to read what you type". While the edit box shows
+-- only when typing, the window fills the card at rest, and for as long as a docked box has focus the messages rise to
+-- leave the box its own strip under the newest line, so the box covers no line and still opens inside the card and on
+-- screen where the chat window's units are larger than the root's (Blizzard UI scale 1 at 1080), where they are equal
+-- (4K) and wherever Layout puts the card.
+for _, screen in ipairs({ { width = 1920, height = 1080, uiScale = 1 }, { width = 3840, height = 2160, uiScale = 768 / 1080 } }) do
 	local Geometry = dofile("Tools/regression/geometry.lua")
-	local env, K, ns = C.New({ width = 1920, height = 1080, uiScale = 1 })
+	local env, K, ns = C.New(screen)
 	C.Enable(env, K)
 	local chat = env.ChatFrame1
 	local g = ns.Panel.Geometry(chat)
-	assert(g.k > 1.3, "the chat window's units are larger than the root's: " .. g.k)
 	local root = K.Scale.Root()
 	local function rect(frame)
 		return Geometry.ScaledRect(frame, env.UIParent, root)
 	end
+	local function rests(what)
+		local card, win = rect(ns.Panel.Holder()), rect(chat)
+		assert(near(win.bottom, card.bottom + g.bottom), what .. ", the window's foot is the card's padding, got " .. (win.bottom - card.bottom))
+	end
+	local at = " at " .. screen.width .. " wide with the card at "
+	rests("at rest")
+	local box = chat.editBox
+	box:SetAlpha(1)
+	rawset(box, "HasFocus", function()
+		return true
+	end)
+	box:GetScript("OnEditFocusGained")(box)
 	for _, y in ipairs({ 16, 0, 200 }) do
 		K.Layout.Set("chat.main", "y", y)
 		env.RunTimers()
-		local card, box = rect(ns.Panel.Holder()), rect(chat.editBox)
-		local tile = math.max(0, (32 * g.k - 22) / 2)
-		assert(box.bottom + tile >= card.bottom + g.bottom - 1e-6 and box.bottom + tile <= card.bottom + g.bottom + K.Scale.Pixel(1), "the box's tile rests on the window's foot with the card at " .. y .. ", got " .. (box.bottom + tile - card.bottom))
-		assert(box.bottom >= 0 and box.top <= card.top, "the open box stays on screen and inside the card with the card at " .. y)
-		local win = rect(chat)
+		local card, edit, win = rect(ns.Panel.Holder()), rect(box), rect(chat)
 		local inset = ns.Panel.EditInsets(chat)
-		assert(near(box.left + inset.left * g.k, win.left) and near(box.right - inset.right * g.k, win.right), "the box's tile shares the window's side edges, with the card at " .. y)
+		local tileBottom, tileTop = edit.bottom + inset.bottom * g.k, edit.top - inset.top * g.k
+		assert(tileTop <= win.bottom + 1e-6, "the open box's tile stays under the newest line, which stands on the window's bottom edge," .. at .. y .. ", got " .. (tileTop - win.bottom) .. " over it")
+		assert(math.abs(tileBottom - card.bottom - g.bottom) <= K.Scale.Pixel(1) + 1e-6, "the box's tile rests on the card's bottom padding, to a physical pixel," .. at .. y .. ", got " .. (tileBottom - card.bottom))
+		assert(edit.bottom >= 0 and edit.top <= card.top, "the open box stays on screen and inside the card" .. at .. y)
+		assert(near(edit.left + inset.left * g.k, win.left) and near(edit.right - inset.right * g.k, win.right), "the box's tile shares the window's side edges" .. at .. y)
 	end
+	rawset(box, "HasFocus", nil)
+	box:GetScript("OnEditFocusLost")(box)
+	rests("when typing ends")
 	K.Options.Write("Chat", "editBox", "always")
 	env.RunTimers()
-	local box, win = rect(chat.editBox), rect(chat)
-	assert(box.top <= win.bottom + 1e-6, "an always-shown box sits under the window, in the card's padding strip")
+	local edit, win = rect(box), rect(chat)
+	assert(edit.top <= win.bottom + 1e-6, "an always-shown box sits under the window, in the card's padding strip")
+	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 -- The tab row's right end: a plus glyph that opens the chat's settings page and, beside it, a small copy glyph that
