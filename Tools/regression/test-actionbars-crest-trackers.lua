@@ -216,16 +216,17 @@ end
 for _, case in ipairs({ { "ROGUE", 1259812 }, { "WARRIOR", 1259813 }, { "MAGE", 1259817 }, { "WARLOCK", 1259821 }, { "PRIEST", 1259823 } }) do
 	local class, eureka = case[1], case[2]
 	local env, K, ns = New(class, { eureka })
+	local railed = class == "MAGE" or class == "WARLOCK"
 	local gear
 	for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-		for _, b in ipairs(p.sigils or {}) do
+		for _, b in ipairs(not railed and p.sigils or {}) do
 			if b.at and b.family.sigil == "Gear" then gear = b end
 		end
-		for _, seat in ipairs(p.spare or {}) do
+		for _, seat in ipairs(railed and p.spare or {}) do
 			if seat.key == "eureka" and seat.small then gear = seat.crowned end
 		end
 	end
-	assert(gear, class .. ": Eureka! " .. eureka .. " places the Gear sigil on the cooldown rim or the crest rail")
+	assert(gear, class .. ": Eureka! " .. eureka .. (railed and " stands on the crest rail's second rail" or " places the Gear sigil on the cooldown rim"))
 	Slots.Set(env, "player", { { id = eureka, count = 0, icon = 136243, start = 0, duration = 8 } })
 	assert(gear:IsShown(), class .. ": its Eureka! lights the Gear sigil")
 	Clean(env, K, class .. " Eureka!")

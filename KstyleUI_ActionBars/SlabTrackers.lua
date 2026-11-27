@@ -29,13 +29,22 @@ for kind, events in pairs(LUA) do
 		ROUTE[kind][type(event) == "table" and event[1] or event] = true
 	end
 end
-local SHARED = {
-	{ spells = { 20572 }, sigil = "Axe", major = true, race = true }, { spells = { 20554 }, sigil = "Tusks", major = true, race = true },
-	{ spells = { 20594 }, sigil = "Stone", major = true, race = true }, { spells = { 20600 }, sigil = "Eye", race = true }, { spells = { 7744 }, sigil = "Grave", race = true },
-	{ spells = { 1299026 }, sigil = "Shatter", race = true }, { spells = { 1259799 }, sigil = "Star", race = true },
-	{ spells = { 1259812, 1259813, 1259817, 1259821, 1259823 }, sigil = "Gear", race = true }, { spells = { 1260270 }, sigil = "Regen", race = true },
-	{ spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {}, sigil = "Potion" },
+local RACIALS = {
+	{ key = "bloodFury", spells = { 20572 }, sigil = "Axe", major = true, race = true, unit = "player" },
+	{ key = "berserking", spells = { 20554 }, sigil = "Tusks", major = true, race = true, unit = "player" },
+	{ key = "stoneform", spells = { 20594 }, sigil = "Stone", major = true, race = true, unit = "player" },
+	{ key = "perception", spells = { 20600 }, sigil = "Eye", race = true, unit = "player" },
+	{ key = "forsaken", spells = { 7744 }, sigil = "Grave", race = true, unit = "player" },
+	{ key = "shatterCurse", spells = { 1299026 }, sigil = "Shatter", race = true, unit = "player" },
+	{ key = "eluneLight", spells = { 1259799 }, sigil = "Star", race = true, unit = "player" },
+	{ key = "eureka", spells = { 1259812, 1259813, 1259817, 1259821, 1259823 }, sigil = "Gear", race = true, unit = "player" },
+	{ key = "rapidRegen", spells = { 1260270 }, sigil = "Regen", race = true, unit = "player" },
 }
+local SHARED = { { spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {}, sigil = "Potion" } }
+for i, racial in ipairs(RACIALS) do
+	table.insert(SHARED, i, racial)
+end
+Trackers.RACIALS = RACIALS
 local CLASSES, HOOKS, JOINED, HOOKED = {}, {}, {}, {}
 local GATES = { "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }
 Trackers.CLASSES = CLASSES

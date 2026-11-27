@@ -1534,8 +1534,11 @@ if CLASS == "WARLOCK" then
 			coil = { spells = COIL },
 			inferno = { spells = { 1122 } },
 			soulfire = { spells = { 17924, 6353 } },
+			soulstone = { spells = { 20757, 20756, 20755, 20752, 693 }, items = { 16896, 16895, 16893, 16892, 5232 }, casts = { 20765, 20764, 20763, 20762, 20707 } },
+			ritual = { spells = { 18540 } },
 		},
 		majors = { "coil", "inferno", "amplify", "domination", "soulfire" },
+		overflow = { "soulstone", "ritual" },
 		trees = {
 			{ majors = { "coil", "inferno", "amplify", "domination", "soulfire" } },
 			{ majors = { "coil", "inferno", "domination", "soulfire" } },

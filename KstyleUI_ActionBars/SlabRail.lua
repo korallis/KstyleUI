@@ -1,4 +1,4 @@
--- SlabRail.lua: every class's crest rail (docs/medallions-effects.md#crest-rail): a class registers its abilities and one list per talent tree, and up to four known abilities of the tree the game names (its long cooldowns first, then its rotation cooldowns in any free seat, or the seats the player picks in the settings) and the on-use trinket stand as forged medals on an arc above the crest (a flat row between the cooldown rows while the centred cast bars show), while the class's other known long cooldowns and the player's racial stand as smaller round medals on a second rail flanking it; a ready medal burns with its sigil's animated Blender aura where one is baked (the still sigil, or the spell's own icon, where none is yet), breathes and is crossed by a glint, a press dips it, bursts and flashes its ring, a buffed one rises to the crown from either rail, where the engine shows the aura's own slot burning with a draining ring, a bead, a last-fifth notch and a countdown, the newest running buff, by your cast or its readable start, owns the crown (handed off by the engine's aura-shown signal), an ended one cools to steel and folds home, a dark sweep and a refilling steel ring count the cooldown under a small steel mark and the medal relights with a flare; each flare or press claims the crest's one flare as a whole; the seats are chosen afresh only while the crest can be rebuilt, so the other trackers stand down for the medals picked out of lockdown, take back at once the cues of any the rail could not show, and a switched-off rail stays while locked until they can take their cues back; a hidden rail plays nothing, and no aura is read while auras are secret, an unseen buff dated once they read; Calm lights in place with still auras and no lift, burst or breathing, Off shows only lit, cooling and ready, a motion change or hiding stops what is in flight, and Lua never reads or compares a secret.
+-- SlabRail.lua: every class's crest rail (docs/medallions-effects.md#crest-rail): a class registers its abilities and one list per talent tree, and up to four known abilities of the tree the game names (its long cooldowns first, then its rotation cooldowns in any free seat, or the seats the player picks in the settings) and the on-use trinket stand as forged medals on an arc above the crest (a flat row between the cooldown rows while the centred cast bars show), while the class's other known long cooldowns and the player's racial stand as smaller round medals on a second rail flanking it; a ready medal burns with its sigil's animated Blender aura, the rail's own or the one its sigil publishes (the still sigil, or the spell's own icon, where neither is yet), breathes and is crossed by a glint, a press dips it, bursts and flashes its ring, a buffed one rises to the crown from either rail, where the engine shows the aura's own slot burning with a draining ring, a bead, a last-fifth notch and a countdown, the newest running buff, by your cast or its readable start, owns the crown (handed off by the engine's aura-shown signal), an ended one cools to steel and folds home, a dark sweep and a refilling steel ring count the cooldown under a small steel mark and the medal relights with a flare; each flare or press claims the crest's one flare as a whole; the seats are chosen afresh only while the crest can be rebuilt, so the other trackers stand down for the medals picked out of lockdown, take back at once the cues of any the rail could not show, and a switched-off rail stays while locked until they can take their cues back; a hidden rail plays nothing, and no aura is read while auras are secret, an unseen buff dated once they read; Calm lights in place with still auras and no lift, burst or breathing, Off shows only lit, cooling and ready, a motion change or hiding stops what is in flight, and Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,7 +12,7 @@ local Rail = {}
 ns.SlabRail = Rail
 
 local SEAT, SPARE, CROWN, PITCH, SPARE_PITCH, PEAK, BOW, CROWN_Y = 28, 22, 34, 31, 25, 126, 10, 90
-local LOW_Y, LOW_CROWN, SPARE_Y, SPARE_GAP, SPARES, SEATS = 227, 6, 127, 8, 6, 4
+local LOW_Y, LOW_CROWN, SPARE_Y, SPARE_GAP, SPARES, SEATS, GCD = 227, 6, 127, 8, 6, 4, 1.5
 local SPAN = 2 * PITCH
 local SIGIL, ICON, SHADE, PAD, REFILL, AURA = 0.86, 0.74, 1.9, 5, 0.6, 0.86 / 0.62
 local BREATH, BREATH_RUN, GLOW, READY_GLOW, READY_RING, READY_RUN, RELIGHT = { 0.1, 0.2 }, 1.2, 1.6, 44 / 28, 34 / 28, 0.3, 0.18
@@ -22,27 +22,14 @@ local DIP, DIP_RUN, BURST, BURST_RUN = 0.86, 0.12, { 0.85, 1.45 }, 0.4
 local LIFT_RUN, TURN, POP, POP_RUN, SETTLE_RUN, FOLD_RUN, HOME_RUN = 0.28, 16, 1.29 / 1.21, 0.2, 0.16, 0.35, 0.3
 local CASTS = { "unitframes.castbar.player", "unitframes.castbar.target" }
 local OWNER, NONE = "ActionBars.SlabRail", {}
-local RACIALS = {
-	{ key = "bloodFury", spells = { 20572 }, sigil = "Axe", unit = "player" },
-	{ key = "berserking", spells = { 20554 }, sigil = "Tusks", unit = "player" },
-	{ key = "stoneform", spells = { 20594 }, sigil = "Stone", unit = "player" },
-	{ key = "eluneLight", spells = { 1259799 }, sigil = "Star", unit = "player" },
-	{ key = "eureka", spells = { 1259812, 1259813, 1259817, 1259821, 1259823 }, sigil = "Gear", unit = "player" },
-	{ key = "shatterCurse", spells = { 1299026 }, sigil = "Shatter", unit = "player" },
-	{ key = "perception", spells = { 20600 }, sigil = "Eye", unit = "player" },
-	{ key = "forsaken", spells = { 7744 }, sigil = "Grave", unit = "player" },
-	{ key = "rapidRegen", spells = { 1260270 }, sigil = "Regen", unit = "player" },
-}
-local CLASSES = {}
-Rail.RACIALS, Rail.CLASSES = RACIALS, CLASSES
+local RACIALS = ns.SlabTrackers.RACIALS
 Rail.picked, Rail.held, Rail.spared, Rail.kept = NONE, NONE, NONE, NONE
 
-function Rail.Register(class, data)
+function Rail.Register(_, data)
 	for _, racial in ipairs(RACIALS) do
 		data.abilities[racial.key] = data.abilities[racial.key] or racial
 	end
 	data.abilities.trinket = data.abilities.trinket or { sigil = "Charm" }
-	CLASSES[class] = data
 	Rail.data = data
 end
 
@@ -140,6 +127,9 @@ local function Order(data)
 	for _, key in ipairs(data.majors) do
 		take(key, #seats < SEATS and seats or spare)
 	end
+	for _, key in ipairs(data.overflow or NONE) do
+		take(key, spare)
+	end
 	for _, racial in ipairs(RACIALS) do
 		take(racial.key, spare)
 	end
@@ -191,14 +181,13 @@ function Rail.Seats()
 		return NONE, NONE
 	end
 	local keys, extra, places = Order(data)
-	local seats, spare, last = {}, {}, 0
+	local seats, spare = {}, {}
 	for i, key in ipairs(keys) do
-		last = places and places[i] or i
-		seats[#seats + 1] = { key = key, spell = Learned(key), place = last }
+		seats[#seats + 1] = { key = key, spell = Learned(key), place = places and places[i] or i }
 	end
 	local slot, spell = Trinket()
 	if slot then
-		seats[#seats + 1] = { key = "trinket", slot = slot, press = spell, place = last + 1 }
+		seats[#seats + 1] = { key = "trinket", slot = slot, press = spell, place = SEATS + 1 }
 	end
 	for _, key in ipairs(extra) do
 		spare[#spare + 1] = { key = key, spell = Learned(key), small = true }
@@ -229,6 +218,9 @@ function Rail.Choices()
 		for _, key in ipairs(tree.fill or NONE) do
 			add(key)
 		end
+	end
+	for _, key in ipairs(data and data.overflow or NONE) do
+		add(key)
 	end
 	for _, racial in ipairs(data and RACIALS or NONE) do
 		add(racial.key)
@@ -333,12 +325,6 @@ local function Turn(g, degrees, run, order, smoothing)
 	return t
 end
 
-local function Icon(spell)
-	local get = type(spell) == "number" and C_Spell and C_Spell.GetSpellTexture
-	local texture = get and get(spell)
-	return not IsSecret(texture) and texture or nil
-end
-
 local function Mark(piece, parent, layer, sublevel, seat, color, size)
 	local sigil = seat.ability.sigil
 	if sigil then
@@ -347,12 +333,11 @@ local function Mark(piece, parent, layer, sublevel, seat, color, size)
 	local t = Medals.Round(parent)
 	t:SetDrawLayer(layer, sublevel)
 	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
-	t:SetTexture(Icon(seat.spell))
+	t:SetTexture(ns.SlabTrackers.Texture(seat.spell))
 	t:SetDesaturated(color ~= "white")
 	t:SetVertexColor(Tokens.Color(color == "white" and "white" or "steelLit"))
 	return piece.add(t, size)
 end
-Rail.Mark = Mark
 
 local function Face(piece, parent, size, seat)
 	piece.add(Medals.Texture(parent, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(0.7)
@@ -747,15 +732,30 @@ function Rail.Ready(seat)
 	end
 end
 
+local function Stored(seat)
+	if seat.slot then
+		if type(GetInventoryItemCooldown) == "function" then
+			return GetInventoryItemCooldown("player", seat.slot)
+		end
+		return 0, 0, 0
+	end
+	local get = C_Item and C_Item.GetItemCooldown
+	local start, length, enable = 0, 0, false
+	for _, id in ipairs(type(get) == "function" and seat.ability.items or NONE) do
+		start, length, enable = get(id)
+		if IsSecret(length) or type(length) == "number" and length > GCD then
+			break
+		end
+	end
+	return start, length, enable, not IsSecret(length) and type(length) == "number" and length <= GCD
+end
+
 local function Cool(seat, flare, full, calm)
 	local cooling
-	if seat.slot then
-		local start, length, enable, gcd = 0, 0, 0, nil
-		if type(GetInventoryItemCooldown) == "function" then
-			start, length, enable, gcd = GetInventoryItemCooldown("player", seat.slot)
-		end
+	if seat.slot or seat.ability.items then
+		local start, length, enable, gcd = Stored(seat)
 		cooling = not (IsSecret(start) or IsSecret(length) or IsSecret(enable) or IsSecret(gcd)) and type(length) == "number" and length > 0
-			and enable ~= 0 and gcd ~= true
+			and enable ~= 0 and enable ~= false and gcd ~= true
 		for _, t in ipairs(seat.timers) do
 			if cooling then
 				t:SetCooldown(start, length)
@@ -808,7 +808,6 @@ local function Low()
 	local Layout = K.Layout
 	return Layout ~= nil and type(Layout.Live) == "function" and (Layout.Live(CASTS[1]) or Layout.Live(CASTS[2])) or false
 end
-Rail.Low = Low
 
 function Rail.Build(parent, spec, level)
 	local r = Medals.Piece(parent, level, 2 * (SPAN + SEAT))
@@ -853,7 +852,6 @@ local function Flank(i, n, low)
 	local x = side * (edge + SPARE_GAP + SPARE / 2 + step * SPARE_PITCH)
 	return x, low and LOW_Y or SPARE_Y
 end
-Rail.Flank = Flank
 
 function Rail.Place(r, anchor)
 	r.anchor = anchor
@@ -905,9 +903,11 @@ local function Pressed(seat, spell)
 	if seat.press == spell then
 		return true
 	end
-	for _, id in ipairs(seat.ability.spells or NONE) do
-		if id == spell then
-			return true
+	for _, list in ipairs({ seat.ability.spells or NONE, seat.ability.casts or NONE }) do
+		for _, id in ipairs(list) do
+			if id == spell then
+				return true
+			end
 		end
 	end
 	return false
@@ -926,7 +926,7 @@ function Rail.Paint(r, event, _, _, spell)
 	elseif event == "SPELL_UPDATE_COOLDOWN" or event == "BAG_UPDATE_COOLDOWN" then
 		local item, full, calm = event == "BAG_UPDATE_COOLDOWN", Mood(r)
 		for _, seat in ipairs(r.all) do
-			if (seat.slot ~= nil) == item then
+			if (seat.slot ~= nil or seat.ability.items ~= nil) == item then
 				Cool(seat, true, full, calm)
 			end
 		end

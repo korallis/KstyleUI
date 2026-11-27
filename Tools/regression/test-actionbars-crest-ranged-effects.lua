@@ -31,9 +31,13 @@ for class, light in pairs(LIGHT) do
 		local files = {}
 		for _, token in ipairs({ "dot", "medRing", "medEnamel", "medSlotSocket", "medSlotChecked", "orbRing", "trackerStone" }) do files[(K.Tokens.Texture(token))] = token end
 		assert(next(ns.SlabTrackers.state.form.failed) == nil, class .. ": every seat builds")
-		local rail = not frames and Seated(ns, "crestRail")
-		assert((rail and rail.made.trinket and rail.made.trinket:IsShown() and not Seated(ns, "crestTrinkets") or not rail and Seated(ns, "crestTrinkets")) and Seated(ns, "crestShot") ~= false,
-			class .. ": an on-use trinket in slot 13 joins the crest, on the class's rail when it shows, and the update runs to the end")
+		local rail = Seated(ns, "crestRail")
+		if frames then
+			assert(not rail and Seated(ns, "crestTrinkets"), class .. " under Frames: an on-use trinket in slot 13 stands in its own socket, with no rail")
+		else
+			assert(rail and rail.made.trinket and rail.made.trinket:IsShown() and not Seated(ns, "crestTrinkets"), class .. " on the crest: an on-use trinket in slot 13 stands on the class's rail")
+		end
+		assert(Seated(ns, "crestShot") ~= false, class .. ": the update runs to the end")
 		local function Check(state)
 			local found, sockets = {}, {}
 			for _, p in pairs(ns.SlabTrackers.state.form.pieces) do

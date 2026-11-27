@@ -533,6 +533,8 @@ for _, case in ipairs({
 	{ "WARLOCK", WARLOCK, 2, "coil,inferno,domination,soulfire", "amplify" },
 	{ "WARLOCK", WARLOCK, 3, "coil,inferno,amplify,domination", "soulfire" },
 	{ "WARLOCK", { 603, 18288, 6789, 6353, 1122, 17877 }, 1, "coil,inferno,amplify,soulfire", "" },
+	{ "WARLOCK", { 603, 18288, 6789, 18708, 6353, 1122, 17877, 20757, 18540 }, 2, "coil,inferno,domination,soulfire", "amplify,soulstone,ritual" },
+	{ "WARLOCK", { 603, 18288, 6789, 1122, 17877, 20757, 18540 }, 1, "coil,inferno,amplify", "soulstone,ritual" },
 }) do
 	local env, K, ns = New(case[1], { known = case[2], tree = case[3], trinket = true })
 	local rail = assert(Rail(ns), case[1] .. ": a caster who knows a rail ability sees the rail")
@@ -546,9 +548,12 @@ for _, case in ipairs({
 end
 
 do
-	local env, K, ns = New("MAGE", { known = { 12042, 11958, 116 }, tree = 1 })
+	local env, K, ns = New("MAGE", { known = { 12042, 11958, 116 }, tree = 1, trinket = true })
 	local rail = Rail(ns)
-	assert(Keys(rail) == "power,block" and Spares(rail) == "", "a mage with only Arcane Power and Ice Block seats both, Ice Block in the free seat")
+	assert(Keys(rail) == "power,block,trinket" and Spares(rail) == "", "a mage with only Arcane Power and Ice Block seats both, Ice Block in the free seat")
+	local _, _, _, first = rail.order[1]:GetPoint(1)
+	local _, _, _, trinket = rail.order[3]:GetPoint(1)
+	assert(trinket - first == 124, "the trinket keeps the fifth place, four seats (31 units each) right of the first: " .. (trinket - first))
 	local row = Seated(ns, "crestCooldowns")
 	for _, b in ipairs(row and row.sigils or {}) do
 		assert(not (b.at and (b.family.sigil == "Arcane" or b.family.sigil == "Crystal")), "the railed cooldowns leave the cooldown row")
@@ -556,30 +561,47 @@ do
 	Clean(env, K)
 end
 
--- Seven states on a seat whose sigil has no baked aura yet: the still sigil stands in, at Full, Calm and Off.
-do
-	local env, K, ns = New("MAGE", { known = { 12042, 12043, 11958 }, tree = 1 })
-	Awake(env)
-	local rail = Rail(ns)
-	local power = rail.made.power
-	assert(power.aura.loop == false and power.lit:GetAlpha() == 1 and power.breath:IsPlaying(), "ready at Full: Arcane Power's seat lights and breathes with its still sigil")
-	Cast(env, 12042)
-	assert(power.dip:IsPlaying() and power.bursting:IsPlaying() and power.rise:IsPlaying() and power.gate:GetAlpha() == 1, "pressed at Full: the seat dips, bursts and rises to the crown")
-	Auras(env, { { 12042, 15 } })
-	assert(power.crowned:IsShown() and power.burn:GetAlpha() == 1, "active: the crown shows the aura's own slot with the sigil")
-	Cooling(env, 12042, true)
-	assert(power.lit:GetAlpha() == 0 and power.cold:GetAlpha() == 1 and not power.breath:IsPlaying(), "cooling: the seat goes steel under its steel mark")
-	Auras(env, {})
-	assert(power.home:IsPlaying(), "ended at Full: the crowned medal folds home")
-	assert(Cooled(env, power) and power.flare[1]:IsPlaying(), "ready again at Full: the seat relights with a flare")
-	Motion(env, K, "calm")
-	assert(power.lit:GetAlpha() == 1 and not power.breath:IsPlaying(), "ready at Calm: lit without breathing")
-	Cast(env, 12042)
-	assert(not power.rise:IsPlaying() and not power.dip:IsPlaying(), "pressed at Calm: no dip or rise")
-	Motion(env, K, "off")
-	Auras(env, { { 12042, 15 } })
-	assert(power.gate:GetAlpha() == 0, "active at Off: no crown")
-	Clean(env, K)
+-- Seven states on a main seat of the mage's and the warlock's rails, at Full, Calm and Off, on seats whose sigil has no burning
+-- aura yet, so the still sigil stands in: ready, pressed, active, about to end, ended, cooling and ready again.
+local function Ending(env, ns, seat, unit, id)
+	env.C_UnitAuras = env.C_UnitAuras or {}
+	env.C_UnitAuras.GetUnitAuraBySpellID = function(u, spell) return u == unit and spell == id and env._ending or nil end
+	env._ending = { auraInstanceID = 1, expirationTime = env._now + 3, duration = 15, sourceUnit = "player" }
+	env.FireEvent("UNIT_AURA", unit)
+	local flickers = 0
+	for _, e in ipairs(ns.SlabRings.state.watched) do
+		flickers = flickers + ((e.piece == seat.lift or e.piece == seat) and e.flicker and e.flicker:IsPlaying() and 1 or 0)
+	end
+	env._ending = nil
+	return flickers
+end
+
+for _, case in ipairs({ { "MAGE", { 12042, 12043, 11958 }, 1, "power", 12042 }, { "WARLOCK", { 603, 18288, 6789, 1122 }, 1, "amplify", 18288 } }) do
+	for _, level in ipairs({ "full", "calm", "off" }) do
+		local env, K, ns = New(case[1], { known = case[2], tree = case[3] })
+		Awake(env)
+		if level ~= "full" then Motion(env, K, level) end
+		local seat, id, full, off = Rail(ns).made[case[4]], case[5], level == "full", level == "off"
+		local at = case[1] .. " " .. case[4] .. " at " .. level
+		assert(seat.aura.loop == false and seat.lit:GetAlpha() == 1 and seat.breath:IsPlaying() == full, at .. ": ready, lit with its still sigil, breathing only at Full")
+		Cast(env, id)
+		assert(seat.dip:IsPlaying() == full and seat.rise:IsPlaying() == full and (not full or seat.bursting:IsPlaying() and seat.gate:GetAlpha() == 1),
+			at .. ": pressed, a dip, burst and rise to the crown only at Full")
+		Auras(env, { { id, 15 } })
+		assert(seat.crowned:IsShown() and seat.gate:GetAlpha() == (off and 0 or 1), at .. ": active, the crown shows the buff's own slot, hidden at Off")
+		Cooling(env, id, true)
+		assert(seat.lit:GetAlpha() == 0 and seat.cold:GetAlpha() == 1 and not seat.breath:IsPlaying(), at .. ": cooling, the seat goes steel under its steel mark")
+		env._now = env._now + 12
+		local flickers = Ending(env, ns, seat, "player", id)
+		assert((flickers > 0) == full, at .. ": about to end, the last fifth flickers only at Full, where flares are allowed (" .. flickers .. ")")
+		Auras(env, {})
+		assert(seat.home:IsPlaying() == full, at .. ": ended, the crowned medal folds home only at Full")
+		env._now = env._now + 180
+		Cooled(env, seat)
+		assert(seat.lit:GetAlpha() == 1 and seat.cold:GetAlpha() == 0 and seat.relight:IsPlaying() == not off and seat.flare[1]:IsPlaying() == full,
+			at .. ": ready again, relit, with a flare at Full and a relight in place at Calm")
+		Clean(env, K)
+	end
 end
 
 -- A racial whose sigil already has a published aura (Blood Fury's axe) burns that sheet on the second rail when the rail has
@@ -600,6 +622,29 @@ do
 	end
 	local w, mark = fury.aura.moving:GetWidth(), still:GetWidth()
 	assert(math.abs(w - mark * 1.25) <= 2, "the sheet spans 1.25 times the sigil (" .. w .. " against " .. mark .. ")")
+	Clean(env, K)
+end
+
+-- Soulstone's 30-minute cooldown belongs to the stone, not to Create Soulstone: its medal on the second rail counts the cooldown
+-- every soulstone shares (Minor to Major), a use of the stone (20765) presses it, and the global cooldown alone
+-- does not turn it steel.
+do
+	local env, K, ns = New("WARLOCK", { known = { 603, 6789, 1122, 20757 }, tree = 1 })
+	Awake(env)
+	local stone = Rail(ns).spare[1]
+	assert(stone and stone.key == "soulstone" and stone.small and stone.lit:GetAlpha() == 1, "Soulstone stands ready on the second rail")
+	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-20765", 20765)
+	assert(stone.dip:IsPlaying(), "using a Major Soulstone presses its medal")
+	local function Stones(length)
+		for _, item in ipairs({ 16896, 16895, 16893, 16892, 5232 }) do env._cooling[item] = length and { env._now, length } or nil end
+		env.FireEvent("BAG_UPDATE_COOLDOWN")
+	end
+	Stones(1.5)
+	assert(stone.lit:GetAlpha() == 1, "the global cooldown alone leaves it lit")
+	Stones(1800)
+	assert(stone.lit:GetAlpha() == 0 and stone.cold:GetAlpha() == 1, "the stone's 30-minute cooldown turns the medal steel")
+	Stones(nil)
+	assert(stone.lit:GetAlpha() == 1, "the stone ready again relights it")
 	Clean(env, K)
 end
 

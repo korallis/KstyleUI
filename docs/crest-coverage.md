@@ -36,6 +36,8 @@ Twenty-four major cooldowns in the sets had no crest piece matched by spell ID w
 | Paladin | Holy Wrath 2812 | 60 s | Row candidate | An attack with no lasting effect on the player |
 | Warlock | Soul Fire 6353 | 60 s | Dedicated crest | A seat on the crest rail in every tree (the second rail when Fel Domination takes its seat); the cast ring shows it while it casts |
 | Warlock | Inferno 1122 | 3600 s | Dedicated crest | A seat on the crest rail in every tree, as the crest plan's ledger seats it; the pet's own frame carries the Infernal |
+| Warlock | Soulstone 693 | 1800 s | Dedicated crest | A round medal on the crest rail's second rail in every tree, never a main seat. The 30-minute cooldown belongs to the stone, not to Create Soulstone, so the medal reads the soulstones' shared item cooldown (`C_Item.GetItemCooldown`, Major Soulstone 16896 down to Minor Soulstone 5232), and using a stone (Soulstone Resurrection 20765 to 20707) presses it |
+| Warlock | Ritual of Doom 18540 | 3600 s | Dedicated crest | A round medal on the crest rail's second rail in every tree, never a main seat |
 | Paladin | Lay on Hands 633 | 1200 s | Row candidate | An instant emergency heal with no buff to time |
 | Paladin | Divine Intervention 19752 | 3600 s | Row candidate | A sacrifice on another player, used once an hour |
 | Priest | Desperate Prayer 13908 | 600 s | Row candidate | An instant emergency heal with no buff to time |
@@ -186,8 +188,6 @@ The crest rail ([medallions-effects.md](medallions-effects.md#crest-rail)) seats
 | Warlock | Conflagrate | Already the crest's own socket (`crestConflagrate`) |
 | Warlock | Bane of Doom | Already the crest's Bane torment spire, which times it; a medal would show it twice |
 | Warlock | Shadowburn | A Destruction rotation button under 60 s, outside the ledger's rail order |
-| Warlock | Ritual of Doom | A summoning ritual the ledger leaves unseated in every tree |
-| Warlock | Soulstone | A resurrection kept on an ally before a fight; the ledger leaves it unseated, and its 30-minute cooldown needs its own piece |
 
 ## Conditional racials
 
