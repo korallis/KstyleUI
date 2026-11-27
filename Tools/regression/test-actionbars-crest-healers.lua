@@ -1428,16 +1428,31 @@ do
 	end
 
 	-- A shaman who knows only Flame Shock loads only the flame; learning Stormstrike loads its bolt, and Riptide's wave
-	-- stays unloaded.
-	local env, K, ns = New("SHAMAN", { 29228 })
-	local figure = Tracker(ns, "SHAMAN").built.flameShock
-	local function Loaded(i) return figure.lits[i].aura._state.Texture ~= nil end
-	assert(Loaded(1) and not Loaded(2) and not Loaded(3), "only the known spell's figure loads its sheet")
-	env._known[17364] = true
-	env.FireEvent("SPELLS_CHANGED")
-	env.RunTimers()
-	assert(Loaded(2) and not Loaded(3), "learning Stormstrike loads its bolt; Riptide's wave still waits")
-	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+	-- stays unloaded, under either HUD style.
+	for _, style in ipairs({ "medallions", "frames" }) do
+		local env, K, ns = New("SHAMAN", { 29228 })
+		K.Options.Write("HudStyle", "style", style)
+		env.RunTimers()
+		local figure = Tracker(ns, "SHAMAN").built[style == "frames" and "flameShockRow" or "flameShock"]
+		-- Each timed feed's moving, still and bare Off copies load together: a copy left unloaded is dark at its level.
+		local function Loaded(i)
+			local fire = figure.lits[i].aura
+			assert(fire.bare, style .. " feed " .. i .. " has the bare copy Off shows")
+			local function File(t) return t._state.Texture and t._state.Texture[1] end
+			local sheet = File(fire)
+			for name, t in pairs({ still = fire.still, bare = fire.bare }) do
+				assert(File(t) == sheet, style .. " feed " .. i .. "'s " .. name .. " copy loads the moving copy's sheet, "
+					.. tostring(sheet) .. ", got " .. tostring(File(t)))
+			end
+			return sheet ~= nil
+		end
+		assert(Loaded(1) and not Loaded(2) and not Loaded(3), style .. ": only the known spell's figure loads its sheet")
+		env._known[17364] = true
+		env.FireEvent("SPELLS_CHANGED")
+		env.RunTimers()
+		assert(Loaded(2) and not Loaded(3), style .. ": learning Stormstrike loads its bolt; Riptide's wave still waits")
+		assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+	end
 end
 
 print("actionbars crest healers ok")
