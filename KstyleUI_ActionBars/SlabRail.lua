@@ -9,9 +9,10 @@ local Medals = ns.SlabMedals
 local Rail = {}
 ns.SlabRail = Rail
 
-local SEAT, CROWN, PITCH, PEAK, BOW, CROWN_Y, SPAN = 28, 34, 36, 128, 15, 100, 71
+local SEAT, CROWN, PITCH, PEAK, BOW, CROWN_Y = 28, 34, 31, 126, 10, 90
+local SPAN = 2 * PITCH
 local SIGIL, ICON, SHADE, PAD, REFILL = 0.86, 0.74, 1.9, 5, 0.6
-local BREATH, BREATH_RUN, GLOW, READY_GLOW, READY_RING, READY_RUN, RELIGHT = { 0.1, 0.2 }, 1.2, 1.6, 64, 34, 0.3, 0.18
+local BREATH, BREATH_RUN, GLOW, READY_GLOW, READY_RING, READY_RUN, RELIGHT = { 0.1, 0.2 }, 1.2, 1.6, 44, 34, 0.3, 0.18
 local DIP, DIP_RUN, BURST, BURST_RUN = 0.86, 0.12, { 0.85, 1.45 }, 0.4
 local LIFT_RUN, TURN, POP, POP_RUN, SETTLE_RUN, FOLD_RUN, HOME_RUN = 0.28, 16, 1.29 / 1.21, 0.2, 0.16, 0.35, 0.3
 local FIRE_TRAP = { 13795, 14302, 14303, 14304, 14305, 13813, 14316, 14317 }
@@ -144,7 +145,7 @@ local function Seat(r, at)
 		ns.Slab.Fade(g, 0.9, 0, READY_RUN)
 		seat.flare[i] = g
 	end
-	seat.burst = seat.add(Medals.Texture(flare, "OVERLAY", 3, "medBurstHunter", "white", SEAT * 2, "ADD"))
+	seat.burst = seat.add(Medals.Texture(flare, "OVERLAY", 3, "medBurstHunter", "white", SEAT * 1.25, "ADD"))
 	seat.burst:SetAlpha(0)
 	seat.bursting = ns.Slab.Group(seat.burst)
 	Grow(seat.bursting, BURST[1], BURST[2], BURST_RUN)

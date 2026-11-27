@@ -316,7 +316,7 @@ Switching every ranged tracker off restores today's crest except for the warlock
 | Marksmanship (Sniper Shot, Aimed Shot) | Rapid Fire, a fire trap, Sniper Shot (`Sniper`), Aimed Shot (`Aimed`) |
 | Survival (Deterrence, Strider Kick) | Rapid Fire, Deterrence (`Deflect`), a fire trap, Strider Kick (`Strider`) |
 
-Seats are 28 units across, 36 apart, bowing from 128 units above the hub's centre at the middle seat to 113 at the ends; the crown is 34 units across at 100 above the centre, between the ring and the middle seat. Each seat's sigil is forged in Blender (`Tools/media/forge/marks.py`, the trinket's `Charm` too), and only the seats shown are built.
+Seats are 28 units across, 31 apart, bowing from 126 units above the hub's centre at the middle seat to 116 at the ends; the crown is 34 units across at 90 above the centre, on the ring's top edge under the middle seats. At that size a five-seat rail's flares and bursts stay clear of the player and target frames and of the Medallions cooldown row, with Readable text on bars on or off. The centred cast bars that show when Cast bars on unit frames is off sit over the crown and the middle seats while a cast runs. Each seat's sigil is forged in Blender (`Tools/media/forge/marks.py`, the trinket's `Charm` too), and only the seats shown are built.
 
 | State | What shows | Full | Calm | Off |
 | --- | --- | --- | --- | --- |
@@ -326,7 +326,7 @@ Seats are 28 units across, 36 apart, bowing from 128 units above the hub's centr
 | About to end | The seat ring's last fifth amber and last twelfth red (`Medals.Ember`) | Yes | Yes | No |
 | Ended | The crown's timer ending folds a steel medal home to its seat over 0.3 s after 0.35 s | Fold | Vanishes | Vanishes |
 | Cooling | A dark sweep over the face with its countdown, and a steel ring 5 units wider refilling (`SetReverse`) | Yes | Yes | Yes |
-| Ready again | The sweep's `OnCooldownDone`: the gold relights over 0.18 s, with a glow (64 units to 1.3) and a gilt ring (34 units to 1.35) fading from 0.9 over 0.3 s | Relight and flare | Relight | Lit at once |
+| Ready again | The sweep's `OnCooldownDone`: the gold relights over 0.18 s, with a glow (44 units to 1.3) and a gilt ring (34 units to 1.35) fading from 0.9 over 0.3 s | Relight and flare | Relight | Lit at once |
 
 Feeds: `C_Spell.GetSpellCooldownDuration(spell, true)` into `SetCooldownFromDurationObject` (`Blizzard_APIDocumentationGenerated/SpellDocumentation.lua`), `C_Spell.GetSpellCooldown`'s `isActive` and `isOnGCD` for the steel state, read only when not secret, `GetInventoryItemCooldown` for the trinket, and the aura slots' `SetDurationCooldown` (`Blizzard_CustomAuraButton.lua`). The crown's gate and lift frame belong to the addon, so Lua sets which major owns the crown by alpha in combat and never reads an aura. While the rail shows, the cooldown rim keeps its slots for Unleashed but draws no small sigils, Rapid Fire brings no gust (Quick Shots still does), and the crest's own trinket socket stands down; switching the rail off gives all three back.
 

@@ -1,10 +1,11 @@
--- ranged_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), grown by its own Scale animations and moved over the whole path of every Translation on it or above it, draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out.
+-- ranged_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), grown by its own Scale animations and moved over the whole path of every Translation on it or above it, draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The hunter's cooldown rail is measured at its widest, four abilities and the trinket, against the Medallions cooldown row's placed rows and the centred cast bars only while they are live (they are not while Cast bars on unit frames is on), and may reach past the crest's column. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Reach = {}
 
 local RING = { crestGust = true, crestClearcasting = true, crestTrance = true, crestWard = true, crestAutoShot = true, crestCooldowns = true, crestFiveSecond = true }
 local FRAMES = { "unitframes.player", "unitframes.target", "unitframes.castbar.player", "unitframes.castbar.target" }
+local ROW = { "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars" }
 local CONTENT = {}
 
 -- Content(path) -> the share of the texture its pixels of alpha 64 or more span: left, right, top, bottom; false if none.
@@ -85,18 +86,31 @@ function Reach.Check(sizes, classes)
 		_G.RENDER_SCREEN = { width = size[1], height = size[2], size = "auto" }
 		local Hud = dofile("Tools/render/scenes/hud.lua")
 		Hud.Module("unitframes", Hud.Options({ layout = "DPS", class = "HUNTER", applyPreset = true }))
-		local frames = {}
+		local frames, rail = {}, {}
 		for _, key in ipairs(FRAMES) do
 			local element = measured.KstyleUI.Layout.Element(key)
 			frames[#frames + 1] = assert(element and Scene.RectSolver(measured):rect(element.frame), at .. ": " .. key .. " is placed")
+			if element.live ~= false then rail[#rail + 1] = frames[#frames] end
+		end
+		local Layouts, cast = measured.KstyleUI.Setup.Layouts, frames[3]
+		local from = Layouts.Style("DPS", FRAMES[3], "medallions")
+		local k = (cast[3] - cast[1]) / from.width
+		for _, key in ipairs(ROW) do
+			local place, size = Layouts.Style("DPS", key, "medallions"), Layouts.Element(key)
+			local x, y = (cast[1] + cast[3]) / 2 + (place.x - from.x) * k, cast[2] + (place.y - from.y) * k
+			rail[#rail + 1] = { x - size.width * k / 2, y, x + size.width * k / 2, y + size.height * k }
 		end
 		for _, class in ipairs(classes or { "HUNTER", "MAGE", "WARLOCK" }) do
 			local _, ns = Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 			if class == "HUNTER" then
 				local known = measured.C_SpellBook.IsSpellKnown
-				measured.C_SpellBook.IsSpellKnown = function(id, ...) return id == 1293241 or known(id, ...) end
+				local widest = { [1293241] = true, [19574] = true, [3045] = true, [19577] = true, [14305] = true }
+				measured.C_SpellBook.IsSpellKnown = function(id, ...) return widest[id] or known(id, ...) end
 				measured.GetTotemInfo = measured.GetTotemInfo or function() return false, "", 0, 0, 0, 1, 0 end
+				measured.GetInventoryItemID = function(_, slot) return slot == 13 and 5002 or nil end
+				measured.C_Item.GetItemSpell = function(id) if id == 5002 then return "Use", 9002 end end
 				ns.SlabHawks.Update()
+				ns.SlabTrackers.Update()
 			end
 			local solver = Scene.RectSolver(measured)
 			local hub = solver:rect(ns.Slab.hub)
@@ -107,7 +121,9 @@ function Reach.Check(sizes, classes)
 					if button:IsVisible() then avoid[#avoid + 1] = solver:rect(button) end
 				end
 			end
+			local railed = { unpack(avoid) }
 			for _, box in ipairs(frames) do avoid[#avoid + 1] = box end
+			for _, box in ipairs(rail) do railed[#railed + 1] = box end
 			assert(#avoid > 16, at .. " " .. class .. ": the action slots, badge, unit frames and cast bars are placed")
 			local checked = 0
 			local pieces = {}
@@ -118,6 +134,10 @@ function Reach.Check(sizes, classes)
 				pieces[#pieces + 1] = { key = "hawk perch " .. i, regions = Textures(p.holder, {}) }
 			end
 			assert(class ~= "HUNTER" or #pieces > 2 and pieces[#pieces].key == "hawk perch 2", at .. ": the hunter's hawk perches are measured")
+			local seated = ns.SlabTrackers.state.forms.crest.pieces
+			local railPiece
+			for _, p in pairs(seated) do railPiece = p.spec.key == "crestRail" and p or railPiece end
+			assert(class ~= "HUNTER" or railPiece and railPiece:IsShown() and #railPiece.order == 5 and #rail >= #ROW, at .. ": the hunter's rail is measured against the cooldown row")
 			for _, p in ipairs(pieces) do
 				for _, region in ipairs(p.regions) do
 					local texture = (region._barOwner and region or region)._state.Texture
@@ -130,9 +150,10 @@ function Reach.Check(sizes, classes)
 						local l, r = mx + (box[1] + content[1] * w - mx) * scale + x0 * unit, mx + (box[1] + content[2] * w - mx) * scale + x1 * unit
 						local t, b = my + (box[4] - content[3] * h - my) * scale + y1 * unit, my + (box[4] - content[4] * h - my) * scale + y0 * unit
 						local name = at .. " " .. class .. " " .. p.key .. "'s " .. tostring(texture[1]):match("[^\\/]+$")
-						assert(math.abs(l - cx) <= 80 * unit and math.abs(r - cx) <= 80 * unit, name .. " stays inside the crest's column")
-						for _, a in ipairs(avoid) do
-							assert(r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses an action slot, the level badge, a unit frame or a cast bar")
+						local own = p.key == "crestRail" and railed or avoid
+						assert(own == railed or math.abs(l - cx) <= 80 * unit and math.abs(r - cx) <= 80 * unit, name .. " stays inside the crest's column")
+						for _, a in ipairs(own) do
+							assert(r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses an action slot, the level badge, a unit frame, a cast bar or the cooldown row")
 						end
 					end
 				end
