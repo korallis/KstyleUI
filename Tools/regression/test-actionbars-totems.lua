@@ -648,3 +648,37 @@ do
 	assert(Effects.Holder("crestFlare") == nil, "the place frees itself afterwards")
 	Clean(env, K, "flare arbiter")
 end
+
+-- The medals' element runes and spirit wolf are animated auras (the shaman's crest marks take the aura kit): each burns
+-- its own sheet over its figure drawn black, the runes tinted in their element's colour, and the medal owns the loop:
+-- it plays at Full while the medal shows and the crest is awake, stops when the medal hides and holds the still at Calm.
+do
+	local env, K, ns = New("SHAMAN")
+	local state, Tokens = ns.Totems.state, K.Tokens
+	K.Options.Write("Medallions", "motion", "full")
+	env.SetTarget(true)
+	env.RunTimers()
+	ns.SlabMedals.Rest()
+	for i, fire in ipairs(state.call.runes) do
+		local name = ({ "Earth", "Fire", "Water", "Air" })[i]
+		local r, g, b = fire:GetVertexColor()
+		local er, eg, eb = Tokens.Color("totem" .. name)
+		assert(fire._state.Texture[1] == Tokens.Texture("auraTotemRune" .. name) and r == er and g == eg and b == eb, name .. "'s rune burns its own aura sheet in the element's colour")
+		local body = state.call.marks[i][3]
+		local br, bg, bb = body:GetVertexColor()
+		assert(body._state.Texture[1] == Tokens.Texture("totemRune" .. name) and br == 0 and bg == 0 and bb == 0, "over the rune drawn black")
+		assert(fire.loop:IsPlaying() and fire:GetAlpha() == 1, name .. "'s rune loops at Full while the medal shows")
+	end
+	local wolf = state.wolf.figure
+	assert(wolf._state.Texture[1] == Tokens.Texture("auraFigureWolf") and wolf.loop:IsPlaying(), "the spirit wolf burns its own aura sheet")
+	state.call:Hide()
+	state.call:GetScript("OnHide")(state.call) -- the game runs OnHide as it hides the medal; the stub's Hide does not
+	assert(not state.call.runes[1].loop:IsPlaying(), "a hidden medal stops its runes")
+	state.call:Show()
+	assert(state.call.runes[1].loop:IsPlaying(), "and shown again plays them")
+	K.Options.Write("Medallions", "motion", "calm")
+	env.RunTimers()
+	ns.SlabMedals.Rest()
+	assert(not wolf.loop:IsPlaying() and wolf.still:GetAlpha() == 1, "Calm holds the still")
+	Clean(env, K, "totem auras")
+end

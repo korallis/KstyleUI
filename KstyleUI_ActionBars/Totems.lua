@@ -103,6 +103,15 @@ local function Art(parent, layer, name, color, blend)
 	return t
 end
 
+local function Burning(parent, name, color)
+	local parts = {}
+	local fire = Medals.Mark({ add = function(part) parts[#parts + 1] = part return part end }, parent, name, 1, color)
+	for _, t in ipairs({ fire, fire.still }) do
+		t:SetVertexColor(Tokens.Color(color))
+	end
+	return fire, parts
+end
+
 local function Band(holder, anchor, path, outer, inner)
 	local used = 0
 	for k, layer in ipairs({ { 0, 2 * BAND, "medSocket" }, { BAND - RIM / 2, RIM, outer }, { RIM / 2 - BAND, RIM, inner } }) do
@@ -440,12 +449,12 @@ local function Build()
 	state.ring = ring
 	state.call = Medal(header, "KstyleUI_TotemCall", CallTooltip)
 	state.call:SetAttribute("spell", CALL)
-	state.call.runes = {}
+	state.call.runes, state.call.marks = {}, {}
 	for i, e in ipairs(ELEMENTS) do
-		state.call.runes[i] = Art(state.call, "OVERLAY", "totemRune" .. e.name, "totem" .. e.name)
+		state.call.runes[i], state.call.marks[i] = Burning(state.call, "totemRune" .. e.name, "totem" .. e.name)
 	end
 	local wolf = Medal(header, "KstyleUI_TotemWolf", WolfTooltip)
-	Art(wolf, "ARTWORK", "figureWolf", "white", "ADD"):SetAllPoints(wolf)
+	wolf.figure, wolf.marks = Burning(wolf, "figureWolf", "white")
 	wolf:SetAttribute("type", "spell")
 	wolf.spirit = CreateFrame("Frame", nil, wolf)
 	wolf.spirit:SetAllPoints(wolf)
@@ -573,8 +582,13 @@ local function Place()
 		Widgets.Size(m.shade, MEDAL * 1.9, MEDAL * 1.9)
 		m.shade:SetPoint("CENTER", m, "CENTER", 0, 0)
 	end
-	for i, t in ipairs(state.call.runes) do
-		Put(t, state.call, MEDAL * 0.34 * cos(rad(CALLED[i])), MEDAL * 0.34 * sin(rad(CALLED[i])), MEDAL * 0.46)
+	for i, parts in ipairs(state.call.marks) do
+		for _, t in ipairs(parts) do
+			Put(t, state.call, MEDAL * 0.34 * cos(rad(CALLED[i])), MEDAL * 0.34 * sin(rad(CALLED[i])), MEDAL * 0.46 * t.units)
+		end
+	end
+	for _, t in ipairs(state.wolf.marks) do
+		Put(t, state.wolf, 0, 0, MEDAL * t.units)
 	end
 end
 

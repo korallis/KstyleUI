@@ -43,7 +43,8 @@ local function Stone(parent, spec, level, form)
 	end
 	s.light = Medals.Layer(s, level + 1)
 	s.glow = s.add(Medals.Texture(s.light, "ARTWORK", 0, "glow", "white", SETTING * 1.6 * k, "ADD"))
-	s.rune = s.add(Medals.Texture(s.light, "OVERLAY", 0, "trackerRune", "white", STONE * k, "ADD"))
+	local rune = Medals.Mark(s, s.light, "trackerRune", STONE * k, "white")
+	s.rune, s.runes = rune, { rune, rune.still }
 	s.rim = Medals.Layer(s, level + 2)
 	s.add(Medals.Texture(s.rim, "OVERLAY", 0, "ring", "gilt", RIM * k, "ADD"))
 	s.pulse = Medals.Steps(s.rim, PULSE, true)
@@ -100,7 +101,9 @@ local function Stones()
 		local element = ELEMENTS[id]
 		local r, g, b = Tokens.Color(element or "gilt")
 		s.light:SetAlpha(element and 1 or 0)
-		s.rune:SetVertexColor(r, g, b)
+		for _, rune in ipairs(s.runes) do
+			rune:SetVertexColor(r, g, b)
+		end
 		s.glow:SetVertexColor(r, g, b, GLOW)
 		s.rim:SetShown(not element)
 		if shown and not element and moving then

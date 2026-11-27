@@ -436,9 +436,13 @@ def Void(p):
 # Priest
 @glyph
 def Infusion(p):
-    arrow(p, 0.5, 0.84, 0.5, 0.2, 0.16)
-    star(p, 0.26, 0.38, 0.1, 0.035, 4)
-    star(p, 0.74, 0.58, 0.1, 0.035, 4)
+    # a chalice brimming with light: the power poured into an ally
+    p.line((0.24, 0.42), (0.76, 0.42))
+    p.curve(lambda t: (0.5 + 0.26 * math.cos(math.pi * t), 0.42 + 0.22 * math.sin(math.pi * t)), 0, 1)
+    p.line((0.5, 0.64), (0.5, 0.8))
+    p.line((0.34, 0.84), (0.66, 0.84))
+    for x, top in ((0.36, 0.26), (0.5, 0.14), (0.64, 0.26)):
+        p.line((x, 0.34), (x, top))
 
 
 @glyph
@@ -473,8 +477,12 @@ def Moon(p):
 
 @glyph
 def Feedback(p):
-    p.ring(0.5, 0.5, 0.36)
-    bolt(p, 0.5, 0.7)
+    # a hand mirror throwing a bolt back the way it came
+    p.curve(lambda t: (0.6 + 0.18 * math.cos(t), 0.36 + 0.24 * math.sin(t)), 0, 2 * math.pi)
+    p.line((0.6, 0.6), (0.6, 0.88), width=0.11)
+    p.line((0.12, 0.2), (0.3, 0.36), (0.2, 0.42), (0.38, 0.58))
+    p.line((0.38, 0.58), (0.28, 0.58))
+    p.line((0.38, 0.58), (0.38, 0.48))
 
 
 @glyph
@@ -485,9 +493,12 @@ def Sacrifice(p):
 
 @glyph
 def Lifeline(p):
+    # a life ring, the plan held in reserve: outer and inner rim and its four bands
     p.ring(0.5, 0.5, 0.34)
-    p.line((0.5, 0.3), (0.5, 0.7))
-    p.line((0.3, 0.5), (0.7, 0.5))
+    p.ring(0.5, 0.5, 0.15)
+    for a in (45, 135, 225, 315):
+        r = math.radians(a)
+        p.line((0.5 + 0.15 * math.cos(r), 0.5 + 0.15 * math.sin(r)), (0.5 + 0.34 * math.cos(r), 0.5 + 0.34 * math.sin(r)), width=0.15)
 
 
 # Druid

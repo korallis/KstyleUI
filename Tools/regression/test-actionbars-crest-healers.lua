@@ -876,8 +876,9 @@ do
 end
 
 -- Every piece stays inside the crest's footprint at four screens: within 78 units of the centre across, from 78 below
--- to 110 above (under the cast bar), and off the level badge; blooms, sparks and flares are soft glow and may spill,
--- and the five-second ring is the badge's own.
+-- to 110 above (under the cast bar), and off the level badge; blooms, sparks and flares are soft glow and may spill, as
+-- may an aura sheet's margin round the figure it lights (its body, the black figure under it, is held), and the
+-- five-second ring is the badge's own.
 for _, size in ipairs(SIZES) do
 	for _, case in ipairs({ { "PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 } }, { "PRIEST", { 10952, 10947, 15473, 15334, 15286, 19280, 1309636, 15487 }, 28 },
 		{ "DRUID", DRUID }, { "DRUID", DRUID, 1 }, { "DRUID", DRUID, 8 }, { "SHAMAN", { 16362, 10414, 20608, 16166, 29228 } } }) do
@@ -901,7 +902,7 @@ for _, size in ipairs(SIZES) do
 				for n, part in ipairs(piece.parts) do
 					local texture = part._state and part._state.Texture and part._state.Texture[1]
 					local pl2, pr2, pb2, pt2 = Edges(part)
-					if not (type(texture) == "string" and (texture:find("Glow", 1, true) or texture:find("Burst", 1, true))) and pl2 then
+					if not (type(texture) == "string" and (texture:find("Glow", 1, true) or texture:find("Burst", 1, true) or texture:find("Auras\\", 1, true))) and pl2 then
 						local l, r, bo, t = (pl2 - cx) / u, (pr2 - cx) / u, (pb2 - cy) / u, (pt2 - cy) / u
 						assert(l >= -78.5 and r <= 78.5 and bo >= -78.5 and t <= 110.5, at .. key .. " part " .. n .. " leaves the crest's footprint: " .. string.format("%.0f %.0f %.0f %.0f", l, r, bo, t))
 						local clear = pr2 <= pl or pl2 >= pr or pt2 <= pb or pb2 >= pt or (r - l) >= 100
@@ -1074,6 +1075,48 @@ do
 	Slots.Set(env, "target", { { id = 17364, count = 0, harmful = true, start = 0, duration = 12 } })
 	assert(foot.lits[2]:IsShown() and foot.lits[2].spec.figure == "figureStrike", "Stormstrike's bolt shows there")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Every mark a priest's, druid's or shaman's crest draws in light is an animated aura from the shared kit (this change's
+-- goal: the crest marks become animated spell-effect auras, never static icons): each cooldown sigil, figure, Inner Fire
+-- flame and imbue rune draws its Auras sheet, and none is left as a flat additive drawing. The Clearcasting leaves round
+-- the crest stay flat (rotated textures), and so do the sigils every class shares (race spells and potions), which are
+-- not these classes' own, and Dash, which the druid shares with the rogue's Sprint and whose aura the rogue's marks bring.
+do
+	local FLAT = { "\\Figures\\", "\\Sigils\\", "Trackers\\Flame", "Trackers\\Rune" }
+	local function Walk(frame, fn)
+		for _, region in ipairs(frame._regions or {}) do fn(region) end
+		for _, kid in ipairs(frame._kids or {}) do Walk(kid, fn) end
+	end
+	for _, case in ipairs({ { "PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 } }, { "PRIEST", { 10952, 10947, 15473, 15334, 15286, 19280, 1309636, 15487 }, 28 },
+		{ "DRUID", DRUID }, { "DRUID", DRUID, 1 }, { "DRUID", DRUID, 8 }, { "SHAMAN", { 16362, 10414, 20608, 16166, 29228 } } }) do
+		local env, K, ns = New(case[1], case[2])
+		env._form = case[3]
+		env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+		local at = case[1] .. " form " .. tostring(case[3] or 0) .. ": "
+		local sheets, flat, shared = 0, {}, { ["\\Sigils\\Dash.png"] = true }
+		for _, family in ipairs(ns.SlabTrackers.SHARED) do
+			shared["\\Sigils\\" .. family.sigil .. ".png"] = true
+		end
+		for key, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+			Walk(piece, function(t)
+				local file = t._state and t._state.Texture and t._state.Texture[1]
+				if type(file) ~= "string" then return end
+				if file:find("Textures\\Auras\\", 1, true) and not file:find("Socket", 1, true) then
+					sheets = sheets + 1
+				elseif (t._state.BlendMode or {})[1] == "ADD" then
+					for _, kind in ipairs(FLAT) do
+						if file:find(kind, 1, true) and not shared[file:match("\\Sigils\\%w+%.png$") or ""] then
+							flat[#flat + 1] = key .. " " .. file
+						end
+					end
+				end
+			end)
+		end
+		assert(sheets > 0, at .. "the crest draws aura sheets")
+		assert(#flat == 0, at .. "no mark is left a flat additive drawing: " .. table.concat(flat, ", "))
+		assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+	end
 end
 
 print("actionbars crest healers ok")

@@ -129,7 +129,7 @@ local function Hiding(host)
 	end
 end
 
-function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
+function Medals.Aura(piece, host, token, size, color, r, g, b, lights, owner)
 	local _, _, _, _, span, tint = Tokens.Flipbook(token)
 	local flame, calm = lights and lights.flame, lights and lights.calm
 	local fire = piece.add(Cell(Medals.Texture(flame or host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, 0))
@@ -148,7 +148,9 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 	fire.loop = Medals.Flip(fire, token, 1)
 	auras[#auras + 1] = fire
 	local fed = Fed(host)
-	if fed then
+	if owner then
+		fire.fed = owner
+	elseif fed then
 		fire.fed = fed
 		fed.auraLoops = fed.auraLoops or {}
 		fed.auraLoops[#fed.auraLoops + 1] = fire.loop
@@ -750,6 +752,28 @@ function Medals.Medal(parent, spec, level)
 	return m
 end
 
+function Medals.Fill(piece, bar, aura, size, color, owner)
+	if not aura then
+		return nil
+	end
+	local fill = bar:GetStatusBarTexture()
+	fill:SetBlendMode("BLEND")
+	bar:SetStatusBarColor(Tokens.Color("black"))
+	local pad = size * (select(5, Tokens.Flipbook(aura)) - 1) / 2
+	local clip = CreateFrame("Frame", nil, bar)
+	clip:SetClipsChildren(true)
+	clip:SetPoint("TOPLEFT", fill, "TOPLEFT", -pad, 0)
+	clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", pad, -pad)
+	local fire = Medals.Aura(piece, clip, aura, size, color, nil, nil, nil, nil, owner)
+	for _, t in ipairs({ fire, fire.still }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", bar, "CENTER", 0, 0)
+		t:SetVertexColor(Tokens.Color(color or "white"))
+	end
+	fire.clip = clip
+	return fire
+end
+
 function Medals.Figure(parent, spec, level)
 	local size = spec.size or SIZE
 	local f = Medals.Piece(parent, level, size)
@@ -777,6 +801,7 @@ function Medals.Figure(parent, spec, level)
 		bar:SetStatusBarColor(Tokens.Color(each.color or "white"))
 		bar:SetMinMaxValues(0, 1)
 		bar:SetValue(1)
+		lit.aura = Medals.Fill(f, bar, select(5, Tokens.Texture(each.figure)), size, each.color)
 		local alpha = each.alpha or 1
 		bar:SetAlpha(alpha)
 		local spark = f.add(Medals.Texture(bar, "OVERLAY", 0, "glow", each.color or "white", size * SPARK, "ADD"))

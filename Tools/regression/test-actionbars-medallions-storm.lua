@@ -478,4 +478,35 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- Each orb is the storm orb's animated aura (the shaman's crest marks take the aura kit): its sheet burns over the orb's
+-- fill turned black, clipped to the fill so a spent charge drains both, and its loop is the orb slot's shown animation
+-- only at Full: Calm and Off take it away and stop it, so the engine never plays a loop nobody sees.
+do
+	local env, K, ns = New("SHAMAN", { [RANK7] = true })
+	local state = ns.SlabStorm.state
+	local function Bound(s)
+		for _, group in ipairs(s.slot._shownAnimations) do
+			if group == s.fire.loop then return true end
+		end
+		return false
+	end
+	for _, s in ipairs(state.seats) do
+		local file = s.fire._state.Texture[1]
+		assert(file == K.Tokens.Texture("auraStormOrb") and s.fire.still._state.Texture[1] == file, "each orb draws the storm orb's aura sheet")
+		assert(s.fire.clip:GetParent() == s.orb and s.orb:GetStatusBarTexture()._state.BlendMode[1] == "BLEND", "over the orb's fill, its black body, clipped to it")
+	end
+	K.Options.Write("Medallions", "motion", "full")
+	for _, s in ipairs(state.seats) do
+		assert(Bound(s), "at Full each orb's aura loops while its charge shows")
+	end
+	for _, level in ipairs({ "calm", "off" }) do
+		K.Options.Write("Medallions", "motion", level)
+		for _, s in ipairs(state.seats) do
+			assert(not Bound(s) and not s.fire.loop:IsPlaying(), level .. " takes each orb's loop away and stops it")
+		end
+		K.Options.Write("Medallions", "motion", "full")
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 print("actionbars medallions storm ok")

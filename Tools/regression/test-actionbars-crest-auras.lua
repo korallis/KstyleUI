@@ -1,4 +1,4 @@
--- test-actionbars-crest-auras.lua: the aura kit's drawing rule (KstyleUI_ActionBars/SlabMedals.lua Medals.Mark, the KSTY-51 plan): a forged mark with an aura draws its sheet twice in white additive light over the empty socket, a fire looping the sheet's FlipBook and a still on its first cell; the fire loops only at Full with the crest awake and its owner shown, Calm, Off and the resting crest show the still, a hidden owner plays nothing until it shows, a mark under an engine aura button (a medal slot, a flare's mirror or a cooldown sigil) hands its loop to the engine's shown animations, resting drops only that loop and waking with the aura shown plays it again, and while auras are secret nothing touches it until the restriction ends; a cooldown sigil's prepared fire copy keeps its loop bound in every mode, masked behind its still below Full and at rest, and stops it when its aura goes.
+-- test-actionbars-crest-auras.lua: the aura kit's drawing rule (KstyleUI_ActionBars/SlabMedals.lua Medals.Mark, the KSTY-51 plan): a forged mark with an aura draws its sheet twice in white additive light over the empty socket, a fire looping the sheet's FlipBook and a still on its first cell; the fire loops only at Full with the crest awake and its owner shown, Calm, Off and the resting crest show the still, a hidden owner plays nothing until it shows, a mark under an engine aura button (a medal slot, a flare's mirror or a cooldown sigil) hands its loop to the engine's shown animations, a figure's status bar (Medals.Fill) burns its aura over its fill turned black and clipped to it, resting drops only that loop and waking with the aura shown plays it again, and while auras are secret nothing touches it until the restriction ends; a cooldown sigil's prepared fire copy keeps its loop bound in every mode, masked behind its still below Full and at rest, and stops it when its aura goes.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -272,6 +272,33 @@ do
 	end
 	Slots.Set(env, "player", nil)
 	assert(not flame:IsShown() and not fire.loop:IsPlaying(), "the sigil cleared: its loop stops")
+end
+
+-- A figure that drains or charges as a status bar burns its aura through Medals.Fill (the priest's, druid's and shaman's
+-- figures take the kit): the bar's fill becomes the figure's black body and the aura burns centred on the bar inside a
+-- frame that clips to the fill, padded at the sides and base by the bare sheet's margin (a quarter of the figure, split),
+-- so the drain cuts the light and the body at one height while the spark still rides the fill's edge.
+do
+	local f = Medals.Figure(parent, { feed = "cooldown", figure = "figureLance" }, 5)
+	local lit = f.lits[1]
+	local fire, bar = lit.aura, lit.bar
+	local fill = bar:GetStatusBarTexture()
+	assert(fire and Draws(fire, texture("auraFigureLance")) and Draws(fire.still, texture("auraFigureLance")), "the figure draws its own aura sheet twice in white additive light")
+	local r, g, b = bar:GetStatusBarColor()
+	assert(fill._state.BlendMode[1] == "BLEND" and r == 0 and g == 0 and b == 0, "the bar's fill is the figure's solid black body")
+	local clip = fire.clip
+	assert(clip._state.ClipsChildren[1] == true and fire:GetParent() == clip and fire.still:GetParent() == clip, "the fire and still burn inside a frame that clips its children")
+	local corners = {}
+	for _, p in ipairs(clip._points) do corners[p[1]] = p end
+	local top, bottom = corners.TOPLEFT, corners.BOTTOMRIGHT
+	assert(top and top[2] == fill and top[3] == "TOPLEFT" and top[4] == -3.25 and top[5] == 0, "the clip's top follows the fill's edge, padded out at the side")
+	assert(bottom and bottom[2] == fill and bottom[3] == "BOTTOMRIGHT" and bottom[4] == 3.25 and bottom[5] == -3.25, "and its other side and base are padded by the margin")
+	assert(fire._points[1][1] == "CENTER" and fire._points[1][2] == bar and fire.units == 26 * 1.25, "the aura stays centred on the whole bar at its sheet's span")
+	Motion("full")
+	assert(Burning(fire), "at Full the figure's aura loops")
+	Motion("calm")
+	assert(Still(fire), "Calm shows the still")
+	Motion("full")
 end
 
 assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))

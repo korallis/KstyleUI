@@ -223,8 +223,14 @@ def Growl(p):
 
 @figure(AMBER)
 def Charge(p):
-    for y in (0.08, 0.38, 0.68):
-        p.fill((0.5, y), (0.86, y + 0.26), (0.86, y + 0.34), (0.5, y + 0.12), (0.14, y + 0.34), (0.14, y + 0.26))
+    # a bear's head lunging up out of three streaks of its charge
+    p.dot(0.5, 0.36, 0.25)
+    p.dot(0.3, 0.13, 0.09)
+    p.dot(0.7, 0.13, 0.09)
+    p.dot(0.5, 0.52, 0.15)
+    for x, top in ((0.28, 0.66), (0.5, 0.7), (0.72, 0.66)):
+        tapered(p, lambda t, x=x, top=top: (x, top + (0.98 - top) * t), 0.1, 0.0)
+    cut(p, lambda q: (q.dot(0.4, 0.33, 0.04), q.dot(0.6, 0.33, 0.04), q.dot(0.5, 0.48, 0.05)))
 
 
 # Shaman
