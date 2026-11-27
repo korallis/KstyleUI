@@ -549,6 +549,22 @@ do
 	env.RunTimers()
 	assert(Folded(bear), "and Barkskin ending in Bear Form folds the bear crest")
 	Reset()
+	-- Barkskin running out as the druid shifts, so the new form's first update already finds it gone: neither crest shows it ending, so nothing folds, and
+	-- nothing stays lit to hold back or set off the next fold.
+	Bark(true)
+	Veil(function() Shift(1) end, bear)
+	done[bear](bear.awake.timer)
+	Dark(env)
+	Slots.Rebuild(env)
+	env.RunTimers()
+	assert(cat.piece:IsVisible() and Folded(nil), "Barkskin running out as the druid shifts to Cat Form folds nothing")
+	Bark(true)
+	Bark(false)
+	env.RunTimers()
+	assert(Folded(cat), "and the next ending in Cat Form folds the cat crest")
+	Reset()
+	Veil(function() Shift(5) end, cat)
+	Slots.Rebuild(env)
 	-- Innervate is tracked by the caster piece alone: up as the druid shifts to Cat Form and ending there, it folds nothing in Cat Form, which never lit for it,
 	-- and nothing as the caster crest comes back.
 	Veil(function() Shift(0) end, bear)
@@ -569,6 +585,19 @@ do
 	Bark(false)
 	env.RunTimers()
 	assert(Folded(caster), "and the next real ending folds the caster crest")
+	Reset()
+	-- Barkskin and Innervate up together in caster form: the slot shows the newer, Barkskin, and Barkskin ending gives the slot to Innervate, so nothing folds until
+	-- Innervate ends too.
+	local innervate = { id = 29166, auraInstanceID = 6, count = 0, start = 0, duration = 20 }
+	Slots.Set(env, "player", { innervate })
+	Slots.Set(env, "player", { innervate, { id = 22812, auraInstanceID = 7, count = 0, start = 0, duration = 12 } })
+	done[caster](caster.awake.timer)
+	Slots.Set(env, "player", { innervate })
+	env.RunTimers()
+	assert(Folded(nil), "Barkskin ending while Innervate is still up folds nothing")
+	Slots.Set(env, "player", nil)
+	env.RunTimers()
+	assert(Folded(caster), "and Innervate ending, the last, folds the caster crest")
 	Clean(env, K, "druid forms")
 end
 
