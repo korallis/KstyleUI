@@ -292,12 +292,12 @@ end
 local auras = setmetatable({}, { __mode = "k" })
 
 local function ProcAura(button)
-	local rows, columns, frames, seconds = Tokens.Flipbook("medProcAura")
-	local pad = (button.opts.size or Tokens.Size("actionButton")) * PROC_AURA_PAD
+	local rows, columns, frames, seconds = Tokens.Flipbook("procAura")
+	local pad = Widgets.Snap(button, (button.opts.size or Tokens.Size("actionButton")) * PROC_AURA_PAD)
 	local aura = {}
 	for i = 1, 2 do
 		local t = button.medIconFrame:GetParent():CreateTexture(nil, "OVERLAY", nil, 3)
-		t:SetTexture((Tokens.Texture("medProcAura")))
+		t:SetTexture((Tokens.Texture("procAura")))
 		t:SetVertexColor(Tokens.Color("giltLit"))
 		t:SetBlendMode("ADD")
 		t:SetPoint("TOPLEFT", button, "TOPLEFT", -pad, pad)

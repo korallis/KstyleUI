@@ -416,7 +416,7 @@ local TEXTURES = {
 	medAmbientShaman = { file = "Textures\\Medallions\\AmbientShaman.png", rows = 4, columns = 4, frames = 16, seconds = 1.44 },
 	medAmbientWarlock = { file = "Textures\\Medallions\\AmbientWarlock.png", rows = 4, columns = 4, frames = 16, seconds = 1.44 },
 	medAmbientWarrior = { file = "Textures\\Medallions\\AmbientWarrior.png", rows = 4, columns = 4, frames = 16, seconds = 1.44 },
-	medProcAura = { file = "Textures\\Medallions\\ProcAura.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 },
+	procAura = { file = "Textures\\Medallions\\Auras\\ProcAura.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 },
 	medAuraBorder = { file = "Textures\\Medallions\\AuraBorder.png", slice = 8, density = 2 },
 	medBarFill = { file = "Textures\\Medallions\\BarFill.png" },
 	medBarSpark = { file = "Textures\\Medallions\\BarSpark.png" },

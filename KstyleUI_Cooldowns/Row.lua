@@ -225,39 +225,43 @@ function Row:Place()
 end
 
 function Row:Rails()
-	local lines, order = {}, {}
+	local lines, n = self.railLines or {}, 0
+	self.railLines = lines
 	for i = 1, self.count do
 		local icon = self.icons[i]
 		local _, _, _, x, y = icon:GetPoint(1)
 		if icon.medRound and not icon.ruleGap and x then
-			local size = icon.opts.size
-			local line = lines[y]
+			local size, line = icon.opts.size, nil
+			for k = 1, n do
+				if lines[k].y == y then line = lines[k] end
+			end
 			if not line then
-				line = { left = x, right = x + size, size = size }
-				lines[y] = line
-				order[#order + 1] = y
+				n = n + 1
+				line = lines[n] or {}
+				lines[n] = line
+				line.y, line.left, line.right, line.size = y, x, x + size, size
 			end
 			line.left, line.right, line.size = math.min(line.left, x), math.max(line.right, x + size), math.max(line.size, size)
 		end
 	end
 	self.rails = self.rails or {}
-	for i = 1, math.max(#order, #self.rails) do
-		local rail, y = self.rails[i], order[i]
-		local line = y and lines[y]
+	for i = 1, math.max(n, #self.rails) do
+		local rail, line = self.rails[i], i <= n and lines[i] or nil
 		if line and not rail then
 			rail = { self.content:CreateTexture(nil, "BACKGROUND", nil, 1), self.content:CreateTexture(nil, "BACKGROUND", nil, 2) }
 			rail[1]:SetColorTexture(K.Tokens.Color("black"))
 			rail[2]:SetColorTexture(K.Tokens.Color("medSocketLip"))
 			self.rails[i] = rail
 		end
-		for layer, texture in ipairs(rail or {}) do
+		for layer = 1, rail and #rail or 0 do
+			local texture = rail[layer]
 			texture:SetShown(line ~= nil and line.right - line.left > line.size)
 			if line then
-				local half = line.size / 2
+				local height = Widgets.Snap(self.holder, line.size * RAIL[layer])
+				local half, top = Widgets.Snap(self.holder, line.size / 2), line.y - Widgets.Snap(self.holder, (line.size - height) / 2)
 				texture:ClearAllPoints()
-				texture:SetPoint("LEFT", self.content, "TOPLEFT", line.left + half, y - half)
-				texture:SetPoint("RIGHT", self.content, "TOPLEFT", line.right - half, y - half)
-				texture:SetHeight(Widgets.Snap(self.holder, line.size * RAIL[layer]))
+				texture:SetPoint("TOPLEFT", self.content, "TOPLEFT", line.left + half, top)
+				texture:SetPoint("BOTTOMRIGHT", self.content, "TOPLEFT", line.left + half + Widgets.Snap(self.holder, line.right - line.left - line.size), top - height)
 			end
 		end
 	end

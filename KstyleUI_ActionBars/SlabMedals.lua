@@ -575,7 +575,7 @@ end
 function Medals.Rim(parent, spec, level)
 	local r = Medals.Piece(parent, level, RIM)
 	local lit = Lit(r, spec, level + 1)
-	local ambient = spec.ambient or spec.proc and "medProcAura"
+	local ambient = spec.ambient or spec.proc and "procAura"
 	if ambient then
 		r.still = Mirror(r, lit, level + 1)
 		local still = Medals.Cloud(r.still.lit, ambient, spec.cell or 0)

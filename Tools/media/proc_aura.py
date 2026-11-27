@@ -1,6 +1,6 @@
-"""Render the crest's proc aura, Media/Textures/Medallions/ProcAura.png, in Blender and bake it into a flipbook.
+"""Render the crest's proc aura, Media/Textures/Medallions/Auras/ProcAura.png, in Blender and bake it into a flipbook.
 
-A proc lights a white aura that the crest and the cooldown rails tint in the proc's colour (medProcAura in Core/Tokens.lua):
+A proc lights a white aura that the crest and the cooldown rails tint in the proc's colour (procAura in Core/Tokens.lua):
 three bright arcs run round a ring of light at 80% of the cell's radius over a dimmer inner ring that runs the other way,
 with sparks orbiting on it, so the medal's centre stays clear and the loop reads as motion, never as a still icon.
 Blender (EEVEE, orthographic, black world, emission only) renders 16 frames of one whole turn of the pattern; the bake adds
@@ -145,7 +145,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--blender", default=os.environ.get("BLENDER") or shutil.which("blender"))
     parser.add_argument("--work", type=Path, help="keep the 256 px renders here")
-    parser.add_argument("--out", type=Path, default=root / "Media/Textures/Medallions/ProcAura.png")
+    parser.add_argument("--out", type=Path, default=root / "Media/Textures/Medallions/Auras/ProcAura.png")
     args = parser.parse_args()
     if not args.blender:
         parser.error("no Blender found; set BLENDER or pass --blender")

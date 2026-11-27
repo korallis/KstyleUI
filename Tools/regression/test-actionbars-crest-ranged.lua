@@ -202,7 +202,7 @@ do
 	assert(clear.timer == nil and Shown(gate.lit, gate.lit.flare.play) and ping:GetTexture():find("RingLine16", 1, true) and Tint(ping, K, "schoolArcane", 0),
 		"Clearcasting, a proc, pings a thin ring round the crest in its own arcane colour when it lights, with no drain ring")
 	local aura = clear.fire and clear.fire.lit._regions[1]
-	assert(aura and aura:GetTexture() == K.Tokens.Texture("medProcAura") and Tint(aura, K, "schoolArcane", 0) and clear.fire.lit.loop,
+	assert(aura and aura:GetTexture() == K.Tokens.Texture("procAura") and Tint(aura, K, "schoolArcane", 0) and clear.fire.lit.loop,
 		"while it is up its Blender-made aura of running arcs loops round the crest in arcane colour, never an icon (captain's direction: procs are animated spell effects)")
 	assert(not ping:GetTexture():find("Burst", 1, true), "and never the class burst: that is the blaze's")
 	Clean(env, K)

@@ -540,11 +540,11 @@ The Medallions HUD style's style kit and effect textures, the files directly in 
 
 ## Crest proc aura (2026-11-27)
 
-The animated aura a proc lights on the crest and on the Medallions cooldown rails (token `medProcAura`), white so each proc tints it in its own colour. It sits outside the style kit that `Tools/media/medallions_kit.py` owns.
+The animated aura a proc lights on the crest and on the Medallions cooldown rails (token `procAura`), white so each proc tints it in its own colour. It sits outside the style kit that `Tools/media/medallions_kit.py` owns.
 
 | File | Size | What it is | Source | Processing | Date |
 | --- | --- | --- | --- | --- | --- |
-| `Media/Textures/Medallions/ProcAura.png` | 512x512 | Proc aura loop: three bright arcs running round a ring of light at 80% of the cell's radius over a dimmer inner ring running the other way, with five sparks orbiting, the centre left clear: 16 frames of 128 in a 4x4 grid, one whole turn | Blender 5.3 render (`Tools/media/proc_aura.py`), EEVEE, orthographic, emission only on black, 256 px frames, no model or download | Gaussian glow added in linear light, box-filtered to 128 cells, 3 px cell-edge fade, white with the light as ADD alpha; SHA-256 `46c49bcb6464dce39d86672dbf0c70aa6bd8cb2027c1fd8fe04d5bef2e39b275` | 2026-11-27 |
+| `Media/Textures/Medallions/Auras/ProcAura.png` | 512x512 | Proc aura loop: three bright arcs running round a ring of light at 80% of the cell's radius over a dimmer inner ring running the other way, with five sparks orbiting, the centre left clear: 16 frames of 128 in a 4x4 grid, one whole turn | Blender 5.3 render (`Tools/media/proc_aura.py`), EEVEE, orthographic, emission only on black, 256 px frames, no model or download | Gaussian glow added in linear light, box-filtered to 128 cells, 3 px cell-edge fade, white with the light as ADD alpha; SHA-256 `46c49bcb6464dce39d86672dbf0c70aa6bd8cb2027c1fd8fe04d5bef2e39b275` | 2026-11-27 |
 
 ## Medallions hawk perches (2026-11-21)
 

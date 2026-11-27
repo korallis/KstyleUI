@@ -19,11 +19,11 @@ local rail = ns.Mirror.Row("essential")
 assert(rail.count > 1 and rail.rails and rail.rails[1][1]:IsShown(), "the row's medals stand on a rail")
 local _, _, _, left = rail.rails[1][1]:GetPoint(1)
 local _, _, _, x = rail.icons[1]:GetPoint(1)
-assert(math.abs(left - (x + rail.icons[1].opts.size / 2)) < 0.01, "the rail starts at the first medal's centre")
+assert(math.abs(left - (x + rail.icons[1].opts.size / 2)) < 1, "the rail starts at the first medal's centre, to the pixel")
 ns.Style.SetProc(icon, true)
 -- A proc is an animated spell effect, never an icon (the captain's direction for everything a player tracks).
 local aura = icon.medIconProc
-assert(aura and aura.moving:IsShown() and aura.moving:GetTexture() == K.Tokens.Texture("medProcAura") and aura.loop:IsPlaying(), "a proc loops a gilt aura round the medal")
+assert(aura and aura.moving:IsShown() and aura.moving:GetTexture() == K.Tokens.Texture("procAura") and aura.loop:IsPlaying(), "a proc loops a gilt aura round the medal")
 assert(not (icon.procHalo and icon.procHalo.holder:IsShown()), "and no square halo")
 K.Motion.SetLevel("reduced")
 assert(not aura.loop:IsPlaying() and aura.still:IsShown() and not aura.moving:IsShown(), "calm motion holds the aura still")
