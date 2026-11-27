@@ -552,6 +552,20 @@
 		if (alpha <= 0 || !item.text) {
 			return;
 		}
+		// A text under a frame Scale (scene.lua's zoom) is laid out at its unscaled size in its unscaled rect, then
+		// drawn through the Scale's factors, so it wraps and truncates as it does at rest.
+		if (item.zoom) {
+			const zx = item.zoom[0], zy = item.zoom[1];
+			if (!(zx > 0 && zy > 0)) {
+				return;
+			}
+			ctx.save();
+			ctx.translate(item.rect[0] * ppu, item.rect[1] * ppu);
+			ctx.scale(zx, zy);
+			await drawText(ctx, Object.assign({}, item, { zoom: null, rect: [0, 0, item.rect[2] / zx, item.rect[3] / zy] }), ppu, base);
+			ctx.restore();
+			return;
+		}
 		// A text of inline atlases only (a keybind glyph) draws its images side by side, justified in its rect.
 		if (item.glyphs && !plainText(item.text).trim()) {
 			const total = item.glyphs.reduce((sum, g) => sum + g.width, 0);
@@ -766,7 +780,7 @@
 		}
 		if (item.countdown) {
 			await drawText(ctx, {
-				kind: "text", alpha: item.alpha, text: item.countdown, rect: item.rect,
+				kind: "text", alpha: item.alpha, text: item.countdown, rect: item.rect, zoom: item.zoom,
 				font: item.font || { size: 12, flags: "OUTLINE" }, color: [1, 1, 1, 1], justifyH: "CENTER", justifyV: "MIDDLE",
 			}, ppu, base);
 		}

@@ -339,18 +339,17 @@ local function animated(object)
 	return object._groups or aimed[object]
 end
 
--- animationState(frame, now, scales) -> dx, dy (in the frame's own units), alpha, absolute, sx, sy, turn: what the
+-- animationState(frame, now, latest) -> dx, dy (in the frame's own units), alpha, absolute, sx, sy, turn: what the
 -- frame's playing animation groups apply at the clock. A Translation moves the frame by its offset times its progress, an
 -- Alpha animation sets the alpha between its from and to values once its start delay has passed, in place of the
 -- frame's own alpha as the game does (absolute is true then), a Rotation turns it by its degrees or radians times its
 -- progress (SimpleAnimRotationAPIDocumentation.lua), a BOUNCE group plays forward then back, and a finished group
--- leaves each animation at its end, as the game does until OnFinished hides the frame. A Scale counts only once its
--- start delay has passed, and every started Scale multiplies the others, each holding its end value until its group's
--- pass ends: Blizzard's own templates chain them that way (the prey widget grows 1 to 1.1 and then 1 to 0.909091,
--- Blizzard_UIWidgetTemplatePreyHuntProgress.xml:66-67). The client keeps no final scale once a group that does not
--- loop has ended (SetToFinalAlpha keeps only alpha), so such a group's Scales stop counting then. Each counted Scale is
--- appended to scales as { anim, x, y } when a list is given, for its origin.
-local function animationState(frame, now, scales)
+-- leaves each animation at its end, as the game does until OnFinished hides the frame. sx and sy are every Scale's
+-- value multiplied, as a texture's own Scales draw (Solver:solve). latest, when given, is filled as
+-- { anim, x, y, start } with the Scale a frame draws: of those past their start delay in a pass that has not ended
+-- (a group that does not loop ends where clip.lua finishes it), the one that started last on the clock, as a later
+-- Scale replaces an earlier one; the client's own rule is unproven (docs/TESTING.md, Action Bars).
+local function animationState(frame, now, latest)
 	local dx, dy, alpha, absolute, sx, sy, turn = 0, 0, 1, false, 1, 1, 0
 	if type(now) ~= "number" then
 		return dx, dy, alpha, absolute, sx, sy, turn
@@ -369,7 +368,7 @@ local function animationState(frame, now, scales)
 			local elapsed = now - started
 			local offsets, total = animationSchedule(group)
 			local looping = state(group, "Looping")
-			local ended = (looping == nil or looping == "NONE") and elapsed > total
+			local ended = looping ~= "REPEAT" and looping ~= "BOUNCE" and elapsed >= total
 			if looping == "REPEAT" and total > 0 then
 				elapsed = elapsed % total
 			elseif clipping and looping == "BOUNCE" and total > 0 then
@@ -398,14 +397,15 @@ local function animationState(frame, now, scales)
 					alpha = from + (to - from) * p
 					alphaStart = delay
 					absolute = true
-				elseif mine and anim._type == "Scale" and elapsed >= delay and not ended then
+				elseif mine and anim._type == "Scale" then
 					local fx, fy = state(anim, "ScaleFrom")
 					local tx, ty = state(anim, "ScaleTo")
 					local x = (fx or 1) + ((tx or 1) - (fx or 1)) * p
 					local y = (fy or 1) + ((ty or 1) - (fy or 1)) * p
 					sx, sy = sx * x, sy * y
-					if scales then
-						scales[#scales + 1] = { anim, x, y }
+					local at = now - elapsed + delay
+					if latest and elapsed >= delay and not ended and at >= latest[4] then
+						latest[1], latest[2], latest[3], latest[4] = anim, x, y, at
 					end
 				elseif clipping and mine and anim._type == "Rotation" then
 					local degrees, radians = state(anim, "Degrees"), state(anim, "Radians")
@@ -452,13 +452,15 @@ local function effectiveAlpha(object)
 	return alpha
 end
 
--- A Scale animation changes what is drawn, not the layout: the client scales the object and everything drawn under a
--- frame about the animation's origin (SetOrigin, CENTER when unset, SimpleAnimScaleAPIDocumentation.lua), and nothing
--- anchored to it moves. drawMap(solver, object) -> { ax, bx, ay, by }: that transform in world units,
--- x -> ax * x + bx and y -> ay * y + by, the object's own Scales first and then each ancestor's, found once per object
--- per build.
+-- A frame's Scale animation changes what is drawn, not the layout: the client scales the frame and everything drawn
+-- under it about the animation's origin (SetOrigin, CENTER when unset, SimpleAnimScaleAPIDocumentation.lua), and
+-- nothing anchored to it moves. drawMap(solver, object) -> { ax, bx, ay, by }: that transform in world units,
+-- x -> ax * x + bx and y -> ay * y + by, the object's own frame Scale first and then each ancestor's, found once per
+-- object per build. A region's own Scale is not in it: Solver:solve grows a texture's rect as it always has.
+local REGIONS = { Texture = true, MaskTexture = true, FontString = true, Line = true }
 local IDENTITY = { 1, 0, 1, 0 }
 local drawMaps = {}
+local latest = {}
 
 local function drawMap(solver, object)
 	local map = drawMaps[object]
@@ -466,22 +468,18 @@ local function drawMap(solver, object)
 		return map
 	end
 	map = object._parent and drawMap(solver, object._parent) or IDENTITY
-	local scales = {}
-	if animated(object) then
-		animationState(object, animationClock, scales)
-	end
-	local rect = #scales > 0 and solver:rect(object)
-	if rect then
-		local ax, bx, ay, by, unit = 1, 0, 1, 0, effectiveScale(object)
-		for _, entry in ipairs(scales) do
-			local point, ox, oy = state(entry[1], "Origin")
-			local at = POINTS[point] or POINTS.CENTER
+	if not REGIONS[object._type] and animated(object) then
+		latest[1], latest[2], latest[3], latest[4] = nil, 1, 1, -math.huge
+		animationState(object, animationClock, latest)
+		local anim, x, y = latest[1], latest[2], latest[3]
+		local rect = anim and solver:rect(object)
+		if rect then
+			local point, ox, oy = state(anim, "Origin")
+			local at, unit = POINTS[point] or POINTS.CENTER, effectiveScale(object)
 			local cx = rect[1] + (rect[3] - rect[1]) * at[1] + num(solver.env, ox, 0) * unit
 			local cy = rect[2] + (rect[4] - rect[2]) * at[2] + num(solver.env, oy, 0) * unit
-			ax, bx = entry[2] * ax, cx + entry[2] * (bx - cx)
-			ay, by = entry[3] * ay, cy + entry[3] * (by - cy)
+			map = { map[1] * x, map[1] * (cx - x * cx) + map[2], map[3] * y, map[3] * (cy - y * cy) + map[4] }
 		end
-		map = { map[1] * ax, map[1] * bx + map[2], map[3] * ay, map[3] * by + map[4] }
 	end
 	drawMaps[object] = map
 	return map
@@ -940,6 +938,12 @@ function Solver:solve(object)
 	if not bottom then
 		return nil, "height unknown"
 	end
+	if object._type == "Texture" and animated(object) then
+		local _, _, _, _, sx, sy = animationState(object, self.opts.time)
+		local cx, cy = (left + right) / 2, (bottom + top) / 2
+		left, right = cx + (left - cx) * sx, cx + (right - cx) * sx
+		bottom, top = cy + (bottom - cy) * sy, cy + (top - cy) * sy
+	end
 	-- The client shifts a frame clamped to the screen back inside it (a tooltip asked to open past the top edge
 	-- comes down over its owner), and its children follow.
 	local screen = self.screen
@@ -1234,15 +1238,25 @@ function Scene.Build(env, opts)
 		return { round4(r[1] * k), round4((worldHeight - r[4]) * k), round4((r[3] - r[1]) * k), round4((r[4] - r[2]) * k) }
 	end
 
-	-- The object's rect as its playing Scales and its ancestors' draw it, in screen units.
+	-- The object's rect as its own and its ancestors' frame Scales draw it, in screen units.
 	local function drawnRect(object, rect)
 		return toScreen(drawn(drawMap(solver, object), rect))
 	end
 
-	-- zoom(object) -> the horizontal and vertical factors those Scales draw the object at, for sizes inside its rect.
+	-- zoom(object) -> the horizontal and vertical factors those frame Scales draw the object at.
 	local function zoom(object)
 		local map = drawMap(solver, object)
 		return abs(map[1]), abs(map[3])
+	end
+
+	-- A text under a frame Scale keeps its unscaled font, wrapping and truncation and carries the factors as zoom,
+	-- which the page draws it through, so a flip squeezes the glyphs instead of rewrapping them.
+	local function zoomed(item, object)
+		local zx, zy = zoom(object)
+		if zx ~= 1 or zy ~= 1 then
+			item.zoom = { round4(zx), round4(zy) }
+		end
+		return item
 	end
 
 	local items = {}
@@ -1463,11 +1477,11 @@ function Scene.Build(env, opts)
 			return nil
 		end
 		local path, size, flags, colour = fontOf(env, region, logLine)
-		local scale, zx, zy = effectiveScale(region), zoom(region)
+		local scale = effectiveScale(region)
 		local item = {
 			kind = "text", alpha = round4(alpha), text = text,
 			maxLines = state(region, "MaxLines"),
-			font = { file = resolve(path), path = path, size = round4(size * scale * k * zy), flags = flags },
+			font = { file = resolve(path), path = path, size = round4(size * scale * k), flags = flags },
 			color = color4(region._state.TextColor, colour and { colour[1], colour[2], colour[3], 1 } or { 1, 1, 1, 1 }, env),
 			justifyH = state(region, "JustifyH") or "CENTER",
 			justifyV = state(region, "JustifyV") or "MIDDLE",
@@ -1477,7 +1491,7 @@ function Scene.Build(env, opts)
 		end
 		-- Inline atlases (|A:name:height:width|a, as CreateAtlasMarkup writes them) draw as images in the line.
 		for atlas, h, w in text:gmatch("|A:([^:|]+):(%d+):(%d+)[^|]*|a") do
-			local info, glyph = Scene.AtlasInfo(atlas), { atlas = atlas, height = round4(tonumber(h) * scale * k * zy), width = round4(tonumber(w) * scale * k * zx) }
+			local info, glyph = Scene.AtlasInfo(atlas), { atlas = atlas, height = round4(tonumber(h) * scale * k), width = round4(tonumber(w) * scale * k) }
 			if info and fileExists(info.file) then
 				glyph.file, glyph.texCoord = info.file, { round4(info.left), round4(info.right), round4(info.top), round4(info.bottom) }
 			else
@@ -1488,14 +1502,14 @@ function Scene.Build(env, opts)
 		end
 		local sx, sy = state(region, "ShadowOffset")
 		if type(sx) == "number" and type(sy) == "number" and (sx ~= 0 or sy ~= 0) then
-			item.shadow = { color = color4(region._state.ShadowColor, { 0, 0, 0, 1 }), offset = { round4(sx * scale * k * zx), round4(-sy * scale * k * zy) } }
+			item.shadow = { color = color4(region._state.ShadowColor, { 0, 0, 0, 1 }), offset = { round4(sx * scale * k), round4(-sy * scale * k) } }
 		end
 		if state(region, "WordWrap") == false then
 			item.wordWrap = false
 		end
 		local spacing = spacingOf(region)
 		if spacing > 0 then
-			item.spacing = round4(spacing * scale * k * zy)
+			item.spacing = round4(spacing * scale * k)
 		end
 		if region._lineEm then
 			item.lineEm = region._lineEm
@@ -1508,7 +1522,7 @@ function Scene.Build(env, opts)
 			item.natural.height = region._naturalSideH
 		end
 		item.mark = region._renderMark or frame._renderMark
-		return item
+		return zoomed(item, region)
 	end
 
 	-- The countdown numbers as the engine formats them: through the formatter SetCountdownFormatter gave the
@@ -1552,8 +1566,8 @@ function Scene.Build(env, opts)
 		if state(frame, "HideCountdownNumbers") ~= true and not frame._countdown then
 			item.countdown = countdownText(left, frame)
 			local fontPath, size = DEFAULT_FONT[1], 12
-			local _, zy = zoom(frame)
-			item.font = { file = resolve(fontPath), path = fontPath, size = round4(size * effectiveScale(frame) * k * zy), flags = "OUTLINE" }
+			item.font = { file = resolve(fontPath), path = fontPath, size = round4(size * effectiveScale(frame) * k), flags = "OUTLINE" }
+			zoomed(item, frame)
 		end
 		item.mark = frame._renderMark
 		if item.drawSwipe == false and not item.edge and not item.countdown then
