@@ -24,7 +24,7 @@ for token, ids in pairs({
 }) do
 	for _, id in ipairs(ids) do ELEMENTS[id] = token end
 end
-local STONE, SETTING, RIM, LAST, GLOW = 14, 18, 22, 300, 0.55
+local STONE, SETTING, RIM, LAST, GLOW = 16, 20, 22, 300, 0.55
 local SLOTS = { MainHand = 16, OffHand = 17 }
 local PULSE = { { 0.25, 1, 0.6 }, { 1, 0.25, 0.6 } }
 

@@ -1028,7 +1028,7 @@ do
 	for _, id in ipairs(DRUID) do known[#known + 1] = id end
 	local env, K, ns = New("DRUID", known)
 	local b = Tracker(ns, "DRUID").built
-	assert(b.faerieGem.units == b.bite.units and b.bite.units == 12, "the cat's Faerie Fire jewel is 12 units like Bite and Bash, not " .. b.faerieGem.units)
+	assert(b.faerieGem.units == b.bite.units and b.bite.units == 22, "the cat's Faerie Fire jewel is 22 units like Bite and Bash, not " .. b.faerieGem.units)
 	assert(b.rake.flare._regions[1].units <= 72, "Rake's arrival flare stays local, no larger than a perched figure's, not " .. b.rake.flare._regions[1].units)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end

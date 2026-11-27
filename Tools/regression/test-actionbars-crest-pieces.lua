@@ -207,7 +207,7 @@ do
 	local x, y = stone:GetCenter()
 	local hx, hy = ns.Slab.hub:GetCenter()
 	local r = math.sqrt((x - hx) ^ 2 + (y - hy) ^ 2) / (ns.Slab.hub:GetEffectiveScale() / stone:GetEffectiveScale())
-	assert(stone.spec.look == "vial" and stone.spec.size == 14 and r > 60, "the healthstone flask hangs on the band, clear inside the Seal's ring, " .. r)
+	assert(stone.spec.look == "vial" and stone.spec.size == 16 and r > 60, "the healthstone flask hangs on the band, clear inside the Seal's ring, " .. r)
 	assert(seal.lit.timer:GetFrameLevel() < stone:GetFrameLevel(), "and the Seal's flood ring runs behind it")
 	Clean(env, K, "flasks")
 end

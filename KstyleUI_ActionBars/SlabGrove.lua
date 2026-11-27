@@ -19,7 +19,7 @@ local OMEN, CLEARCASTING = { 16864 }, { 16870, 457342, 467735 }
 local GROWTH, POUNCE = { 1238215, 1238214, 408120 }, { 9826, 9824, 9007 }
 local GROWL, CHARGE, BITE, BASH = { 6795 }, { 1238122 }, { 1238070, 1238069, 407995 }, { 8983, 6798, 5211 }
 local BEAR, CAT, MOONKIN, CASTER = { 5, 8 }, { 1 }, { 31, 35 }, { 0, 3, 4 }
-local LEAVES, LEAF, UNFURL, PERCH, FOOT = 8, 14, 0.35, 30, 22
+local LEAVES, LEAF, UNFURL, PERCH, FOOT = 8, 16, 0.35, 30, 22
 local DASH, BARKSKIN = { spells = { 1850, 9821 }, sigil = "Dash" }, { spells = { 22812 }, sigil = "Bark", major = true }
 
 local maul, bloom = {}, nil

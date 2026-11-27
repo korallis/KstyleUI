@@ -576,10 +576,10 @@ local DEFENSIVE, BERSERKER = { 18 }, { 19 }
 local EXECUTE_ART, REVENGE_ART, VICTORY_ART = { "axe", "plateHostile" }, { "sword", "pipStormGlow" }, { "sword", "schoolNature" }
 local ARM_L, ARM_R, LL, LR, BL, BR, CENTRE = { -48, 6 }, { 48, 6 }, { -47, -36.5 }, { 47, -36.5 }, { -21.3, -58.9 }, { 21.3, -58.9 }, { 0, 0 }
 
-local function Along(a0, a1, n)
-	local at = {}
+local function Along(mid, n)
+	local at, step = {}, 2 * math.asin((Medals.PIP + 2) / (2 * 63))
 	for k = 1, n do
-		local a = math.rad(a0 + (a1 - a0) * (k - 1) / (n - 1))
+		local a = math.rad(mid) + (k - (n + 1) / 2) * step
 		at[k] = { 63 * math.cos(a), 63 * math.sin(a) }
 	end
 	return at
@@ -613,9 +613,9 @@ if CLASS == "WARRIOR" then
 		} },
 		{ key = "crestHipRight", seat = LR, size = 50, feed = "aura", look = "grooveLR", choices = {
 			{ forms = DEFENSIVE, spells = { 2565 }, look = "ward", seat = CENTRE, size = 120, color = "pipStormGlow", pips = 2, pipsAt = { { -18, -36 }, { 18, -36 } } },
-			{ spells = { 12966 }, known = { 12319, 12971, 12972, 12973, 12974 }, color = "pipWarriorGlow", pips = 3, pipsAt = Along(308, 336, 3) },
-			{ spells = { 12292 }, color = "gilt", pips = 5, pipsAt = Along(304, 340, 5) },
-			{ spells = { 1329555 }, color = "plateHostile", pips = 4, pipsAt = Along(306, 338, 4) },
+			{ spells = { 12966 }, known = { 12319, 12971, 12972, 12973, 12974 }, color = "pipWarriorGlow", pips = 3, pipsAt = Along(322, 3) },
+			{ spells = { 12292 }, color = "gilt", pips = 5, pipsAt = Along(322, 5) },
+			{ spells = { 1329555 }, color = "plateHostile", pips = 4, pipsAt = Along(322, 4) },
 		} },
 		{ key = "crestFootLeft", seat = BL, size = 27, feed = "cooldown", look = "grooveBL", color = "schoolFrost",
 			choices = { { forms = BERSERKER, known = { 6554, 6552 } }, { known = { 1672, 1671, 72 } } } },
@@ -671,13 +671,13 @@ if CLASS == "PALADIN" then
 			{ feed = "cooldown", known = { 10314, 10313, 10312, 5615, 5614, 879 }, look = "grooveLR", color = "schoolHoly" },
 		} },
 		{ key = "crestFootLeft", seat = BL, size = 27, choices = {
-			{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = STONES, look = "vial", size = 14, color = "schoolNature" },
+			{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = STONES, look = "vial", size = 16, color = "schoolNature" },
 			{ feed = "cooldown", known = { 10308, 5589, 5588, 853 }, look = "grooveBL", color = "jewelHoly" },
 		} },
 		{ key = "crestFootRight", seat = "footRight", size = Medals.FOOT, choices = {
-			{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = MANA_POTIONS, look = "vial", seat = BR, size = 14, color = "schoolFrost" },
-			{ known = Talent(PROT, JUDGEMENT), feed = "threat", color = "gilt" },
-			{ known = JUDGEMENT, feed = "threat", color = "plateHostile" },
+			{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = MANA_POTIONS, look = "vial", seat = BR, size = 16, color = "schoolFrost" },
+			{ known = Talent(PROT, JUDGEMENT), feed = "threat", size = Medals.SETTING, color = "gilt" },
+			{ known = JUDGEMENT, feed = "threat", size = Medals.SETTING, color = "plateHostile" },
 		} },
 		{ key = "crestRing", seat = "rim", choices = {
 			{ known = PROT, feed = "aura", spells = { 20925, 20927, 20928, 1239570 }, color = "gilt", look = "ward", seat = CENTRE, size = 120, pips = 4,
@@ -718,10 +718,10 @@ if CLASS == "ROGUE" then
 			look = "grooveBL", color = "schoolFrost" },
 		{ key = "crestFootRight", seat = BR, size = 27, look = "grooveBR", choices = {
 			{ known = Talent({ 16513, 14113, 14186, 14177 }, POISONS), feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = POISON_STACKS,
-				color = "schoolNature", pips = 5, pipsAt = Along(283, 296, 5) },
+				color = "schoolNature", pips = 5, pipsAt = Along(289.5, 5) },
 			{ feed = "usable", groups = { { 14251 } }, color = "white" },
-			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 16511 }, color = "plateHostile", look = "drop", size = 12 },
-			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 1316709, 1325756, 1325757, 1325758 }, color = "plateHostile", look = "brand", size = 12 },
+			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 16511 }, color = "plateHostile", look = "drop", size = 16 },
+			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 1316709, 1325756, 1325757, 1325758 }, color = "plateHostile", look = "brand", size = 16 },
 			{ feed = "cooldown", known = { 1329549, 1329283 }, color = "gilt" },
 		} },
 		{ key = "crestFire", seat = "rim", feed = "aura", spells = { 14143, 1329326, 1328826 }, known = { 14144, 14148, 14278, 1328825 },
