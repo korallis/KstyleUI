@@ -85,7 +85,9 @@ near(text.zoom and text.zoom[2], 1 + 0.1 * 0.95 * 0.95, "a frame's Scale draws t
 local _, textY = centre(text.rect)
 near((textY - restY) / (restTextY - restY), 1 + 0.1 * 0.95 * 0.95, "text set below the frame's centre moves out with the Scale")
 near(find(pin, 10.19).rect[1], restPin[1], "a frame anchored to a scaled frame stays where its anchors put it")
--- Multiplying the first Scale's end would draw 1.1 times these.
+-- Multiplying the first Scale's end would draw 1.1 times these. The second starts at 10 + 0.2, which is the clock's
+-- 10.2, though 10.2 - 10 falls short of 0.2.
+near(find(art, 10.2).rect[3], rest[3], "a later Scale draws its from value at its start on the clock")
 near(find(art, 10.21).rect[3] / rest[3], 1 - 0.1 * (1 - 0.95 * 0.95), "a later Scale replaces an earlier one from its start")
 near(find(art, 10.3).rect[3] / rest[3], 1 - 0.1 * 0.75, "the later Scale runs on its own")
 near(find(art, 10.5).rect[3] / rest[3], 0.9, "the later Scale holds its end through the end delay")
@@ -110,24 +112,29 @@ near(half[2], closed[2], "a Scale about TOP keeps the top edge still")
 near(half[3], closed[3], "a Scale of 1 across leaves the width")
 
 -- Two groups on one frame, the second created played first: the one that started last on the clock draws, not the
--- product and not the first or last in creation order.
+-- product and not the first or last in creation order. The shrink's passes end at 10 + 0.2 and 10.5 + 0.2, which are
+-- the clock's 10.2 and 10.7, though each clock time less its play time falls short of 0.2; clip.lua ends them there.
 local medal = box(env.UIParent, 30, 30, -300, 0)
 local face = fill(medal)
 local swell, shrink = medal:CreateAnimationGroup(), medal:CreateAnimationGroup()
 scale(swell, { 1, 1 }, { 2, 2 }, 1, 1)
-scale(shrink, { 1, 1 }, { 0.5, 0.5 }, 1, 1)
+scale(shrink, { 1, 1 }, { 0.5, 0.5 }, 0.2, 1)
 local plain = find(face, 9.9).rect
 shrink:Play()
-near(find(face, 10.2).rect[3] / plain[3], 1 - 0.5 * 0.2, "the one playing group draws")
+near(find(face, 10.1).rect[3] / plain[3], 1 - 0.5 * 0.5, "the one playing group draws")
+near(find(face, 10.199).rect[3] / plain[3], 1 - 0.5 * 0.995, "a Scale holds its value until its group's pass ends")
+near(find(face, 10.2).rect[3], plain[3], "a group that does not loop scales nothing from its pass's end on the clock")
 env._now = 10.3
+shrink:Stop()
+shrink:Play()
+env._now = 10.4
 swell:Play()
-near(find(face, 10.4).rect[3] / plain[3], 1 + 0.1, "a group started later replaces one created after it")
+near(find(face, 10.45).rect[3] / plain[3], 1 + 0.05, "a group started later replaces one created after it")
 env._now = 10.5
 shrink:Stop()
 shrink:Play()
-near(find(face, 10.6).rect[3] / plain[3], 1 - 0.5 * 0.1, "a group played again replaces one started before it")
-near(find(face, 11.499).rect[3] / plain[3], 1 - 0.5 * 0.999, "a Scale holds its value until its group's pass ends")
-near(find(face, 11.5).rect[3], plain[3], "a group that does not loop scales nothing once its pass ends")
+near(find(face, 10.6).rect[3] / plain[3], 1 - 0.5 * 0.5, "a group played again replaces one started before it")
+near(find(face, 10.7).rect[3] / plain[3], 1 + 0.3, "a group still playing draws again once a later one's pass ends")
 env._now = 10
 
 -- The rail seat's press (KstyleUI_ActionBars/SlabRail.lua, Slab.Ease's smoothing) dips the seat frame 1 to 0.86 and

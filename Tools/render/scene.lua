@@ -348,7 +348,9 @@ end
 -- value multiplied, as a texture's own Scales draw (Solver:solve). latest, when given, is filled as
 -- { anim, x, y, start } with the Scale a frame draws: of those past their start delay in a pass that has not ended
 -- (a group that does not loop ends where clip.lua finishes it), the one that started last on the clock, as a later
--- Scale replaces an earlier one; the client's own rule is unproven (docs/TESTING.md, Action Bars).
+-- Scale replaces an earlier one; the client's own rule is unproven (docs/TESTING.md, Action Bars). Those starts and
+-- ends compare clock times, not the time elapsed since the play, as clip.lua does: 10 + 0.2 is 10.2 while 10.2 - 10
+-- falls short of 0.2, so an elapsed test would draw the earlier state at a later Scale's start or a group's end.
 local function animationState(frame, now, latest)
 	local dx, dy, alpha, absolute, sx, sy, turn = 0, 0, 1, false, 1, 1, 0
 	if type(now) ~= "number" then
@@ -368,12 +370,15 @@ local function animationState(frame, now, latest)
 			local elapsed = now - started
 			local offsets, total = animationSchedule(group)
 			local looping = state(group, "Looping")
-			local ended = looping ~= "REPEAT" and looping ~= "BOUNCE" and elapsed >= total
+			local ended = looping ~= "REPEAT" and looping ~= "BOUNCE" and now >= started + total
+			local pass = started
 			if looping == "REPEAT" and total > 0 then
 				elapsed = elapsed % total
+				pass = now - elapsed
 			elseif clipping and looping == "BOUNCE" and total > 0 then
 				elapsed = elapsed % (2 * total)
 				elapsed = elapsed > total and 2 * total - elapsed or elapsed
+				pass = now - elapsed
 			end
 			local alphaStart = -1
 			for _, anim in ipairs(group._anims or {}) do
@@ -403,8 +408,8 @@ local function animationState(frame, now, latest)
 					local x = (fx or 1) + ((tx or 1) - (fx or 1)) * p
 					local y = (fy or 1) + ((ty or 1) - (fy or 1)) * p
 					sx, sy = sx * x, sy * y
-					local at = now - elapsed + delay
-					if latest and elapsed >= delay and not ended and at >= latest[4] then
+					local at = pass + delay
+					if latest and at <= now and not ended and at >= latest[4] then
 						latest[1], latest[2], latest[3], latest[4] = anim, x, y, at
 					end
 				elseif clipping and mine and anim._type == "Rotation" then
