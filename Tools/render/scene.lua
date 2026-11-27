@@ -339,21 +339,22 @@ local function animated(object)
 	return object._groups or aimed[object]
 end
 
--- animationState(frame, now, latest) -> dx, dy (in the frame's own units), alpha, absolute, sx, sy, turn: what the
+-- animationState(frame, now, active) -> dx, dy (in the frame's own units), alpha, absolute, sx, sy, turn: what the
 -- frame's playing animation groups apply at the clock. A Translation moves the frame by its offset times its progress, an
 -- Alpha animation sets the alpha between its from and to values once its start delay has passed, in place of the
 -- frame's own alpha as the game does (absolute is true then), a Rotation turns it by its degrees or radians times its
 -- progress (SimpleAnimRotationAPIDocumentation.lua), a BOUNCE group plays forward then back, and a finished group
 -- leaves each animation at its end, as the game does until OnFinished hides the frame. sx and sy are every Scale's
--- value multiplied, as a texture's own Scales draw (Solver:solve). latest, when given, is filled as
--- { anim, x, y, start } with the Scale a frame draws: of those past their start delay in a pass that has not ended
--- (a group that does not loop ends where clip.lua finishes it), the one that started last on the clock, as a later
--- Scale replaces an earlier one; the client's own rule is unproven (docs/TESTING.md, Action Bars). Those starts, ends
--- and a repeating group's passes (its play time plus whole passes) are clock times compared with the clock, as clip.lua
--- compares them, and the drawn Scale's progress runs from its clock start: 10 + 0.2 is 10.2 while 10.2 - 10 falls short
--- of 0.2, so a test on the elapsed time would draw the earlier state at a later Scale's start, a group's end or a new
--- pass. The other animations keep sampling the elapsed time.
-local function animationState(frame, now, latest)
+-- value multiplied, as a texture's own Scales draw (Solver:solve). active, when given, gets the Scales a frame draws
+-- appended as anim, x, y triples, with their count in active.n: each one past its start delay in a pass that has not
+-- ended (a group that does not loop ends where clip.lua finishes it), holding its end value until then, and every one
+-- of them multiplies the others, across all the frame's groups, as Forever's own relative chains are written (the
+-- prey widget grows 1 to 1.1 and then 1 to 0.909091, Blizzard_UIWidgetTemplatePreyHuntProgress.xml:66-67). Those
+-- starts, ends and a repeating group's passes (its play time plus whole passes) are clock times compared with the
+-- clock, as clip.lua compares them, and a drawn Scale's progress runs from its clock start: 10 + 0.2 is 10.2 while
+-- 10.2 - 10 falls short of 0.2, so a test on the elapsed time would miss a delayed Scale's start, a group's end or a
+-- new pass by one sample. The other animations keep sampling the elapsed time.
+local function animationState(frame, now, active)
 	local dx, dy, alpha, absolute, sx, sy, turn = 0, 0, 1, false, 1, 1, 0
 	if type(now) ~= "number" then
 		return dx, dy, alpha, absolute, sx, sy, turn
@@ -415,9 +416,11 @@ local function animationState(frame, now, latest)
 					local y = (fy or 1) + ((ty or 1) - (fy or 1)) * p
 					sx, sy = sx * x, sy * y
 					local at = passStart + delay
-					if latest and at <= now and not ended and at >= latest[4] then
+					if active and at <= now and not ended then
 						local q = eased(duration > 0 and math.min(1, (now - at) / duration) or 1, state(anim, "Smoothing"))
-						latest[1], latest[2], latest[3], latest[4] = anim, (fx or 1) + ((tx or 1) - (fx or 1)) * q, (fy or 1) + ((ty or 1) - (fy or 1)) * q, at
+						local n = active.n
+						active[n + 1], active[n + 2], active[n + 3] = anim, (fx or 1) + ((tx or 1) - (fx or 1)) * q, (fy or 1) + ((ty or 1) - (fy or 1)) * q
+						active.n = n + 3
 					end
 				elseif clipping and mine and anim._type == "Rotation" then
 					local degrees, radians = state(anim, "Degrees"), state(anim, "Radians")
@@ -467,12 +470,13 @@ end
 -- A frame's Scale animation changes what is drawn, not the layout: the client scales the frame and everything drawn
 -- under it about the animation's origin (SetOrigin, CENTER when unset, SimpleAnimScaleAPIDocumentation.lua), and
 -- nothing anchored to it moves. drawMap(solver, object) -> { ax, bx, ay, by }: that transform in world units,
--- x -> ax * x + bx and y -> ay * y + by, the object's own frame Scale first and then each ancestor's, found once per
--- object per build. A region's own Scale is not in it: Solver:solve grows a texture's rect as it always has.
+-- x -> ax * x + bx and y -> ay * y + by, the object's own frame Scales in the order its groups list them and then each
+-- ancestor's, found once per object per build. A region's own Scale is not in it: Solver:solve grows a texture's rect
+-- as it always has.
 local REGIONS = { Texture = true, MaskTexture = true, FontString = true, Line = true }
 local IDENTITY = { 1, 0, 1, 0 }
 local drawMaps = {}
-local latest = {}
+local active = { n = 0 }
 
 local function drawMap(solver, object)
 	local map = drawMaps[object]
@@ -481,16 +485,21 @@ local function drawMap(solver, object)
 	end
 	map = object._parent and drawMap(solver, object._parent) or IDENTITY
 	if not REGIONS[object._type] and animated(object) then
-		latest[1], latest[2], latest[3], latest[4] = nil, 1, 1, -math.huge
-		animationState(object, animationClock, latest)
-		local anim, x, y = latest[1], latest[2], latest[3]
-		local rect = anim and solver:rect(object)
+		active.n = 0
+		animationState(object, animationClock, active)
+		local rect = active.n > 0 and solver:rect(object)
 		if rect then
-			local point, ox, oy = state(anim, "Origin")
-			local at, unit = POINTS[point] or POINTS.CENTER, effectiveScale(object)
-			local cx = rect[1] + (rect[3] - rect[1]) * at[1] + num(solver.env, ox, 0) * unit
-			local cy = rect[2] + (rect[4] - rect[2]) * at[2] + num(solver.env, oy, 0) * unit
-			map = { map[1] * x, map[1] * (cx - x * cx) + map[2], map[3] * y, map[3] * (cy - y * cy) + map[4] }
+			local ax, bx, ay, by, unit = 1, 0, 1, 0, effectiveScale(object)
+			for i = 1, active.n, 3 do
+				local x, y = active[i + 1], active[i + 2]
+				local point, ox, oy = state(active[i], "Origin")
+				local at = POINTS[point] or POINTS.CENTER
+				local cx = rect[1] + (rect[3] - rect[1]) * at[1] + num(solver.env, ox, 0) * unit
+				local cy = rect[2] + (rect[4] - rect[2]) * at[2] + num(solver.env, oy, 0) * unit
+				ax, bx = x * ax, cx + x * (bx - cx)
+				ay, by = y * ay, cy + y * (by - cy)
+			end
+			map = { map[1] * ax, map[1] * bx + map[2], map[3] * ay, map[3] * by + map[4] }
 		end
 	end
 	drawMaps[object] = map

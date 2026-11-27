@@ -1,7 +1,7 @@
--- test-render-scale-animations.lua: the renderer draws a frame's playing Scale animations over everything under it, about each animation's origin, with the latest started Scale on a frame replacing an earlier one, ancestors' and textures' own Scales composing with it, and a group that does not loop letting go of its Scales when it ends.
+-- test-render-scale-animations.lua: the renderer draws a frame's playing Scale animations over everything under it, about each animation's origin, every started Scale on a frame multiplying the others and holding its end until its group's pass ends, ancestors' and textures' own Scales composing with them, and a group that does not loop letting go of its Scales when it ends.
 -- Intent: the render tool must draw a mid-flight crest rail medal at its real size (the rail's rise is a Scale on a
--- frame), with a later-started Scale replacing an earlier one, as the task that asked for it reads Blizzard's
--- templates. Fixtures are Blizzard's and the addon's own Scale values.
+-- frame), multiplying a frame's started Scales as the crest's chains are written for and as Forever's own relative
+-- chains assume. Fixtures are Blizzard's and the addon's own Scale values.
 local Stubs = dofile("Tools/regression/stubs/wow.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Guard = dofile("Tools/render/guard.lua")
@@ -53,7 +53,7 @@ end
 env._now = 10
 
 -- The encounter timeline's pulse (Blizzard_EncounterTimeline/EncounterTimelineTrackEvent.xml:50-53) scales the icon
--- frame 1 to 1.1 and then 1 to 0.9, holding the second's end through a 0.6 s end delay, in a loop.
+-- frame 1 to 1.1 and then 1 to 0.9 on top, holding both ends through a 0.6 s end delay, in a loop.
 local icon = box(env.UIParent, 40, 40, 0, 0)
 local art = fill(icon)
 local label = icon:CreateFontString(nil, "OVERLAY")
@@ -85,12 +85,10 @@ near(text.zoom and text.zoom[2], 1 + 0.1 * 0.95 * 0.95, "a frame's Scale draws t
 local _, textY = centre(text.rect)
 near((textY - restY) / (restTextY - restY), 1 + 0.1 * 0.95 * 0.95, "text set below the frame's centre moves out with the Scale")
 near(find(pin, 10.19).rect[1], restPin[1], "a frame anchored to a scaled frame stays where its anchors put it")
--- Multiplying the first Scale's end would draw 1.1 times these. The second starts at 10 + 0.2, which is the clock's
--- 10.2, though 10.2 - 10 falls short of 0.2.
-near(find(art, 10.2).rect[3], rest[3], "a later Scale draws its from value at its start on the clock")
-near(find(art, 10.21).rect[3] / rest[3], 1 - 0.1 * (1 - 0.95 * 0.95), "a later Scale replaces an earlier one from its start")
-near(find(art, 10.3).rect[3] / rest[3], 1 - 0.1 * 0.75, "the later Scale runs on its own")
-near(find(art, 10.5).rect[3] / rest[3], 0.9, "the later Scale holds its end through the end delay")
+-- Drawing only the later Scale would draw these without the 1.1.
+near(find(art, 10.21).rect[3] / rest[3], 1.1 * (1 - 0.1 * (1 - 0.95 * 0.95)), "a later Scale multiplies the earlier one's held end")
+near(find(art, 10.3).rect[3] / rest[3], 1.1 * (1 - 0.1 * 0.75), "the later Scale runs on top of the earlier one's end")
+near(find(art, 10.5).rect[3] / rest[3], 1.1 * 0.9, "both Scales hold their ends through the end delay")
 near(find(art, 11.1).rect[3] / rest[3], 1 + 0.1 * 0.5 * 0.5, "a repeating group starts its Scales over each loop")
 pulse:Stop()
 near(find(art, 10.1).rect[3], rest[3], "a stopped group no longer scales the frame")
@@ -111,6 +109,23 @@ near(half[4] / closed[4], 0.25, "the toast is a quarter open halfway through an 
 near(half[2], closed[2], "a Scale about TOP keeps the top edge still")
 near(half[3], closed[3], "a Scale of 1 across leaves the width")
 
+-- The quest tracker's glow (Blizzard_ObjectiveTracker/Blizzard_ObjectiveTrackerAnimTemplates.xml:41-43) opens across
+-- from nothing about its left edge after a 0.1 s start delay; here the Scale is on a frame. It starts at 10 + 0.1,
+-- which is the clock's 10.1, though 10.1 - 10 falls short of 0.1.
+local strip = box(env.UIParent, 120, 20, 0, -400)
+local glow = fill(strip)
+local shine = strip:CreateAnimationGroup()
+local wipe = scale(shine, { 0, 1 }, { 1, 1 }, 0.66, 1, "OUT")
+wipe:SetStartDelay(0.1)
+wipe:SetOrigin("LEFT", 0, 0)
+local unlit = find(glow, 9.9).rect
+shine:Play()
+near(find(glow, 10.0999).rect[3], unlit[3], "a Scale in its start delay leaves the frame's width")
+near(find(glow, 10.1).rect[3], 0, "a delayed Scale draws its from value at its start on the clock")
+local lit = find(glow, 10.1 + 0.33).rect
+near(lit[3] / unlit[3], 0.75, "the glow is three quarters across halfway through an OUT Scale")
+near(lit[1], unlit[1], "a Scale about LEFT keeps the left edge still")
+
 -- The soulbind node's pickup arrows (Blizzard_Soulbinds/Blizzard_SoulbindsNode.xml:186-190) shrink 1.5 to 1 in 0.3 s
 -- in a loop whose fades last 1.2 s; here the Scale is on a frame and an end delay stands in for the fades. Its second
 -- pass starts at 10 + 1.2, which is the clock's 11.2, though 11.2 - 10 falls short of 1.2.
@@ -127,9 +142,9 @@ near(find(arrowArt, 11.2).rect[3] / arrowRest[3], 1.5, "a repeating frame Scale 
 near(find(arrowArt, 11.35).rect[3] / arrowRest[3], 1.25, "a repeating frame Scale runs from its clock start in a later pass")
 pickup:Stop()
 
--- Two groups on one frame, the second created played first: the one that started last on the clock draws, not the
--- product and not the first or last in creation order. The shrink's passes end at 10 + 0.2 and 10.5 + 0.2, which are
--- the clock's 10.2 and 10.7, though each clock time less its play time falls short of 0.2; clip.lua ends them there.
+-- Two groups on one frame, the second created played first: every started Scale multiplies, whichever group holds it.
+-- The shrink's passes end at 10 + 0.2 and 10.5 + 0.2, which are the clock's 10.2 and 10.7, though each clock time less
+-- its play time falls short of 0.2; clip.lua ends them there.
 local medal = box(env.UIParent, 30, 30, -300, 0)
 local face = fill(medal)
 local swell, shrink = medal:CreateAnimationGroup(), medal:CreateAnimationGroup()
@@ -138,23 +153,23 @@ scale(shrink, { 1, 1 }, { 0.5, 0.5 }, 0.2, 1)
 local plain = find(face, 9.9).rect
 shrink:Play()
 near(find(face, 10.1).rect[3] / plain[3], 1 - 0.5 * 0.5, "the one playing group draws")
-near(find(face, 10.199).rect[3] / plain[3], 1 - 0.5 * 0.995, "a Scale holds its value until its group's pass ends")
+near(find(face, 10.199).rect[3] / plain[3], 1 - 0.5 * 0.995, "a Scale runs until its group's pass ends")
 near(find(face, 10.2).rect[3], plain[3], "a group that does not loop scales nothing from its pass's end on the clock")
 env._now = 10.3
 shrink:Stop()
 shrink:Play()
 env._now = 10.4
 swell:Play()
-near(find(face, 10.45).rect[3] / plain[3], 1 + 0.05, "a group started later replaces one created after it")
+near(find(face, 10.45).rect[3] / plain[3], (1 + 0.05) * (1 - 0.5 * 0.75), "Scales in two playing groups multiply")
 env._now = 10.5
 shrink:Stop()
 shrink:Play()
-near(find(face, 10.6).rect[3] / plain[3], 1 - 0.5 * 0.5, "a group played again replaces one started before it")
-near(find(face, 10.7).rect[3] / plain[3], 1 + 0.3, "a group still playing draws again once a later one's pass ends")
+near(find(face, 10.6).rect[3] / plain[3], (1 - 0.5 * 0.5) * (1 + 0.2), "a group played again multiplies the other group's Scale")
+near(find(face, 10.7).rect[3] / plain[3], 1 + 0.3, "a group still playing draws alone once the other's pass ends")
 env._now = 10
 
--- The rail seat's press (KstyleUI_ActionBars/SlabRail.lua, Slab.Ease's smoothing) dips the seat frame 1 to 0.86 and
--- back while the burst texture under it grows 0.85 to 1.45 on its own.
+-- The rail seat's press (KstyleUI_ActionBars/SlabRail.lua, Slab.Ease's smoothing) dips the seat frame 1 to 0.86 and,
+-- written for multiplying, 1 to 1 / 0.86 on top, while the burst texture under it grows 0.85 to 1.45 on its own.
 local seat = box(env.UIParent, 28, 28, 0, -200)
 local layer = env.CreateFrame("Frame", nil, seat)
 layer:SetAllPoints(seat)
@@ -164,14 +179,14 @@ burst:SetPoint("CENTER", seat, "CENTER", 0, 0)
 burst:SetColorTexture(1, 1, 1, 1)
 local dip = seat:CreateAnimationGroup()
 scale(dip, { 1, 1 }, { 0.86, 0.86 }, 0.12, 1, "IN")
-scale(dip, { 0.86, 0.86 }, { 1, 1 }, 0.12, 2, "OUT")
+scale(dip, { 1, 1 }, { 1 / 0.86, 1 / 0.86 }, 0.12, 2, "OUT")
 local bursting = burst:CreateAnimationGroup()
 scale(bursting, { 0.85, 0.85 }, { 1.45, 1.45 }, 0.4, 1, "OUT")
 local calm = find(burst, 9.9).rect
 dip:Play()
 bursting:Play()
 near(find(burst, 10.06).rect[3] / calm[3], (1 - 0.14 * 0.25) * (0.85 + 0.6 * (1 - 0.85 * 0.85)), "a texture's own Scale composes with its ancestor frame's")
-near(find(burst, 10.18).rect[3] / calm[3], (0.86 + 0.14 * 0.75) * (0.85 + 0.6 * (1 - 0.55 * 0.55)), "the dip's second Scale replaces its first under the burst")
+near(find(burst, 10.18).rect[3] / calm[3], 0.86 * (1 + (1 / 0.86 - 1) * 0.75) * (0.85 + 0.6 * (1 - 0.55 * 0.55)), "the dip's second Scale multiplies its first under the burst")
 near(find(burst, 10.3).rect[3] / calm[3], 0.85 + 0.6 * (1 - 0.25 * 0.25), "an ended dip leaves the burst at its own Scale")
 
 -- The medallion's flip (Core/Widgets/Medallion.lua) opens it across from 0.05 in 0.18 s OUT, so its level text is
@@ -207,4 +222,4 @@ for _, finding in ipairs(Guard.Check(scene)) do
 end
 near(Guard.Ink(flipping)[3] / Guard.Ink(still)[3], across, "the guard draws a flipping text's ink through the flip")
 
-print("ok render scale animations: frame Scales draw their children, the latest started replaces an earlier one about its origin, and they end with their groups")
+print("ok render scale animations: frame Scales draw their children about their origins, every started one multiplies the others until its group's pass ends, and they end with their groups")
