@@ -34,7 +34,6 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 sys.path[:0] = [str(HERE), str(HERE.parent)]
 
-import designs_hunter
 import sigils
 from finish import load, outline, resize, save, to_lin, to_srgb
 from relief import N, Emblem, forge_lineart
@@ -46,8 +45,9 @@ RIM_INNER = 0.49 - 0.045  # the socket plate's radius as a share of the box (rel
 SPAN = 1.25               # a bare figure's cell is this much wider than the figure, so its flames have room
 EDGE = 3                  # cell pixels over which a bare figure's light fades before the cell's edge
 
-# mark: (kind, Core/Tokens.lua colour), "glyphs" (a design in designs_<class>.py) or "sigils" (Tools/media/sigils.py); a
-# glyph seats on the socket when its design seats it. Each class adds its marks as it takes the kit.
+# mark: (kind, Core/Tokens.lua colour, design). A "glyphs" mark's design is its factory in the class's designs module
+# (designs_hunter.D["Hawk"]), whose emblem seats on the socket when it has a seated figure; a "sigils" mark draws
+# Tools/media/sigils.py's figure of its name and takes None. Each class adds its marks as it takes the kit.
 MARKS = {}
 # the amber spell fire of the approved hawk mock: dark ember to the crest's gilt to white heat
 GILT = [[0.0, "000000"], [0.06, "2a0a02"], [0.18, "a8320a"], [0.34, "f26a12"], [0.52, "ffb22e"], [0.72, "ffe39a"], [1.0, "fffdf4"]]
@@ -70,14 +70,14 @@ def palette(hexv):
     return [[pos, "".join(f"{int(round(v * 255)):02x}" for v in np.clip(col, 0, 1))] for pos, col in stops]
 
 
-def figure(name, kind, work):
+def figure(name, kind, design, work):
     """The mark's figure mask and relief height in its own unit box, and whether it sits on a plate."""
     if kind == "sigils":
         pen = sigils.Pen()
         sigils.GLYPHS[name](pen)
         e = forge_lineart(name, pen.image, work / "maps")
         return e.M, e.H, False
-    e = designs_hunter.D[name]()
+    e = design()
     if e.figure is not None:
         return e.figure, np.where(e.figure, e.H, 0), True
     lit = e.M if e.dark is None else e.M & ~e.dark  # a shaded mouth stays dark metal, not light
@@ -167,10 +167,10 @@ def main(argv=None):
     if not only or "Socket" in only:
         path = socket(work, args.blender, env, args.out)
         print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest())
-    for name, (kind, colour) in MARKS.items():
+    for name, (kind, colour, design) in MARKS.items():
         if only and name not in only:
             continue
-        mask, height, seated = figure(name, kind, work)
+        mask, height, seated = figure(name, kind, design, work)
         fields(name, mask, height, work / "fields")
         frames = work / "frames" / name
         shutil.rmtree(frames, ignore_errors=True)

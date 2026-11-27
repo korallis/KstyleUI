@@ -24,7 +24,7 @@ local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local HELD = FLARE[1][3] + FLARE[2][3]
 local OWNER = "ActionBars.SlabMedals"
 local AURA_STILL = 0
-local refreshed, rims, auras, watchers, gates, breaths, NONE = {}, {}, {}, {}, {}, {}, {}
+local refreshed, rims, auras, feds, watchers, gates, breaths, NONE = {}, {}, {}, {}, {}, {}, {}, {}
 local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
 Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP, Medals.PIP, Medals.SETTING = SIZE, 16, 10, 4, PIP, SETTING
 
@@ -89,7 +89,9 @@ end
 local function Burn(fire, moving)
 	fire:SetAlpha(moving and 1 or 0)
 	fire.still:SetAlpha(moving and 0 or 1)
-	if not (moving and fire:IsVisible()) then
+	if fire.fed then
+		return
+	elseif not (moving and fire:IsVisible()) then
 		fire.loop:Stop()
 	elseif not fire.loop:IsPlaying() then
 		fire.loop:Play()
@@ -125,8 +127,10 @@ local function Aura(piece, host, token, size)
 	auras[#auras + 1] = fire
 	local fed = Fed(host)
 	if fed then
+		fire.fed = fed
 		fed.auraLoops = fed.auraLoops or {}
 		fed.auraLoops[#fed.auraLoops + 1] = fire.loop
+		feds[#feds + 1] = fed
 	else
 		if not host.fires then
 			host.fires = {}
@@ -728,13 +732,13 @@ local function Sigil(r, lit, key, family, color, size, bloom)
 	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
 	local art = "sigil" .. family.sigil
 	local pale = select(4, Tokens.Texture(art)) and 1 or nil
+	button.container, button.key, button.family = container, key, family
 	Medals.Mark(r, button, art, size * SIGIL, color, pale, pale, pale)
 	r.add(Medals.Texture(button, "BORDER", 0, "medRing", "white", size))
 	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
 	button.timer:SetAllPoints(button)
 	button:SetDurationCooldown(button.timer)
 	button.ember = Medals.EmberSlot(r, lit, family, size, r:GetFrameLevel() + ABOVE + 2)
-	button.container, button.key, button.family = container, key, family
 	r.sigils[#r.sigils + 1] = button
 end
 
@@ -985,9 +989,9 @@ function Medals.Fire(piece)
 	end
 end
 
-local function Shown(button)
+local function Shown(button, awake)
 	local list = {}
-	for _, each in ipairs({ button.loops or { button.loop }, button.auraLoops or NONE }) do
+	for _, each in ipairs({ button.loops or { button.loop }, awake and button.auraLoops or NONE }) do
 		for _, group in ipairs(each) do
 			list[#list + 1] = group
 		end
@@ -995,11 +999,11 @@ local function Shown(button)
 	return list
 end
 
-local function Wanted(button, mode)
+local function Wanted(button, mode, awake)
 	local flare, flicker = button.flare, button.flicker
 	local gate = flare and (flare.gate or button.hold and button.hold.face and button.hold)
 	return {
-		AuraShown = mode == true and Shown(button) or NONE,
+		AuraShown = mode == true and Shown(button, awake) or NONE,
 		AuraAssigned = { flare and (mode == true and Medals.Arbitrate(flare.play, true, gate) or mode == "calm" and Hold(flare) and Medals.Arbitrate(flare.still, true, gate)) or nil },
 		PandemicActive = { flicker and (mode == true and flicker or mode == "calm" and ns.Slab.Still(flicker)) or nil },
 	}
@@ -1007,19 +1011,19 @@ end
 
 local function Animate(button, mode)
 	mode = mode or false
-	local was = button.full or false
-	if was == mode then
+	local was, awake = button.full or false, button.auraLoops ~= nil and Moving()
+	if was == mode and (button.auraAwake or false) == awake then
 		return false
 	end
-	for verb, state in pairs({ Remove = was, Add = mode }) do
-		for kind, groups in pairs(state and Wanted(button, state) or NONE) do
+	for verb, state in pairs({ Remove = { was, button.auraAwake }, Add = { mode, awake } }) do
+		for kind, groups in pairs(state[1] and Wanted(button, state[1], state[2]) or NONE) do
 			for _, group in ipairs(groups) do
 				button[verb .. kind .. "Animation"](button, group)
 				if verb == "Remove" then group:Stop() end
 			end
 		end
 	end
-	button.full = mode
+	button.full, button.auraAwake = mode, awake
 	return true
 end
 
@@ -1083,8 +1087,17 @@ function Medals.Rest()
 	for _, r in ipairs(rims) do
 		Medals.Still(r, still, 1)
 	end
-	for _, fire in ipairs(Medals.Restricted() and NONE or auras) do
+	local restricted = Medals.Restricted()
+	for _, fire in ipairs(restricted and NONE or auras) do
 		Burn(fire, not still)
+	end
+	local armed = {}
+	for _, button in ipairs(restricted and NONE or feds) do
+		if button.fed ~= nil then
+			Drive(button, button.fed, button.full, armed)
+		elseif button.full ~= nil then
+			Animate(button, button.full)
+		end
 	end
 	local dark, mode = not Effects.Allows("flare") or ns.Slab.Resting(), Effects.Allows("ambient") or Effects.Allows("flare") and "calm" or false
 	for _, gate in ipairs(gates) do

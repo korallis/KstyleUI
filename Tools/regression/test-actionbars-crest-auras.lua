@@ -96,19 +96,40 @@ do
 	assert((figure._state.Texture or {})[1] == texture("sigilVolley") and r + g + b == 0, "and burns over its own figure drawn black")
 end
 
+local function Engine(fire, lit)
+	local bound = false
+	for _, g in ipairs(lit._shownAnimations) do bound = bound or g == fire.loop end
+	return bound
+end
+
 do
+	local plain = Medals.Piece(parent, 5, 30)
+	local t, _, _, _, aura = Medals.Mark(plain, plain, "glyphCheetah", 30, "gilt")
+	assert(not aura and (t._state.Texture or {})[1] == texture("glyphCheetah") and not plain.fires, "a mark with no aura draws as before, with no loop and no hooks")
+end
+
+do
+	Motion("full")
 	local m = Medals.Medal(parent, { feed = "aura", unit = "player", filter = "HELPFUL", spells = { 6673 }, color = "gilt" }, 5)
 	local fire = Medals.Mark(m, m.lit, "glyphHawk", 30, "gilt")
-	assert(Medals.Engine({ m }, true, true), "Engine runs while auras are readable")
-	local shown = false
-	for _, g in ipairs(m.lit._shownAnimations) do shown = shown or g == fire.loop end
-	assert(shown, "under an engine aura button the fire loop is one of the engine's shown animations at Full")
-	Medals.Engine({ m }, true, "calm")
-	shown = false
-	for _, g in ipairs(m.lit._shownAnimations) do shown = shown or g == fire.loop end
-	assert(not shown, "and not below Full")
-	Medals.Engine({ m }, true, true)
+	assert(not m.lit.fires, "a mark under an engine aura button hooks nothing on it")
+	assert(Medals.Engine({ m }, true, true) and Engine(fire, m.lit), "at Full with the crest awake the engine holds the fire loop")
 	Slots.Set(env, "player", { { id = 6673, count = 0, icon = 132333, start = 0, duration = 120 } })
+	assert(m.lit:IsShown() and fire.loop:IsPlaying() and fire:GetAlpha() == 1, "the aura applied: the engine plays the loop")
+	Slots.Set(env, "player", nil)
+	assert(not m.lit:IsShown() and not fire.loop:IsPlaying(), "the aura cleared: the loop stops")
+	Slots.Set(env, "player", { { id = 6673, count = 0, icon = 132333, start = 0, duration = 120 } })
+	env.SetTarget(false)
+	env.RunTimers()
+	assert(ns.Slab.Resting() and not Engine(fire, m.lit) and not fire.loop:IsPlaying() and fire.still:GetAlpha() == 1, "the crest resting: the engine drops the loop, it stops and the still shows")
+	env.SetTarget(true)
+	env.RunTimers()
+	assert(Engine(fire, m.lit) and fire.loop:IsPlaying(), "woken again, the engine holds and replays the loop")
+	Medals.Engine({ m }, true, "calm")
+	Medals.Rest()
+	assert(not Engine(fire, m.lit) and not fire.loop:IsPlaying(), "below Full the engine holds no loop, and Lua never plays it in the engine's place")
+	Medals.Engine({ m }, true, true)
+
 	env._aurasSecret = true
 	env.SetCombat(true)
 	K.Options.Write("Medallions", "motion", "calm")
@@ -121,6 +142,20 @@ do
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
 	Medals.Rest()
 	assert(Still(fire), "once the restriction ends the motion chosen during it shows")
+	Motion("full")
+end
+
+do
+	local rim = Medals.CooldownRim(parent, { families = { { spells = { 3045 }, sigil = "Volley" } }, color = "jewelHawk" }, 5)
+	Medals.Place(rim, parent, 0, 0)
+	local button = rim.sigils[1]
+	assert(not button.fires and button.auraLoops and #button.auraLoops == 1, "a cooldown sigil's aura hands its loop to its engine button and hooks nothing on it")
+	Medals.Engine({ rim }, true, true)
+	local fire
+	for _, region in ipairs(button._regions) do
+		if region.loop then fire = region end
+	end
+	assert(fire and Engine(fire, button), "at Full the sigil's engine button holds the loop")
 end
 
 assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
