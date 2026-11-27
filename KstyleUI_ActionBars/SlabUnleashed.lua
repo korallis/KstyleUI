@@ -1,4 +1,4 @@
--- SlabUnleashed.lua: Unleashed (docs/medallions-effects.md#unleashed), the crest erupting in class fire while a major cooldown burns: each cooldown rim container gets two more slots of its own newest aura, one awake and one still, each under a gate the crest owns, so motion swaps by gate alpha in combat; they hold the class's ambient fire as a corona hugging the ring, a hot line on the ring's edge, the rune glyphs blazing near white and turning at one and a half times combat speed, a dim outer ring draining with the aura and, awake, the class burst growing out of the ring as a cooldown is assigned. Every layer sits under the level badge and inside a 184-unit mask. The player's own cast lifts the emblem; while auras are readable the corona folds and the glyphs cool when the last tracked aura instance goes, and under hidden values they do so the frame after a lit hot line's timer ends or its slot's aura clears, once no tracked slot of the player's or the pet's is still lit and while the switch is on; a slot counts as lit only while its layer is in view, so the game's refresh of the slots as the crest or the switch shows again relights a cooldown still up and folds nothing for one that ended out of view. The switch off detaches and disables the slots at the next legal moment. Under Frames the newest-cooldown medal wears the corona over a breathing glow behind the row.
+-- SlabUnleashed.lua: Unleashed (docs/medallions-effects.md#unleashed), the crest erupting in class fire while a major cooldown burns: each cooldown rim container gets two more slots of its own newest aura, one awake and one still, each under a gate the crest owns, so motion swaps by gate alpha in combat; they hold the class's ambient fire as a corona hugging the ring, a hot line on the ring's edge, the rune glyphs blazing near white and turning at one and a half times combat speed, a dim outer ring draining with the aura and, awake, the class burst growing out of the ring as a cooldown is assigned. Every layer sits under the level badge and inside a 184-unit mask. The player's own cast lifts the emblem; while auras are readable the corona folds and the glyphs cool when the last tracked aura instance goes, and under hidden values they do so the frame after a lit hot line's timer ends or its slot's aura clears, once no tracked slot of the player's or the pet's is still lit and while the switch is on, on the cooldowns piece in view, which for a druid is the form's own; a slot counts as lit only while its layer is in view, and a layer going out of view unlights only its own slot, so the game's refresh of the slots as the crest or the switch shows again relights a cooldown still up and folds nothing for one that ended out of view. The switch off detaches and disables the slots at the next legal moment. Under Frames the newest-cooldown medal wears the corona over a breathing glow behind the row.
 local _, ns = ...
 
 local K = KstyleUI
@@ -125,6 +125,15 @@ local function Majors(families)
 	return ids
 end
 
+local function Lit()
+	for _, set in ipairs(sets) do
+		if set.crest and set.up then
+			return true
+		end
+	end
+	return nil
+end
+
 local function Hold(set)
 	if set.awake:IsVisible() then
 		set.up, state.lit = true, true
@@ -151,7 +160,8 @@ local function Watch(set)
 	end)
 	set.awake.lit:AddAuraShownAnimation(watch)
 	set.awake:SetScript("OnHide", function()
-		set.up, state.lit = nil, nil
+		set.up = nil
+		state.lit = Lit()
 	end)
 end
 
@@ -206,17 +216,15 @@ end
 
 local function Settled()
 	state.settling = nil
-	local fold
-	for _, set in ipairs(sets) do
-		if set.crest and set.up then
-			return
-		end
-		fold = fold or set.fold and set
+	if Lit() then
+		return
 	end
 	local was = state.lit
 	state.lit = nil
-	if was and fold and Medals.Restricted() and ns.Config("crestUnleashed") ~= false then
-		Folds(fold)
+	if was and Medals.Restricted() and ns.Config("crestUnleashed") ~= false then
+		for _, set in ipairs(sets) do
+			Folds(set)
+		end
 	end
 end
 

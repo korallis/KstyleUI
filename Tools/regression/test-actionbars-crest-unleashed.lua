@@ -1,4 +1,4 @@
--- test-actionbars-crest-unleashed.lua: Unleashed (SlabUnleashed.lua): a major cooldown lights the crest's corona, hot line, blazing glyphs and outer ring from the cooldown rim's own aura slots, under the level badge and inside the crest's footprint, flares the class burst as it is assigned and lifts the emblem on the player's own cast; at Full the awake layers loop through the engine, Calm, Off and the crest at rest show the still layers, and the bindings change only out of combat; while auras are readable the corona folds and the glyphs cool when the tracked aura instance goes, whatever was cast, and an unrelated aura event queries nothing; the switch hides it all, stops its one-shots, detaches and disables its slots and stops listening, as disabling the module does; a palette change retints it; nothing is written under an aura button while auras are secret; as the game refreshes the slots when the crest or the switch shows again, a cooldown that began while either was hidden folds when it ends and one that ended while hidden folds nothing; under Frames the cooldown row wears the corona over a glow behind the row.
+-- test-actionbars-crest-unleashed.lua: Unleashed (SlabUnleashed.lua): a major cooldown lights the crest's corona, hot line, blazing glyphs and outer ring from the cooldown rim's own aura slots, under the level badge and inside the crest's footprint, flares the class burst as it is assigned and lifts the emblem on the player's own cast; at Full the awake layers loop through the engine, Calm, Off and the crest at rest show the still layers, and the bindings change only out of combat; while auras are readable the corona folds and the glyphs cool when the tracked aura instance goes, whatever was cast, and an unrelated aura event queries nothing; the switch hides it all, stops its one-shots, detaches and disables its slots and stops listening, as disabling the module does; a palette change retints it; nothing is written under an aura button while auras are secret; as the game refreshes the slots when the crest or the switch shows again, a cooldown that began while either was hidden folds when it ends and one that ended while hidden folds nothing; a druid's crest folds on whichever form's cooldowns piece shows, Barkskin included, also after a shift in either order of the pieces changing; under Frames the cooldown row wears the corona over a glow behind the row.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -20,6 +20,7 @@ local function New(opts)
 				end
 			end
 			e.C_Spell.GetSpellTexture = function(id) return 100000 + id end
+			if opts.forms then e.GetShapeshiftFormID = function() return e._form end end
 			e._slotGroups = true
 			Slots.Install(e)
 			e.AuraContainerSortMethod, e.AuraContainerSortDirection = { Default = 0, AuraInstanceIDOnly = 8 }, { Normal = 0, Reverse = 1 }
@@ -454,6 +455,150 @@ do
 	env.RunTimers()
 	assert(fold.fold.play:IsPlaying() and fold.cool.play:IsPlaying(), "and folds when it ends")
 	Clean(env, K, "pet fold")
+end
+
+-- KSTY-73: a druid's crest has a cooldowns piece for each form (Bear, Cat, caster) and a shift shows only the form's. Under hidden values the corona folds on the
+-- piece that shows as the last cooldown it lit ends, whichever form that is, Barkskin included, which every form's piece tracks.
+do
+	local env, K, ns = New({ class = "DRUID", forms = true })
+	local pieces = {}
+	for _, s in ipairs(ns.SlabUnleashed.sets) do
+		if s.crest then
+			local forms = s.piece.spec.forms
+			pieces[forms and forms[1] or 0] = s
+		end
+	end
+	local caster, cat, bear = pieces[0], pieces[1], pieces[5]
+	assert(caster and cat and bear and caster.fold and cat.fold and bear.fold, "every form's cooldowns piece has a fold of its own")
+	assert(caster.piece:IsVisible() and not cat.piece:IsVisible() and not bear.piece:IsVisible(), "a caster's crest shows the caster piece alone")
+	local function Bark(on)
+		Slots.Set(env, "player", on and { { id = 22812, auraInstanceID = 5, count = 0, start = 0, duration = 12 } } or nil)
+	end
+	local function Shift(form)
+		env._form = form
+		env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	end
+	-- Folded(nil) means no form's piece folds.
+	local function Folded(set)
+		for _, s in ipairs({ caster, cat, bear }) do
+			if s.fold.play:IsPlaying() ~= (s == set) or s.cool.play:IsPlaying() ~= (s == set) then
+				return false
+			end
+		end
+		return true
+	end
+	local function Reset()
+		for _, s in ipairs({ caster, cat, bear }) do
+			s.fold.play:Stop()
+			s.cool.play:Stop()
+		end
+	end
+	-- The timer sits under the aura button, which refuses addon calls once auras are secret, so its handler is read before.
+	local done = {}
+	for _, s in ipairs({ caster, cat, bear }) do
+		done[s] = s.awake.timer:GetScript("OnCooldownDone")
+	end
+	env._slotSight = true
+	env._aurasSecret = true
+	env.SetCombat(true)
+	local shown = caster
+	for _, case in ipairs({ { 0, caster, "caster form" }, { 1, cat, "Cat Form" }, { 5, bear, "Bear Form" } }) do
+		local set, name = case[2], case[3]
+		if set ~= shown then
+			Veil(function() Shift(case[1]) end, shown)
+			Slots.Rebuild(env)
+			shown = set
+		end
+		assert(set.piece:IsVisible(), name .. " shows its own piece")
+		Bark(true)
+		Bark(false)
+		env.RunTimers()
+		assert(Folded(set), "in " .. name .. ", Barkskin's aura clearing folds the corona shown")
+		Reset()
+		Bark(true)
+		done[set](set.awake.timer)
+		env.RunTimers()
+		assert(Folded(set), "in " .. name .. ", Barkskin's timer running out folds the corona shown")
+		Reset()
+		Bark(false)
+		env.RunTimers()
+		assert(Folded(nil), "and its slot clearing afterwards folds nothing more")
+	end
+	-- Barkskin popped in one form and still up as the druid shifts: nothing folds at the shift or as the game refreshes the new form's slots, and the new form's
+	-- crest folds as it ends there.
+	Bark(true)
+	Veil(function() Shift(1) end, bear)
+	env.RunTimers()
+	Slots.Rebuild(env)
+	env.RunTimers()
+	assert(cat.piece:IsVisible() and Folded(nil), "shifting from Bear to Cat Form with Barkskin up folds nothing")
+	Bark(false)
+	env.RunTimers()
+	assert(Folded(cat), "and Barkskin ending in Cat Form folds the cat crest")
+	Reset()
+	-- The tracker shows and hides the pieces in table order, so the new form's slot may light before the old form's layer goes out of view: that layer clears
+	-- only its own slot, and the new form's crest still folds as Barkskin ends.
+	Bark(true)
+	Veil(function()
+		Shift(5)
+		Slots.Rebuild(env)
+	end, cat)
+	env.RunTimers()
+	assert(bear.piece:IsVisible() and Folded(nil), "shifting to Bear Form with Barkskin up folds nothing, whichever order the pieces change in")
+	Bark(false)
+	env.RunTimers()
+	assert(Folded(bear), "and Barkskin ending in Bear Form folds the bear crest")
+	Reset()
+	-- Barkskin running out as the druid shifts, so the new form's first update already finds it gone: neither crest shows it ending, so nothing folds, and
+	-- nothing stays lit to hold back or set off the next fold.
+	Bark(true)
+	Veil(function() Shift(1) end, bear)
+	done[bear](bear.awake.timer)
+	Dark(env)
+	Slots.Rebuild(env)
+	env.RunTimers()
+	assert(cat.piece:IsVisible() and Folded(nil), "Barkskin running out as the druid shifts to Cat Form folds nothing")
+	Bark(true)
+	Bark(false)
+	env.RunTimers()
+	assert(Folded(cat), "and the next ending in Cat Form folds the cat crest")
+	Reset()
+	Veil(function() Shift(5) end, cat)
+	Slots.Rebuild(env)
+	-- Innervate is tracked by the caster piece alone: up as the druid shifts to Cat Form and ending there, it folds nothing in Cat Form, which never lit for it,
+	-- and nothing as the caster crest comes back.
+	Veil(function() Shift(0) end, bear)
+	Slots.Rebuild(env)
+	Slots.Set(env, "player", { { id = 29166, auraInstanceID = 6, count = 0, start = 0, duration = 20 } })
+	Veil(function() Shift(1) end, caster)
+	Slots.Rebuild(env)
+	Slots.Set(env, "player", nil)
+	done[caster](caster.awake.timer)
+	env.RunTimers()
+	assert(Folded(nil), "Innervate ending in Cat Form folds nothing")
+	Veil(function() Shift(0) end, cat)
+	env.RunTimers()
+	Slots.Rebuild(env)
+	env.RunTimers()
+	assert(caster.piece:IsVisible() and Folded(nil), "nor as the caster crest comes back and the game clears its slot")
+	Bark(true)
+	Bark(false)
+	env.RunTimers()
+	assert(Folded(caster), "and the next real ending folds the caster crest")
+	Reset()
+	-- Barkskin and Innervate up together in caster form: the slot shows the newer, Barkskin, and Barkskin ending gives the slot to Innervate, so nothing folds until
+	-- Innervate ends too.
+	local innervate = { id = 29166, auraInstanceID = 6, count = 0, start = 0, duration = 20 }
+	Slots.Set(env, "player", { innervate })
+	Slots.Set(env, "player", { innervate, { id = 22812, auraInstanceID = 7, count = 0, start = 0, duration = 12 } })
+	done[caster](caster.awake.timer)
+	Slots.Set(env, "player", { innervate })
+	env.RunTimers()
+	assert(Folded(nil), "Barkskin ending while Innervate is still up folds nothing")
+	Slots.Set(env, "player", nil)
+	env.RunTimers()
+	assert(Folded(caster), "and Innervate ending, the last, folds the caster crest")
+	Clean(env, K, "druid forms")
 end
 
 -- Frames: the cooldown row wears the corona, over a breathing glow behind the row.
