@@ -566,7 +566,7 @@ The art the crest's storm orbs draw (`KstyleUI_ActionBars/SlabStorm.lua`, tokens
 
 ## Medallions crest trackers (2026-11-23)
 
-The art the ranged crest trackers drew flat (`KstyleUI_ActionBars/SlabRanged.lua`, tokens `trackerWisp` and `trackerGust`), in its own folder apart from the style kit. The crest now burns both as auras (`Media/Textures/Auras/Trackers/`): the flat wisp stays as the black figure under the wisp's aura, and the flat gust is no longer drawn. Each is drawn by `Tools/media/crest_trackers.py` (run it to rebuild both; the output is byte-identical); no model, no source image and no game file is an input. The bursts, halos and rim fire the trackers also show reuse the kit's `Burst<Class>.png` and `Ambient<Class>.png`, and the spires the shipped `Pips/PipSpire*` art.
+The art the ranged crest trackers drew flat (`KstyleUI_ActionBars/SlabRanged.lua`, tokens `trackerWisp` and `trackerGust`), in its own folder apart from the style kit. The crest now burns both as auras (in the auras' `Trackers` folder): the flat wisp stays as the black figure under the wisp's aura, and the flat gust is no longer drawn. Each is drawn by `Tools/media/crest_trackers.py` (run it to rebuild both; the output is byte-identical); no model, no source image and no game file is an input. The bursts, halos and rim fire the trackers also show reuse the kit's `Burst<Class>.png` and `Ambient<Class>.png`, and the spires the shipped `Pips/PipSpire*` art.
 
 | File | Size | What it is | Source | Processing | Date |
 | --- | --- | --- | --- | --- | --- |
