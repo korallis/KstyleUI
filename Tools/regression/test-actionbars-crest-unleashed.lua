@@ -214,6 +214,18 @@ do
 	local env, K, ns = New()
 	local set = ns.SlabUnleashed.sets[1]
 	local done = set.awake.timer:GetScript("OnCooldownDone")
+	-- Only a lit slot's timer running out is an ending, so one on a slot not lit queues no deferred check: counting the queued checks tells that apart from a check
+	-- that runs and finds nothing to fold.
+	local function Queued(timer)
+		local after, count = env.C_Timer.After, 0
+		env.C_Timer.After = function(...)
+			count = count + 1
+			return after(...)
+		end
+		done(timer)
+		env.C_Timer.After = after
+		return count
+	end
 	env._aurasSecret = true
 	env.SetCombat(true)
 	Slots.Set(env, "player", Reck())
@@ -262,9 +274,9 @@ do
 	Reset()
 	Dark(env)
 	env.RunTimers()
-	done(set.awake.timer)
+	assert(Queued(set.awake.timer) == 0, "a timer's end when nothing was lit queues no check")
 	env.RunTimers()
-	assert(not set.fold.play:IsPlaying(), "and does not replay from a timer's end when nothing was lit")
+	assert(not set.fold.play:IsPlaying(), "and does not replay the fold")
 	Slots.Set(env, "player", Reck())
 	K.Options.Write("Medallions", "motion", "off")
 	Dark(env)
@@ -276,24 +288,21 @@ do
 	Dark(env)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "switched off in combat, the slots the game still drives fold nothing")
-	-- Still switched off: the game assigns a cooldown to the slots it still drives. The burst nobody sees takes no place among the crest's flares (a place it held
-	-- would be taken from it by the next flare, which darkens the older one's layer), and the hidden slot counts as no lit cooldown, so its running out folds nothing
-	-- when the switch comes back before the next frame.
+	-- Still switched off, the fake feeds a cooldown to the hidden slot, which the game does not do for a container out of view: a synthetic check of the crest's flare
+	-- arbitration, not an assignment the game makes. The burst nobody sees takes no place among the crest's flares (a place it held would be taken from it by the next
+	-- flare, which darkens the older one's layer), and the hidden slot never lit, so its running out queues no check and folds nothing when the switch comes back
+	-- before the next frame.
 	local showing = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
 	Slots.Set(env, "player", Reck())
 	env._engine = true
 	local grew = set.awake.burst.lit.flare.play:IsPlaying()
 	env._engine = nil
 	showing:Play()
-	assert(grew and showing:IsPlaying() and set.awake.burst:GetAlpha() == 1, "switched off, the burst the game still plays unseen holds no place for the next flare to take")
+	assert(grew and showing:IsPlaying() and set.awake.burst:GetAlpha() == 1, "switched off, a burst played unseen holds no place for the next flare to take")
 	showing:Stop()
-	-- The timer's own deferred check is held back here until the switch is back on and painted, the order in which a fold would show.
-	local after, held = env.C_Timer.After, {}
-	env.C_Timer.After = function(_, fn) held[#held + 1] = fn end
-	done(set.awake.timer)
-	env.C_Timer.After = after
+	assert(Queued(set.awake.timer) == 0, "switched off, the unseen cooldown's timer running out queues no check")
 	Slots.Set(env, "player", nil)
-	local dims = {}
+	local after, dims = env.C_Timer.After, {}
 	env.C_Timer.After = function(_, fn) dims[#dims + 1] = fn end
 	K.Options.Write("ActionBars", "crestUnleashed", true)
 	env.C_Timer.After = after
@@ -301,8 +310,7 @@ do
 	for _, fn in ipairs(dims) do fn() end
 	assert(set.awake.burst:GetAlpha() == 1, "and shows again once that time is over")
 	env.RunTimers()
-	for _, fn in ipairs(held) do fn() end
-	assert(not set.fold.play:IsPlaying(), "a cooldown assigned and run out while switched off folds nothing when the switch comes back")
+	assert(not set.fold.play:IsPlaying(), "a cooldown fed and run out while switched off folds nothing when the switch comes back")
 	Slots.Set(env, "player", nil)
 	Reset()
 	K.Options.Write("ActionBars", "crestUnleashed", true)
@@ -351,7 +359,7 @@ do
 	Slots.Set(env, "player", Reck())
 	Veil(function() set.piece:Hide() end, set)
 	Dark(env)
-	done(set.awake.timer)
+	assert(Queued(set.awake.timer) == 0, "a timer that runs out while the crest is hidden queues no check")
 	set.piece:Show()
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "a timer that ran out while the crest was hidden folds nothing when it shows again in the same frame")
@@ -361,7 +369,7 @@ do
 	Slots.Set(env, "player", Reck())
 	Veil(function() K.Options.Write("ActionBars", "crestUnleashed", false) end, set)
 	Dark(env)
-	done(set.awake.timer)
+	assert(Queued(set.awake.timer) == 0, "a timer that runs out while switched off queues no check")
 	K.Options.Write("ActionBars", "crestUnleashed", true)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "a timer that ran out while switched off folds nothing when the switch comes back in the same frame")
