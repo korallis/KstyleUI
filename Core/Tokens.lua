@@ -611,24 +611,10 @@ for _, set in ipairs({
 		end
 	end
 end
-local BARE_AURAS = { Counter = true, Mongoose = true, Raptor = true }
-for kind, names in pairs({
-	Glyph = { "Beast", "BlackArrow", "Cheetah", "Compass", "Counter", "Haunch", "Hawk", "Hound", "Lacerate", "Mongoose", "Monkey", "Pack",
-		"Raptor", "Scorpid", "Serpent", "Trueshot", "Viper", "ViperSting", "Wild", "Wyvern" },
-	Sigil = { "Aimed", "Charm", "Deflect", "FireTrap", "Intimidate", "Paw", "Sniper", "Strider", "Volley" },
-	Figure = { "Arrow75", "Arrow90", "Arrow105", "HawkPerch", "HawkPerchMirror" },
-}) do
-	for _, name in ipairs(names) do
-		local token = "aura" .. kind .. name
-		TEXTURES[token] = { file = "Textures\\Auras\\" .. kind .. "s\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44,
-			span = (kind ~= "Glyph" or BARE_AURAS[name]) and 1.25 or nil }
-		if kind ~= "Figure" then
-			TEXTURES[kind:lower() .. name].aura = token
-		end
-	end
+for _, name in ipairs({ "Bolt", "Bubble", "Crystal", "Curse", "Deflect", "Focus", "Infusion", "Innervate", "Paw", "Sun", "Sweep", "Swift", "Veil", "Void", "Vortex" }) do
+	TEXTURES["pop" .. name] = { file = "Textures\\Sigils\\" .. name .. ".png", aura = "auraPopoff" .. name }
+	TEXTURES["auraPopoff" .. name] = { file = "Textures\\Auras\\Popoffs\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25 }
 end
-TEXTURES.auraSigilFireTrapFuse = { file = "Textures\\Auras\\Sigils\\FireTrapFuse.png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25 }
-TEXTURES.sigilFireTrapFuse = { file = TEXTURES.sigilFireTrap.file, forged = true, aura = "auraSigilFireTrapFuse" }
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do

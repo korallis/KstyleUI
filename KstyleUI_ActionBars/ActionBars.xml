@@ -32,6 +32,7 @@
 	<Script file="SlabRings.lua"/>
 	<Script file="SlabOrb.lua"/>
 	<Script file="SlabRanged.lua"/>
+	<Script file="SlabPopoffs.lua"/>
 	<Script file="SlabTarget.lua"/>
 	<Script file="Totems.lua"/>
 	<Script file="Bindings.lua"/>

@@ -56,6 +56,7 @@ stateDiagram-v2
 | `KstyleUI_ActionBars/Slab.lua` | `OnStyle`: `Slab.Refresh` shows the action slab and the crest hub under Medallions while bars 1 and 2 stand on one baseline, hides them otherwise, and starts or stops each proc slot's Medallions loop. Bars 1 and 2 take the slab's one row (`Slab.Rows`) and its slot size (`Slab.Size`, from `Layouts.MedallionsGroup`), and at 16:9 the pet and stance bars its two rows of five, when Layout's `LayoutChanged` lays them out again. |
 | `KstyleUI_ActionBars/Totems.lua` | `Totems.Update`, from `Slab.Refresh`: a shaman's totem bar (Spirit Poles) shows on the crest hub under Medallions and as a row at the stance bar's place under Frames, and while it shows it hides Blizzard's `MultiCastActionBarFrame` and the Ghost Wolf stance bar; turning the totem bar off (or the slab off under Medallions) gives both back, out of combat. |
 | `KstyleUI_ActionBars/SlabTarget.lua` | `SlabTarget.Update`, from `Slab.Refresh`: the target lock's claws and rank gem show on the crest hub under Medallions and hide under Frames, which has none. The kill window is a tracker row, so `SlabTrackers.Update` moves it from the crest's inner rim to a red line under the Frames tracker row. |
+| `KstyleUI_ActionBars/SlabPopoffs.lua` | The signature pop-offs are crest-only tracker rows: `SlabTrackers.Update` builds and shows them on the crest hub under Medallions and has no Frames row for them, so Frames shows none and a running fold stops with the crest. |
 
 ## Medallions in the module listeners
 

@@ -4,7 +4,7 @@ local Scene = dofile("Tools/render/scene.lua")
 
 local Effects = {}
 
-local STATES = { ready = true, cap = true, tide = true, mantle = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true, storm = true, crest = true, kill = true, lock = true }
+local STATES = { ready = true, cap = true, tide = true, mantle = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true, storm = true, popoffs = true, crest = true, kill = true, lock = true }
 
 -- The crest story RENDER_FX=crest plays: a target at 0 s, the target lost at 4 s (the crest settles), combat at 10 s.
 -- The hub's loops run at each phase's speed, which the harness's clock does not scale, so the story starts each loop
@@ -26,6 +26,10 @@ local HAWKS = {
 	{ at = 44.5, slot = 3 },
 }
 
+-- The pop-off story RENDER_FX=popoffs plays, as aura slot changes: each of the class's signature auras gained at 1 s
+-- for POP_LIFE seconds, so 1.2 s catches the rise, 6 s the aura running, 10.5 s its amber last fifth and 13.2 s the fold.
+local POP_START, POP_LIFE, POP_HELD = 1, 12, 0.7
+
 -- The Lightning Shield story RENDER_FX=storm plays, as the shield's charges and the player's casts in order: a cast at
 -- 1 s, then three strikes at least the shield's 3.5 s proc recovery apart, the last ending the shield.
 local STORM = {
@@ -46,7 +50,7 @@ function Effects.State()
 	if not state or state == "" then
 		return nil
 	end
-	assert(STATES[state], "RENDER_FX must be one of ready, cap, tide, mantle, levelup, cast, stopped, vignette, burst, rest, jewels, hawks, storm, crest, kill or lock")
+	assert(STATES[state], "RENDER_FX must be one of ready, cap, tide, mantle, levelup, cast, stopped, vignette, burst, rest, jewels, hawks, storm, popoffs, crest, kill or lock")
 	local t = tonumber(rawget(_G, "RENDER_FX_T") or os.getenv("RENDER_FX_T") or "")
 	return state, t
 end
@@ -221,6 +225,71 @@ function Effects.Apply(env, module, ns, notes)
 			end
 			env.GetTime = clock
 			notes[#notes + 1] = "fx: the hawk perches " .. at .. " s into the story"
+		elseif state == "popoffs" then
+			-- A character who knows every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua),
+			-- RENDER_FX_T seconds into the pop-off story (1.2 when unset): the aura slots gain each pop-off's aura at
+			-- POP_START and lose it POP_LIFE seconds later. RENDER_POPOFF_MOTION sets Medallions motion, and
+			-- RENDER_POPOFFS=off turns the setting off.
+			local at = t or 1.2
+			local _, class = env.UnitClass("player")
+			local rows
+			for _, entry in ipairs(ns.SlabPopoffs.CLASSES) do
+				rows = entry[1] == class and entry[2] or rows
+			end
+			local known = {}
+			for _, row in ipairs(rows or {}) do
+				for _, id in ipairs(row.known or row.spells) do known[id] = true end
+			end
+			env.C_SpellBook = env.C_SpellBook or {}
+			local before = env.C_SpellBook.IsSpellKnown
+			env.C_SpellBook.IsSpellKnown = function(id, bank) return known[id] == true or before ~= nil and before(id, bank) end
+			local Slots = dofile("Tools/regression/aura_slots.lua")
+			if not env._slotContainers then Slots.Install(env) end
+			local motion = os.getenv("RENDER_POPOFF_MOTION")
+			if motion and motion ~= "" then
+				K.Options.Write("Medallions", "motion", motion)
+			end
+			if os.getenv("RENDER_POPOFFS") == "off" then
+				K.Options.Write("ActionBars", "crestPopoffs", false)
+			end
+			ns.SlabTrackers.Update()
+			local clock = env.GetTime
+			env.GetTime = function() return env._now end
+			local units = {}
+			for _, row in ipairs(rows or {}) do
+				local unit = row.unit or "player"
+				units[unit] = units[unit] or {}
+				local list = units[unit]
+				list[#list + 1] = { id = row.spells[1], duration = POP_LIFE }
+			end
+			for _, beat in ipairs({ { POP_START, true }, { POP_START + POP_LIFE, false } }) do
+				if beat[1] <= at then
+					env._now = env._time - (at - beat[1])
+					for unit, list in pairs(units) do
+						for _, aura in ipairs(list) do
+							aura.start = beat[2] and env._now or aura.start
+						end
+						Slots.Set(env, unit, beat[2] and list or nil)
+					end
+					-- The stub hides a slot without running its shown groups' OnStop, which the game runs when the aura
+					-- goes, so the story runs each pop-off's by hand.
+					if not beat[2] then
+						for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+							local stop = p.watch and p.watch._scripts.OnStop
+							if stop then
+								stop(p.watch)
+							end
+						end
+						env.RunTimers()
+					end
+				end
+			end
+			-- The stub runs every pending timer at once, so the crest's flare claims end only once a flare is over.
+			if at - POP_START > POP_HELD then
+				env.RunTimers()
+			end
+			env.GetTime = clock
+			notes[#notes + 1] = "fx: the " .. tostring(class) .. " pop-offs " .. at .. " s into the story"
 		elseif state == "storm" then
 			-- A shaman who knows Lightning Shield, RENDER_FX_T seconds into the STORM story (2.5 when unset): the aura
 			-- slots take each charge count and the addon's own handler each cast, at its own time on the clock.
