@@ -4,8 +4,7 @@ A forged mark is a small cast-metal object, not a flat sign: a hawk's head for A
 (relief.py) raised from layered shapes, lit and rendered by Blender in bright neutral metal (forge.py), given a dark outline
 (thin on a plate, heavy on a figure with none) and reduced to 128 px (finish.py). The crest tints the neutral metal (KstyleUI_ActionBars/SlabMedals.lua,
 Medals.Mark): gold with a halo in the spell's colour at 24 units and over; below that the spell's colour, or white for a
-cooldown sigil; steel for an unlit perch. A texture drawn this way is flagged forged in Core/Tokens.lua. A hunter's lit
-mark draws its animated aura (auras.py) instead, over the empty socket or over this figure drawn black.
+cooldown sigil; steel for an unlit perch. A texture drawn this way is flagged forged in Core/Tokens.lua.
 
 The hunter's 17 glyphs, the pet's Haunch among them, are drawn in designs_hunter.py. The hunter's three cooldown sigils (Volley, Deflect, Paw) keep
 the drawing Tools/media/sigils.py gives them, with its shapes raised as ridges and the gaps between them left open.

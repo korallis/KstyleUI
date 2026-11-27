@@ -1,7 +1,6 @@
 -- test-actionbars-crest-ranged.lua: a hunter's, mage's and warlock's crest trackers (KstyleUI_ActionBars/SlabRanged.lua) through the one tracker lifecycle: no other class registers them; every seat has a choice for each build, pet state and level band (Raptor Strike and Arcane Shot before the Aspect and the pet, a melee hunter's strike for the Mark, Arcane Intellect before the mana gem, the mage's school debuff by talent, armor for a warlock with no demon); aura pieces light through Blizzard's aura slots and Lua reads no aura; the pet's light along the band is its health as a bar fed the engine's values, with a forged haunch only below Happy (amber light and halo at Content, red at Unhappy, gilt and no haunch at Happy, none for a secret value), moved by UNIT_HAPPINESS alone, landing, breathing, blinking for 3 s and fading green by the motion level, gone with the pet, and Mend Pet's motes; the fuse's head rides its fill and the Mark's reticle closes in; the gem and Healthstone are lit, cooling or empty from bag counts and item cooldowns; each spire stands alone once known and drains through duration bars; the soul wisps count Soul Shards up to five with a faint rim at five or more, fly in, burst and circle only at Full off rest, the first one too, and replace the shard jewels; Rapid Fire alone gusts; only your own school debuff lights its embers; cooldown rims stack the class's cooldowns, a pet's Bestial Wrath among them; moments hand the engine their flares and fires only at Full; secret auras build nothing until combat ends; each switch hides its seat alone; Frames stands the seats in the row; a mana update asks the bags nothing and every shot reuses one duration object; nothing loads for any other class; nothing runs OnUpdate; every crest part is an even number of pixels at four screen sizes and the spires stay under the cooldown row.
 local R = dofile("Tools/regression/ranged_env.lua")
 local AB, Slots, SIZES, New, Piece, Seated, Shown, Updating, Clean, Tint, Learn = R.AB, R.Slots, R.SIZES, R.New, R.Piece, R.Seated, R.Shown, R.Updating, R.Clean, R.Tint, R.Learn
-local Aura, Halo = R.Aura, R.Halo
 
 for _, class in ipairs({ "WARRIOR", "SHAMAN", "ROGUE", "PRIEST", "PALADIN", "DRUID" }) do
 	local env, K, ns = New(class, { known = { 13165, 168, 172, 688 }, bags = { [6265] = 3 } })
@@ -31,9 +30,9 @@ do
 	local aspect, mark, sting, pet = Piece(ns, "crestAspect"), Piece(ns, "crestMark"), Piece(ns, "crestSting"), Piece(ns, "crestPet")
 	assert(aspect:IsShown() and aspect.rest:IsShown() and not aspect.lit:IsShown(), "no Aspect up: a dark steel hawk perched on the ring")
 	Slots.Set(env, "player", { { id = 14318, icon = 136076, start = 0 } })
-	assert(aspect.lits[1]:IsShown() and not aspect.lits[7]:IsShown() and Aura(aspect.lits[1].art, "Glyphs\\Hawk") and Tint(Halo(aspect.lits[1].art), K, "gilt"), "Aspect of the Hawk lights the perched hawk as its aura in a gilt halo")
+	assert(aspect.lits[1]:IsShown() and not aspect.lits[7]:IsShown() and Tint(aspect.lits[1].art, K, "gilt", 0.1), "Aspect of the Hawk lights the perched hawk gilt")
 	Slots.Set(env, "player", { { id = 415423, icon = 132160, start = 0 } })
-	assert(aspect.lits[7]:IsShown() and not aspect.lits[1]:IsShown() and Aura(aspect.lits[7].art, "Glyphs\\Viper") and Tint(Halo(aspect.lits[7].art), K, "magic"), "Aspect of the Viper lights its coil as its aura in a mana blue halo")
+	assert(aspect.lits[7]:IsShown() and not aspect.lits[1]:IsShown() and Tint(aspect.lits[7].art, K, "magic", 0.1), "Aspect of the Viper lights its coil mana blue")
 	assert(Shown(aspect.lits[7], aspect.lits[7].loop), "at Full the glyph breathes as the engine's shown animation")
 	Slots.Set(env, "target", { { id = 1130, icon = 132212, harmful = true, start = 0, duration = 120 }, { id = 24131, icon = 135125, harmful = true, mine = true, start = 2, duration = 12 } })
 	assert(mark.lit:IsShown() and Shown(mark.lit, mark.lit.loops[2]) and Shown(mark.lit, mark.lit.loops[1]), "the Mark's reticle closes in over the emblem and gleams")
@@ -64,15 +63,16 @@ do
 	env.FireEvent("UNIT_HAPPINESS", "pet")
 	local feed = pet.feed
 	assert(feed and feed.seat:IsShown() and feed.gold and Tint(feed.tint, K, "neutral") and Light("neutral"), "Content: the haunch lands, its halo and the pet's light amber")
-	local body = feed.seat._regions[3]
-	assert(Aura(feed.sheen, "Glyphs\\Haunch") and body:GetTexture():find("Socket", 1, true) and Tint(body, K, "coinGold"), "the haunch burns as its aura in the forged gold socket")
+	local body = feed.seat._regions[2]
+	assert(body:GetTexture():find("Haunch", 1, true) and Tint(body, K, "coinGold"), "the haunch's body is the forged gold Haunch")
+	local sheen = table.concat({ feed.sheen:GetVertexColor() }, ",")
 	assert(feed.land:IsPlaying() and not feed.breath:IsPlaying() and not feed.blink:IsPlaying(), "at Full the drop lands with one flare; the crest at rest holds Content's halo still")
 	env.SetTarget(true)
 	assert(feed.breath:IsPlaying(), "awake, Content's halo breathes")
 	env._pet.mood = 1
 	env.FireEvent("UNIT_HAPPINESS", "pet")
 	assert(feed.seat:IsShown() and Tint(feed.tint, K, "hostile") and Light("hostile"), "Unhappy: the haunch and the pet's light turn red")
-	assert(Tint(body, K, "coinGold") and Aura(feed.sheen, "Glyphs\\Haunch"), "the mood colours only the halo: the haunch's socket stays gold and its aura keeps its own light")
+	assert(Tint(body, K, "coinGold") and table.concat({ feed.sheen:GetVertexColor() }, ",") == sheen, "the mood colours only the halo: the haunch itself stays gold")
 	assert(feed.blink:IsPlaying() and not feed.breath:IsPlaying(), "reaching Unhappy blinks the halo and stops the breath")
 	local steps = 0
 	for _, a in ipairs(feed.blink._anims) do steps = steps + a._state.Duration[1] end

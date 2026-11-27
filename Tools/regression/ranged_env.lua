@@ -120,21 +120,6 @@ local function Tint(region, K, token, white)
 	return math.abs(vr - r) + math.abs(vg - g) + math.abs(vb - b) < 1e-3
 end
 
--- Aura(region, sheet) -> whether the region draws that mark's looping aura sheet ("Glyphs\\Hawk" under Media/Textures/Auras) as untinted light: the KSTY-51 plan bakes each aura's colour from its spell's.
-local function Aura(region, sheet)
-	local state = region._state or {}
-	local r, g, b = region:GetVertexColor()
-	return tostring((state.Texture or {})[1]):find("Auras\\" .. sheet .. ".png", 1, true) ~= nil and (state.BlendMode or {})[1] == "ADD" and r == 1 and g == 1 and b == 1
-end
-
--- Halo(region) -> the additive glow beside a mark, which carries the spell's colour.
-local function Halo(region)
-	for _, each in ipairs(region:GetParent()._regions) do
-		local state = each._state or {}
-		if tostring((state.Texture or {})[1]):find("Glow.png", 1, true) and (state.BlendMode or {})[1] == "ADD" then return each end
-	end
-end
-
 -- Icons(frame, found) -> found, listing every region under frame that shows a spell or item icon: a texture given a
 -- file ID, or a region an aura slot paints its aura's icon into.
 local function Icons(frame, found)
@@ -153,4 +138,4 @@ local function Learn(env, ...)
 end
 
 
-return { AB = AB, Slots = Slots, SIZES = SIZES, KNOWN = KNOWN, New = New, Piece = Piece, Seated = Seated, Shown = Shown, Updating = Updating, Clean = Clean, Tint = Tint, Aura = Aura, Halo = Halo, Icons = Icons, Learn = Learn }
+return { AB = AB, Slots = Slots, SIZES = SIZES, KNOWN = KNOWN, New = New, Piece = Piece, Seated = Seated, Shown = Shown, Updating = Updating, Clean = Clean, Tint = Tint, Icons = Icons, Learn = Learn }

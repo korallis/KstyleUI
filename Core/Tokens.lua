@@ -540,20 +540,6 @@ for _, name in ipairs({
 }) do
 	TEXTURES[name].forged = true
 end
-for kind, names in pairs({
-	Glyph = { "Beast", "BlackArrow", "Cheetah", "Counter", "Haunch", "Hawk", "Lacerate", "Mongoose", "Monkey", "Pack", "Raptor", "Scorpid",
-		"Serpent", "Viper", "ViperSting", "Wild", "Wyvern" },
-	Sigil = { "Deflect", "Paw", "Volley" },
-}) do
-	for _, name in ipairs(names) do
-		local token = "aura" .. kind .. name
-		TEXTURES[token] = { file = "Textures\\Auras\\" .. kind .. "s\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44 }
-		TEXTURES[kind:lower() .. name].aura = token
-	end
-end
-for _, name in ipairs({ "auraGlyphCounter", "auraGlyphMongoose", "auraGlyphRaptor", "auraSigilDeflect", "auraSigilPaw", "auraSigilVolley" }) do
-	TEXTURES[name].span = 1.25
-end
 TEXTURES.auraSocket = { file = "Textures\\Auras\\Socket.png" }
 
 local RGBA = {}

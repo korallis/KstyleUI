@@ -89,10 +89,31 @@ end
 local function Burn(fire, moving)
 	fire:SetAlpha(moving and 1 or 0)
 	fire.still:SetAlpha(moving and 0 or 1)
-	if not moving then
+	if not (moving and fire:IsVisible()) then
 		fire.loop:Stop()
 	elseif not fire.loop:IsPlaying() then
 		fire.loop:Play()
+	end
+end
+
+local function Fed(frame)
+	while frame do
+		if frame.container then
+			return frame
+		end
+		frame = frame:GetParent()
+	end
+end
+
+local function Showing(host)
+	for _, fire in ipairs(host.fires) do
+		Burn(fire, Moving())
+	end
+end
+
+local function Hiding(host)
+	for _, fire in ipairs(host.fires) do
+		fire.loop:Stop()
 	end
 end
 
@@ -102,6 +123,18 @@ local function Aura(piece, host, token, size)
 	fire.still = piece.add(Cell(Medals.Texture(host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, AURA_STILL))
 	fire.loop = Medals.Flip(fire, token, 1)
 	auras[#auras + 1] = fire
+	local fed = Fed(host)
+	if fed then
+		fed.auraLoops = fed.auraLoops or {}
+		fed.auraLoops[#fed.auraLoops + 1] = fire.loop
+	else
+		if not host.fires then
+			host.fires = {}
+			host:HookScript("OnShow", Showing)
+			host:HookScript("OnHide", Hiding)
+		end
+		host.fires[#host.fires + 1] = fire
+	end
 	Burn(fire, Moving())
 	return fire, span > 1
 end
@@ -952,11 +985,21 @@ function Medals.Fire(piece)
 	end
 end
 
+local function Shown(button)
+	local list = {}
+	for _, each in ipairs({ button.loops or { button.loop }, button.auraLoops or NONE }) do
+		for _, group in ipairs(each) do
+			list[#list + 1] = group
+		end
+	end
+	return list
+end
+
 local function Wanted(button, mode)
 	local flare, flicker = button.flare, button.flicker
 	local gate = flare and (flare.gate or button.hold and button.hold.face and button.hold)
 	return {
-		AuraShown = mode == true and (button.loops or { button.loop }) or NONE,
+		AuraShown = mode == true and Shown(button) or NONE,
 		AuraAssigned = { flare and (mode == true and Medals.Arbitrate(flare.play, true, gate) or mode == "calm" and Hold(flare) and Medals.Arbitrate(flare.still, true, gate)) or nil },
 		PandemicActive = { flicker and (mode == true and flicker or mode == "calm" and ns.Slab.Still(flicker)) or nil },
 	}

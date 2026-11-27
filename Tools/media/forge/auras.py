@@ -1,6 +1,6 @@
 """Bake the crest's animated auras into Media/Textures/Auras/: one looping flip-book sheet per mark, and the empty socket they burn in.
 
-An aura is a mark's own figure made of moving spell light. Its design (designs_hunter.py, Tools/media/sigils.py) gives
+An aura is a mark's own figure made of moving spell light. Its design (designs_<class>.py, Tools/media/sigils.py) gives
 the silhouette and relief; this writes a signed distance field and a ridge map from them, has Blender render 16
 frames at 512 px with EEVEE (aura.py), reduces each frame to a 128 px cell in linear light, fades the light before the
 socket's gilt rim (a mark seated on a plate) or the cell's edge (a bare figure or a sigil), and packs a 4x4 sheet of
@@ -8,10 +8,10 @@ socket's gilt rim (a mark seated on a plate) or the cell's edge (a bare figure o
 (Core/Tokens.lua aura<Kind><Name>, KstyleUI_ActionBars/SlabMedals.lua Medals.Mark).
 
 The socket is a forged coin with its figure taken out, the dark plate and gilt rim only, forged by forge.py and
-finished as marks.py finishes a coin. Each mark's colour is its spell's colour in Core/Tokens.lua; Aspect of the Hawk's
-gilt keeps the amber spell fire the hunter's mock was approved in.
+finished as marks.py finishes a coin. Each mark's colour is its spell's colour in Core/Tokens.lua; gilt keeps the amber
+spell fire of the approved hunter mock.
 
-    python3 Tools/media/forge/auras.py [--blender PATH] [--work DIR] [--only Hawk,Volley,Socket] [--out DIR]
+    python3 Tools/media/forge/auras.py [--blender PATH] [--work DIR] [--only Name,Name,Socket] [--out DIR]
 
 Needs Blender 5.x (BLENDER, --blender or blender on the PATH), numpy, Pillow and scipy.
 """
@@ -46,16 +46,9 @@ RIM_INNER = 0.49 - 0.045  # the socket plate's radius as a share of the box (rel
 SPAN = 1.25               # a bare figure's cell is this much wider than the figure, so its flames have room
 EDGE = 3                  # cell pixels over which a bare figure's light fades before the cell's edge
 
-# mark: (kind, Core/Tokens.lua colour); a mark seats on a plate when its design seats it
-HUNTER = {
-    "Hawk": ("glyphs", "gilt"), "Monkey": ("glyphs", "neutral"), "Cheetah": ("glyphs", "steelLit"), "Pack": ("glyphs", "steelLit"),
-    "Wild": ("glyphs", "schoolNature"), "Beast": ("glyphs", "hostile"), "Viper": ("glyphs", "magic"),
-    "Serpent": ("glyphs", "schoolNature"), "ViperSting": ("glyphs", "magic"), "Scorpid": ("glyphs", "neutral"),
-    "Wyvern": ("glyphs", "schoolFire"), "Lacerate": ("glyphs", "hostile"), "BlackArrow": ("glyphs", "schoolShadow"),
-    "Counter": ("glyphs", "hostile"), "Mongoose": ("glyphs", "hostile"), "Raptor": ("glyphs", "gilt"),
-    "Haunch": ("glyphs", "neutral"),
-    "Volley": ("sigils", "jewelHawk"), "Deflect": ("sigils", "jewelHawk"), "Paw": ("sigils", "jewelHawk"),
-}
+# mark: (kind, Core/Tokens.lua colour), "glyphs" (a design in designs_<class>.py) or "sigils" (Tools/media/sigils.py); a
+# glyph seats on the socket when its design seats it. Each class adds its marks as it takes the kit.
+MARKS = {}
 # the amber spell fire of the approved hawk mock: dark ember to the crest's gilt to white heat
 GILT = [[0.0, "000000"], [0.06, "2a0a02"], [0.18, "a8320a"], [0.34, "f26a12"], [0.52, "ffb22e"], [0.72, "ffe39a"], [1.0, "fffdf4"]]
 
@@ -164,7 +157,7 @@ def main(argv=None):
     if not args.blender:
         parser.error("no Blender found; set BLENDER or pass --blender")
     only = set(filter(None, args.only.split(",")))
-    unknown = only - set(HUNTER) - {"Socket"}
+    unknown = only - set(MARKS) - {"Socket"}
     if unknown:
         parser.error("unknown mark: " + ", ".join(sorted(unknown)))
     work = args.work or Path(tempfile.mkdtemp(prefix="auras-"))
@@ -174,7 +167,7 @@ def main(argv=None):
     if not only or "Socket" in only:
         path = socket(work, args.blender, env, args.out)
         print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest())
-    for name, (kind, colour) in HUNTER.items():
+    for name, (kind, colour) in MARKS.items():
         if only and name not in only:
             continue
         mask, height, seated = figure(name, kind, work)

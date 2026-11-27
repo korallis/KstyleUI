@@ -199,13 +199,21 @@ glow = m("MULTIPLY", m("SUBTRACT", 1.0, smooth(S0, 0.5, 0.70)), smooth(S0, 0.5, 
 sheen = m("MULTIPLY", fill, smooth(S0, 0.465, 0.5))
 flow = looping(fig, T, 4.0, (0.0, -1.6, 0.0), 1.4, detail=3.0, rough=0.5, distortion=1.2)
 flow = smooth(flow, 0.54, 0.80)
-# motes: a Voronoi lattice that scrolls up exactly one cell per loop
+# motes: a rising Voronoi field blended with the same field one period back, as looping() blends noise, so frame 16
+# runs into frame 1; scrolling a random lattice by a whole cell alone does not repeat, its next cell's points differ
 cells = 9.0
-vor = node("ShaderNodeTexVoronoi", voronoi_dimensions="3D", feature="F1")
-vor.inputs["Scale"].default_value = cells
-vor.inputs["Randomness"].default_value = 1.0
-L.new(v("ADD", uv, xyz(0.0, m("MULTIPLY", T, -1.0 / cells))), vor.inputs["Vector"])
-mote = m("SUBTRACT", 1.0, smooth(vor.outputs["Distance"], 0.0, 0.08))
+dots = []
+for back in (0.0, -1.0):
+    vor = node("ShaderNodeTexVoronoi", voronoi_dimensions="3D", feature="F1")
+    vor.inputs["Scale"].default_value = cells
+    vor.inputs["Randomness"].default_value = 1.0
+    L.new(v("ADD", uv, xyz(0.0, m("MULTIPLY", m("ADD", T, back), -1.0 / cells))), vor.inputs["Vector"])
+    dots.append(m("SUBTRACT", 1.0, smooth(vor.outputs["Distance"], 0.0, 0.08)))
+blend = node("ShaderNodeMix", data_type="FLOAT")
+feed(blend.inputs["Factor"], T)
+L.new(dots[0], blend.inputs[2])
+L.new(dots[1], blend.inputs[3])
+mote = blend.outputs[0]
 mote = m("MULTIPLY", mote, m("MULTIPLY", smooth(S0, 0.52, 0.55), m("SUBTRACT", 1.0, smooth(S0, 0.6, 0.66))))
 
 inner = m("MULTIPLY", fill, m("ADD", 0.12, m("MULTIPLY", flow, 0.78)))
