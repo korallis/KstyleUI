@@ -1,4 +1,4 @@
--- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), a change to the addon before it is enabled (opts.before), pet, ammo, the minimap's tracking (opts.tracking, a Track spell; env._herbs adds Find Herbs) the target's creature type number (opts.creature) and whether it can be attacked (env._attackable), the pet's focus, spellbook (opts.petSpells) and autocast (env._autocast), the group (env._grouped), the pet's target (env._petTarget) and spell range (env._range), usable strikes, item and spell cooldowns (env._spellCd[id] = { start, duration }), the pet bar (the pet's known spells from slot 4, while a pet is out and env._petBarEmpty is not set) and its cooldowns (env._petCd[id]) and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error, and Listening says whether the tracker lifecycle holds an event.
+-- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), a change to the addon before it is enabled (opts.before), pet, ammo, the minimap's tracking (opts.tracking, a Track spell; env._herbs adds Find Herbs) the target's creature type number (opts.creature) and whether it can be attacked (env._attackable), the pet's focus, spellbook (opts.petSpells) and autocast (env._autocast), the group (env._grouped), the pet's target (env._petTarget) and spell range (env._range), usable strikes, item and spell cooldowns (env._spellCd[id] = { start, duration }, env._gcd[id] for the global cooldown flag), the pet bar (the pet's known spells from slot 4, while a pet is out and env._petBarEmpty is not set) and its cooldowns (env._petCd[id]) and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error, and Listening says whether the tracker lifecycle holds an event.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -63,8 +63,8 @@ local function New(class, opts)
 				return 0, 0, true
 			end
 			e.C_Spell.IsSpellUsable = function(id) return e._usable[id] == true, false end
-			e._spellCd = {}
-			e.C_Spell.GetSpellCooldown = function(id) return { isActive = e._spellCd[id] ~= nil, isOnGCD = false } end
+			e._spellCd, e._gcd = {}, {}
+			e.C_Spell.GetSpellCooldown = function(id) return { isActive = e._spellCd[id] ~= nil, isOnGCD = e._gcd[id] == true } end
 			e.C_Spell.GetSpellCooldownDuration = function(id)
 				local c = e._spellCd[id]
 				return { start = c and c[1] or 0, finish = c and c[1] + c[2] or 0 }

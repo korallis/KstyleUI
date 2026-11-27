@@ -1344,7 +1344,7 @@ local function Cooling(m, id, event)
 	if event == "SPELL_UPDATE_COOLDOWN" or event == nil and m.cooling[id] == nil then
 		local get = C_Spell and C_Spell.GetSpellCooldown
 		local cd = type(get) == "function" and get(id)
-		m.cooling[id] = type(cd) == "table" and cd.isActive == true and cd.isOnGCD ~= true
+		m.cooling[id] = type(cd) == "table" and cd.isActive == true and (event == nil or cd.isOnGCD ~= true)
 	end
 	return m.cooling[id] == true
 end
@@ -1373,30 +1373,24 @@ local function PetSlot(spell)
 	end
 end
 
-local function PetCooling(m, spell)
+local function PetCooling(m, spell, event)
 	local slot, start, duration, enable = PetSlot(spell)
 	if slot and type(GetPetActionCooldown) == "function" then
 		start, duration, enable = GetPetActionCooldown(slot)
 	end
-	if IsSecret(start) or IsSecret(duration) or IsSecret(enable) then
+	if IsSecret(start) or IsSecret(duration) or IsSecret(enable) or type(start) ~= "number" or type(duration) ~= "number" then
 		m.timer:Clear()
-		return nil
+		return true
 	end
-	local get = C_Spell and C_Spell.GetSpellCooldown
+	local get = event == "SPELL_UPDATE_COOLDOWN" and C_Spell and C_Spell.GetSpellCooldown
 	local cd = type(get) == "function" and get(spell)
 	local gcd = type(cd) == "table" and not IsSecret(cd.isOnGCD) and cd.isOnGCD == true
-	local cooling = type(start) == "number" and type(duration) == "number" and duration > 0 and enable ~= 0 and enable ~= false and not gcd
-	if not cooling then
+	if duration <= 0 or enable == 0 or enable == false or gcd then
 		m.timer:Clear()
 		return false
 	end
 	m.timer:SetCooldown(start, duration)
-	local make = C_DurationUtil and C_DurationUtil.CreateDuration
-	local object = type(make) == "function" and make()
-	if object then
-		object:SetTimeFromStart(start, duration)
-	end
-	return true, object or nil
+	return true
 end
 
 function Medals.Refresh(m, event)
@@ -1404,10 +1398,7 @@ function Medals.Refresh(m, event)
 	if spec.feed == "cooldown" then
 		local cooling, duration
 		if spec.route == "petCooldown" then
-			cooling, duration = PetCooling(m, spec.spell)
-			if cooling == nil then
-				return
-			end
+			cooling = PetCooling(m, spec.spell, event)
 		else
 			local api = C_Spell
 			duration = api and type(api.GetSpellCooldownDuration) == "function" and api.GetSpellCooldownDuration(spec.spell, true)

@@ -311,6 +311,12 @@ do
 	env._petCd[24579] = { 0, 10 }
 	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
 	assert(not family.ready:IsShown(), "the pet slot's cooldown, read on the pet's cooldown event alone, starts the perch cooling")
+	env._gcd[24579] = true
+	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
+	assert(not family.ready:IsShown(), "a global cooldown flag read outside the spell cooldown event never shows a cooling perch ready")
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(family.ready:IsShown(), "on the spell cooldown event a global cooldown alone leaves the perch ready")
+	env._gcd[24579] = nil
 	env._petCd[24579] = nil
 	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
 	assert(family.ready:IsShown(), "the pet's cooldown event alone brings it ready again")
@@ -335,6 +341,14 @@ do
 	env._petBarEmpty = nil
 	env.FireEvent("PET_BAR_UPDATE")
 	assert(not family.ready:IsShown(), "a pet bar that fills after the pet arrives brings the cooling perch with it")
+	env._pet, env._petBarEmpty, env._petCd[24579] = nil, true, nil
+	env.FireEvent("UNIT_PET", "player")
+	env._pet = { max = 1800, missing = 0, mood = 3, focus = 70 }
+	env.FireEvent("UNIT_PET", "player")
+	assert(not family.ready:IsShown(), "before the pet bar fills the perch is unlit, never ready")
+	env._petBarEmpty = nil
+	env.FireEvent("PET_BAR_UPDATE")
+	assert(family.ready:IsShown(), "the pet bar filled with the ability ready lights the perch")
 	env._petCd[24579] = nil
 	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
 	local screech = family.lits[2]
@@ -387,10 +401,13 @@ do
 	-- First mate's correction on row 49 (docs/crest-coverage.md, Hunter homes): Tranquilizing Shot gets a home on the crest's lower left foot.
 	local env, K, ns = New("HUNTER", { known = { 13165, 883, 1130, 75 } })
 	assert(not Seated(ns, "crestTranq"), "no Tranquilizing Shot learned: no seat")
-	env._known[19801] = true
+	env._known[19801], env._spellCd[19801], env._gcd[19801] = true, { 0, 20 }, true
 	env.FireEvent("PLAYER_TALENT_UPDATE")
 	local tranq = Piece(ns, "crestTranq")
 	assert(tranq and tranq.spec.spell == 19801 and ns.SlabSeats.Name(tranq.spec.seat) == "footLeft", "Tranquilizing Shot learned: its glyph sits on the crest's lower left foot")
+	assert(not tranq.ready:IsShown(), "a global cooldown flag read outside the spell cooldown event never shows an active cooldown ready")
+	env._spellCd[19801], env._gcd[19801] = nil, nil
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(tranq.ready:IsShown(), "ready: lit")
 	env._spellCd[19801] = { 0, 20 }
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
