@@ -297,6 +297,15 @@ function Ranged.Play(env, K, ns, notes)
 	end
 	local clock, now = env.GetTime, env._now
 	env.GetTime = function() return env._now end
+	-- The ring-edge ember arms from the aura's own times, which the game answers out of combat.
+	env.C_UnitAuras = env.C_UnitAuras or {}
+	env.C_UnitAuras.GetUnitAuraBySpellID = function(unit, id)
+		for _, a in ipairs(env._slotAuras[unit] or {}) do
+			if a.id == id and a.duration then
+				return { auraInstanceID = a.id, expirationTime = a.start + a.duration, duration = a.duration, sourceUnit = "player" }
+			end
+		end
+	end
 	for _, when in ipairs(times) do
 		if when <= at and when > (env._clip and env._clipFrom or -math.huge) then
 			env._story, env._now = when, env._time - (at - when)
@@ -308,7 +317,10 @@ function Ranged.Play(env, K, ns, notes)
 					table.insert(units[a.unit], a)
 				end
 			end
-			for unit, list in pairs(units) do Slots.Set(env, unit, list) end
+			for unit, list in pairs(units) do
+				Slots.Set(env, unit, list)
+				env.FireEvent("UNIT_AURA", unit)
+			end
 			env.FireEvent("UNIT_PET", "player")
 			env.FireEvent("UNIT_HEALTH", "pet")
 			env.FireEvent("BAG_UPDATE_DELAYED")
