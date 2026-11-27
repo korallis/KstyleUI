@@ -166,7 +166,9 @@ end
 -- A resolution change keeps what v0.3.5.2 did, as the owner chose: only a new layout class, band or warning lane
 -- restyles, and that restyle re-places an unstamped viewer too, so older layouts adapt to the new screen. Only game
 -- UI Scale and Follow changes use the ratio and root-size triggers and leave a hand-moved viewer alone.
-local function Resolution(width, height)
+-- With the game's Use UI Scale off, the client keeps UIParent 768 units tall, so its scale moves with the screen and
+-- Scale applies new sizing inputs; only the screen change keeps the earlier rule then.
+local function Resolution(width, height, useUiScaleOff)
 	local state = { saved = { { layoutName = "Mine", layoutType = F.ACCOUNT, systems = F.Modern().systems } }, active = 1 }
 	local screen = { 1920, 1080 }
 	local env, K = W.New({ boot = false, width = 1920, height = 1080, uiScale = DEFAULT_GAME_SCALE, size = "auto", setup = function(e)
@@ -178,14 +180,18 @@ local function Resolution(width, height)
 	env.RunTimers()
 	K.Store.Account().editModeRows["KstyleUI DPS"][F.BUFF_BAR] = nil
 	F.Find(F.Named(state, "KstyleUI DPS"), F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX = 100
-	local saves = state.saves
+	local saves, parent = state.saves, K.Scale.Sizing()
 	screen[1], screen[2] = width, height
-	env.UIParent._width, env.UIParent._height = UI_HEIGHT * width / height / DEFAULT_GAME_SCALE, UI_HEIGHT / DEFAULT_GAME_SCALE
+	if useUiScaleOff then
+		SetGameScale(env, UI_HEIGHT / height, width, height)
+	else
+		env.UIParent._width, env.UIParent._height = UI_HEIGHT * width / height / DEFAULT_GAME_SCALE, UI_HEIGHT / DEFAULT_GAME_SCALE
+	end
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
 	env.RunTimers()
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	local layout = F.Named(state, "KstyleUI DPS")
-	return state.saves - saves, F.Find(layout, F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX, F.Find(layout, F.TRACKER).anchorInfo.offsetX
+	return state.saves - saves, F.Find(layout, F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX, F.Find(layout, F.TRACKER).anchorInfo.offsetX, K.Scale.Sizing() ~= parent
 end
 
 do
@@ -195,6 +201,12 @@ do
 	-- 1920x1080 to 3440x1440 changes the layout class to 21:9: the earlier rule re-places the unstamped viewer too.
 	saves, bar = Resolution(3440, 1440)
 	assert(saves == 1 and not near(bar, 100), string.format("a 21:9 resolution change re-places an unstamped viewer, as before this hotfix: %d saves, bar %s", saves, bar))
+	-- With Use UI Scale off the game's scale moves from 768 / 1080 to 768 / 1440 as well, and the same results hold.
+	local rescaled, _
+	saves, bar, tracker, rescaled = Resolution(2560, 1440, true)
+	assert(rescaled and saves == 0 and near(bar, 100) and near(tracker, 1347), string.format("with Use UI Scale off, a 16:9 resolution change restyles nothing: sizing moved %s, %d saves, bar %s, tracker %s", tostring(rescaled), saves, bar, tracker))
+	saves, bar, _, rescaled = Resolution(3440, 1440, true)
+	assert(rescaled and saves == 1 and not near(bar, 100), string.format("with Use UI Scale off, a 21:9 resolution change re-places an unstamped viewer: sizing moved %s, %d saves, bar %s", tostring(rescaled), saves, bar))
 end
 
 -- The size slider is a scale change too: with Auto off, a new Interface size re-places setup's tracker and leaves a
