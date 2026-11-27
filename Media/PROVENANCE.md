@@ -784,9 +784,9 @@ The hunter's sheets: each hunter mark the crest lights is an animated spell-effe
 | `Media/Textures/Auras/Trackers/SoulWisp.png` | 512x512 | one Soul Shard as a soul wisp: a round core with a curling tail, as moving `jewelShard` spell light; bare: burns over its own figure drawn black, its cell 1.25 times the figure | `Tools/media/forge/designs_casters.py` (`SoulWisp`), no model and no input image | rendered by `Tools/media/forge/aura.py` in Blender 5.3 EEVEE at 512 px, reduced in linear light to 16 frames of 128 in a 4x4 grid, faded before the cell edge, drawn ADD in white; SHA-256 `614433e314bb31c64f5e95e891bd8a952e0789b19d8d4b7c8212dfaba84994b0` | 2026-11-27 |
 | `Media/Textures/Auras/Trackers/Gust.png` | 512x512 | Quick Shots and Rapid Fire: three wind streaks and a feather, as moving `jewelHawk` spell light; drawn alone across the ring's inner band, with no socket and no figure under it | `Tools/media/forge/designs_casters.py` (`Gust`), no model and no input image | rendered by `Tools/media/forge/aura.py` in Blender 5.3 EEVEE at 512 px, reduced in linear light to 16 frames of 256x64 in 2 columns by 8 rows, the strip laid on its side for the render so its light streams back along it, faded before the cell edge, drawn ADD in white; SHA-256 `1cab44908a3df95f3203b1d44e7dc160f994bff8f1f2cb9aad91f850758a4eef` | 2026-11-27 |
 
-## Medallions rail auras (2026-11-27)
+## Hunter crest auras (2026-11-27)
 
-Each seat on the hunter's crest rail (`KstyleUI_ActionBars/SlabRail.lua`; tokens `railAura<Sigil>` in `Core/Tokens.lua`) burns with its sigil's own animated aura, played as a FlipBook and loaded only for a seat the hunter has. Run `python3 Tools/media/forge/rail_auras.py` (Blender 5.x, numpy, Pillow and scipy) to render them again; `--only Volley,Paw` renders some.
+The hunter's crest marks, its rail's seats, the cooldown rim's sigils and the Cooldowns rows burn with the aura kit's sheets (`aura<Kind><Name>` in `Core/Tokens.lua`), played as a FlipBook and loaded only for a spell the hunter knows and a seat that is shown. Run `python3 Tools/media/forge/auras.py --only Hawk,Volley` (Blender 5.x, numpy, Pillow and scipy) to bake some again; it prints each file's SHA-256 to compare with these rows.
 
 | File | Size | What it is | Source | Processing | Date |
 | --- | --- | --- | --- | --- | --- |

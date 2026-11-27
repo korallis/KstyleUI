@@ -361,11 +361,15 @@ do
 	Slots.Set(env, "target", { { id = 12826, harmful = true, start = 0, duration = 50 } })
 	assert(copy:IsShown() and copy.flare and cue:IsPlaying(), "a Polymorph replaced without the fuse hiding blooms the head's burning sheep again")
 	local arcane = Piece(ns, "crestCooldowns").sigils[1]
-	local fire
-	for _, region in ipairs(arcane.flame._regions) do
-		fire = fire or region.loop and region
+	local function Fire()
+		for _, region in ipairs(arcane.flame._regions) do
+			if region.loop then return region end
+		end
 	end
-	assert(fire and Art(fire) == (K.Tokens.Texture("auraSigilArcane")), "Arcane Power's sigil burns its own aura")
+	assert(not Fire(), "while the mage's rail seats Arcane Power, the rim's copy of its sigil loads no sheet")
+	K.Options.Write("ActionBars", "crestRail", false)
+	local fire = Fire()
+	assert(fire and Art(fire) == (K.Tokens.Texture("auraSigilArcane")), "with the rail off, Arcane Power's sigil burns its own aura")
 	Clean(env, K)
 end
 
