@@ -9,18 +9,20 @@ ns.SlabArmory = Armory
 
 local ART = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Effects\\"
 local CLAMP = "CLAMPTOBLACKADDITIVE"
-local TRACK, INNER, RIM, GLOW, BURST, GHOST, HALO, SLIDE, EDGE = 4, 112, 150, 1.5, 2.4, 0.8, 0.85, 0.5, 0.45
+local TRACK, INNER, RIM, GLOW, BURST, GHOST, HALO, SLIDE, EDGE, LIGHT = 4, 112, 150, 1.5, 2.4, 0.8, 0.85, 0.5, 0.45, 0.45
 local LOOKS = {
-	sword = { art = "Sword", metal = true, hilt = true }, axe = { art = "Axe", metal = true, hilt = true },
-	dagger = { art = "Dagger", metal = true, hilt = true }, hammer = { art = "Hammer", metal = true, hilt = true },
-	horn = { art = "Horn", metal = true, loop = "call" }, shield = { art = "Shield", metal = true, ghost = "ShieldCracked" },
-	seal = { art = "Seal", metal = true, flood = true, loop = "halo" }, brand = { art = "Brand", metal = true, loop = "halo" },
-	drop = { art = "Drop", metal = true, loop = "drip" }, vial = { art = "Vial", metal = true, ghost = "VialGlass", glass = true, loop = "bubble" },
+	sword = { art = "Sword", metal = true, hilt = true, aura = "auraEffectSword" }, axe = { art = "Axe", metal = true, hilt = true, aura = "auraEffectAxe" },
+	dagger = { art = "Dagger", metal = true, hilt = true, aura = "auraEffectDagger" }, hammer = { art = "Hammer", metal = true, hilt = true, aura = "auraEffectHammer" },
+	horn = { art = "Horn", metal = true, loop = "call", aura = "auraEffectHorn" }, shield = { art = "Shield", metal = true, ghost = "ShieldCracked", aura = "auraEffectShield" },
+	seal = { art = "Seal", metal = true, flood = true, loop = "halo", aura = "auraEffectSeal" }, brand = { art = "Brand", metal = true, loop = "halo", aura = "auraEffectBrand" },
+	drop = { art = "Drop", metal = true, loop = "drip", aura = "auraEffectDrop" },
+	vial = { art = "Vial", metal = true, ghost = "VialGlass", glass = true, loop = "bubble", aura = "auraEffectVial" },
 	flame = { token = "trackerFlame", blend = "ADD", loop = "flicker" },
 	grooveLL = { art = "GrooveLL", groove = true, reverse = true }, grooveLR = { art = "GrooveLR", groove = true },
 	grooveBL = { art = "GrooveBL", groove = true, across = true }, grooveBR = { art = "GrooveBR", groove = true, across = true },
-	ward = { art = "Ward", hidden = true, halo = 0.3 }, oath = { art = "Oath", hidden = true }, oathInner = { art = "OathInner", hidden = true },
-	stain = { art = "Stain", hidden = true, loop = "drip" }, flames = { art = "Flames", blend = "ADD", hidden = true, loop = "flicker" },
+	ward = { art = "Ward", hidden = true, halo = 0.3, aura = "auraEffectWard" }, oath = { art = "Oath", hidden = true, aura = "auraEffectOath" },
+	oathInner = { art = "OathInner", hidden = true },
+	stain = { art = "Stain", hidden = true, loop = "drip", aura = "auraEffectStain" }, flames = { art = "Flames", blend = "ADD", hidden = true, loop = "flicker" },
 }
 Armory.LOOKS, Armory.ART = LOOKS, ART
 local LEAD = { VERTICAL = { "TOP", "BOTTOM", 0, 1 }, HORIZONTAL = { "RIGHT", "LEFT", 1, 0 } }
@@ -127,6 +129,33 @@ local function Fill(m, lit, look, color, units, level, usable)
 		lit.glow:SetPoint(lead, fill, lead, dx * units * 0.25, dy * units * 0.25)
 		lit.glow:SetPoint(tail, m, "CENTER", -dx * units * GLOW / 2, -dy * units * GLOW / 2)
 	end
+	if look.aura then
+		local span = select(5, Tokens.Flipbook(look.aura))
+		local function Clip(parent)
+			local clip = CreateFrame("Frame", nil, parent)
+			clip:SetFrameLevel(parent:GetFrameLevel() + 1)
+			clip:SetClipsChildren(true)
+			clip:SetPoint(lead, fill, lead, 0, 0)
+			clip:SetPoint(tail, fill, tail, 0, 0)
+			if orient == "VERTICAL" then
+				clip:SetWidth(units * span)
+			else
+				clip:SetHeight(units * span)
+			end
+			return clip
+		end
+		fill:SetAlpha(LIGHT)
+		local lights
+		if lit.container then
+			local flame, calm = Medals.Gates(m, lit, lit.bar:GetFrameLevel() + 1, true)
+			lights = { flame = Clip(flame), calm = Clip(calm) }
+		end
+		lit.fire = Medals.Aura(m, lights and lights.calm or Clip(lit.bar), look.aura, units, color, nil, nil, nil, lights)
+		for _, t in ipairs({ lit.fire, lit.fire.still }) do
+			t:ClearAllPoints()
+			t:SetPoint("CENTER", m.ghost or m, "CENTER", 0, 0)
+		end
+	end
 	if usable then
 		m.slide = ns.Slab.Group(holder)
 		Move(m.slide, -units * SLIDE, 0, 1)
@@ -212,6 +241,12 @@ local function Picker(m, spec)
 			lit.bar:SetStatusBarColor(Tokens.Color(art[2]))
 			lit.glow:SetTexture(Glow(look))
 			lit.glow:SetVertexColor(Tokens.Color(art[2]))
+			if lit.fire and look.aura then
+				for _, t in ipairs({ lit.fire, lit.fire.still }) do
+					t:SetTexture((Tokens.Texture(look.aura)))
+					t:SetVertexColor(Tokens.Color(art[2]))
+				end
+			end
 			m.ghost:SetTexture(Path(look, true))
 			m.shade:SetTexture(ART .. look.art .. "Shade.png")
 			m.hilt:SetShown(look.hilt == true)

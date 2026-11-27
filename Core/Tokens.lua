@@ -551,6 +551,22 @@ TEXTURES.railAuraPaw = { file = "Textures\\Medallions\\Rail\\AuraPaw.png", rows 
 TEXTURES.railAuraSniper = { file = "Textures\\Medallions\\Rail\\AuraSniper.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 TEXTURES.railAuraStrider = { file = "Textures\\Medallions\\Rail\\AuraStrider.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 TEXTURES.railAuraVolley = { file = "Textures\\Medallions\\Rail\\AuraVolley.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+for _, set in ipairs({
+	{ kind = "Sigil", names = { "Crossed", "Skull", "Wall", "Heart", "Sweep", "Thorns", "Bubble", "Aegis", "Sun", "Hand", "Wing", "Bulwark", "Voice",
+		"Flurry", "Rush", "Evade", "Drop", "Smoke", "Ghost" } },
+	{ kind = "Sigil", tint = true, names = { "Dash", "Axe", "Tusks", "Stone", "Eye", "Grave", "Shatter", "Star", "Gear", "Regen", "Potion" } },
+	{ kind = "Effect", tint = true, names = { "Horn", "Sword", "Axe", "Dagger", "Hammer", "Shield", "Seal", "Brand", "Drop", "Vial", "Ward", "Oath", "Stain" } },
+}) do
+	for _, name in ipairs(set.names) do
+		local token = "aura" .. set.kind .. name
+		TEXTURES[token] = {
+			file = "Textures\\Auras\\" .. set.kind .. "s\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25, tint = set.tint,
+		}
+		if set.kind == "Sigil" then
+			TEXTURES["sigil" .. name].aura = token
+		end
+	end
+end
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do
@@ -770,7 +786,7 @@ function Tokens.Flipbook(name)
 	if not spec or not spec.frames then
 		unknown("Flipbook", name)
 	end
-	return spec.rows, spec.columns, spec.frames, spec.seconds, spec.span or 1
+	return spec.rows, spec.columns, spec.frames, spec.seconds, spec.span or 1, spec.tint == true
 end
 
 Tokens.DEFAULT_FONT_FACE = DEFAULT_FACE

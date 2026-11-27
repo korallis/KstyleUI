@@ -29,9 +29,10 @@ for kind, events in pairs(LUA) do
 	end
 end
 local SHARED = {
-	{ spells = { 20572 }, sigil = "Axe", major = true }, { spells = { 20554 }, sigil = "Tusks", major = true }, { spells = { 20594 }, sigil = "Stone", major = true },
-	{ spells = { 20600 }, sigil = "Eye" }, { spells = { 7744 }, sigil = "Grave" }, { spells = { 1299026 }, sigil = "Shatter" },
-	{ spells = { 1259799 }, sigil = "Star" }, { spells = { 1259812, 1259813, 1259817, 1259821, 1259823 }, sigil = "Gear" }, { spells = { 1260270 }, sigil = "Regen" },
+	{ spells = { 20572 }, sigil = "Axe", major = true, race = true }, { spells = { 20554 }, sigil = "Tusks", major = true, race = true },
+	{ spells = { 20594 }, sigil = "Stone", major = true, race = true }, { spells = { 20600 }, sigil = "Eye", race = true }, { spells = { 7744 }, sigil = "Grave", race = true },
+	{ spells = { 1299026 }, sigil = "Shatter", race = true }, { spells = { 1259799 }, sigil = "Star", race = true },
+	{ spells = { 1259812, 1259813, 1259817, 1259821, 1259823 }, sigil = "Gear", race = true }, { spells = { 1260270 }, sigil = "Regen", race = true },
 	{ spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {}, sigil = "Potion" },
 }
 local CLASSES, HOOKS, JOINED = {}, {}, {}

@@ -34,6 +34,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 sys.path[:0] = [str(HERE), str(HERE.parent)]
 
+import melee_effects
 import sigils
 from finish import load, outline, resize, save, to_lin, to_srgb
 from relief import N, Emblem, forge_lineart
@@ -47,8 +48,27 @@ EDGE = 3                  # cell pixels over which a bare figure's light fades b
 
 # mark: (kind, Core/Tokens.lua colour, design). A "glyphs" mark's design is its factory in the class's designs module
 # (designs_hunter.D["Hawk"]), whose emblem seats on the socket when it has a seated figure; a "sigils" mark draws
-# Tools/media/sigils.py's figure of its name and takes None. Each class adds its marks as it takes the kit.
+# Tools/media/sigils.py's figure of its name and takes None; an "effects" mark (named Effects/<Art>) is a crest object of
+# Tools/media/melee_effects.py, its design the function drawing it, lit in place in its own box so the crest can lay its
+# light over the object's fill. Each class adds its marks as it takes the kit. A mark in "white" bakes a neutral light the
+# game tints: a racial, a potion or Sprint is on every class's rail in that class's colour, and an object takes its
+# piece's colour, which a seal's school or a picked weapon changes.
 MARKS = {}
+NEUTRAL = "white"
+
+# Warrior, paladin and rogue: each class's sigils in its rail's colour (SlabTrackers.lua crestCooldowns), the shared
+# sigils and the crest objects in neutral light.
+for colour, names in (("gilt", "Crossed Skull Wall Heart Sweep Thorns"), ("white", "Bubble Aegis Sun Hand Wing Bulwark Voice"),
+                      ("pipPriestGlow", "Flurry Rush Evade Drop Smoke Ghost"),
+                      (NEUTRAL, "Dash Axe Tusks Stone Eye Grave Shatter Star Gear Regen Potion")):
+    for name in names.split():
+        MARKS[name] = ("sigils", colour, None)
+for name, (art, threshold) in {"Horn": ("Horn.png", 0.5), "Sword": ("Sword.png", 0.5), "Axe": ("Axe.png", 0.5),
+                               "Dagger": ("Dagger.png", 0.5), "Hammer": ("Hammer.png", 0.5), "Shield": ("Shield.png", 0.5),
+                               "Seal": ("Seal.png", 0.5), "Brand": ("Brand.png", 0.5), "Drop": ("Drop.png", 0.5),
+                               "Vial": ("Vial.png", 0.5), "Ward": ("Ward.png", 0.5), "Oath": ("Oath.png", 0.3),
+                               "Stain": ("Stain.png", 0.3)}.items():
+    MARKS["Effects/" + name] = ("effects", NEUTRAL, (art, threshold))
 # the amber spell fire of the approved hawk mock: dark ember to the crest's gilt to white heat
 GILT = [[0.0, "000000"], [0.06, "2a0a02"], [0.18, "a8320a"], [0.34, "f26a12"], [0.52, "ffb22e"], [0.72, "ffe39a"], [1.0, "fffdf4"]]
 
@@ -77,6 +97,13 @@ def figure(name, kind, design, work):
         sigils.GLYPHS[name](pen)
         e = forge_lineart(name, pen.image, work / "maps")
         return e.M, e.H, False
+    if kind == "effects":
+        art, threshold = design
+        rgb, alpha = (melee_effects.ART.get(art) or melee_effects.BAND_ART[art])()
+        alpha = np.asarray(Image.fromarray(alpha.astype(np.float32)).resize((N, N), Image.BILINEAR))
+        tone = np.asarray(Image.fromarray(rgb[..., 0].astype(np.float32)).resize((N, N), Image.BILINEAR))
+        mask = alpha > threshold
+        return mask, np.where(mask, 0.3 + tone, 0), False
     e = design()
     if e.figure is not None:
         return e.figure, np.where(e.figure, e.H, 0), True
@@ -109,14 +136,26 @@ def fade(seated):
     return np.clip(edge / EDGE, 0, 1)[..., None]
 
 
+def loop_start(cells):
+    """The cell the sheet starts on. The fields are periodic, so the seam is one more step of the cycle, but any one step
+    can still be the cycle's largest; the game then shows its biggest jump at the wrap. Then the sheet starts after the
+    smallest step instead, the same 16 cells in the same cyclic order."""
+    steps = [float(np.abs(cells[(i + 1) % FRAMES] - cells[i]).mean()) for i in range(FRAMES)]
+    if steps[-1] <= max(steps[:-1]):
+        return 0
+    return (steps.index(min(steps)) + 1) % FRAMES
+
+
 def bake(frames, seated, path):
-    """16 master frames to one 4x4 sheet of 128 px cells; returns the loop's seam step against its median step."""
+    """16 master frames to one 4x4 sheet of 128 px cells; returns the loop's seam step against its largest ordinary step."""
     k = fade(seated)
     cells = []
     for f in frames:
         lin = to_lin(np.asarray(Image.open(f).convert("RGB"), np.float32) / 255)
         small = np.stack([np.asarray(Image.fromarray(lin[..., i]).resize((CELL, CELL), Image.LANCZOS)) for i in range(3)], -1)
         cells.append(to_srgb(np.clip(small, 0, 1)) * k)
+    start = loop_start(cells)
+    cells = cells[start:] + cells[:start]
     sheet = np.zeros((CELL * GRID, CELL * GRID, 3), np.float32)
     for i, cell in enumerate(cells):
         y, x = divmod(i, GRID)
@@ -124,7 +163,7 @@ def bake(frames, seated, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray((np.clip(sheet, 0, 1) * 255 + 0.5).astype(np.uint8), "RGB").save(path, optimize=True)
     steps = [float(np.abs(cells[(i + 1) % FRAMES] - cells[i]).mean()) for i in range(FRAMES)]
-    return steps[-1] / max(float(np.median(steps[:-1])), 1e-9)
+    return steps[-1] / max(max(steps[:-1]), 1e-9)
 
 
 def socket(work, blender, env, out):
@@ -170,18 +209,19 @@ def main(argv=None):
     for name, (kind, colour, design) in MARKS.items():
         if only and name not in only:
             continue
-        mask, height, seated = figure(name, kind, design, work)
-        fields(name, mask, height, work / "fields")
-        frames = work / "frames" / name
+        mask, height, seated = figure(name.split("/")[-1], kind, design, work)
+        stem = name.replace("/", "")
+        fields(stem, mask, height, work / "fields")
+        frames = work / "frames" / stem
         shutil.rmtree(frames, ignore_errors=True)
         subprocess.run([args.blender, "-b", "--factory-startup", "--python-exit-code", "1", "--python", str(HERE / "aura.py"), "--",
-                        str(work / "fields"), name, str(frames), "--frames", str(FRAMES), "--size", str(MASTER),
+                        str(work / "fields"), stem, str(frames), "--frames", str(FRAMES), "--size", str(MASTER),
                         "--palette", json.dumps(palette(hexes[colour])), "--fit", str(1.0 if seated else 1 / SPAN),
                         "--plate", str(RIM_INNER if seated else 0.0), "--pad", str(PAD / (N + 2 * PAD))],
                        check=True, stdout=subprocess.DEVNULL, env=env)
-        path = args.out / kind.capitalize() / f"{name}.png"
-        seam = bake([frames / f"{name}_{i:02d}.png" for i in range(FRAMES)], seated, path)
-        print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest(), f"seam {seam:.2f}x median step",
+        path = args.out / kind.capitalize() / f"{name.split('/')[-1]}.png"
+        seam = bake([frames / f"{stem}_{i:02d}.png" for i in range(FRAMES)], seated, path)
+        print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest(), f"seam {seam:.2f}x largest ordinary step",
               "seated" if seated else "bare")
     if not args.work:
         shutil.rmtree(work)

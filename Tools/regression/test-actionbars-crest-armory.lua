@@ -160,18 +160,21 @@ do
 	Clean(env, K, "secret combat")
 end
 
--- A target change refreshes the paladin's judged brand once, its looping light once and its burst twice: the schools share a container (review of 568555f1 #6), and the burst has
--- two containers of its own, one bound for the motion level in use and one for the other of Full and Calm, so that a level changed in combat shows at once and each layer can
--- hide alone when a newer crest flare takes its place under hidden values.
-do
-	local env, K = New("PALADIN", { 20154, 20271 })
+-- A target change refreshes the paladin's judged brand once, its looping light once, its aura's fire and still once each and its burst twice: the schools share a container
+-- (review of 568555f1 #6), and the burst has two containers of its own, one bound for the motion level in use and one for the other of Full and Calm, so that a level changed
+-- in combat shows at once and each layer can hide alone when a newer crest flare takes its place under hidden values. The fire and the still burn on copies of their own for the
+-- same reason: each layer goes dark at once. A second judged school (Light's and Wisdom's Seals known) adds only its flare's two: its fire and still are slots of the first
+-- school's copies (review of 071e48df, share-armory-fire-containers).
+for _, case in ipairs({ { 6, { 20154, 20271 } }, { 8, { 20154, 20165, 20166, 20271 } } }) do
+	local expected, known = case[1], case[2]
+	local env, K = New("PALADIN", known)
 	local calls = 0
 	for _, c in ipairs(env._slotContainers) do
 		local update = c.UpdateAllAuras
 		c.UpdateAllAuras = function(self) calls = calls + 1 return update(self) end
 	end
 	env.FireEvent("PLAYER_TARGET_CHANGED")
-	assert(calls <= 4, "a target change refreshes 4 containers, got " .. calls .. "; give the schools one container's slots")
+	assert(calls == expected, #known .. " spells known: a target change refreshes " .. expected .. " containers, got " .. calls .. "; give the schools one container's slots")
 	Clean(env, K, "target refresh")
 end
 
