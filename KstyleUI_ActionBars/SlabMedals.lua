@@ -1454,6 +1454,29 @@ local function PetCooling(m, spell, event)
 	return true
 end
 
+function Medals.Confirm(m, cooling)
+	local spell = m.spec and m.spec.spell
+	m.cooled = cooling
+	if m.cooling and spell and not cooling then
+		m.cooling[spell] = false
+	end
+	if m.keeps and cooling then
+		m.armed = spell
+	elseif m.armed ~= nil and not cooling then
+		local due = m.armed == spell
+		m.armed = nil
+		if due then
+			Medals.Fire(m)
+		end
+	end
+	if m.ready then
+		m.ready:SetShown(not cooling)
+	end
+	if m.spent then
+		m.spent:SetShown(cooling)
+	end
+end
+
 function Medals.Refresh(m, event)
 	local spec = m.spec
 	if spec.feed == "cooldown" then
@@ -1474,20 +1497,8 @@ function Medals.Refresh(m, event)
 		if refill then
 			Refill(m.bar, cooling and duration)
 		end
-		if cooling ~= m.cooled then
-			m.cooled = cooling
-			if m.keeps and cooling then
-				m.armed = true
-			elseif m.armed and not cooling then
-				m.armed = nil
-				Medals.Fire(m)
-			end
-			if m.ready then
-				m.ready:SetShown(not cooling)
-			end
-			if m.spent then
-				m.spent:SetShown(cooling)
-			end
+		if cooling ~= m.cooled or cooling and m.keeps and m.armed ~= spec.spell then
+			Medals.Confirm(m, cooling)
 		end
 		return
 	end

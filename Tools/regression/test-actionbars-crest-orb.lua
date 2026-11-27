@@ -222,6 +222,76 @@ do
 	Clean(env, K)
 end
 
+-- The reviewer's finding on the completion paths: the timer and the cooldown event settle the same ready state, so a timer-first
+-- completion leaves the orb ready to take the next spend at once, and a flare armed by one spell never fires for another.
+do
+	local env, K, ns = New("MAGE", { known = ARCANE })
+	env.SetTarget(true)
+	env.RunTimers()
+	local orb = Seated(ns, "crestOrb")
+	Cooling(env, 12042, 30)
+	orb.flare.play:Stop()
+	Elapse(env, orb, 31)
+	assert(orb.ready:IsShown() and orb.flare.play:IsPlaying(), "the completion timer ends the spend first and flares the orb")
+	orb.flare.play:Stop()
+	Cooling(env, 12042, 30)
+	assert(orb.spent:IsShown() and not orb.ready:IsShown(), "the next confirmed spend empties the orb again with no ready event between")
+	Elapse(env, orb, 31)
+	assert(orb.ready:IsShown() and orb.flare.play:IsPlaying(), "and its completion flares again")
+	Clean(env, K)
+end
+
+do
+	local known = {}
+	for _, id in ipairs(ARCANE) do if id ~= 12042 then known[#known + 1] = id end end
+	local env, K, ns = New("MAGE", { known = known })
+	env.SetTarget(true)
+	env.RunTimers()
+	Cooling(env, 12051, 480)
+	local orb = Seated(ns, "crestOrb")
+	assert(orb.spent:IsShown(), "without Arcane Power the orb holds a spent Evocation")
+	-- The crest's rebuild stops whatever its pieces were playing, so the flare is counted where it is asked for.
+	local fire, flared = ns.SlabMedals.Fire, 0
+	ns.SlabMedals.Fire = function(piece)
+		if piece == orb then flared = flared + 1 end
+		return fire(piece)
+	end
+	R.Learn(env, 12042)
+	env.RunTimers()
+	assert(Seated(ns, "crestOrb") == orb and orb.spec.spell == 12042, "learning Arcane Power keeps the same orb on the new spell")
+	assert(orb.ready:IsShown() and not orb.spent:IsShown(), "learning Arcane Power moves the orb onto its ready cooldown")
+	assert(flared == 0, "the ready replacement asks for no flare that Evocation's spend armed (" .. flared .. ")")
+	Cooling(env, 12042, 30)
+	assert(orb.spent:IsShown(), "Arcane Power's own spend empties the orb")
+	Elapse(env, orb, 31)
+	assert(orb.ready:IsShown() and orb.flare.play:IsPlaying() and flared == 1, "and its own completion flares it once (" .. flared .. ")")
+	ns.SlabMedals.Fire = fire
+	Clean(env, K)
+end
+
+-- A spent Evocation handing the orb to an Arcane Power that is cooling too re-arms the flare for Arcane Power's own completion.
+do
+	local known = {}
+	for _, id in ipairs(ARCANE) do if id ~= 12042 then known[#known + 1] = id end end
+	local env, K, ns = New("MAGE", { known = known })
+	env.SetTarget(true)
+	env.RunTimers()
+	Cooling(env, 12051, 480)
+	local orb = Seated(ns, "crestOrb")
+	env.C_Spell.GetSpellCooldown = function(spell) return { isActive = spell == 12051 or spell == 12042, isOnGCD = false } end
+	env.C_Spell.GetSpellCooldownDuration = function(spell)
+		return { start = env._now, finish = env._now + (spell == 12042 and 20 or spell == 12051 and 480 or 0) }
+	end
+	R.Learn(env, 12042)
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	env.RunTimers()
+	assert(orb.spec.spell == 12042 and orb.spent:IsShown() and Due(env, orb) == env._now + 20, "the orb takes Arcane Power's own cooldown, still spent")
+	orb.flare.play:Stop()
+	Elapse(env, orb, 21)
+	assert(orb.ready:IsShown() and orb.flare.play:IsPlaying(), "Arcane Power's completion flares the orb")
+	Clean(env, K)
+end
+
 -- The reviewer's finding on the rail settings: while the orb is due to show, the list offers no seat for the orb's cooldown,
 -- and a saved pick of it waits, taking its seat again once the orb is off.
 do

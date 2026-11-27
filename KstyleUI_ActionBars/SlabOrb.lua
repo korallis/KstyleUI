@@ -177,13 +177,9 @@ function Orb.Build(parent, spec, level)
 	p.timer = p.add(Medals.Timer(lit, level + 3, "orbRing", "white"), 8)
 	p.timer:SetDrawSwipe(false)
 	p.timer:SetScript("OnCooldownDone", function()
-		if not p.armed then
-			return
+		if p.cooled then
+			Medals.Confirm(p, false)
 		end
-		p.armed = nil
-		p.ready:Show()
-		p.spent:Hide()
-		Medals.Fire(p)
 	end)
 	Medals.Flare(p, lit, level + 4, "medBurstMage", p.light * BURST)
 	p.procs = {}
