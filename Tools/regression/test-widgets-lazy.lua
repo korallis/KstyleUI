@@ -319,10 +319,12 @@ do
 	-- slot. Those copies are frames, not regions, and a figure without charges clips them straight from its slot; only a
 	-- charged piece keeps a hidden bar the game fills per charge (Inner Fire's: priest 8). A timed figure adds a bare copy
 	-- that alone shows at Off, with no refresh cue: one texture each (priest 3, druid 36, shaman 9). That takes the
-	-- priest from 4,942 to 4,989, the druid from 5,280 to 5,440 and the shaman from 4,919 to 4,964.
+	-- priest from 4,942 to 4,989, the druid from 5,280 to 5,440 and the shaman from 4,919 to 4,964,
+	-- less the sigils of spells the lit fixture does not know, which are drawn only once learned (`Medals.Later`):
+	-- 18, 9 and 6, so 4,971, 5,431 and 4,958.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4989, DRUID = 5440, SHAMAN = 4964, HUNTER = 5377, MAGE = 5024, WARLOCK = 5254 }) do
+	for class, limit in pairs({ PRIEST = 4971, DRUID = 5431, SHAMAN = 4958, HUNTER = 5377, MAGE = 5024, WARLOCK = 5254 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")
