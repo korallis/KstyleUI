@@ -28,14 +28,16 @@ Twenty-four major cooldowns in the sets had no crest piece matched by spell ID w
 | Warrior | Intimidating Shout 5246 | 180 s | Row candidate | Crowd control aimed at enemies; it puts no buff on the player for a sigil to show |
 | Warrior | Disarm 676 | 60 s | Row candidate | As above |
 | Paladin | Repentance 20066 | 60 s | Row candidate | As above |
-| Hunter | Intimidation 19577 | 60 s | Hunter rail | A Beast Mastery seat on the hunter's crest rail, its cooldown counted on the medal |
+| Hunter | Intimidation 19577 | 60 s | Dedicated crest | A Beast Mastery seat on the crest rail, its cooldown counted on the medal; the second rail for the other trees |
 | Rogue | Blind 2094 | 300 s | Row candidate | As above |
 | Priest | Chastise 1277331 | 120 s | Row candidate | As above |
 | Priest | Confounding Flash 1277455 | 120 s | Row candidate | As above |
 | Druid | Challenging Roar 5209 | 600 s | Row candidate | A taunt on enemies; no buff on the player |
 | Paladin | Holy Wrath 2812 | 60 s | Row candidate | An attack with no lasting effect on the player |
-| Warlock | Soul Fire 6353 | 60 s | Row candidate | A cast attack; the cast ring shows it while it casts |
-| Warlock | Inferno 1122 | 3600 s | Row candidate | A summon used once an hour; the pet's own frame carries it |
+| Warlock | Soul Fire 6353 | 60 s | Dedicated crest | A seat on the crest rail in every tree (the second rail when Fel Domination takes its seat); the cast ring shows it while it casts |
+| Warlock | Inferno 1122 | 3600 s | Dedicated crest | A seat on the crest rail in every tree, as the crest plan's ledger seats it; the pet's own frame carries the Infernal |
+| Warlock | Soulstone 693 | 1800 s | Dedicated crest | A round medal on the crest rail's second rail in every tree, never a main seat. The 30-minute cooldown belongs to the stone, not to Create Soulstone, so the medal reads the soulstones' shared item cooldown (`C_Item.GetItemCooldown`, Major Soulstone 16896 down to Minor Soulstone 5232), and using a stone (Soulstone Resurrection 20765 to 20707) presses it |
+| Warlock | Ritual of Doom 18540 | 3600 s | Dedicated crest | A round medal on the crest rail's second rail in every tree, never a main seat |
 | Paladin | Lay on Hands 633 | 1200 s | Row candidate | An instant emergency heal with no buff to time |
 | Paladin | Divine Intervention 19752 | 3600 s | Row candidate | A sacrifice on another player, used once an hour |
 | Priest | Desperate Prayer 13908 | 600 s | Row candidate | An instant emergency heal with no buff to time |
@@ -43,7 +45,7 @@ Twenty-four major cooldowns in the sets had no crest piece matched by spell ID w
 | Druid | Rebirth 20484 | 1800 s | Row candidate | A resurrection on another player, out of the combat rotation |
 | Rogue | Preparation 14185 | 600 s | Row candidate | Its effect is a reset, which the crest shows on the cooldowns it resets |
 | Rogue | Premeditation 14183 | 120 s | Row candidate | Adds combo points, which the crest's combo pips already show |
-| Mage | Cold Snap 12472 | 600 s | Row candidate | Its effect is a reset, which the crest shows on the cooldowns it resets |
+| Mage | Cold Snap 12472 | 600 s | Dedicated crest | A Frost seat on the crest rail (the second rail for the other trees); its reset also shows on the cooldowns it resets |
 
 Matched by hand rather than by spell ID:
 
@@ -106,7 +108,7 @@ Forty-four procs in the sets had no crest piece. The Cooldown Manager hides 21 o
 
 ## Hunter homes
 
-The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61 hunter rows) proposes a home for every need: the medal rail, the crown and ring, a perch, inside the crest, a pendant, or a rail of round medals. This table gives each hunter row its home today, or the reason it has none. "Short rail" is the Cooldown Manager mirror's Essential or Utility row drawn as round medals (`KstyleUI_Cooldowns`, Match Medallions sockets); it shows a spell only while the game lists it in that set and does not hide it, so a "(hidden)" set entry reaches it only after the player shows it in the game's Cooldown Manager settings. "Hunter rail" is the five-seat crest rail (`SlabRail.lua`), which seats up to four abilities of the talent tree the game names and the trinket.
+The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61 hunter rows) proposes a home for every need: the medal rail, the crown and ring, a perch, inside the crest, a pendant, or a rail of round medals. This table gives each hunter row its home today, or the reason it has none. "Short rail" is the Cooldown Manager mirror's Essential or Utility row drawn as round medals (`KstyleUI_Cooldowns`, Match Medallions sockets); it shows a spell only while the game lists it in that set and does not hide it, so a "(hidden)" set entry reaches it only after the player shows it in the game's Cooldown Manager settings. "Hunter rail" is the five-seat crest rail (`SlabRail.lua`), which seats up to four abilities of the talent tree the game names and the trinket, with the tree's other long cooldowns and the racial on its smaller second rail.
 
 | # | Need | Home or reason |
 | --- | --- | --- |
@@ -168,9 +170,24 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 | 56 | Scare Beast 1513 | Short rail (Utility, hidden by the game until shown) |
 | 57 | Crowd control time, breaks and diminishing returns | Unavailable: breaks and diminishing returns need the combat log, which is closed to addons; the control's own debuff shows on the target frame |
 | 58 | On-use trinket | The hunter rail's trinket seat |
-| 59 | Racial cooldown | The shared racial sigils on the cooldown rim while the buff runs |
+| 59 | Racial cooldown | A round medal on the hunter rail's second rail; with the rail off, the shared racial sigils on the cooldown rim while the buff runs |
 | 60 | Ammo | The Auto Shot ring turns amber below 200 and red with none |
 | 61 | Potion and consumable cooldowns | A gem pendant on the left trinket seat (-33, -24) holding the first potion the bags carry from a best-first list of healing and mana potions, steel under a charging ring while potions cool down and ready again once they recharge, an empty bail with none (`C_Item.GetItemCount`, `GetItemCooldown`); the shared Potion sigil while the potion's buff runs |
+
+## Crest rail
+
+The crest rail ([medallions-effects.md](medallions-effects.md#crest-rail)) seats each talent tree's long cooldowns, then its rotation cooldowns, for the hunter, the mage and the warlock, from Forever class guides checked against Forever's spell data; the other classes have no rail yet. Long cooldowns beyond the four seats and the racials above stand on its second rail. These abilities have no rail medal, each for a recorded reason:
+
+| Class | Ability | Why it has no rail medal |
+| --- | --- | --- |
+| Hunter | Readiness | Not confirmed for any Forever tree by the guides or the client's spell data |
+| Mage | Icy Veins | As above |
+| Mage | Arcane Wrath | Already the crest's own charge piece (`crestSchool`); a medal would show it twice |
+| Mage | Blast Wave | A Fire rotation button under 60 s, outside the ledger's rail order; Cone of Cold fills Fire's free seat |
+| Warlock | Metamorphosis, Demonic Howl | Not confirmed for any Forever tree by the guides or the client's spell data |
+| Warlock | Conflagrate | Already the crest's own socket (`crestConflagrate`) |
+| Warlock | Bane of Doom | Already the crest's Bane torment spire, which times it; a medal would show it twice |
+| Warlock | Shadowburn | A Destruction rotation button under 60 s, outside the ledger's rail order |
 
 ## Conditional racials
 
@@ -178,7 +195,7 @@ Some racial spells sit in every class's set but only for the race that owns them
 
 ## Shorter cooldowns not classified here
 
-The ledger covers majors of 60 s or more and procs. Rotational spells under 60 s without a crest piece are not classified yet; the role-critical ones need the same review. The hunter's Strider Kick 1317257 (8 s cooldown, a 3 s buff), Sniper Shot, Aimed Shot and the fire traps now have seats on the hunter's crest rail (`KstyleUI_ActionBars/SlabRail.lua`).
+The ledger covers majors of 60 s or more and procs. Rotational spells under 60 s without a crest piece are not classified yet; the role-critical ones need the same review. The rotation cooldowns that fill a tree's free rail seats have seats on the crest rail (`KstyleUI_ActionBars/SlabRail.lua`): the hunter's Strider Kick 1317257 (8 s cooldown, a 3 s buff), Sniper Shot, Aimed Shot and the fire traps, the mage's Fire Blast (Arcane), Cone of Cold (Fire) and Ice Barrier (Frost). Each fills only the free seats of the tree the ledger names it for.
 
 ## Not yet proved
 

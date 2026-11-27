@@ -1,10 +1,12 @@
--- test-actionbars-crest-ranged-effects.lua: a hunter's, mage's and warlock's crest pieces break out of the medal into the crest: on the crest and under Frames, at rest and with every piece lit, none is a spell or item icon or sits in a round socket frame (a medal disc, an orb or medal ring, a rune stone, a spire socket), save the hunter's cooldown rail, whose forged medals the crest plan asks for; each piece takes its feed and shows its states: your damage over time a fuse down the right band whose head rides what is left and blinks in the aura's pandemic window, the Mark's reticle closing in on the left band, off the emblem as the crest plan asks, a mage's armor crystals thawing from the far end, Frost Nova's frost over the inner ring, a school's stacks as embers and a cooldown as an arc filling along the left band, a bag gem hanging from the band and charging when used, an interrupt's blade charging on the lower left, the demon's health and sigil on the left band and Demonic Sacrifice's fel flames; each sits on its break-out seat; with auras secret in combat no event or ended cooldown touches a region under an engine aura button.
+-- test-actionbars-crest-ranged-effects.lua: a hunter's, mage's and warlock's crest pieces break out of the medal into the crest: on the crest and under Frames, at rest and with every piece lit, none is a spell or item icon or sits in a round socket frame (a medal disc, an orb or medal ring, a rune stone, a spire socket), save each class's cooldown rail, whose forged medals the crest plan asks for, with a spell's own round icon standing in where its sigil is not drawn yet; each piece takes its feed and shows its states: your damage over time a fuse down the right band whose head rides what is left and blinks in the aura's pandemic window, the Mark's reticle closing in on the left band, off the emblem as the crest plan asks, a mage's armor crystals thawing from the far end, Frost Nova's frost over the inner ring, a school's stacks as embers and a cooldown as an arc filling along the left band, a bag gem hanging from the band and charging when used, an interrupt's blade charging on the lower left, the demon's health and sigil on the left band and Demonic Sacrifice's fel flames; each sits on its break-out seat; with auras secret in combat no event or ended cooldown touches a region under an engine aura button.
 local R = dofile("Tools/regression/ranged_env.lua")
 local Budget = dofile("Tools/regression/path_budget.lua")
 local Png = dofile("Tools/regression/png.lua")
 -- The socketed crest on staging 3e037a6be measured 229,200 addon instructions and 1,700 widget calls for a hundred unchanged
--- mage cooldown updates, and 46,100 and 2,000 for a hundred warlock pet health ticks, with this fixture.
-local BUDGET_COOLDOWN, BUDGET_HEALTH = { 229200, 1700 }, { 46100, 2000 }
+-- mage cooldown updates, and 46,100 and 2,000 for a hundred warlock pet health ticks, with this fixture; the mage's crest rail
+-- then added its two seats' cooldown repaint, measured at 269,700 instructions, and the hunter's crest needs
+-- (staging b107b6f0) added 2,400 to the mage's path there (226,800 to 229,200), measured on top of the rail at 271,900.
+local BUDGET_COOLDOWN, BUDGET_HEALTH = { 271900, 1700 }, { 46100, 2000 }
 local AB, Slots, New, Piece, Seated, Shown, Clean, Tint, Icons = R.AB, R.Slots, R.New, R.Piece, R.Seated, R.Shown, R.Clean, R.Tint, R.Icons
 
 local SHARED = { crestCooldowns = true, crestRail = true }
@@ -30,13 +32,17 @@ for class, light in pairs(LIGHT) do
 		local files = {}
 		for _, token in ipairs({ "dot", "medRing", "medEnamel", "medSlotSocket", "medSlotChecked", "orbRing", "trackerStone" }) do files[(K.Tokens.Texture(token))] = token end
 		assert(next(ns.SlabTrackers.state.form.failed) == nil, class .. ": every seat builds")
-		local rail = class == "HUNTER" and not frames and Seated(ns, "crestRail")
-		assert((rail and rail.made.trinket and rail.made.trinket:IsShown() and not Seated(ns, "crestTrinkets") or not rail and Seated(ns, "crestTrinkets")) and Seated(ns, "crestShot") ~= false,
-			class .. ": an on-use trinket in slot 13 joins the crest, on the hunter's rail when it shows, and the update runs to the end")
+		local rail = Seated(ns, "crestRail")
+		if frames then
+			assert(not rail and Seated(ns, "crestTrinkets"), class .. " under Frames: an on-use trinket in slot 13 stands in its own socket, with no rail")
+		else
+			assert(rail and rail.made.trinket and rail.made.trinket:IsShown() and not Seated(ns, "crestTrinkets"), class .. " on the crest: an on-use trinket in slot 13 stands on the class's rail")
+		end
+		assert(Seated(ns, "crestShot") ~= false, class .. ": the update runs to the end")
 		local function Check(state)
 			local found, sockets = {}, {}
 			for _, p in pairs(ns.SlabTrackers.state.form.pieces) do
-				Icons(p, found)
+				if p.spec.key ~= "crestRail" then Icons(p, found) end
 				if not SHARED[p.spec.key] then Sockets(p, files, sockets) end
 			end
 			local at = class .. (frames and " under Frames" or " on the crest") .. ", " .. state

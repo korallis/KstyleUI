@@ -298,7 +298,9 @@ do
 	-- The hunter's crest rail burns each seat with an animated aura, as the captain asked: a still and a burning copy on each seat, a glint,
 	-- a steel sigil that stays readable while the seat cools, and on each crowned major a signal, a last-fifth notch and the crown's own
 	-- burning aura. The cooldown row keeps one sigil per crowned buff and hides the ones the rail seats (one piece, not one per combination),
-	-- so together they take the hunter's limit from 5,168 to 5,222.
+	-- so together they take the hunter's limit from 5,168 to 5,222. The rail then came to the mage and the warlock, and every
+	-- class's rail gained a second rail of smaller medals for the long cooldowns past the four seats and the racial (27
+	-- regions on the lit hunter).
 	-- The potion sigil every class's rail carries burns as an aura (a fire, a still and its figure drawn black beneath, in
 	-- place of one flat texture): 2 more for each class, and the druid's Dash sigil does the same on each of its form rails: 12.
 	-- The mage's and warlock's marks, cooldown sigils and soul wisps burn as auras the same way, as the captain asked: a fire and a
@@ -309,9 +311,10 @@ do
 	-- on the target and Furious Howl), each aura feed with its two motion copies (114 regions), the potion pendant (12), Growl's orders and
 	-- the tracking mark's still glyphs (4 each), the range ring and the pet's focus bar, less the forged bodies the tracking mark gave up.
 	-- Tranquilizing Shot's glyph on the lower left foot is part of that total.
+	-- With the crest rail and its second rail on top of those auras and homes, the lit hunter comes to 5,377, the mage to 5,024 and the warlock, with Soulstone and Ritual of Doom on its second rail, to 5,254.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5350, MAGE = 4953, WARLOCK = 5227 }) do
+	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5377, MAGE = 5024, WARLOCK = 5254 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")

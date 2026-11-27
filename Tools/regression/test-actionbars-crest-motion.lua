@@ -570,14 +570,16 @@ local function Unknown(...)
 end
 -- Each build seats one choice per seat: a mage who conjures no gem wears the Intellect perch, one without the Scorch talents stacks Winter's Chill embers, and a
 -- warlock who makes no healthstone wears the armor perch. The counts are the fires each fed seat shows: one head or perch, a fire per curse (five), per Torment
--- foot (four) and per stack ember (five, the spec's stacks); one sacrificed demon, the Imp's buff fed alone; one gust; and a sigil per family with an aura
--- sheet, the class's own plus the shared racials and consumables that the fixture's spellbook knows.
+-- foot (four) and per stack ember (five, the spec's stacks); one sacrificed demon, the Imp's buff fed alone; one gust; and a sigil per cooldown-row family with
+-- an aura sheet that the crest rail does not hold. The rail takes the class's long cooldowns and the player's own racial, so the row keeps the potions and the
+-- other races' racials the fixture's spellbook knows (Perception and Will of the Forsaken where a mage or warlock race has them), and the warlock's Shadow Ward
+-- and sacrificed-demon sigils.
 for _, build in ipairs({
-	{ "MAGE", { crestYourSpell = 1, crestCooldowns = 15 } },
+	{ "MAGE", { crestYourSpell = 1, crestCooldowns = 7 } },
 	{ "MAGE", { crestSchool = 5, crestManaGem = 1 }, Unknown({ 10054, 10053, 3552, 759 }, { 11095, 12872, 12873 }) },
-	{ "WARLOCK", { crestTorments = 4, crestCurse = 5, crestDemon = 1, crestCooldowns = 14 } },
+	{ "WARLOCK", { crestTorments = 4, crestCurse = 5, crestDemon = 1, crestCooldowns = 9 } },
 	{ "WARLOCK", { crestHealthstone = 1 }, Unknown({ 11730, 11729, 5699, 6202, 6201 }) },
-	{ "HUNTER", { crestGust = 1, crestCooldowns = 10 } },
+	{ "HUNTER", { crestGust = 1, crestCooldowns = 5 } },
 }) do
 	local class, want = build[1], build[2]
 	local env, K, ns = New(class, build[3])
