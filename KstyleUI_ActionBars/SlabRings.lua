@@ -30,6 +30,10 @@ Rings.state = state
 local function Pop(region, seconds)
 	local group = region:CreateAnimationGroup()
 	ns.Slab.Fade(group, 1, 0, seconds)
+	region:Hide()
+	group:SetScript("OnPlay", function() region:Show() end)
+	group:SetScript("OnFinished", function() region:Hide() end)
+	group:SetScript("OnStop", function() region:Hide() end)
 	return group
 end
 
@@ -47,13 +51,7 @@ Rings.Head = Head
 
 local function Track(piece, spec, ghost)
 	local e = { piece = piece, spec = spec, unit = spec.unit or "player", ids = {}, fade = ghost and Pop(ghost, FADE), flicker = ghost and ns.Slab.Flicker(piece) }
-	if ghost then
-		ghost:SetAlpha(0)
-		ghost:Hide()
-		e.fade:SetScript("OnPlay", function() ghost:Show() end)
-		e.fade:SetScript("OnFinished", function() ghost:Hide() end)
-		e.fade:SetScript("OnStop", function() ghost:Hide() end)
-	end
+	if ghost then ghost:SetAlpha(0) end
 	for _, id in ipairs(spec.spells or NONE) do
 		e.ids[id] = true
 	end

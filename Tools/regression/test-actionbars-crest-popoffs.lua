@@ -174,7 +174,7 @@ Gain(env, "player", 11958)
 assert(lit:IsShown() and rise:IsPlaying(), "at Full the aura lights the pop-off and its flare plays")
 assert(AB.W.LastCall(lit._cooldown, "SetCooldownFromDurationObject"), "its ring drains with the aura")
 local sheet = lit.auraLoops and lit.auraLoops[1]
-assert(sheet and sheet:IsPlaying() and sheet:GetParent():GetTexture():find("Auras\\Sigils\\Crystal.png", 1, true), "at Full its Blender sheet loops in the lit slot")
+assert(sheet and sheet:IsPlaying() and sheet:GetParent():GetTexture():find("Auras\\Popoffs\\Crystal.png", 1, true), "at Full its Blender sheet loops in the lit slot")
 assert(next(block.ups) and not block.fold.play:IsPlaying(), "it is up and not folding")
 Gone(env)
 assert(not lit:IsShown() and block.fold:IsShown() and block.fold.play:IsPlaying(), "at Full the aura's end folds it")
@@ -520,26 +520,12 @@ local function Listeners(at, event)
 	return n
 end
 
--- C_UnitAuras.GetUnitAuraBySpellID answered from the auras Slots.Set gave each unit, one instance id per aura table,
--- so a UNIT_AURA reaches the late warning the way the client's reads would.
-local function Readings(at)
-	local ids, n = setmetatable({}, { __mode = "k" }), 0
-	at.C_UnitAuras = at.C_UnitAuras or {}
-	at.C_UnitAuras.GetUnitAuraBySpellID = function(unit, id)
-		for _, a in ipairs(at._slotAuras[unit] or {}) do
-			if a.id == id and not a.harmful then
-				if not ids[a] then n = n + 1 ids[a] = n end
-				return { auraInstanceID = ids[a], spellId = id, sourceUnit = a.mine == false and "party9" or "player", expirationTime = a.start + a.duration, duration = a.duration }
-			end
-		end
-	end
-end
-
--- An aura gain as the client delivers it: the slots update and UNIT_AURA fires for that unit only.
+-- An aura gain as the client delivers it: the slots update and UNIT_AURA fires for that unit only, read back through
+-- C_UnitAuras (Slots.Readings).
 local function Aura(at, unit, id, fields)
-	Gain(at, unit, id, fields)
-	local a = at.C_UnitAuras.GetUnitAuraBySpellID(unit, id)
-	at.FireEvent("UNIT_AURA", unit, { isFullUpdate = false, addedAuras = { { spellId = id, auraInstanceID = a.auraInstanceID } } })
+	local aura = { id = id, start = at._now, duration = 10 }
+	for k, v in pairs(fields or {}) do aura[k] = v end
+	Slots.Deliver(at, unit, { aura })
 end
 
 -- Whether some frame hears UNIT_AURA for this unit.
@@ -571,7 +557,7 @@ do
 	genv.IsInRaid = function() return raid end
 	local exists = genv.UnitExists
 	genv.UnitExists = function(unit) return members[unit] == true or exists(unit) end
-	Readings(genv)
+	Slots.Readings(genv)
 	genv.SetTarget(true)
 	genv.RunTimers()
 	local solo = assert(Shown(gns, "Infusion"), "Power Infusion builds once known")
@@ -601,6 +587,28 @@ do
 	Aura(genv, "player", 10060)
 	Aura(genv, "target", 10060, { mine = true })
 	assert(Warned(genv, gns, party, "player") and Warned(genv, gns, party, "target"), "in a party the priest's and the target's late warnings still arm")
+	-- Selecting a buffed member moves their buff to the target's slot and back with no aura event, so the slot that shows takes over
+	-- the late warning from the one the selection hid.
+	members.party2 = true
+	Aura(genv, "party2", 10060, { mine = true })
+	assert(Warned(genv, gns, party, "party2"), "the priest's Power Infusion on a party member arms its late warning")
+	same["target=party2"] = true
+	Slots.Set(genv, "target", genv._slotAuras.party2)
+	genv.SetTarget(true)
+	assert(On(party, "target"):IsVisible() and not On(party, "party2"):IsVisible() and Warned(genv, gns, party, "target"), "targeting that member hands the warning to the target's slot")
+	same["target=party2"] = nil
+	Slots.Set(genv, "target", nil)
+	genv.SetTarget(true)
+	assert(On(party, "party2"):IsVisible() and Warned(genv, gns, party, "party2"), "targeting someone else hands it back to the member's own slot")
+	same["focus=party2"] = true
+	Slots.Set(genv, "focus", genv._slotAuras.party2)
+	genv.FireEvent("PLAYER_FOCUS_CHANGED")
+	assert(On(party, "focus"):IsVisible() and not On(party, "party2"):IsVisible() and Warned(genv, gns, party, "focus"), "focusing that member hands the warning to the focus's slot")
+	same["focus=party2"] = nil
+	Slots.Set(genv, "focus", nil)
+	genv.FireEvent("PLAYER_FOCUS_CHANGED")
+	assert(On(party, "party2"):IsVisible() and Warned(genv, gns, party, "party2"), "and clearing the focus hands it back")
+	Slots.Set(genv, "party2", nil)
 	members.party4 = nil
 	Slots.Set(genv, "party4", nil)
 	Slots.Set(genv, "player", nil)
@@ -687,7 +695,7 @@ do
 	lenv.IsInRaid = function() return raid end
 	local exists = lenv.UnitExists
 	lenv.UnitExists = function(unit) return members[unit] == true or exists(unit) end
-	Readings(lenv)
+	Slots.Readings(lenv)
 	lenv.SetTarget(true)
 	lenv.RunTimers()
 	local solo = assert(Shown(lns, "Infusion"), "Power Infusion builds once known")

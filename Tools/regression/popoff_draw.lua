@@ -9,6 +9,7 @@
 local Suite = dofile("Tools/regression/suite_env.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
+local Late = dofile("Tools/regression/popoff_warnings.lua")
 
 local Draw = { CEILING = 1732, LIMIT = { DRUID = 1773 } }
 local LENGTH = 30
@@ -42,30 +43,6 @@ local function Count(env)
 		end
 	end
 	return n
-end
-
--- The alpha a delayed fade leaves its frame at now: the frame's own until the start delay has run, the fade's end after it.
-local function Level(env, frame, group)
-	local fade = group.fade
-	local t = group._playedAt and env._now - group._playedAt - fade._state.StartDelay[1]
-	if not t or t < 0 then
-		return frame:GetAlpha()
-	end
-	local from, to, length = fade._state.FromAlpha[1], fade._state.ToAlpha[1], fade._state.Duration[1]
-	return t >= length and to or from + (to - from) * t / length
-end
-
--- How strongly each lit pop-off slot's amber and red swipes draw now, by its unit.
-local function Warnings(env, ns)
-	local out = {}
-	for _, e in ipairs(ns.SlabRings.state.watched) do
-		local top = e.piece.top or e.piece
-		if e.late and top.spec and top.spec.key == "crestPopoffs" and e.piece:IsVisible() and e.late.start then
-			local cap = Level(env, e.late, e.late.show)
-			out[top.spec.art .. ":" .. e.unit] = { cap * Level(env, e.late.amber, e.late.leave), cap * Level(env, e.late.red, e.late.turn) }
-		end
-	end
-	return out
 end
 
 local function Run(class, group)
@@ -111,16 +88,7 @@ local function Run(class, group)
 	end
 	env.UnitExists = function(unit) return here[unit] or exists(unit) end
 	env.GetTime = env.GetTime or function() return env._now end
-	local ids, serial = {}, 0
-	env.C_UnitAuras = env.C_UnitAuras or {}
-	env.C_UnitAuras.GetUnitAuraBySpellID = function(unit, id)
-		for _, a in ipairs(env._slotAuras[unit] or {}) do
-			if a.id == id and not a.harmful then
-				if not ids[a] then serial = serial + 1 ids[a] = serial end
-				return { auraInstanceID = ids[a], spellId = id, sourceUnit = "player", expirationTime = a.duration > 0 and a.start + a.duration or 0, duration = a.duration }
-			end
-		end
-	end
+	Slots.Readings(env)
 	env.C_SpellBook = env.C_SpellBook or {}
 	local before = env.C_SpellBook.IsSpellKnown or function() return false end
 	env.C_SpellBook.IsSpellKnown = function(id, bank) return known[id] == true or before(id, bank) end
@@ -133,24 +101,26 @@ local function Run(class, group)
 	local limit = Draw.LIMIT[class] or Draw.CEILING
 	local base, start = Count(env), env._now
 	local peak, moments = base, {}
+	local function Check(what)
+		local n = Count(env)
+		assert(n <= limit, string.format("%s: %d shown regions %s, limit %d; a pop-off draws its art only while its aura or its fold shows", label, n, what, limit))
+		peak = math.max(peak, n)
+	end
+	-- The state as it stands is counted before the first frame, so the frame an aura arrives or ends on is counted too.
 	local function Sample(what, frames)
+		Check(what)
 		for _ = 1, frames do
 			Frame(env)
-			local n = Count(env)
-			assert(n <= limit, string.format("%s: %d shown regions %s, limit %d; a pop-off draws its art only while its aura or its fold shows", label, n, what, limit))
-			peak = math.max(peak, n)
+			Check(what)
 		end
 		moments[#moments + 1] = what
 	end
 	for unit, list in pairs(auras) do
-		Slots.Set(env, unit, list)
-		local added = {}
-		for i, a in ipairs(list) do
-			local read = env.C_UnitAuras.GetUnitAuraBySpellID(unit, a.id)
-			added[i] = { spellId = a.id, auraInstanceID = read and read.auraInstanceID or 0 }
-			timed = timed + (read and a.duration > 0 and 1 or 0)
+		Slots.Deliver(env, unit, list)
+		Check("as the auras arrive")
+		for _, a in ipairs(list) do
+			timed = timed + (not a.harmful and a.duration > 0 and 1 or 0)
 		end
-		env.FireEvent("UNIT_AURA", unit, { isFullUpdate = false, addedAuras = added })
 	end
 	Sample("as the pop-offs rise", 40)
 	local lit = 0
@@ -170,7 +140,7 @@ local function Run(class, group)
 	Sample("with the auras running", 2)
 	local function Phase(what, amber, red)
 		local n = 0
-		for key, w in pairs(Warnings(env, ns)) do
+		for key, w in pairs(Late.Read(env, ns)) do
 			assert((w[1] > 0) == amber and (w[2] > 0) == red, string.format("%s: %s's ring is %s amber and %s red %s", label, key, w[1] > 0 and "" or "not", w[2] > 0 and "" or "not", what))
 			n = n + 1
 		end
@@ -184,8 +154,8 @@ local function Run(class, group)
 	Sample("in the ring's red warning", 4)
 	Phase("in its last twelfth", false, true)
 	for unit in pairs(auras) do
-		Slots.Set(env, unit, nil)
-		env.FireEvent("UNIT_AURA", unit, { isFullUpdate = true })
+		Slots.Deliver(env, unit, nil)
+		Check("as the auras end")
 	end
 	Frame(env)
 	local folding = 0

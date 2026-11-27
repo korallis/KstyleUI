@@ -6,7 +6,8 @@ local Reach = {}
 
 local RING = { crestGust = true, crestClearcasting = true, crestTrance = true, crestWard = true, crestAutoShot = true, crestCooldowns = true, crestFiveSecond = true }
 local FRAMES = { "unitframes.player", "unitframes.target", "unitframes.castbar.player", "unitframes.castbar.target" }
-local CONTENT = {}
+local ROW = { "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars" }
+local CONTENT, SAMPLES = {}, {}
 
 -- Cells(coords) -> columns and rows of the even grid a flipbook cell's texture coordinates (left, right, top, bottom) pick from;
 -- 1, 1 for the whole texture or a crop that is no grid cell.
@@ -41,6 +42,92 @@ local function Content(path, coords)
 		CONTENT[key] = ok and r > l and { l, r, t, b, alpha = alpha, w = cw, h = ch, columns = columns, rows = rows, full = { w, h } } or false
 	end
 	return CONTENT[key]
+end
+
+-- Eased(anim, at) -> how far the animation has run at time at of its group's pass, 0 to 1, through its smoothing.
+local function Eased(anim, at)
+	local p = math.max(0, math.min(1, (at - anim.from) / math.max(anim.run, 1e-6)))
+	local smoothing = anim.anim._state.Smoothing and anim.anim._state.Smoothing[1] or "NONE"
+	if smoothing == "OUT" then return 1 - (1 - p) ^ 2 end
+	if smoothing == "IN" then return p * p end
+	if smoothing == "IN_OUT" then return p < 0.5 and 2 * p * p or 1 - 2 * (1 - p) ^ 2 end
+	return p
+end
+
+-- Passes(group) -> its Translation, Rotation and Scale animations, each with the time it starts and runs for in one pass, and the pass's
+-- times worth sampling: each start and end and 48 steps between.
+local function Passes(group)
+	local orders, timed, times, start = {}, {}, { 0 }, 0
+	for _, anim in ipairs(group._anims or {}) do
+		local order = anim._state.Order and anim._state.Order[1] or 1
+		orders[order] = orders[order] or {}
+		table.insert(orders[order], anim)
+	end
+	for order = 1, 64 do
+		local longest = 0
+		for _, anim in ipairs(orders[order] or {}) do
+			local delay, run = anim._state.StartDelay and anim._state.StartDelay[1] or 0, anim._state.Duration and anim._state.Duration[1] or 0
+			longest = math.max(longest, delay + run)
+			if anim._type == "Translation" or anim._type == "Rotation" or anim._type == "Scale" then
+				timed[#timed + 1] = { anim = anim, from = start + delay, run = run }
+				times[#times + 1], times[#times + 2] = start + delay, start + delay + run
+			end
+		end
+		start = start + longest
+	end
+	for i = 1, 48 do times[#times + 1] = start * i / 48 end
+	return timed, times
+end
+
+-- Samples(group) -> the group's offset, turn and scale at each sampled time of its pass, worked out once per group and check.
+local function Samples(group)
+	if not SAMPLES[group] then
+		local timed, times = Passes(group)
+		local list = {}
+		for _, time in ipairs(#timed > 0 and times or {}) do
+			local x, y, turn, scale, latest = 0, 0, 0, 1, -1
+			for _, each in ipairs(timed) do
+				local p, state = Eased(each, time), each.anim._state
+				if each.anim._type == "Translation" then
+					local ox, oy = unpack(state.Offset or { 0, 0 })
+					x, y = x + (ox or 0) * p, y + (oy or 0) * p
+				elseif each.anim._type == "Rotation" then
+					turn = turn + (state.Degrees and state.Degrees[1] or 0) * p
+				elseif time >= each.from and each.from >= latest then
+					local from, to = (state.ScaleFrom or { 1 })[1] or 1, (state.ScaleTo or { 1 })[1] or 1
+					scale, latest = from + (to - from) * p, each.from
+				end
+			end
+			list[#list + 1] = { x, y, math.cos(math.rad(turn)), math.sin(math.rad(turn)), scale }
+		end
+		SAMPLES[group] = list
+	end
+	return SAMPLES[group]
+end
+
+-- Sweep(solver, region, l, r, t, b, unit) -> the box l, r, t, b of the region's drawn content over every pass of every Translation,
+-- Rotation and Scale animation group on it and on each frame above it, sampled through each pass: a frame's scale and turn about its own
+-- centre, then its offset, as the client applies them; a frame's groups are swept one at a time, and each frame's sweep bounds the next.
+local function Sweep(solver, region, l, r, t, b, unit)
+	local node = region
+	while node do
+		local at = solver:rect(node)
+		local cx, cy = at and (at[1] + at[3]) / 2 or (l + r) / 2, at and (at[2] + at[4]) / 2 or (t + b) / 2
+		local nl, nr, nt, nb = l, r, t, b
+		for _, group in ipairs(node._groups or {}) do
+			for _, sample in ipairs(Samples(group)) do
+				local x, y, c, s, scale = sample[1], sample[2], sample[3], sample[4], sample[5]
+				for _, corner in ipairs({ { l, t }, { r, t }, { l, b }, { r, b } }) do
+					local dx, dy = (corner[1] - cx) * scale, (corner[2] - cy) * scale
+					local px, py = cx + dx * c - dy * s + x * unit, cy + dx * s + dy * c + y * unit
+					nl, nr, nt, nb = math.min(nl, px), math.max(nr, px), math.max(nt, py), math.min(nb, py)
+				end
+			end
+		end
+		l, r, t, b = nl, nr, nt, nb
+		node = node:GetParent()
+	end
+	return l, r, t, b
 end
 
 -- Solid(region, u, v) -> whether the texture draws a pixel of alpha 64 or more at u, v of its box (0 to 1 from the left and the top):
@@ -231,17 +318,30 @@ local function Covers(region, poses, peer, meant)
 	end
 end
 
--- Meant(popoff) -> whether the pop-off draws a pixel over another piece on purpose: an overlay (Ice Block's shell, Divine Shield's bubble,
--- Evocation over the mana gem) and Evocation's ticks cover only the piece on their own seat, and Bestial Wrath's flare only the pet band
--- at its row's origin, which it rises out of. Seats compare in crest units.
+-- Meant(popoff, region) -> whether the pop-off's region draws a pixel over another piece on purpose: an overlay (Ice Block's shell,
+-- Divine Shield's bubble, Evocation over the mana gem) and Evocation's ticks cover only the piece on their own seat, and a flare the row
+-- anchors away from its seat (Bestial Wrath's, rising out of the pet band) covers only the pet band; its sigil and ring are held to
+-- every peer. Seats compare in crest units.
 local function Near(a, b)
 	return a and b and math.abs(a[1] - b[1]) < 4 and math.abs(a[2] - b[2]) < 4
 end
 
-local function Meant(popoff)
-	local seat, own, origin = popoff.at, popoff.overlay or popoff.frame.spec.ticks, popoff.frame.spec.origin
+local function Flare(popoff, region)
+	for _, lit in ipairs(popoff.frame.spec.anchor and popoff.frame.lits or {}) do
+		local gate = lit.flareGate
+		for _, each in ipairs(gate and { gate, gate.other } or {}) do
+			local node = region
+			while node and node ~= each.lit.flare do node = node:GetParent() end
+			if node then return true end
+		end
+	end
+	return false
+end
+
+local function Meant(popoff, region)
+	local seat, own, rising = popoff.at, popoff.overlay or popoff.frame.spec.ticks, Flare(popoff, region)
 	return function(_, _, _, peer)
-		return own and Near(peer.piece.at, seat) or Near(peer.piece.at, origin) or false
+		return own and Near(peer.piece.at, seat) or rising and peer.key == "crestPet" or false
 	end
 end
 
@@ -259,25 +359,47 @@ function Reach.Check(sizes, classes, popoffs)
 		return result
 	end
 	_G.RENDER_SCENE_LIB, _G.RENDER_TRACKERS = true, "lit"
-	for _, size in ipairs(sizes) do
-		local at = size[1] .. "x" .. size[2]
+	for _, run in ipairs({ { sizes = sizes }, { sizes = (popoffs or classes and classes[1] ~= "HUNTER") and {} or sizes, low = true } }) do
+	for _, size in ipairs(run.sizes) do
+		local low = run.low == true
+		_G.RENDER_CAST_ON_FRAME = low and "off" or nil
+		local at = size[1] .. "x" .. size[2] .. (low and " with the centred cast bars" or "")
 		_G.RENDER_SCREEN = { width = size[1], height = size[2], size = "auto" }
 		local Hud = dofile("Tools/render/scenes/hud.lua")
 		Hud.Module("unitframes", Hud.Options({ layout = "DPS", class = "HUNTER", applyPreset = true }))
-		local frames = {}
-		for _, key in ipairs(FRAMES) do
+		local frames, rail, casts = {}, {}, 0
+		for i, key in ipairs(FRAMES) do
 			local element = measured.KstyleUI.Layout.Element(key)
 			frames[#frames + 1] = assert(element and Scene.RectSolver(measured):rect(element.frame), at .. ": " .. key .. " is placed")
+			if element.live ~= false then
+				rail[#rail + 1] = frames[#frames]
+				casts = casts + (i > 2 and 1 or 0)
+			end
 		end
-		local runs = {}
-		for _, class in ipairs(classes or { "HUNTER", "MAGE", "WARLOCK" }) do
+		assert(casts == (low and 2 or 0), at .. ": the rail is measured against both centred cast bars exactly while they show (" .. casts .. ")")
+		local Layouts, cast = measured.KstyleUI.Setup.Layouts, frames[3]
+		local from = Layouts.Style("DPS", FRAMES[3], "medallions")
+		local k = (cast[3] - cast[1]) / from.width
+		for _, key in ipairs(ROW) do
+			local place, box = Layouts.Style("DPS", key, "medallions"), Layouts.Element(key)
+			local x, y = (cast[1] + cast[3]) / 2 + (place.x - from.x) * k, cast[2] + (place.y - from.y) * k
+			rail[#rail + 1] = { x - box.width * k / 2, y, x + box.width * k / 2, y + box.height * k }
+		end
+		for _, class in ipairs(low and { "HUNTER" } or classes or { "HUNTER", "MAGE", "WARLOCK" }) do
+			SAMPLES = {}
 			local _, ns = Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 			if class == "HUNTER" then
 				local known = measured.C_SpellBook.IsSpellKnown
 				local widest = { [1293241] = true, [19574] = true, [3045] = true, [19577] = true, [14305] = true, [13795] = true, [24579] = true, [14916] = true, [19801] = true }
 				measured.C_SpellBook.IsSpellKnown = function(id, ...) return widest[id] or known(id, ...) end
 				measured.GetTotemInfo = measured.GetTotemInfo or function() return false, "", 0, 0, 0, 1, 0 end
+				measured.GetInventoryItemID = function(_, slot) return slot == 13 and 5002 or nil end
+				measured.C_Item.GetItemSpell = function(id) if id == 5002 then return "Use", 9002 end end
+				for i = 3, low and 4 or 0 do
+					measured.KstyleUI.Layout.Register(measured.CreateFrame("Frame"), FRAMES[i], measured.KstyleUI.Setup.Layouts.Default(FRAMES[i]))
+				end
 				ns.SlabHawks.Update()
+				ns.SlabTrackers.Update()
 			end
 			if popoffs then
 				Light(measured, ns, class)
@@ -293,19 +415,28 @@ function Reach.Check(sizes, classes, popoffs)
 					if button:IsVisible() then avoid[#avoid + 1] = solver:rect(button) end
 				end
 			end
+			local railed = { unpack(avoid) }
 			for _, box in ipairs(frames) do avoid[#avoid + 1] = box end
+			for _, box in ipairs(rail) do railed[#railed + 1] = box end
 			assert(#avoid > 16, at .. " " .. class .. ": the action slots, badge, unit frames and cast bars are placed")
 			local checked = 0
 			local pieces = {}
 			for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-				local seat = p.spec.seat
-				seat = type(seat) == "table" and seat or ns.SlabSeats.AT[seat]
-				pieces[#pieces + 1] = { key = p.spec.key, frame = p, overlay = p.spec.overlay, at = seat, seat = ns.SlabSeats.Name(p.spec.seat), rim = not ns.SlabSeats.Name(p.spec.seat), regions = RING[p.spec.key] and {} or Textures(p, {}) }
+				if not low or p.spec.key == "crestRail" then
+					local seat = p.spec.seat
+					seat = type(seat) == "table" and seat or ns.SlabSeats.AT[seat]
+					pieces[#pieces + 1] = { key = p.spec.key, frame = p, overlay = p.spec.overlay, at = seat, seat = ns.SlabSeats.Name(p.spec.seat), rim = not ns.SlabSeats.Name(p.spec.seat), regions = RING[p.spec.key] and {} or Textures(p, {}) }
+				end
 			end
-			for i, p in ipairs(ns.SlabHawks and ns.SlabHawks.state.perches or {}) do
+			for i, p in ipairs(not low and ns.SlabHawks and ns.SlabHawks.state.perches or {}) do
 				pieces[#pieces + 1] = { key = "hawk perch " .. i, regions = Textures(p.holder, {}) }
 			end
-			assert(class ~= "HUNTER" or #pieces > 2 and pieces[#pieces].key == "hawk perch 2", at .. ": the hunter's hawk perches are measured")
+			assert(class ~= "HUNTER" or low or #pieces > 2 and pieces[#pieces].key == "hawk perch 2", at .. ": the hunter's hawk perches are measured")
+			local seated = ns.SlabTrackers.state.forms.crest.pieces
+			local railPiece
+			for _, p in pairs(seated) do railPiece = p.spec.key == "crestRail" and p or railPiece end
+			assert(class ~= "HUNTER" or railPiece and railPiece:IsShown() and #railPiece.order == 5 and #rail >= #ROW, at .. ": the hunter's rail is measured against the cooldown row")
+			assert(class ~= "HUNTER" or railPiece.low == low, at .. ": the rail takes its own flat row exactly while the centred cast bars show")
 			local peers = {}
 			if popoffs then
 				-- The combo heat hangs off the first crown point but rings the whole crest (SlabHeat.lua), so it is left out with the ring.
@@ -350,15 +481,27 @@ function Reach.Check(sizes, classes, popoffs)
 			local sampled = {}
 			for _, p in ipairs(pieces) do
 				for _, region in ipairs((not popoffs or p.key == "crestPopoffs") and p.regions or {}) do
-					local l, r, t, b, file = Box(solver, region, unit, true)
+					local l, r, t, b, file
+					if popoffs then
+						l, r, t, b, file = Box(solver, region, unit, true)
+					else
+						local texture = region._state.Texture
+						local box, content = solver:rect(region._barOwner or region), texture and Content(texture[1], region._state.TexCoord)
+						if box and content then
+							local w, h = box[3] - box[1], box[4] - box[2]
+							l, r, t, b = Sweep(solver, region, box[1] + content[1] * w, box[1] + content[2] * w, box[4] - content[3] * h, box[4] - content[4] * h, unit)
+							file = tostring(texture[1]):match("[^\\/]+$")
+						end
+					end
 					if l then
 						checked = checked + 1
 						local name = at .. " " .. class .. " " .. p.key .. "'s " .. file
-						assert(math.abs(l - cx) <= 80 * unit and math.abs(r - cx) <= 80 * unit, name .. " stays inside the crest's column")
-						for _, a in ipairs(avoid) do
-							assert(r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses an action slot, the level badge, a unit frame or a cast bar")
+						local own = p.key == "crestRail" and railed or avoid
+						assert(own == railed or math.abs(l - cx) <= 80 * unit and math.abs(r - cx) <= 80 * unit, name .. " stays inside the crest's column")
+						for _, a in ipairs(own) do
+							assert(r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses an action slot, the level badge, a unit frame, a cast bar or the cooldown row")
 						end
-						local poses, meant = popoffs and Poses(solver, region, unit), popoffs and Meant(p)
+						local poses, meant = popoffs and Poses(solver, region, unit), popoffs and Meant(p, region)
 						for _, a in ipairs(popoffs and peers or {}) do
 							local x, y
 							if a.piece ~= p then
@@ -369,10 +512,11 @@ function Reach.Check(sizes, classes, popoffs)
 					end
 				end
 			end
-			assert(checked > (popoffs and 2 or 20), at .. " " .. class .. ": the lit pieces are measured (" .. checked .. ")")
+			assert(checked > (popoffs and 2 or low and 10 or 20), at .. " " .. class .. ": the lit pieces are measured (" .. checked .. ")")
 		end
 	end
-	_G.dofile, _G.RENDER_TRACKERS = original, nil
+	end
+	_G.dofile, _G.RENDER_TRACKERS, _G.RENDER_CAST_ON_FRAME = original, nil, nil
 end
 
 return Reach

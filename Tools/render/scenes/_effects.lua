@@ -249,6 +249,7 @@ function Effects.Apply(env, module, ns, notes)
 			env.C_SpellBook.IsSpellKnown = function(id, bank) return known[id] == true or before ~= nil and before(id, bank) end
 			local Slots = dofile("Tools/regression/aura_slots.lua")
 			if not env._slotContainers then Slots.Install(env) end
+			Slots.Readings(env)
 			local motion = os.getenv("RENDER_POPOFF_MOTION")
 			if motion and motion ~= "" then
 				K.Options.Write("Medallions", "motion", motion)
@@ -291,7 +292,7 @@ function Effects.Apply(env, module, ns, notes)
 						table.insert(units[aura.unit], aura)
 					end
 					for _, unit in ipairs({ "player", "pet" }) do
-						Slots.Set(env, unit, units[unit])
+						Slots.Deliver(env, unit, units[unit])
 					end
 					if not beat[3] then
 						env.RunTimers()
@@ -305,6 +306,15 @@ function Effects.Apply(env, module, ns, notes)
 			end
 			env.GetTime = clock
 			notes[#notes + 1] = "fx: the " .. tostring(class) .. " pop-offs " .. at .. " s into the story"
+			-- Each timed ring's late warning as the renderer draws it at this time, so a capture named amber or red can be checked.
+			local warned = dofile("Tools/regression/popoff_warnings.lua").Read(env, ns, env._time)
+			local keys = {}
+			for key in pairs(warned) do keys[#keys + 1] = key end
+			table.sort(keys)
+			for _, key in ipairs(keys) do
+				local w = warned[key]
+				notes[#notes + 1] = "fx: " .. key .. " ring " .. (w[2] > 0 and "red" or w[1] > 0 and "amber" or "without a warning")
+			end
 		elseif state == "storm" then
 			-- A shaman who knows Lightning Shield, RENDER_FX_T seconds into the STORM story (2.5 when unset): the aura
 			-- slots take each charge count and the addon's own handler each cast, at its own time on the clock.

@@ -116,12 +116,18 @@ local function Fresh(list)
 	end
 end
 
+local function Rewarn()
+	if ns.SlabRings then ns.SlabRings.Update() end
+end
+
 local function OnTarget()
 	Fresh(seen.target)
+	Rewarn()
 end
 
 local function OnFocus()
 	Fresh(seen.focus)
+	Rewarn()
 end
 
 local function OnRoster()
@@ -133,7 +139,7 @@ local function OnRoster()
 		Present(layer)
 	end
 	Fresh(seen.roster)
-	if ns.SlabRings then ns.SlabRings.Update() end
+	Rewarn()
 end
 
 local function Unseen(parent, unit, other, level)
@@ -324,7 +330,7 @@ Popoffs.CLASSES = {
 		Row(Ranged.PENDANT, "Vortex", "schoolArcane", { 12051 }, { overlay = true, ticks = true, from = { 0, 0 } }),
 	} },
 	{ "HUNTER", {
-		Row("upper", "Beast", "schoolFire", { 19574 }, { unit = "pet", anchor = BEAST_AT, from = { 0, 0 }, to = BEAST_TO, origin = PET }),
+		Row("upper", "Beast", "schoolFire", { 19574 }, { unit = "pet", anchor = BEAST_AT, from = { 0, 0 }, to = BEAST_TO }),
 		Row("popHunter", "Deflect", "schoolPhysical", { 19263 }, { from = { 0, -RISE } }),
 	} },
 	{ "PALADIN", {
