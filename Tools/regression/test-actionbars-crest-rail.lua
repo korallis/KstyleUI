@@ -874,6 +874,8 @@ do
 	local _, _, _, ax, ay = seat:GetPoint(1)
 	assert(#seat.legs == 1 and at(seat.legs[1]) == (cx - ax) .. "," .. (cy - ay) and at(seat.trail[1]) == (ax - cx) .. "," .. (ay - cy),
 		"a seat on the main rail still flies straight to the crown and back")
+	assert(Scales(seat.rise) == "1:" .. string.format("%.3f", 28 * 0.86 / 34) .. " 2:" .. string.format("%.3f", 1.29 / 1.21) .. " 3:1.000",
+		"it leaves at its dipped size, pops at the crown and settles to the crown's size (" .. Scales(seat.rise) .. ")")
 	K.Layout.Register(env.CreateFrame("Frame"), "unitframes.castbar.player", { anchor = "CENTER", x = 0, y = 0 })
 	K.Layout.SetLive("unitframes.castbar.player", false)
 	K.Layout.SetLive("unitframes.castbar.player", true)
@@ -884,6 +886,8 @@ do
 	assert(dx < -20, "on the flat row the first small medal stands left of the crown (" .. dx .. ")")
 	assert(at(block.legs[1]) == "0," .. (-22 - dy) and at(block.legs[2]) == -dx .. ",0" and at(block.legs[3]) == "0,22"
 		and at(block.trail[1]) == "0,-22" and at(block.trail[3]) == "0," .. (dy + 22), "and runs the lane 22 units under the row both ways")
+	assert(Scales(block.rise) == "1:" .. string.format("%.3f", 22 * 0.86 / 34) .. " 2:" .. string.format("%.3f", 4 / 34) .. " 6:1.000 7:1.000",
+		"and lands at the crown's size with no pop (" .. Scales(block.rise) .. ")")
 	Auras(env, { { 27619, 10 } })
 	assert(block.crowned:IsShown() and rail.owner == block, "active: its buff, by the aura's own id, owns the crown")
 	Clean(env, K)
