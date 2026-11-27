@@ -363,6 +363,10 @@ function Reach.Check(sizes)
 			end
 			assert(fliers > 0, at .. " " .. class .. ": a second-rail medal's flight is measured against the other medals")
 		end
+		-- A full collect once each screen is done frees its scene before the next is built: the peak then stays near 2 GB
+		-- instead of drifting with the collector's phase towards the test runner's 4096 MB limit.
+		measured = nil
+		collectgarbage("collect")
 	end
 	end
 	_G.dofile, _G.RENDER_TRACKERS, _G.RENDER_CAST_ON_FRAME = original, nil, nil
