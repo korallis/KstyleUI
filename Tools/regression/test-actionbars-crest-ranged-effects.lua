@@ -206,6 +206,17 @@ do
 		local r, g, b = body:GetVertexColor()
 		assert(fire and fire.loop._anims[1]._type == "FlipBook" and r + g + b == 0, "each arrow at " .. angle .. " degrees burns its aura over its own figure drawn black")
 	end
+	-- Multi-Shot must read as three arrows, as the flat figures did: three additive glows over one another
+	-- merge into one bright column, so each black figure covers the glows drawn before it, the centre arrow last.
+	local under
+	for _, angle in ipairs({ 105, 75, 90 }) do
+		local fire = Drawn(multi, "Figures\\Arrow" .. angle .. ".png", true)
+		local _, body = Drawn(multi, "PipArrow" .. angle .. ".png", false):GetDrawLayer()
+		local _, glow = fire:GetDrawLayer()
+		local _, still = fire.still:GetDrawLayer()
+		assert(body < glow and glow == still and (under == nil or under < body), "the arrow at " .. angle .. " degrees covers the glows under it and burns over its own figure")
+		under = glow
+	end
 	env._usable[19306] = true
 	env.FireEvent("SPELL_UPDATE_USABLE")
 	local counter = shot.shots[shot.spec.shots[19306]]

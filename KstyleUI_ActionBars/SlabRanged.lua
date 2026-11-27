@@ -434,10 +434,13 @@ local function Look(p, look, level)
 	local layer = Medals.Layer(p.lit, level + 2)
 	layer:Hide()
 	p.add(Medals.Texture(layer, "BACKGROUND", 0, "glow", look.color, p.units * 0.9, "ADD")):SetAlpha(FAINT)
-	for _, art in ipairs(look.arrows or { look.glyph }) do
+	for i, art in ipairs(look.arrows or { look.glyph }) do
 		if look.arrows then
-			p.add(Medals.Texture(layer, "ARTWORK", -1, "pipArrow" .. art, "black", p.units))
-			Medals.Aura(p, layer, "auraFigureArrow" .. art, p.units)
+			p.add(Medals.Texture(layer, "ARTWORK", 2 * i - 4, "pipArrow" .. art, "black", p.units))
+			local fire = Medals.Aura(p, layer, "auraFigureArrow" .. art, p.units)
+			for _, t in ipairs({ fire, fire.still }) do
+				t:SetDrawLayer("ARTWORK", 2 * i - 3)
+			end
 		else
 			Medals.Mark(p, layer, art, p.units * (select(4, Tokens.Texture(art)) and SHOT_FORGED or SHOT_FLAT), look.color, Lift(look.color, 0.2))
 		end
@@ -1335,7 +1338,7 @@ if CLASS == "HUNTER" then
 	local COUNTER, MONGOOSE, AIMED, MULTI = FAMILIES.counter.spells, FAMILIES.mongoose.spells, FAMILIES.aimed.spells, { 2643 }
 	local SHOTS, SHOWS = {}, {}
 	for _, shot in ipairs({ { COUNTER, { glyph = FAMILIES.counter.glyph, color = "hostile" } }, { MONGOOSE, { glyph = FAMILIES.mongoose.glyph, color = "hostile" } },
-		{ AIMED, { arrows = { 90 }, color = "giltLit" } }, { MULTI, { arrows = { 105, 90, 75 }, color = "steelLit" } } }) do
+		{ AIMED, { arrows = { 90 }, color = "giltLit" } }, { MULTI, { arrows = { 105, 75, 90 }, color = "steelLit" } } }) do
 		SHOWS[#SHOWS + 1] = shot[2]
 		for _, id in ipairs(shot[1]) do SHOTS[id] = shot[2] end
 	end
