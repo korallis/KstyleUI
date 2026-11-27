@@ -54,7 +54,9 @@ local function Bloom(parent, spec, level, form)
 		for _, layer in ipairs({ r.leaves, r.calm.lit }) do
 			local leaf = r.add(CreateFrame("Frame", nil, layer), LEAF)
 			leaf.angle = (k - 0.5) * 360 / LEAVES
+			r.quiet = layer == r.calm.lit and layer or nil
 			local fire, _, body = Medals.Mark(r, leaf, "trackerLeaf", LEAF, "schoolNature")
+			r.quiet = nil
 			for _, t in ipairs({ fire, fire.still, body }) do
 				t:SetRotation(-math.rad(leaf.angle))
 			end

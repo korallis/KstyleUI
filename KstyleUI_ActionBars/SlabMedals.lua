@@ -150,6 +150,7 @@ end
 function Medals.Aura(piece, host, token, size, color, r, g, b, lights, owner)
 	local _, _, _, _, span, tint = Tokens.Flipbook(token)
 	local lazy = piece.lazy
+	owner = owner or piece.quiet
 	local file = not lazy and token
 	local flame, calm = lights and lights.flame, lights and lights.calm
 	local fire = piece.add(Cell(Medals.Texture(flame or host, "ARTWORK", 0, file, "white", size * span, "ADD"), token, 0))
@@ -177,7 +178,7 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights, owner)
 	auras[#auras + 1] = fire
 	local fed = Fed(host)
 	if owner then
-		fire.fed = owner
+		fire.fed, fire.quiet = owner, owner == piece.quiet
 	elseif fed then
 		fire.fed = fed
 		fed.auraLoops = fed.auraLoops or {}

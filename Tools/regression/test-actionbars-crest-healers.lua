@@ -317,6 +317,30 @@ do
 	local seats = 0
 	for _ in pairs(placed) do seats = seats + 1 end
 	assert(#bloom.ring == 8 and seats == 8, "eight leaves at eight places round the ring, not " .. seats)
+	-- Every leaf, moving and still, burns Leaf's sheet with its fire, still and black body turned to the leaf's own angle;
+	-- only the unfurling copy's slot plays the loops, so the still copy never animates.
+	env.SetTarget(true)
+	local sheet, loops = K.Tokens.Texture("auraTrackerLeaf"), {}
+	for _, group in ipairs(moving._shownAnimations or {}) do loops[group] = true end
+	for _, group in ipairs(calm._shownAnimations or {}) do
+		assert(group == bloom.unfurl or not loops[group], "the still copy's slot shares no loop with the moving copy")
+	end
+	for k, leaf in ipairs(bloom.ring) do
+		for _, copy in ipairs({ leaf, leaf.twin }) do
+			local what, turn, burning = "leaf " .. k .. (copy == leaf and "" or " (still)"), -math.rad((k - 0.5) * 45), {}
+			for _, region in ipairs(copy._regions or {}) do
+				local rotation = region._state.Rotation
+				assert(rotation and math.abs(rotation[1] - turn) < 1e-9, what .. ": every part turns to " .. (k - 0.5) * 45 .. " degrees")
+				if region._state.Texture and region._state.Texture[1] == sheet then burning[#burning + 1] = region end
+			end
+			assert(#burning == 2 and copy._regions and #copy._regions == 3, what .. ": a fire and a still of Leaf's sheet over a black body")
+			local fire = burning[1].loop and burning[1] or burning[2]
+			assert(fire.loop and (loops[fire.loop] == true) == (copy == leaf), what .. (copy == leaf and ": its loop plays on the unfurling copy's slot" or ": its loop is bound nowhere"))
+			for _, group in ipairs(calm._shownAnimations or {}) do
+				assert(group ~= fire.loop, what .. ": the still copy's slot never plays a leaf loop")
+			end
+		end
+	end
 	Slots.Set(env, "player", nil)
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "Calm shows the still copy")
@@ -1142,7 +1166,8 @@ do
 	end
 	local function Owned(fire)
 		local host = fire:GetParent()
-		return fire.fed and Has(fire.fed.auraLoops, fire.loop) or Has(host.fires, fire)
+		-- A still copy's fire (the Clearcasting leaves' still layer) is held still by its owner on purpose.
+		return fire.quiet or fire.fed and Has(fire.fed.auraLoops, fire.loop) or Has(host.fires, fire)
 	end
 	-- Sheets(ns) -> the shown pieces' loaded aura sheets, sorted and joined, and the own marks still flat.
 	local function Sheets(ns, at)
