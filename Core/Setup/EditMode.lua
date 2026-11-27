@@ -1,4 +1,4 @@
--- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker where the quest card stands (the story rail's column beside the slot under the map), Blizzard's damage meter on the damage card, Blizzard's own essential and utility rows on KstyleUI's rows when the Cooldowns module falls back to them (centred, else growing away from the other row, in one or two lines that fit clear, leaving a row the player placed or that fits nowhere where it was, and again in the active KstyleUI layout when the fallback comes later), its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail or a row over the focus frame, and the bars under the target of target, over the focus frame or beside the right rail or the threat card, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings, in a lane no wider than the room left of the boss column (beside the raid frames, else from the chat card), in the highest free band between the chat and the minimap from 15% under the top, over a low target or, when the target heads the screen as Orbs puts it, under or beside it in the upper half (a cluster gap from every card, else a tight gap at the sides, else across the right end of the group cards), and again on a HUD style switch while they stand where Apply put them, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
+-- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker where the quest card stands (the story rail's column beside the slot under the map), Blizzard's damage meter on the damage card, Blizzard's own essential and utility rows on KstyleUI's rows when the Cooldowns module falls back to them (centred, else growing away from the other row, in one or two lines that fit clear, leaving a row the player placed or that fits nowhere where it was, and again in the active KstyleUI layout when the fallback comes later), its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail or a row over the focus frame, and the bars under the target of target, over the focus frame or beside the right rail or the threat card, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings, in a lane no wider than the room left of the boss column (beside the raid frames, else from the chat card), in the highest free band between the chat and the minimap from 15% under the top, over a low target or, when the target heads the screen as Orbs puts it, under or beside it in the upper half (a cluster gap from every card, else a tight gap at the sides, else across the right end of the group cards), and again on a HUD style switch or a change in the game's UI scale while they stand where Apply put them, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -85,6 +85,8 @@ local function Factor()
 	end
 	return 1
 end
+
+EditMode.Factor = Factor
 
 function EditMode.TrackerPlace(band)
 	return { x = band.left + EditMode.TRACKER_LEFT, y = band.top + EditMode.TRACKER_TOP }
@@ -542,7 +544,7 @@ local function Places(name, story, notes)
 			settings[meter.FrameWidth] = floor(Clamp(w * k, METER_WIDTH_MIN, METER_WIDTH_MAX) - METER_WIDTH_MIN + 0.5)
 			settings[meter.FrameHeight] = floor(Clamp(h * k, METER_HEIGHT_MIN, METER_HEIGHT_MAX) - METER_HEIGHT_MIN + 0.5)
 		end
-		places[#places + 1] = { label = "Blizzard's damage meter", system = meterSystem, x = l * k, y = t * k, settings = settings }
+		places[#places + 1] = { label = "Blizzard's damage meter", system = meterSystem, stamp = "meter", x = l * k, y = t * k, settings = settings }
 	end
 	local rw, rh = Setup.RootSize()
 	local map = enum.EditModeSystem.DurabilityFrame and Box(name, "minimap.main", rw, rh)
