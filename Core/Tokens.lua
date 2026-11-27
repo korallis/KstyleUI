@@ -600,6 +600,8 @@ for kind, names in pairs({
 		end
 	end
 end
+TEXTURES.auraSigilFireTrapFuse = { file = "Textures\\Auras\\Sigils\\FireTrapFuse.png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25 }
+TEXTURES.sigilFireTrapFuse = { file = TEXTURES.sigilFireTrap.file, forged = true, aura = "auraSigilFireTrapFuse" }
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do

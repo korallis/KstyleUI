@@ -141,6 +141,15 @@ local function Bloom(texture, from)
 	return { play = group, still = still }
 end
 
+local function Swell(flare, host, from)
+	local grow = host:CreateAnimationGroup()
+	ns.Slab.Grow(grow, from, 1, 0.5)
+	Medals.Arbitrate(flare.play, true, flare.gate)
+	flare.play:HookScript("OnPlay", function() grow:Play() end)
+	flare.play:HookScript("OnStop", function() grow:Stop() end)
+	flare.swell = grow
+end
+
 local function Light(p, each, level, look)
 	local art, size = each.glyph or look.art, p.units * look.k
 	local lit = Medals.Lit(p, each, level)
@@ -164,6 +173,7 @@ local function Light(p, each, level, look)
 			local copy = lights.flame:GetParent()
 			copy.flare, copy.loops, gated = Bloom(lights.flame, 1.2), { look.loop and Medals.Steps(lights.flame, look.loop, true) or nil }, true
 			copy.flare.gate = lit.flames
+			Swell(copy.flare, cast, 1.2)
 			Medals.Cue(p, lit, level + 3, light, art, lit.art, size, 1.2)
 		end
 	end
@@ -209,7 +219,15 @@ local function Effect(parent, spec, level, form)
 	p.rest = Medals.Layer(spec.feed == "item" and p.lit or p, level)
 	local art = look.steel or spec.glyph or look.art
 	p.rest:SetAlpha(look.rest or select(4, Tokens.Texture(art)) and REST_FORGED or STEEL)
-	Medals.Dim(p, p.rest, art, p.units * look.k, "steel"):SetDesaturated(true)
+	local learned = not (spec.learned and spec.feeds)
+	for _, each in ipairs(learned and NONE or spec.feeds) do
+		learned = learned or each.glyph == art and Medals.Known(rawget(each, "known") or each.spells) ~= nil
+	end
+	if learned then
+		Medals.Dim(p, p.rest, art, p.units * look.k, "steel"):SetDesaturated(true)
+	else
+		p.add(Medals.Texture(p.rest, "ARTWORK", 0, art, "steel", p.units * look.k)):SetDesaturated(true)
+	end
 	for i, each in ipairs(select(4, Tokens.Texture(art)) and spec.feeds or {}) do
 		if each.glyph ~= art then
 			p.add(Medals.Texture(Medals.Layer(p.lits[i], level + 1), "BACKGROUND", 0, art, "black", p.units * look.k))
@@ -311,6 +329,7 @@ local function Fuse(parent, spec, level, form)
 					local copy = lights.flame:GetParent()
 					copy.flare, copy.flicker = Bloom(lights.flame, 1.5), ns.Slab.Flicker(lights.flame)
 					copy.flare.gate = lit.flames
+					Swell(copy.flare, host, 1.5)
 					Medals.Cue(p, lit, above + 1, host, each.glyph, lit.mark, size, 1.5)
 				end
 			end)
@@ -512,9 +531,10 @@ local function Lost(m, level, k, x, y)
 	local halo = m.add(Medals.Texture(seat, "BACKGROUND", 1, "glow", "hostile", size * HAUNCH_HALO, "ADD"))
 	local hound = m.add(Medals.Texture(seat, "ARTWORK", 0, "glyphHound", "steel", size))
 	hound:SetDesaturated(true)
+	hound:SetAlpha(REST_FORGED)
 	local a, low = LIGHT, LIGHT * Tokens.Flicker.low
 	halo:SetAlpha(a)
-	local l = { seat = seat, halo = halo, hound = hound, breath = Medals.Steps(halo, { { a, low, 0.9 }, { low, a, 0.9 } }, true) }
+	local l = { seat = seat, size = size, halo = halo, hound = hound, breath = Medals.Steps(halo, { { a, low, 0.9 }, { low, a, 0.9 } }, true) }
 	seat:HookScript("OnHide", function()
 		l.breath:Stop()
 	end)
@@ -936,6 +956,20 @@ function Mourn(m)
 	end
 end
 
+local function Burn(m, l)
+	local first = #m.parts + 1
+	l.burn = m.add(Medals.Layer(l.seat, l.seat:GetFrameLevel() + 1), l.size)
+	l.burn:ClearAllPoints()
+	l.burn:SetPoint("CENTER", l.seat, "CENTER", 0, 0)
+	l.burn:Hide()
+	l.fire = Medals.Mark(m, l.burn, "glyphHound", l.size, "hostile")
+	if m.sized then
+		for i = first, #m.parts do
+			Medals.Even(m.parts[i])
+		end
+	end
+end
+
 local function Gone(m, gone)
 	local l = m.lost
 	if gone == l.gone then
@@ -944,12 +978,12 @@ local function Gone(m, gone)
 	l.gone = gone
 	l.seat:SetShown(gone ~= nil)
 	l.halo:SetShown(gone == "dead")
-	if gone == "dead" then
-		l.hound:SetVertexColor(Lift("hostile", 0.2))
-		l.hound:SetAlpha(1)
-	else
-		l.hound:SetVertexColor(Tokens.Color("steel"))
-		l.hound:SetAlpha(REST_FORGED)
+	if gone == "dead" and not l.burn then
+		Burn(m, l)
+	end
+	l.hound:SetShown(gone ~= "dead")
+	if l.burn then
+		l.burn:SetShown(gone == "dead")
 	end
 	Mourn(m)
 end
@@ -1321,7 +1355,7 @@ if CLASS == "HUNTER" then
 		Family("beast", "hostile"), Family("viper", "magic") }
 	local STINGS = { Family("serpent", "schoolNature"), Family("viperSting", "magic"), Family("scorpid", "neutral"), Family("wyvern", "schoolFire"),
 		Family("lacerate", "hostile"), Family("blackArrow", "schoolShadow"),
-		{ spells = { 13797, 14298, 14299, 14300, 14301 }, known = { 13795, 14302, 14303, 14304, 14305 }, color = "schoolFire", glyph = "sigilFireTrap" } }
+		{ spells = { 13797, 14298, 14299, 14300, 14301 }, known = { 13795, 14302, 14303, 14304, 14305 }, color = "schoolFire", glyph = "sigilFireTrapFuse" } }
 	local RAPTOR = FAMILIES.raptor.spells
 	local MELEE = Trackers.Joined(RAPTOR, { 14268, 14267, 2974 })
 	local GROWL = { 14921, 14920, 14919, 14918, 14917, 14916, 2649 }

@@ -127,7 +127,7 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 | 13 | Auto Shot and swing 75 | The Auto Shot ring round the crest |
 | 14 | Summon Hawk 1293241 | The two hawk perches |
 | 15 | Pet health | The light along the lower right band |
-| 16 | Pet dead or missing 982 | The hound's mark on the pet's perch: steel while no pet is out, red with a breathing halo while it lies dead; a death the game marks secret shows no hound rather than a guess |
+| 16 | Pet dead or missing 982 | The hound's mark on the pet's perch: steel while no pet is out, the red hound burning as an aura with a breathing halo while it lies dead; a death the game marks secret shows no hound rather than a guess |
 | 17 | Pet happiness 6991 | The forged haunch on the pet's perch |
 | 18 | Mend Pet 136 | Motes along the pet's band |
 | 19 | Pet Focus | A second, smaller light within the pet's health along the lower right band, fed the pet's focus and maximum unchanged (`UnitPower`, `UnitPowerMax` on `UNIT_POWER_UPDATE` and `UNIT_MAXPOWER`), so a secret value is never compared |

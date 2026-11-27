@@ -66,6 +66,16 @@ do
 		found[#found + 1] = file:match("Auras\\Glyphs\\(%a+)%.png")
 	end
 	assert(#aspect.lits == 1 and found[1] == "Monkey", "unlearning the Hawk while learning the Monkey rebuilds the perch with the Monkey's sheet alone: " .. table.concat(found, ","))
+	local sheets = {}
+	local function Walk(frame)
+		for _, region in ipairs(frame._regions or {}) do
+			local name = tostring(((region._state or {}).Texture or {})[1]):match("Auras\\Glyphs\\(%a+)%.png")
+			if name then sheets[name] = true end
+		end
+		for _, kid in ipairs(frame._kids or {}) do Walk(kid) end
+	end
+	Walk(aspect)
+	assert(sheets.Monkey and not sheets.Hawk, "and its resting mark, the unlearned Hawk, stays the forged steel sigil with no sheet")
 	Slots.Set(env, "player", { { id = 13163, icon = 136074, start = 0 } })
 	assert(aspect:IsShown() and aspect.lits[1]:IsShown(), "and Aspect of the Monkey lights it")
 	Clean(env, K)
@@ -162,23 +172,26 @@ end
 
 do
 	-- The crest homes plan (docs/crest-coverage.md, Hunter homes): the pet's perch shows a missing pet as a steel hound and a dead one in red.
+	-- The hound review (settled): a dead pet burns the red Hound aura, drawn only once a death is known; a missing pet keeps the still steel hound.
 	local env, K, ns = New("HUNTER", { hiding = true })
 	local pet = Piece(ns, "crestPet")
 	local lost = pet.lost
 	assert(lost.seat:IsShown() and not lost.halo:IsShown() and lost.hound:GetTexture() == (K.Tokens.Texture("glyphHound")) and Tint(lost.hound, K, "steel"), "no pet out: a steel hound waits on the pet's perch")
+	assert(lost.burn == nil, "and no burning hound sheet loads before the pet is first seen dead")
 	env._pet = { max = 1800, missing = 0, mood = 3 }
 	env.FireEvent("UNIT_PET", "player")
 	assert(not lost.seat:IsShown() and pet.pet:IsShown(), "a pet out takes the hound away")
 	env._pet.missing, env._pet.dead = 1800, true
 	env.FireEvent("UNIT_HEALTH", "pet")
-	assert(lost.seat:IsShown() and lost.halo:IsShown() and Tint(lost.hound, K, "hostile", 0.2) and not pet.pet:IsShown(), "a dead pet: the hound turns red with a red halo and the light goes out")
-	assert(not lost.breath:IsPlaying(), "the crest at rest holds the red halo still")
+	assert(lost.seat:IsShown() and lost.halo:IsShown() and lost.burn ~= nil and lost.burn:IsShown() and not lost.hound:IsShown() and not pet.pet:IsShown(), "a dead pet: the hound burns red with a red halo and the light goes out")
+	assert(tostring(((lost.fire._state or {}).Texture or {})[1]):match("Auras\\Glyphs\\Hound%.png$"), "the dead hound is the red Hound aura sheet")
+	assert(not lost.breath:IsPlaying() and not lost.fire.loop:IsPlaying(), "the crest at rest holds the red halo and the burning hound still")
 	env.SetTarget(true)
-	assert(lost.breath:IsPlaying(), "awake at Full, the red halo breathes")
+	assert(lost.breath:IsPlaying() and lost.fire.loop:IsPlaying(), "awake at Full, the red halo breathes and the hound burns")
 	K.Options.Write("Medallions", "motion", "calm")
-	assert(not lost.breath:IsPlaying() and lost.halo:IsShown() and Tint(lost.hound, K, "hostile", 0.2), "Calm holds the red halo still and keeps the state")
+	assert(not lost.breath:IsPlaying() and not lost.fire.loop:IsPlaying() and lost.halo:IsShown() and lost.burn:IsShown(), "Calm holds the red halo and the hound still and keeps the state")
 	K.Options.Write("Medallions", "motion", "off")
-	assert(not lost.breath:IsPlaying() and lost.seat:IsShown() and lost.halo:IsShown(), "Off still shows the dead hound, unmoving")
+	assert(not lost.breath:IsPlaying() and not lost.fire.loop:IsPlaying() and lost.seat:IsShown() and lost.halo:IsShown(), "Off still shows the dead hound, unmoving")
 	K.Options.Write("Medallions", "motion", "full")
 	env._pet.dead = env.Secret(true)
 	env.FireEvent("UNIT_HEALTH", "pet")
@@ -188,12 +201,12 @@ do
 	assert(not lost.seat:IsShown() and pet.pet:IsShown(), "a revived pet clears the hound")
 	env._pet = nil
 	env.FireEvent("UNIT_PET", "player")
-	assert(lost.seat:IsShown() and not lost.halo:IsShown() and Tint(lost.hound, K, "steel"), "a dismissed pet leaves the steel hound")
+	assert(lost.seat:IsShown() and not lost.halo:IsShown() and Tint(lost.hound, K, "steel") and lost.hound:IsShown() and not lost.burn:IsShown(), "a dismissed pet leaves the steel hound, not the burning one")
 	env._pet = { max = 1800, missing = 1800, mood = 3, dead = true }
 	env.FireEvent("UNIT_PET", "player")
 	assert(lost.halo:IsShown() and lost.breath:IsPlaying(), "dead again at Full: the red halo breathes")
 	pet:GetParent():Hide()
-	assert(not lost.breath:IsPlaying(), "the crest hiding stops the dead hound's halo with no repaint")
+	assert(not lost.breath:IsPlaying() and not lost.fire.loop:IsPlaying(), "the crest hiding stops the dead hound's halo and burn with no repaint")
 	pet:GetParent():Show()
 	assert(lost.seat:IsVisible() and lost.breath:IsPlaying(), "the crest shown again starts the dead hound's halo again")
 	K.Options.Write("ActionBars", "crestPet", false)
@@ -494,7 +507,9 @@ do
 	Slots.Set(env, "target", { { id = 14298, icon = 135813, harmful = true, mine = false, start = 0, duration = 15 } })
 	assert(not burn:IsShown(), "another hunter's Immolation Trap burning your target leaves the fuse dark")
 	Slots.Set(env, "target", { { id = 14298, icon = 135813, harmful = true, mine = true, start = 0, duration = 15 } })
-	assert(burn:IsShown() and burn.mark:GetTexture() == (K.Tokens.Texture("auraSigilFireTrap")), "your own Immolation Trap's burn burns down the fuse under the fire trap's burning mark")
+	assert(burn:IsShown() and burn.mark:GetTexture() == (K.Tokens.Texture("auraSigilFireTrapFuse")), "your own Immolation Trap's burn burns down the fuse under the fire trap's burning mark")
+	-- The fuse review (settled): the fuse head burns the trap in fire's colour; the rail keeps its green trap sheet.
+	assert((K.Tokens.Texture("auraSigilFireTrapFuse")) ~= (K.Tokens.Texture("auraSigilFireTrap")) and select(5, K.Tokens.Texture("sigilFireTrap")) == "auraSigilFireTrap", "the fuse's fire sheet is its own, and the rail's trap sigil keeps the green one")
 	Slots.Set(env, "target", {})
 	assert(not burn:IsShown() and not burn.mark:IsVisible() and not burn.art:IsVisible(), "the burn ended: the fuse and its mark go dark")
 	assert(potion.lit:IsShown() and potion.ready:IsShown(), "a Healing Potion in the bags hangs ready on the pendant")

@@ -156,6 +156,14 @@ do
 	Same("its halo is the Sting's colour, schoolNature 6fdc5a", { Drawn(whole, "Glow.png", true):GetVertexColor() }, 0x6f / 255, 0xdc / 255, 0x5a / 255)
 	assert(#seat._regions == 2 and Drawn(seat, "Glow.png", false) and not Drawn(seat, "Glow.png", true), "its socket stands on a soft dark shade, not a lit halo")
 	assert(lit.mark.units == 24 and copy.flare.play:GetParent() == lit.mark:GetParent(), "the aura fills the socket and the ignition grows the whole burning mark")
+	-- The bloom review (settled): the socket grows with its light, both from the same peak.
+	local function Peak(group)
+		return group._anims[1]._type == "Scale" and group._anims[1]._state.ScaleFrom[1]
+	end
+	copy.flare.play:Play()
+	assert(copy.flare.swell ~= nil and copy.flare.swell:IsPlaying() and copy.flare.swell:GetParent() == whole and Peak(copy.flare.swell) == 1.5 and Peak(copy.flare.play) == 1.5, "the ignition grows the Sting's socket with its light from the same 1.5 peak")
+	copy.flare.play:Stop()
+	assert(not copy.flare.swell:IsPlaying(), "and stopping the ignition stops the socket's growth with it")
 	Same("Wyvern Sting's halo is schoolFire ff8a3d, apart from Black Arrow's violet", { Drawn(Host(sting.lits[4].head, "Socket.png"), "Glow.png", true):GetVertexColor() }, 0xff / 255, 0x8a / 255, 0x3d / 255)
 	Same("Black Arrow's halo is schoolShadow 9d7bff", { Drawn(Host(sting.lits[6].head, "Socket.png"), "Glow.png", true):GetVertexColor() }, 0x9d / 255, 0x7b / 255, 0xff / 255)
 	assert(aspect.rest:GetAlpha() == 0.85, "an unlit forged Aspect rests at 0.85 so its outline shows on the ring")
@@ -181,6 +189,9 @@ do
 	Same("Aspect of the Viper's socket is gold, coinGold f0c75e", { Drawn(cast, "Socket.png", false):GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
 	Same("its halo is the spell's colour, magic 5aa9ff", { Drawn(cast, "Glow.png", true):GetVertexColor() }, 0x5a / 255, 0xa9 / 255, 0xff / 255)
 	assert(viper:IsShown() and Aura(viper.art, "Glyphs\\Viper") and burning.flare.play:GetParent() == viper.art:GetParent(), "the lit pass is the coil's aura in its socket and the landing grows the whole burning mark")
+	burning.flare.play:Play()
+	assert(burning.flare.swell ~= nil and burning.flare.swell:IsPlaying() and burning.flare.swell:GetParent() == cast and Peak(burning.flare.swell) == 1.2 and Peak(burning.flare.play) == 1.2, "the landing grows the Aspect's socket with its light from the same 1.2 peak")
+	burning.flare.play:Stop()
 	Slots.Set(env, "player", nil)
 	assert(lit._pandemicAnimations[1] == lit.flicker and not lit.flicker:IsPlaying(), "the ending blink waits for the pandemic window")
 	Pandemic(env, "target", serpent)

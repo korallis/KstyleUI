@@ -277,26 +277,31 @@ do
 	local railed = true
 	local rim = Medals.CooldownRim(parent, { families = { { spells = { 3045 }, sigil = "Volley" }, { spells = { 19263 }, sigil = "Deflect" },
 		{ spells = { 19574 }, sigil = "Paw" } }, color = "jewelHawk", railed = function(spells) return railed and spells[1] == 19574 end }, 5)
-	local function Loaded(button, token)
-		local file = texture(token)
+	local function Count(button, token)
+		local file, count = texture(token), 0
 		for _, copy in ipairs({ button.flame, button.calm }) do
-			local found = false
 			for _, region in ipairs(copy._regions or {}) do
-				found = found or Draws(region, file)
-			end
-			if not found then
-				return false
+				if Draws(region, file) then
+					count = count + 1
+					break
+				end
 			end
 		end
-		return true
+		return count
+	end
+	local function Loaded(button, token)
+		return Count(button, token) == 2
+	end
+	local function None(button, token)
+		return Count(button, token) == 0
 	end
 	local volley, deflect, paw = rim.sigils[1], rim.sigils[2], rim.sigils[3]
 	Medals.Prepare(rim)
 	assert(Loaded(volley, "auraSigilVolley"), "the known Volley loads its own sheet on its fire and its still")
-	assert(not Loaded(deflect, "auraSigilDeflect"), "Deflection, not yet learned, loads nothing")
+	assert(None(deflect, "auraSigilDeflect"), "Deflection, not yet learned, loads nothing on either copy")
 	known[19574] = true
 	Medals.Prepare(rim)
-	assert(not Loaded(paw, "auraSigilPaw"), "Bestial Wrath, learned but held by the rail, loads nothing")
+	assert(None(paw, "auraSigilPaw"), "Bestial Wrath, learned but held by the rail, loads nothing on either copy")
 	known[19263], railed = true, false
 	Medals.Prepare(rim)
 	assert(Loaded(deflect, "auraSigilDeflect") and Loaded(paw, "auraSigilPaw"), "learning Deflection, and the rail letting Bestial Wrath go, loads their sheets")

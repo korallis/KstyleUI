@@ -53,7 +53,7 @@ EDGE = 3                  # cell pixels over which a bare figure's light fades b
 # mark: (kind, Core/Tokens.lua colour, design). A "figures" mark is the silhouette of a shipped picture where it stands
 # in its box (picture()). A "glyphs" or "trackers" mark's design is its factory in the class's
 # designs module (designs_hunter.D["Hawk"]), whose emblem seats on the socket when it has a seated figure; a "sigils"
-# mark draws Tools/media/sigils.py's figure of its name and takes None; an "effects" mark (named Effects/<Art>) is a crest
+# mark draws Tools/media/sigils.py's figure of its name and takes None, or another figure's name to light it in a second colour; an "effects" mark (named Effects/<Art>) is a crest
 # object of Tools/media/melee_effects.py, its design the function drawing it, lit in place in its own box so the crest can
 # lay its light over the object's fill. The name is the texture token's (glyph<Name>, sigil<Name>, tracker<Name> in
 # Core/Tokens.lua), which may keep an older subject's name: the mage's ChillShard is the designs' ice Shard; a "#" suffix
@@ -147,6 +147,8 @@ MARKS.update({name: ("glyphs", colour, designs_hunter.D[name]) for name, colour 
 }.items()})
 MARKS.update({name: ("sigils", "jewelHawk", None) for name in (
     "Volley", "Deflect", "Paw", "Intimidate", "FireTrap", "Sniper", "Aimed", "Strider", "Charm")})
+# Immolation Trap's burn on the Sting fuse: the rail's trap sigil in the fuse's fire, so the rail keeps its own green
+MARKS["FireTrapFuse"] = ("sigils", "schoolFire", "FireTrap")
 MARKS["HawkPerch"] = ("figures", "gilt", picture("Media/Textures/Medallions/Hawks/HawkSigil.png"))
 MARKS["HawkPerchMirror"] = ("figures", "gilt", picture("Media/Textures/Medallions/Hawks/HawkSigil.png", True))
 MARKS.update({f"Arrow{angle}": ("figures", "giltLit", picture(f"Media/Textures/Pips/PipArrow{angle}.png")) for angle in (105, 90, 75)})
@@ -175,7 +177,7 @@ def figure(name, kind, design, work):
     """The mark's figure mask and relief height in its own unit box, and whether it sits on a plate."""
     if kind == "sigils":
         pen = sigils.Pen()
-        sigils.GLYPHS[name](pen)
+        sigils.GLYPHS[design or name](pen)
         e = forge_lineart(name, pen.image, work / "maps")
         return e.M, e.H, False
     if kind == "effects":
