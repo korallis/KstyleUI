@@ -284,6 +284,130 @@ do
 	Clean(env, K)
 end
 
+-- KSTY-103: Forever documents isOnGCD as trustworthy only while answering SPELL_UPDATE_COOLDOWN
+-- (SpellSharedDocumentation.lua, docs/FOREVER_API_AUDIT.md), so a rebuild must never light a cooling seat from it.
+-- Each spell's cooldown is { start, duration }, read by both cooldown calls, and its flag is what the game would answer at that
+-- moment; reads.rail counts the flag reads SlabRail.lua makes, and reads.secret hides the start and duration.
+local function Readings(env)
+	local cds, flag, reads = {}, {}, { rail = 0, secret = false }
+	env._spellCd = cds
+	env.C_Spell.GetSpellCooldown = function(spell)
+		local c = cds[spell]
+		local start, length = c and c[1] or 0, c and c[2] or 0
+		if reads.secret then start, length = env.Secret(start), env.Secret(length) end
+		return setmetatable({ isActive = c ~= nil, startTime = start, duration = length, isEnabled = true }, { __index = function(_, key)
+			if key ~= "isOnGCD" then return nil end
+			if debug.getinfo(2, "S").source == "@KstyleUI_ActionBars/SlabRail.lua" then reads.rail = reads.rail + 1 end
+			return flag[spell] or false
+		end })
+	end
+	return cds, flag, reads
+end
+
+-- The start and finish of the newest duration object the seat's sweep took after its first `since` ones.
+local function Swept(seat, since)
+	local calls = R.AB.W.Calls(seat.sweep, "SetCooldownFromDurationObject")
+	local d = #calls > since and calls[#calls][1]
+	return d and d.start, d and d.finish
+end
+
+local function Sweeps(seat)
+	return #R.AB.W.Calls(seat.sweep, "SetCooldownFromDurationObject")
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = BM })
+	Awake(env)
+	local rail = Rail(ns)
+	local rapid, intimidate = rail.made.rapid, rail.made.intimidate
+	local cds, flag, reads = Readings(env)
+	local now = env._now
+	cds[3045], cds[19577], flag[19577] = { now, 300 }, { now, 1.5 }, true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(reads.rail > 0 and rapid.lit:GetAlpha() == 0 and intimidate.lit:GetAlpha() == 1,
+		"the cooldown event reads the flag: Rapid Fire's 5 minutes cool and Intimidation's 1.5 s is the global cooldown")
+	flag[3045], flag[19577], reads.rail = true, false, 0
+	local swept = Sweeps(rapid)
+	env.FireEvent("PET_BAR_UPDATE")
+	assert(reads.rail == 0, "a rebuild never reads the flag")
+	local start, finish = Swept(rapid, swept)
+	assert(start == now and finish == now + 300, "the rebuild feeds Rapid Fire's sweep its own 5-minute cooldown")
+	assert(rapid.lit:GetAlpha() == 0 and rapid.cold:GetAlpha() == 1 and not Burning(rapid), "a rebuild while the flag reads a stale true keeps Rapid Fire's cooling seat steel")
+	assert(intimidate.lit:GetAlpha() == 1 and Burning(intimidate) and not intimidate.relight:IsPlaying() and not intimidate.flare[1]:IsPlaying(),
+		"a rebuild in the same global cooldown keeps Intimidation gold and burning, with no flare, whatever the flag reads then")
+	Clean(env, K)
+end
+
+-- While the rail is off it misses a cooldown event. When it returns, a cooldown whose start or duration differs from the kept
+-- global cooldown is one the rail never classified: a later global cooldown, or Rapid Fire's own cooldown from that same start.
+for _, case in ipairs({ { "a later start", 2, 1.5, true }, { "a longer duration", 0, 300, false } }) do
+	local env, K, ns = New("HUNTER", { known = BM })
+	Awake(env)
+	local rail = Rail(ns)
+	local rapid = rail.made.rapid
+	local cds, flag = Readings(env)
+	local now = env._now
+	cds[3045], flag[3045] = { now, 1.5 }, true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(rapid.lit:GetAlpha() == 1, "Rapid Fire in the global cooldown stays ready")
+	K.Options.Write("ActionBars", "crestRail", false)
+	cds[3045], flag[3045] = { now + case[2], case[3] }, case[4]
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	flag[3045] = true
+	K.Options.Write("ActionBars", "crestRail", true)
+	assert(rail.made.rapid == rapid and rapid:IsShown(), "the rail comes back with the same Rapid Fire seat")
+	assert(rapid.lit:GetAlpha() == 0 and rapid.cold:GetAlpha() == 1,
+		"a cooldown with " .. case[1] .. " than the kept global cooldown, missed while the rail was off, shows steel when it returns, though the flag reads true")
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = BM })
+	Awake(env)
+	local rail = Rail(ns)
+	local intimidate = rail.made.intimidate
+	local cds, flag = Readings(env)
+	K.Options.Write("ActionBars", "crestRail", false)
+	cds[19577], flag[19577] = { env._now, 1.5 }, true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	K.Options.Write("ActionBars", "crestRail", true)
+	assert(intimidate.lit:GetAlpha() == 0, "a rebuild in a global cooldown no event read for the rail cannot tell it from Intimidation's own, so the seat shows steel")
+	flag[19577] = env.Secret(true)
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(intimidate.lit:GetAlpha() == 0, "a cooldown event whose flag is secret keeps the seat as it stood")
+	flag[19577] = true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(intimidate.lit:GetAlpha() == 1 and Burning(intimidate), "the next readable cooldown event reads only the global cooldown and lights the seat")
+	assert(not intimidate.relight:IsPlaying() and not intimidate.flare[1]:IsPlaying() and not intimidate.flare[2]:IsPlaying() and not intimidate.glinting:IsPlaying(),
+		"with no relight, flare or glint, as no cooldown of its own ended")
+	Clean(env, K)
+end
+
+-- A cooldown the event read as Rapid Fire's own stays steel through a rebuild while its start and duration are secret, and keeps
+-- its ready cue when the cooldown event that finds it ready, readable again, arrives before the sweep's own end.
+do
+	local env, K, ns = New("HUNTER", { known = BM })
+	Awake(env)
+	local rapid = Rail(ns).made.rapid
+	local cds, flag, reads = Readings(env)
+	local now = env._now
+	cds[3045] = { now, 300 }
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(rapid.lit:GetAlpha() == 0, "the cooldown event reads Rapid Fire's own cooldown")
+	reads.secret, flag[3045] = true, true
+	local swept = Sweeps(rapid)
+	env.FireEvent("PET_BAR_UPDATE")
+	local start, finish = Swept(rapid, swept)
+	assert(start == now and finish == now + 300, "the rebuild still feeds the sweep the cooldown's duration object")
+	assert(rapid.lit:GetAlpha() == 0 and rapid.cold:GetAlpha() == 1 and not Burning(rapid), "a rebuild while the cooldown's start and duration are secret keeps the seat steel")
+	env._now = now + 300
+	cds[3045], reads.secret = nil, false
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(rapid.lit:GetAlpha() == 1 and rapid.relight:IsPlaying() and rapid.flare[1]:IsPlaying() and rapid.flare[2]:IsPlaying() and rapid.glinting:IsPlaying() and Burning(rapid),
+		"the cooldown event that finds it ready before the sweep ends relights it with its flare and glint")
+	Clean(env, K)
+end
+
 do
 	local env, K, ns = New("HUNTER", { known = BM })
 	Awake(env)
