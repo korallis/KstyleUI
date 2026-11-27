@@ -115,6 +115,28 @@ end
 
 local Settle
 
+local function Watch(piece, set)
+	local live = CreateFrame("Frame", nil, set.awake.lit)
+	local watch = live:CreateAnimationGroup()
+	watch:SetLooping("REPEAT")
+	Fade(watch, 1, 1, 1)
+	watch:SetScript("OnPlay", function()
+		if set.awake:IsVisible() then
+			set.up, state.lit = true, true
+		end
+	end)
+	watch:SetScript("OnStop", function()
+		set.up = nil
+		if piece:IsVisible() and set.awake:IsShown() then
+			Settle()
+		else
+			state.lit = nil
+		end
+	end)
+	set.awake.lit:AddAuraShownAnimation(watch)
+	set.watch = watch
+end
+
 function Unleashed.Dress(piece, spec, form)
 	local crest = form == "crest"
 	for i, lit in ipairs(piece.lits) do
@@ -124,15 +146,7 @@ function Unleashed.Dress(piece, spec, form)
 			if i == 1 then
 				set.fold, set.cool = Fold(piece, spec)
 			end
-			set.awake.lit:HookScript("OnShow", function() set.up, state.lit = true, true end)
-			set.awake.lit:HookScript("OnHide", function()
-				set.up = nil
-				if piece:IsVisible() and set.awake:IsShown() then
-					Settle()
-				else
-					state.lit = nil
-				end
-			end)
+			Watch(piece, set)
 			set.awake.timer:SetScript("OnCooldownDone", function()
 				set.up = nil
 				Settle()

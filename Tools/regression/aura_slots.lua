@@ -171,7 +171,27 @@ local function Restricted(env)
 	end
 end
 
+-- A slot button has the Shown secret aspect before AddAuraSlot returns: the frame provider runs UpdateAuraDisplay at
+-- creation (Blizzard_AuraContainerFrameProviders.lua:88-90) and ApplyVisibility calls SetShown(secretwrap(...))
+-- (Blizzard_CustomAuraButton.lua:698), which adds that aspect (SimpleScriptRegionAPIDocumentation.lua:725-728). The client
+-- then refuses OnShow and OnHide handlers on it, as it did on Forever 1.60.1 (71139), because they would reveal its
+-- secret visibility.
+local function Aspected(button)
+	button._shownAspect = true
+	for _, method in ipairs({ "SetScript", "HookScript" }) do
+		local assign = button[method]
+		button[method] = function(self, script, fn)
+			local name = type(script) == "string" and script:lower()
+			if name == "onshow" or name == "onhide" then
+				error("Button:" .. method .. "(): Cannot assign script handler for '" .. name .. "' (blocked by secret aspects)", 2)
+			end
+			return assign(self, script, fn)
+		end
+	end
+end
+
 local function Button(env, c, button)
+	Aspected(button)
 	button._denied = env._auraDenied
 	-- AddAuraShownAnimation: the engine plays the group when the slot's aura appears and stops it when it goes
 	-- (Blizzard_CustomAuraButton.lua:327-337, 694-705); its animations must target the button or a descendant.

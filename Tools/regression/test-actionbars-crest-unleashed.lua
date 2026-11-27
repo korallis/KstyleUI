@@ -35,10 +35,11 @@ local function Clean(env, K, what)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, what .. ": " .. AB.Errors(env))
 end
 
--- The game runs a slot's OnHide when it hides it; the stub's Hide runs no script, so the tests run it by hand, with the script read before combat forbids the slot.
+-- The game stops a slot's shown groups when it hides it; the stub's Hide runs no script, so the tests run it by hand, with the scripts read before combat forbids the slot.
 local function Hidden(set)
-	set.hidden = assert(set.awake.lit:GetScript("OnHide"), "the hot line's slot tells the crest when the game hides it")
-	set.shown = assert(set.awake.lit:GetScript("OnShow"), "and when it shows it")
+	local watch = assert(set.watch, "the hot line's slot tells the crest through its shown group when the game hides it")
+	set.hidden = assert(watch._scripts.OnStop, "its stop telling the crest the slot is lit no more")
+	set.shown = assert(watch._scripts.OnPlay, "and its play when it shows")
 end
 
 local function Dark(env, set, unit)
@@ -239,7 +240,7 @@ do
 	Dark(env, set)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "and the slot hiding afterwards folds nothing more")
-	-- One cooldown running out as another takes its slot, which stays lit and so runs neither OnHide nor OnShow: the game plays the slot's assigned animations for the
+	-- One cooldown running out as another takes its slot, which stays lit and so stops neither its shown group nor plays it again: the game plays the slot's assigned animations for the
 	-- new aura, and that keeps the slot lit for the crest, so nothing folds until that one ends.
 	Slots.Set(env, "player", Reck())
 	set.shown(set.awake.lit)
