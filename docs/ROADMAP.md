@@ -1,6 +1,6 @@
 # KstyleUI roadmap
 
-What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.3.5 is out now: the crest comes alive, with every class's tracking built into the crest itself and ten new crest effects. New releases land about once a day.
+What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.3.5 is out now: the crest comes alive, with every class's tracking built into the crest itself and ten new crest effects. A new release lands each time a class's crest work is finished, with hotfixes in between.
 
 ## v0.3.6 — the crest, tuned in game
 
