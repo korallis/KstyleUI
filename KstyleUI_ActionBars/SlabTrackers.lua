@@ -495,8 +495,8 @@ end
 function Trackers.Update()
 	local name, seat = Form()
 	local pick = HOOKS[ns.class] and HOOKS[ns.class].pick
-	if pick then
-		pick(name)
+	if pick and pick(name) == false then
+		return
 	end
 	local specs, order, rows, forms = {}, {}, {}, false
 	for i, p in ipairs(name and CLASSES[ns.class] or {}) do

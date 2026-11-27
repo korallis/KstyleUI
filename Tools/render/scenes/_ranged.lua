@@ -16,6 +16,7 @@
 -- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
 -- Content, Happy) in place of the story's own, so the haunch shows or goes. RENDER_CAST_ON_FRAME=off gives the action bars the
 -- centred cast bars' layout elements the unit frames register in the game, so the hunter's rail takes its own flat row.
+-- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it.
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
 local Ranged = {}
@@ -262,6 +263,10 @@ function Ranged.Play(env, K, ns, notes)
 			K.Layout.Register(env.CreateFrame("Frame"), key, K.Setup.Layouts.Default(key))
 		end
 		ns.SlabTrackers.Update()
+	end
+	local motion = os.getenv("RENDER_TRACKERS_MOTION")
+	if motion and motion ~= "" then
+		K.Options.Write("Medallions", "motion", motion)
 	end
 	local s = Of(ns.class)
 	local times = { -1, at }

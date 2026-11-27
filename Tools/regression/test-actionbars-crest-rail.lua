@@ -214,7 +214,7 @@ do
 end
 
 do
-	local env, K, ns = New("HUNTER", { known = BM })
+	local env, K, ns = New("HUNTER", { known = BM, hiding = true })
 	Awake(env)
 	local rail = Rail(ns)
 	local rapid, wrath = rail.made.rapid, rail.made.wrath
@@ -236,8 +236,6 @@ do
 	assert(rapid.crowned.aura.loop:IsPlaying(), "the crown burns again at Full")
 	K.Options.Write("ActionBars", "crestRail", false)
 	assert(not rail:IsShown(), "switching the rail off hides it")
-	-- The stub's Hide runs no OnHide; the client runs it on the hidden frame, so the test runs it as the game does.
-	rail:GetScript("OnHide")(rail)
 	assert(not rapid.breath:IsPlaying() and not rapid.aura.loop:IsPlaying() and not rapid.crowned.aura.loop:IsPlaying() and not rapid.rise:IsPlaying(),
 		"hiding the rail stops the seat's and the crown's auras and what is in flight")
 	local placed = rail.low
@@ -300,6 +298,64 @@ do
 	env.GetInventoryItemCooldown = function() return env._now, 120, 1, false end
 	env.FireEvent("BAG_UPDATE_COOLDOWN")
 	assert(trinket.lit:GetAlpha() == 0 and trinket.cold:GetAlpha() == 1 and R.AB.W.LastCall(trinket.sweep, "SetCooldown"), "its own cooldown turns the seat steel and sweeps")
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = BM, hiding = true })
+	Awake(env)
+	local rail = Rail(ns)
+	local rapid, wrath = rail.made.rapid, rail.made.wrath
+	Cooling(env, 3045, true)
+	K.Options.Write("ActionBars", "crestRail", false)
+	assert(not rail:IsVisible(), "switching the rail off hides it")
+	assert(not Cooled(env, rapid) and not rapid.flare[1]:IsPlaying() and not rapid.glinting:IsPlaying() and not rapid.breath:IsPlaying() and not rapid.aura.loop:IsPlaying(),
+		"a cooldown ending on the hidden rail relights the seat with no flare, breath or burning aura")
+	assert(rapid.lit:GetAlpha() == 1, "and the seat is ready when the rail shows again")
+	wrath.signal:Play()
+	wrath.signal:Stop()
+	assert(not wrath.crowned.aura.loop:IsPlaying() and not wrath.home:IsPlaying(), "a crown signal arriving after the rail hides neither burns the crown nor folds home")
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = BM })
+	Awake(env)
+	local rail = Rail(ns)
+	local rapid, wrath = rail.made.rapid, rail.made.wrath
+	local readable = { [3045] = { start = env._now - 2, duration = 15 }, [19574] = { start = env._now - 10, duration = 18 } }
+	env.C_UnitAuras = env.C_UnitAuras or {}
+	env.C_UnitAuras.GetUnitAuraBySpellID = function(_, id)
+		assert(not env._aurasSecret, "the rail reads no aura while auras are secret")
+		local a = readable[id]
+		return a and { auraInstanceID = id, expirationTime = a.start + a.duration, duration = a.duration, sourceUnit = "player" } or nil
+	end
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	Auras(env, { { 3045, 15 } })
+	Slots.Set(env, "pet", { { id = 19574, auraInstanceID = 9, start = readable[19574].start, duration = 18 } })
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	assert(rail.owner == rapid and rapid.gate:GetAlpha() == 1 and wrath.gate:GetAlpha() == 0,
+		"two buffs that opened unseen while auras were secret: once they read, the one that began last owns the crown")
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = BM, trinket = true })
+	local rail = Rail(ns)
+	env.SetCombat(true)
+	K.Options.Write("ActionBars", "crestRail", false)
+	assert(rail:IsShown() and Hunter(Seated(ns, "crestCooldowns")) == "" and not Seated(ns, "crestTrinkets"),
+		"switched off in combat, the rail stays until the other trackers can take its cues back")
+	env.SetCombat(false)
+	assert(not Rail(ns) and Seated(ns, "crestTrinkets") and Hunter(Seated(ns, "crestCooldowns")) == "Volley,Paw", "out of combat the rail hands every cue back at once")
+	env.SetCombat(true)
+	K.Options.Write("ActionBars", "crestRail", true)
+	assert(not Rail(ns) and Seated(ns, "crestTrinkets") and Hunter(Seated(ns, "crestCooldowns")) == "Volley,Paw",
+		"switched on in combat, the other trackers keep their cues while the rail cannot be placed")
+	env.SetCombat(false)
+	assert(Rail(ns) and not Seated(ns, "crestTrinkets") and Hunter(Seated(ns, "crestCooldowns")) == "", "out of combat the rail takes them over at once")
 	Clean(env, K)
 end
 

@@ -1,4 +1,4 @@
--- SlabRail.lua: the hunter's five-seat crest rail (docs/medallions-effects.md#hunter-crest-rail): up to four abilities of the talent tree the game names and the on-use trinket stand as forged medals on an arc above the crest (a flat row between the cooldown rows while the centred cast bars show), built only for the seats the hunter has; a ready seat burns with its sigil's animated Blender aura, breathes and is crossed by a glint, a press dips it, bursts and flashes its ring, a buffed major rises to the crown, where the engine shows the aura's own slot burning with a draining ring, a bead, a last-fifth notch and a countdown, the newest running buff, by your cast or its readable start, owns the crown (handed off by the engine's aura-shown signal), an ended one cools to steel and folds home, a dark sweep and a refilling steel ring count the cooldown under a small steel sigil and the medal relights with a flare; each flare or press claims the crest's one flare as a whole; the seats are chosen afresh only while the crest can be rebuilt, so the other trackers stand down only for a placed rail; Calm lights in place with still auras and no lift, burst or breathing, Off shows only lit, cooling and ready, a motion change or hiding stops what is in flight, and Lua never reads or compares a secret.
+-- SlabRail.lua: the hunter's five-seat crest rail (docs/medallions-effects.md#hunter-crest-rail): up to four abilities of the talent tree the game names and the on-use trinket stand as forged medals on an arc above the crest (a flat row between the cooldown rows while the centred cast bars show), built only for the seats the hunter has; a ready seat burns with its sigil's animated Blender aura, breathes and is crossed by a glint, a press dips it, bursts and flashes its ring, a buffed major rises to the crown, where the engine shows the aura's own slot burning with a draining ring, a bead, a last-fifth notch and a countdown, the newest running buff, by your cast or its readable start, owns the crown (handed off by the engine's aura-shown signal), an ended one cools to steel and folds home, a dark sweep and a refilling steel ring count the cooldown under a small steel sigil and the medal relights with a flare; each flare or press claims the crest's one flare as a whole; the seats are chosen afresh only while the crest can be rebuilt, so the other trackers stand down only for a placed rail, and a switch-off that cannot hand their cues back waits whole until it can; a hidden rail plays nothing, and no aura is read while auras are secret, an unseen buff dated once they read; Calm lights in place with still auras and no lift, burst or breathing, Off shows only lit, cooling and ready, a motion change or hiding stops what is in flight, and Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -105,10 +105,11 @@ function Rail.Seats()
 end
 
 function Rail.Pick(form)
-	if form ~= "crest" or ns.Config("crestRail") == false then
-		Rail.picked = NONE
-	elseif not Medals.Locked() then
-		Rail.picked = Rail.Seats()
+	local want = form == "crest" and ns.Config("crestRail") ~= false
+	if not Medals.Locked() then
+		Rail.picked = want and Rail.Seats() or NONE
+	elseif not want and #Rail.picked > 0 then
+		return false
 	end
 end
 
@@ -294,7 +295,7 @@ end
 
 local function Started(seat)
 	local get = C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID
-	for _, id in ipairs(type(get) == "function" and seat.ability.spells or NONE) do
+	for _, id in ipairs(type(get) == "function" and not Medals.Restricted() and seat.ability.spells or NONE) do
 		local a = get(seat.ability.unit, id)
 		local ends, length = not IsSecret(a) and type(a) == "table" and a.expirationTime, not IsSecret(a) and type(a) == "table" and a.duration
 		if not (IsSecret(ends) or IsSecret(length)) and type(ends) == "number" and type(length) == "number" and length > 0 then
@@ -304,7 +305,7 @@ local function Started(seat)
 end
 
 local function Crown(r)
-	local up, full = Effects.Allows("flare"), Full()
+	local up, full = Effects.Allows("flare"), r:IsVisible() and Full()
 	local owner
 	for i = #r.running, 1, -1 do
 		owner = owner or r.running[i]:IsShown() and r.running[i] or nil
@@ -471,7 +472,8 @@ end
 local function Light(seat, ready, flare)
 	local was = seat.ready
 	seat.ready = ready
-	local full, calm = Full(), Effects.Allows("flare")
+	local shown = seat:IsVisible()
+	local full, calm = shown and Full(), shown and Effects.Allows("flare")
 	if ready ~= was then
 		seat.relight:Stop()
 	end
@@ -658,6 +660,10 @@ function Rail.Paint(r, event, _, _, spell)
 		Settle(r)
 		for _, seat in ipairs(r.order) do
 			Cool(seat)
+		end
+		for _, seat in ipairs({ unpack(r.running) }) do
+			r.stamps[seat] = r.stamps[seat] or Started(seat)
+			Running(r, seat, true)
 		end
 		Crown(r)
 	end
