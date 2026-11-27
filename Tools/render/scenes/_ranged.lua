@@ -18,9 +18,12 @@
 -- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
 -- breakout_fire), timed as the break-out design's clips: an aura's warn time puts it in its pandemic window, a usable
 -- spell's window and the pet's health steps and leaving time play out on the clock. RENDER_TRACKERS_OFF=1 turns the class's
--- tracker switches off first, for a pixel diff against a build without them. RENDER_TRACKERS_SWAP=from:to[,from:to] plays the
+-- tracker switches off first, for a pixel diff against a build without them; RENDER_TRACKERS_OFF=key[,key] turns off only
+-- those switches (crestOrb for the mage's orb alone). RENDER_TRACKERS_SWAP=from:to[,from:to] plays the
 -- story with other aura spell IDs, so one seat shows each of its choices: 13165:13163 perches Aspect of the Monkey for
--- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
+-- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_TRACKERS_COUNT=id:count[,id:count] gives
+-- an aura of the story another stack count, and RENDER_TRACKERS_COOL=id:start:seconds[,...] casts that spell at start
+-- and cools it for that long, so one orb or seat can be drawn ready, spent, refilling and relit at its own times. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
 -- Content, Happy) in place of the story's own, so the haunch shows or goes; RENDER_PET_DEAD=1 lays the pet dead, so its perch shows the red
 -- hound. The hunter's story also carries Trueshot Aura from 3 s and Track Beasts from 0.2 s on a hostile beast target (creature type 1), for Improved Tracking's
 -- compass, a pet that knows Screech (its debuff on the target from 5.5 s) and Growl at 70 focus, and three Healing Potions, one drunk at 5 s.
@@ -213,6 +216,13 @@ local SWAP = {}
 for from, to in (os.getenv("RENDER_TRACKERS_SWAP") or ""):gmatch("(%d+):(%d+)") do
 	SWAP[tonumber(from)] = tonumber(to)
 end
+local COUNT, COOL = {}, {}
+for id, n in (os.getenv("RENDER_TRACKERS_COUNT") or ""):gmatch("(%d+):(%d+)") do
+	COUNT[tonumber(id)] = tonumber(n)
+end
+for id, from, span in (os.getenv("RENDER_TRACKERS_COOL") or ""):gmatch("(%d+):([%d.]+):([%d.]+)") do
+	COOL[tonumber(id)] = { tonumber(from), tonumber(span) }
+end
 
 local function Of(class)
 	local s = STORIES[class]
@@ -224,6 +234,18 @@ local function Of(class)
 			auras[i] = setmetatable({ id = SWAP[a.id] or a.id }, { __index = a })
 		end
 		story.auras, story.swapped = auras, true
+	end
+	if story and (next(COUNT) or next(COOL)) and not rawget(story, "retimed") then
+		local auras, cooling, casts = {}, {}, {}
+		for i, a in ipairs(story.auras) do
+			auras[i] = setmetatable({ count = COUNT[a.id] or a.count }, { __index = a })
+		end
+		for id, c in pairs(story.cooling or {}) do cooling[id] = c end
+		for i, cast in ipairs(story.casts or {}) do casts[i] = cast end
+		for id, c in pairs(COOL) do
+			cooling[id], casts[#casts + 1] = c, { c[1], id }
+		end
+		story.auras, story.cooling, story.casts, story.retimed = auras, cooling, casts, true
 	end
 	return story
 end
@@ -346,8 +368,11 @@ end
 -- Play(env, K, ns, notes) runs the story up to its time, each change at its own time on the clock.
 function Ranged.Play(env, K, ns, notes)
 	local story, at = Ranged.Story(ns.class)
-	if os.getenv("RENDER_TRACKERS_OFF") == "1" then
+	local off = os.getenv("RENDER_TRACKERS_OFF") or ""
+	if off == "1" then
 		for _, row in ipairs(ns.SlabTrackers.CLASSES[ns.class] or {}) do K.Options.Write("ActionBars", row.key, false) end
+	else
+		for key in off:gmatch("%a%w*") do K.Options.Write("ActionBars", key, false) end
 	end
 	if (rawget(_G, "RENDER_CAST_ON_FRAME") or os.getenv("RENDER_CAST_ON_FRAME")) == "off" and not K.Layout.Live("unitframes.castbar.player") then
 		for _, key in ipairs({ "unitframes.castbar.player", "unitframes.castbar.target" }) do
