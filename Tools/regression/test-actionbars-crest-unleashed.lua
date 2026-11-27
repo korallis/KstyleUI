@@ -478,7 +478,7 @@ do
 		env._form = form
 		env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	end
-	-- The fold plays on this form's piece and on no other.
+	-- Folded(nil) means no form's piece folds.
 	local function Folded(set)
 		for _, s in ipairs({ caster, cat, bear }) do
 			if s.fold.play:IsPlaying() ~= (s == set) or s.cool.play:IsPlaying() ~= (s == set) then
