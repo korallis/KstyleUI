@@ -562,8 +562,8 @@ do
 	Clean(env, K)
 end
 
--- Seven states on a main seat of the mage's and the warlock's rails, at Full, Calm and Off, on seats whose sigil has no burning
--- aura yet, so the still sigil stands in: ready, pressed, active, about to end, ended, cooling and ready again.
+-- Seven states on a main seat of the mage's and the warlock's rails, at Full, Calm and Off, on seats that burn the aura their
+-- sigil publishes: ready, pressed, active, about to end, ended, cooling and ready again.
 local function Ending(env, ns, seat, unit, id)
 	env.C_UnitAuras = env.C_UnitAuras or {}
 	env.C_UnitAuras.GetUnitAuraBySpellID = function(u, spell) return u == unit and spell == id and env._ending or nil end
@@ -584,7 +584,8 @@ for _, case in ipairs({ { "MAGE", { 12042, 12043, 11958 }, 1, "power", 12042 }, 
 		if level ~= "full" then Motion(env, K, level) end
 		local seat, id, full, off = Rail(ns).made[case[4]], case[5], level == "full", level == "off"
 		local at = case[1] .. " " .. case[4] .. " at " .. level
-		assert(seat.aura.loop == false and seat.lit:GetAlpha() == 1 and seat.breath:IsPlaying() == full, at .. ": ready, lit with its still sigil, breathing only at Full")
+		assert(seat.aura.loop and seat.lit:GetAlpha() == 1 and seat.aura.loop:IsPlaying() == full and seat.aura.still:GetAlpha() == (full and 0 or 1)
+			and seat.breath:IsPlaying() == full, at .. ": ready, lit, burning its sigil's aura and breathing only at Full, its still frame at Calm and Off")
 		Cast(env, id)
 		assert(seat.dip:IsPlaying() == full and seat.rise:IsPlaying() == full and (not full or seat.bursting:IsPlaying() and seat.gate:GetAlpha() == 1),
 			at .. ": pressed, a dip, burst and rise to the crown only at Full")
