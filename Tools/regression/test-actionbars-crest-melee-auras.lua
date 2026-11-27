@@ -32,25 +32,28 @@ local function Sheet(kind, name)
 	return ROOT .. "Media\\Textures\\Auras\\" .. kind .. "\\" .. name .. ".png"
 end
 
--- Each class's rail: its own first cooldown sigil, Blood Fury (known, shared) and Berserking (a racial this character lacks).
+-- Each class's rail: its own first cooldown sigil, Blood Fury (known, shared), the potion every class shares, the rogue's Sprint (whose
+-- sheet the druid's Dash shares) and Berserking (a racial this character lacks).
 local RAILS = {
-	{ "WARRIOR", 1719, "Crossed", "gilt" },
-	{ "PALADIN", 642, "Bubble", "white" },
-	{ "ROGUE", 13877, "Flurry", "pipPriestGlow" },
+	{ "WARRIOR", 1719, "Crossed", "gilt", { "Axe", "Potion" } },
+	{ "PALADIN", 642, "Bubble", "white", { "Axe", "Potion" } },
+	{ "ROGUE", 13877, "Flurry", "pipPriestGlow", { "Axe", "Potion", "Dash" }, 2983 },
 }
 for _, rail in ipairs(RAILS) do
-	local class, spell, own, color = rail[1], rail[2], rail[3], rail[4]
-	local env, K, ns = New(class, { spell, 20572 })
+	local class, spell, own, color, tinted = rail[1], rail[2], rail[3], rail[4], rail[5]
+	local env, K, ns = New(class, { spell, 20572, rail[6] })
 	local rim = assert(Find(ns, "crestCooldowns"), class .. " builds its cooldown rim")
 	local mine = Drawn(rim, Sheet("Sigils", own))
 	assert(#mine == 2, class .. ": its own " .. own .. " sigil burns its sheet as a fire and a still, got " .. #mine)
 	for _, region in ipairs(mine) do
 		assert(Colour(region) == "1.000,1.000,1.000", class .. ": its own sigil keeps the colour baked into its sheet")
 	end
-	local shared = Drawn(rim, Sheet("Sigils", "Axe"))
-	assert(#shared == 2, class .. ": the shared Blood Fury sigil burns its sheet, got " .. #shared)
-	for _, region in ipairs(shared) do
-		assert(Colour(region) == Token(K, color), class .. ": a shared sigil takes the rail's colour " .. color .. ", got " .. Colour(region))
+	for _, name in ipairs(tinted) do
+		local shared = Drawn(rim, Sheet("Sigils", name))
+		assert(#shared == 2, class .. ": the shared " .. name .. " sigil burns its sheet, got " .. #shared)
+		for _, region in ipairs(shared) do
+			assert(Colour(region) == Token(K, color), class .. ": the shared " .. name .. " sigil takes the rail's colour " .. color .. ", got " .. Colour(region))
+		end
 	end
 	assert(#Drawn(rim, Sheet("Sigils", "Tusks")) == 0, class .. ": an unknown racial never loads its sheet")
 	assert(#Drawn(rim, (K.Tokens.Texture("sigilTusks"))) == 1, class .. ": and draws its flat line art instead")
