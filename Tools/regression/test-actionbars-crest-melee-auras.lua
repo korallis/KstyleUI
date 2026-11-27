@@ -214,7 +214,7 @@ do
 		env.FireEvent("SPELL_UPDATE_COOLDOWN")
 		env.RunTimers()
 		-- The client runs OnHide on a hidden piece's descendants, where the light's host stops its loop; the stub runs no OnHide, so
-		-- the next Rest, which stops every light it finds hidden, stands in for it.
+		-- the next Rest, which stops each addon-played light it finds hidden, stands in for it.
 		ns.SlabMedals.Rest()
 	end
 	Stance(0)
