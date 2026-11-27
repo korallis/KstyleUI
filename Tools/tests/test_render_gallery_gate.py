@@ -40,7 +40,7 @@ class RenderGalleryGateTest(unittest.TestCase):
             for name in ('docs/renders/index.html', 'docs/renders/phone.html'):
                 page = root / name
                 page.parent.mkdir(parents=True, exist_ok=True)
-                page.write_text(f'<article><img src="data:image/png;base64,{payload}"></article>\n')
+                page.write_text(f'<article><img src="data:image/png;base64,{payload}"></article>')
             image = root / 'docs/renders/media/hunter.png'
             image.parent.mkdir(parents=True, exist_ok=True)
             image.write_bytes((ROOT / 'docs/renders/media/hunter.png').read_bytes())
@@ -49,6 +49,20 @@ class RenderGalleryGateTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             result = scan()
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+            for name in ('docs/renders/index.html', 'docs/renders/phone.html'):
+                page = root / name
+                original = page.read_text()
+                page.write_text(original.replace('</article>', '\n<!--\n-->\n</article>'))
+                commit('docs: add comment')
+                page.write_text(page.read_text().replace('<!--\n-->', f'<!--\n<img src="data:image/png;base64,{payload}">\n-->'))
+                commit('docs: add image comment')
+                result = scan()
+                page.write_text(original)
+                commit('docs: remove image comment')
+                with self.subTest(gallery=name):
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(marker, result.stdout.lower())
 
             phone = root / 'docs/renders/phone.html'
             phone.write_text(phone.read_text().replace('</article>', f'<!-- {marker} --></article>'))

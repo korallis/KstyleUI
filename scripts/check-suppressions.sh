@@ -16,6 +16,7 @@ status=0
 git diff -U0 --no-color --diff-filter=ACMR "$mb" HEAD -- . \
   ':(exclude)*.md' ':(exclude)*.mdx' ':(exclude)*.txt' ':(exclude)*.lock' ':(exclude)*.resolved' \
   ':(exclude)**/check-suppressions.sh' |
+python3 "$(dirname "${BASH_SOURCE[0]}")/../Tools/hooks/mask_gallery_images.py" |
 awk '
   BEGIN {
     pat = "((^|[^a-z0-9])hack([^a-z0-9]|$)|(\\/\\/|#|\\/\\*|\\*|--) *xxx([^a-z0-9]|$)|workaround|work around|eslint-disable|biome-ignore|@ts-ignore|@ts-expect-error|@ts-nocheck|# *noqa|type: *ignore|pyright: *ignore|pylint: *disable|swiftlint:disable|nolint|@suppresswarnings|phpstan-ignore|rubocop:disable|luacheck: *ignore|shellcheck +disable|noinspection|nosec|#\\[allow\\(|@suppress)"
@@ -26,11 +27,7 @@ awk '
   /^\+/ {
     line++
     text = substr($0, 2)
-    scan = text
-    if (file == "docs/renders/index.html" || file == "docs/renders/phone.html") {
-      gsub(/<img src="data:image\/png;base64,[a-zA-Z0-9+\/=]+"/, "<img src=\"[image]\"", scan)
-    }
-    if (tolower(scan " ") ~ pat && scan !~ tk) { printf "%s:%d: %s\n", file, line, scan; bad++ }
+    if (tolower(text " ") ~ pat && text !~ tk) { printf "%s:%d: %s\n", file, line, text; bad++ }
     next
   }
   END {
