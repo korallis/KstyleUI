@@ -448,6 +448,11 @@ function Scale.MaxUserScale()
 	return state.maximum
 end
 
+function Scale.Sizing()
+	local last = state.applied
+	return last[2], last[3], last[7]
+end
+
 function Scale.IsAuto()
 	return state.auto
 end

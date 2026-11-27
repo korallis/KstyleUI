@@ -206,6 +206,7 @@ The accent resolves on first use without firing anything, and again at `PLAYER_L
 | `UserScale()`, `SetUserScale(size) -> ok` | The requested size, clamped to `MIN_USER_SCALE` 0.6 and `MAX_USER_SCALE` 1.5, without rewriting the saved setting. It applies only while the size is not automatic. |
 | `Step() -> size` | One pixel-perfect step of the size on this screen: `1080 / (STEPS_PER_PIXEL * physicalHeight)`. |
 | `AppliedUserScale()`, `MaxUserScale()` | The applied size, always a step, and the current preset's screen-fit maximum. |
+| `Sizing() -> parentScale, size, auto` | The sizing inputs the last rescale applied: `UIParent`'s effective scale, the requested size (the followed size while Follow the game's UI scale is on) and whether the size was automatic. A settings change that leaves all three as they were, such as Follow at the game's default scale over a manual 100%, applies nothing. Setup compares them to tell a sizing change from a HUD width or arrangement change. |
 
 The root's scale is `768 / 1080 / UIParent:GetEffectiveScale() * appliedSize`, so it is `1080 / appliedSize` units tall on the normal UIParent canvas, and one unit is `physicalHeight * appliedSize / 1080` physical pixels whatever the game's own UI scale. One pixel is `768 / (physicalHeight * root:GetEffectiveScale())` units, read from the root's real effective scale.
 

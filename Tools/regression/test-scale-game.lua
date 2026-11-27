@@ -126,7 +126,150 @@ do
 	K.Callbacks.Fire("HudStyleChanged")
 	env.RunTimers()
 	assert(state.saves == saves, "a restyle that moves nothing does not save the layouts again")
+	-- Restyle compares the whole Edit Mode entry: a second anchor on the tracker, which Place clears, is a change it saves.
+	F.Find(F.Named(state, "KstyleUI DPS"), F.TRACKER).anchorInfo2 = { point = "BOTTOMRIGHT", relativeTo = "UIParent", relativePoint = "BOTTOMLEFT", offsetX = 1600, offsetY = 600 }
+	K.Callbacks.Fire("HudStyleChanged")
+	env.RunTimers()
+	assert(state.saves == saves + 1 and F.Find(F.Named(state, "KstyleUI DPS"), F.TRACKER).anchorInfo2 == nil, "a restyle that clears the tracker's second anchor saves it")
 	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Follow mode: at 1920x1080 a game scale of 2/3 asks 0.9375, a whole step, so the root-to-game ratio stays 1 while
+-- the root grows from 1920x1080 to 2048x1152 units. Setup re-places what it owns at the places a fresh Apply at 2/3
+-- writes (tracker 1475,883, tracked buff icons 933,462.6), and a buff bar viewer the player moved by hand, with no
+-- setup stamp, keeps its place.
+do
+	local state = { saved = { { layoutName = "Mine", layoutType = F.ACCOUNT, systems = F.Modern().systems } }, active = 1 }
+	local env, K = W.New({ boot = false, width = 1920, height = 1080, uiScale = DEFAULT_GAME_SCALE, size = "auto", setup = function(e) F.Install(e, state) end })
+	CoreEnv.Boot(env)
+	K.Options.Write("Appearance", "uiScaleGame", true)
+	env.RunTimers()
+	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
+	env.RunTimers()
+	local layout = F.Named(state, "KstyleUI DPS")
+	local icons = F.Find(layout, F.VIEWER, F.BUFF_ICON).anchorInfo
+	assert(near(icons.offsetX, 869) and near(icons.offsetY, 462.6), string.format("setup places the tracked buff icons at 869,462.6, got %s,%s", icons.offsetX, icons.offsetY))
+	K.Store.Account().editModeRows["KstyleUI DPS"][F.BUFF_BAR] = nil
+	F.Find(layout, F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX = 100
+	SetGameScale(env, 2 / 3, 1920, 1080)
+	assert(near(K.Scale.AppliedUserScale(), 0.9375) and near(K.Setup.EditMode.Factor(), 1), "2/3 follows to 0.9375 with the ratio unchanged")
+	-- SaveLayouts replaces the fake's saved tables, so read the layout again.
+	layout = F.Named(state, "KstyleUI DPS")
+	local tracker, bars = F.Find(layout, F.TRACKER).anchorInfo, F.Find(layout, F.VIEWER, F.BUFF_BAR).anchorInfo
+	icons = F.Find(layout, F.VIEWER, F.BUFF_ICON).anchorInfo
+	assert(near(tracker.offsetX, 1475) and near(tracker.offsetY, 883), string.format("the tracker follows the grown HUD to 1475,883, got %s,%s", tracker.offsetX, tracker.offsetY))
+	assert(near(icons.offsetX, 933) and near(icons.offsetY, 462.6), string.format("setup's tracked buff icons follow to 933,462.6, got %s,%s", icons.offsetX, icons.offsetY))
+	assert(near(bars.offsetX, 100), "a buff bar viewer moved by hand, with no setup stamp, keeps its place, got " .. tostring(bars.offsetX))
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- A resolution change keeps what v0.3.5.2 did, as the owner chose: only a new layout class, band or warning lane
+-- restyles, and that restyle re-places an unstamped viewer too, so older layouts adapt to the new screen. Only game
+-- UI Scale and Follow changes use the ratio and root-size triggers and leave a hand-moved viewer alone.
+-- With the game's Use UI Scale off, the client keeps UIParent 768 units tall, so its scale moves with the screen and
+-- Scale applies new sizing inputs; only the screen change keeps the earlier rule then.
+local function Resolution(width, height, useUiScaleOff)
+	local state = { saved = { { layoutName = "Mine", layoutType = F.ACCOUNT, systems = F.Modern().systems } }, active = 1 }
+	local screen = { 1920, 1080 }
+	local env, K = W.New({ boot = false, width = 1920, height = 1080, uiScale = DEFAULT_GAME_SCALE, size = "auto", setup = function(e)
+		F.Install(e, state)
+		e.GetPhysicalScreenSize = function() return screen[1], screen[2] end
+	end })
+	CoreEnv.Boot(env)
+	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
+	env.RunTimers()
+	K.Store.Account().editModeRows["KstyleUI DPS"][F.BUFF_BAR] = nil
+	F.Find(F.Named(state, "KstyleUI DPS"), F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX = 100
+	local saves, parent = state.saves, K.Scale.Sizing()
+	screen[1], screen[2] = width, height
+	if useUiScaleOff then
+		SetGameScale(env, UI_HEIGHT / height, width, height)
+	else
+		env.UIParent._width, env.UIParent._height = UI_HEIGHT * width / height / DEFAULT_GAME_SCALE, UI_HEIGHT / DEFAULT_GAME_SCALE
+	end
+	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
+	assert(#env._errors == 0, tostring(env._errors[1]))
+	local layout = F.Named(state, "KstyleUI DPS")
+	return state.saves - saves, F.Find(layout, F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX, F.Find(layout, F.TRACKER).anchorInfo.offsetX, K.Scale.Sizing() ~= parent
+end
+
+do
+	-- 1920x1080 to 2560x1440 stays 16:9: the ratio moves (1 to 0.984375) but no earlier trigger fires, so nothing moves.
+	local saves, bar, tracker = Resolution(2560, 1440)
+	assert(saves == 0 and near(bar, 100) and near(tracker, 1347), string.format("a 16:9 resolution change restyles nothing, as before this hotfix: %d saves, bar %s, tracker %s", saves, bar, tracker))
+	-- 1920x1080 to 3440x1440 changes the layout class to 21:9: the earlier rule re-places the unstamped viewer too.
+	saves, bar = Resolution(3440, 1440)
+	assert(saves == 1 and not near(bar, 100), string.format("a 21:9 resolution change re-places an unstamped viewer, as before this hotfix: %d saves, bar %s", saves, bar))
+	-- With Use UI Scale off the game's scale moves from 768 / 1080 to 768 / 1440 as well, and the same results hold.
+	local rescaled, _
+	saves, bar, tracker, rescaled = Resolution(2560, 1440, true)
+	assert(rescaled and saves == 0 and near(bar, 100) and near(tracker, 1347), string.format("with Use UI Scale off, a 16:9 resolution change restyles nothing: sizing moved %s, %d saves, bar %s, tracker %s", tostring(rescaled), saves, bar, tracker))
+	saves, bar, _, rescaled = Resolution(3440, 1440, true)
+	assert(rescaled and saves == 1 and not near(bar, 100), string.format("with Use UI Scale off, a 21:9 resolution change re-places an unstamped viewer: sizing moved %s, %d saves, bar %s", tostring(rescaled), saves, bar))
+end
+
+-- The size slider is a scale change too: with Auto off, a new Interface size re-places setup's tracker and leaves a
+-- buff bar viewer moved by hand, with no setup stamp, where the player put it.
+do
+	local state = { saved = { { layoutName = "Mine", layoutType = F.ACCOUNT, systems = F.Modern().systems } }, active = 1 }
+	local env, K = W.New({ boot = false, width = 1920, height = 1080, uiScale = DEFAULT_GAME_SCALE, size = "auto", setup = function(e) F.Install(e, state) end })
+	CoreEnv.Boot(env)
+	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
+	env.RunTimers()
+	K.Options.Write("Appearance", "uiScaleAuto", false)
+	env.RunTimers()
+	K.Store.Account().editModeRows["KstyleUI DPS"][F.BUFF_BAR] = nil
+	F.Find(F.Named(state, "KstyleUI DPS"), F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX = 100
+	local tracker, saves = F.Find(F.Named(state, "KstyleUI DPS"), F.TRACKER).anchorInfo.offsetX, state.saves
+	K.Options.Write("Appearance", "uiScale", 0.75)
+	env.RunTimers()
+	local layout = F.Named(state, "KstyleUI DPS")
+	assert(state.saves == saves + 1 and not near(F.Find(layout, F.TRACKER).anchorInfo.offsetX, tracker), "a new Interface size re-places setup's tracker")
+	assert(near(F.Find(layout, F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX, 100), "a new Interface size leaves a hand-moved, unstamped viewer in place, got " .. tostring(F.Find(layout, F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX))
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- An ultrawide arrangement or HUD width change at one screen size and one game UI Scale is not a scale change, as the
+-- owner chose: it resizes the root, but its restyle keeps the earlier rule and re-places an unstamped viewer, so an
+-- older layout follows the HUD as it did before this hotfix.
+do
+	local state = { saved = { { layoutName = "Mine", layoutType = F.ACCOUNT, systems = F.Modern().systems } }, active = 1 }
+	local env, K = W.New({ boot = false, width = 5120, height = 1440, uiScale = DEFAULT_GAME_SCALE, size = "auto", setup = function(e)
+		F.Install(e, state)
+		e.GetPhysicalScreenSize = function() return 5120, 1440 end
+	end })
+	CoreEnv.Boot(env)
+	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
+	env.RunTimers()
+	local function Change(key, value)
+		K.Store.Account().editModeRows["KstyleUI DPS"][F.BUFF_BAR] = nil
+		F.Find(F.Named(state, "KstyleUI DPS"), F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX = 100
+		local saves, rw = state.saves, K.Setup.RootSize()
+		K.Options.Write("Layout", key, value)
+		env.RunTimers()
+		assert(#env._errors == 0, tostring(env._errors[1]))
+		assert(math.abs(K.Setup.RootSize() - rw) > 0.5, string.format("%s %s resizes the root, got %s to %s", key, value, rw, K.Setup.RootSize()))
+		return state.saves - saves, F.Find(F.Named(state, "KstyleUI DPS"), F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX
+	end
+	-- Setup learns the root's size from the first scale change after loading, so the later changes also pass the
+	-- root-size compare that a game UI Scale change in Follow mode relies on.
+	for _, change in ipairs({ { "arrangement", "spread" }, { "arrangement", "centred" }, { "canvas", "16:9" } }) do
+		local saves, bar = Change(change[1], change[2])
+		assert(saves == 1 and not near(bar, 100), string.format("%s %s re-places an unstamped viewer, as before this hotfix: %d saves, bar %s", change[1], change[2], saves, bar))
+	end
+	-- Over a manual 100%, Follow the game's UI scale at the game's default scale asks for the same size, so Scale applies
+	-- nothing and sends no scale change; the next arrangement change is still not a sizing change.
+	K.Options.Write("Appearance", "uiScaleAuto", false)
+	K.Options.Write("Appearance", "uiScale", 1)
+	env.RunTimers()
+	local changes = 0
+	K.Callbacks.Register("ScaleChanged", "follow-test", function() changes = changes + 1 end)
+	K.Options.Write("Appearance", "uiScaleGame", true)
+	env.RunTimers()
+	assert(K.Scale.IsGame() and changes == 0, "Follow at the game's default scale over a manual 100% sends no scale change, got " .. changes)
+	local saves, bar = Change("arrangement", "spread")
+	assert(changes == 1 and saves == 1 and not near(bar, 100), string.format("after that switch, Spread re-places an unstamped viewer, as before this hotfix: %d changes, %d saves, bar %s", changes, saves, bar))
 end
 
 print("scale game ok")
