@@ -9,7 +9,8 @@
 -- fire (Fire Vulnerability at three stacks), frost (Winter's Chill embers) or level 10 build, a warlock's felhunter (Spell Lock
 -- cooling), imp, voidwalker or succubus (that demon out, chosen through the pet's spellbook as the felhunter's Spell Lock
 -- chooses it), curses (each of the five curses on the target in turn, one at a time as
--- the game allows: RENDER_TRACKERS=moment at RENDER_TRACKERS_T 1.5, 3.5, 5.5, 7.5 and 9.5), sacrifice (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, each caster's sigils build (every
+-- the game allows: RENDER_TRACKERS=moment at RENDER_TRACKERS_T 1.5, 3.5, 5.5, 7.5 and 9.5), sacrifice (Demonic Sacrifice of the Imp, Death Coil cooling;
+-- every summon known, so RENDER_TRACKERS_SWAP=18789:18790, 18789:18791 or 18789:18792 sacrifices the Voidwalker, Succubus or Felhunter instead), nodemon or level 8 build, each caster's sigils build (every
 -- cooldown sigil of the class up at once: the mage's Arcane Power, Presence of Mind, Combustion, Evocation and Ice Block, the warlock's
 -- Amplify Curse, Fel Domination, Shadow Ward and the Voidwalker's Sacrifice), the hunter's bite (Mongoose Bite ready) or raptor
 -- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
@@ -144,7 +145,7 @@ local STORIES = {
 					{ unit = "target", id = 980, icon = 136139, at = 3.6, duration = 7.6, harmful = true },
 					{ unit = "target", id = 18265, icon = 136188, at = 4.2, duration = 7, harmful = true },
 					{ unit = "player", id = 18792, icon = 136218, at = 7.4, duration = 1800 } } },
-			sacrifice = { known = { 172, 980, 348, 18265, 688, 18788, 6201, 1120, 702, 6789 }, pet = false, cooling = { [6789] = { 4, 15 } }, auras = {
+			sacrifice = { known = { 172, 980, 348, 18265, 688, 697, 712, 691, 18788, 6201, 1120, 702, 6789 }, pet = false, cooling = { [6789] = { 4, 15 } }, auras = {
 				{ unit = "player", id = 18789, icon = 136218, at = 0.5, duration = 1800 }, { unit = "target", id = 348, icon = 135817, at = 1, duration = 15, harmful = true },
 				{ unit = "target", id = 702, icon = 136138, at = 1.5, duration = 120, harmful = true }, { unit = "target", id = 172, icon = 136118, at = 2, duration = 18, harmful = true } } },
 			sigils = { known = { 172, 702, 697, 18288, 18708, 6229, 706 }, pet = false, cooling = {},
