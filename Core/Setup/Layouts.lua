@@ -1233,13 +1233,33 @@ function Layouts.Band(key, anchor, x, band)
 end
 end
 
+function Layouts.BarLift(class, key, style)
+	style = style or ns.HudStyle.Current()
+	local above = key ~= "unitframes.boss" and (key:match("^unitframes%.") or key:match("^cooldowns%.") or key == "meters.swing" or key == "combattext.player")
+	if not (above or key == "actionbars.bar2" and style ~= "medallions") then return 0 end
+	local function Extra(bar)
+		local count, rows, size, gap, _, cfg = Layouts.ActionBarGrid(class, bar, nil, style)
+		if cfg.enabled == false then return 0 end
+		rows = math.ceil(count / math.ceil(count / math.min(count, math.max(1, math.floor(rows)))))
+		return (rows - 1) * (size + gap)
+	end
+	local first, second = Extra("actionbars.bar1"), Extra("actionbars.bar2")
+	if style == "medallions" then return math.max(first, second) end
+	return above and first + second or first
+end
+
+function Layouts.LiftSetting(module, key)
+	local field = module == "ActionBars" and key:match("^bar[12]%.(.+)$")
+	return module == "ActionBars" and (key == "slab" or field == "rows" or field == "buttons" or field == "size" or field == "spacing" or field == "enabled") or false
+end
+
 function Layouts.Place(name, style, class, key, band)
 	local base = layouts[name] and layouts[name][key]
 	if not base then
 		return nil
 	end
 	local place = Layouts.Aspect(class, style, name, key) or Layouts.Style(name, key, style) or base
-	return { anchor = place.anchor, x = Layouts.Band(key, place.anchor, place.x, band), y = place.y }
+	return { anchor = place.anchor, x = Layouts.Band(key, place.anchor, place.x, band), y = place.y + Layouts.BarLift(class, key, style) }
 end
 
 function Layouts.Positions(name, style, class, band)
@@ -1697,7 +1717,9 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 					if b < rect[4] and rect[2] < t and l < rect[3] and rect[1] < r and Apart(key, rect.key) then
 						local dockBoundary = (key == "databars.micro" and rect.key == "databars.bags") or (key == "databars.bags" and rect.key == "databars.micro")
 						if not dockBoundary or min(t, rect[4]) - max(b, rect[2]) > 1 then
-							return false
+							local kept, pair = state.kept, key .. rect.key
+							if not kept then return false end
+							if kept[1] then kept[pair] = true elseif not kept[pair] then return false end
 						end
 					end
 				end
@@ -1762,7 +1784,12 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high, fits = fits }
 		return high, fits
 	end
-	if not fits(low) then low = low / 2 end
+	if not fits(low) and not fits(low / 2) then
+		state.kept = { true }
+		fits(low / 2)
+		state.kept[1] = false
+	end
+	if not fits(low) and fits(low / 2) then low = low / 2 end
 	local step = 1080 / (physicalHeight * 2 * state.span)
 	while high > low do
 		local candidate = math.max(low, high - step)

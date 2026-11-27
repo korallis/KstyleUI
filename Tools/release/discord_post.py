@@ -166,6 +166,7 @@ def main():
     parser.add_argument("message_ids", nargs="?", default="")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--notes", action="store_true", help="print the GitHub release text instead")
+    parser.add_argument("--section", action="store_true", help="print the tag's changelog section, the text the packager uploads, instead")
     args = parser.parse_args()
     if args.roadmap:
         if args.message_ids or args.notes or "," in args.tag:
@@ -175,8 +176,9 @@ def main():
         parser.error("tag is required without --roadmap")
     if args.edit != bool(args.message_ids):
         parser.error("--edit requires message_ids; message_ids requires --edit")
-    if args.notes:
-        print(github_notes((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), args.tag), end="")
+    if args.notes or args.section:
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        print(github_notes(changelog, args.tag) if args.notes else release_section(changelog, args.tag)[0] + "\n", end="")
         return
     webhook = os.environ.get("DISCORD_RELEASE_WEBHOOK", "").strip()
     if not webhook and not args.dry_run:

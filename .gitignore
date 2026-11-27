@@ -7,3 +7,4 @@ __pycache__/
 Tools/render/out/
 specs/
 Tools/regression/.tmp/
+Tools/release/packager-changelog.md

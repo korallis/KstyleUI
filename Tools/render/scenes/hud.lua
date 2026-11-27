@@ -292,6 +292,16 @@ local function applyPreset(env, opts)
 	end
 	local bar2Buttons = tonumber(os.getenv("RENDER_BAR2_BUTTONS") or "")
 	if bar2Buttons and K.Modules.IsEnabled("ActionBars") then K.Options.Write("ActionBars", "bar2.buttons", bar2Buttons) end
+	for bar, rows in (os.getenv("RENDER_BAR_ROWS") or ""):gmatch("(bar%d)=(%d+)") do
+		if K.Modules.IsEnabled("ActionBars") then
+			K.Options.Write("ActionBars", bar .. ".rows", tonumber(rows))
+		else
+			local cfg = K.Store.Module("ActionBars")
+			cfg[bar] = cfg[bar] or {}
+			cfg[bar].rows = tonumber(rows)
+			K.Callbacks.Fire("SettingChanged", "ActionBars", bar .. ".rows", tonumber(rows))
+		end
+	end
 	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" and K.Modules.IsEnabled("ActionBars") then
 		K.Options.Write("ActionBars", "bar3.enabled", true)
 		local buttons = tonumber(os.getenv("RENDER_BAR3_BUTTONS") or "")
