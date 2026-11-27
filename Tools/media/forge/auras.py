@@ -135,6 +135,40 @@ for name, colour in (("Crystal", "schoolFrost"), ("Vortex", "schoolArcane"), ("B
                      ("Sweep", "schoolPhysical"), ("Veil", "schoolShadow"), ("Innervate", "schoolNature"), ("Swift", "schoolNature"),
                      ("Bolt", "schoolFrost")):
     MARKS["Pop/" + name] = ("popoffs", colour, None)
+
+
+def picture(path, mirror=False):
+    """A shipped picture's silhouette (alpha) raised by its own shading (luminance), left where it stands in its box;
+    mirror turns it left for right, since a flip-book cannot mirror its cells by texture coordinates."""
+    def design():
+        im = Image.open(ROOT / path).convert("RGBA").resize((N, N), Image.LANCZOS)
+        if mirror:
+            im = im.transpose(Image.FLIP_LEFT_RIGHT)
+        px = np.asarray(im, np.float32) / 255
+        e = Emblem(Path(path).stem)
+        e.M = ndi.binary_opening(px[..., 3] > 0.35, iterations=2)
+        luma = px[..., :3] @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+        e.H = np.where(e.M, 0.35 + 0.65 * ndi.gaussian_filter(luma, 2.0), 0).astype(np.float32)
+        return e
+    return design
+
+
+# the hunter: seven Aspects, six Stings, the two openings, Raptor Strike, the pet's haunch and lost hound, Trueshot Aura and
+# Improved Tracking's compass; the three cooldown sigils
+# and the rail's six more; the hawk perches' bird and the ready shots' arrows at their three angles
+MARKS.update({name: ("glyphs", colour, designs_hunter.D[name]) for name, colour in {
+    "Hawk": "gilt", "Monkey": "neutral", "Cheetah": "steelLit", "Pack": "steelLit", "Wild": "schoolNature", "Beast": "hostile",
+    "Viper": "magic", "Serpent": "schoolNature", "ViperSting": "magic", "Scorpid": "neutral", "Wyvern": "schoolFire",
+    "Lacerate": "hostile", "BlackArrow": "schoolShadow", "Counter": "hostile", "Mongoose": "hostile", "Raptor": "gilt",
+    "Haunch": "neutral", "Hound": "hostile", "Trueshot": "gilt", "Compass": "gilt",
+}.items()})
+MARKS.update({name: ("sigils", "jewelHawk", None) for name in (
+    "Volley", "Deflect", "Paw", "Intimidate", "FireTrap", "Sniper", "Aimed", "Strider", "Charm")})
+# Immolation Trap's burn on the Sting fuse: the rail's trap sigil in the fuse's fire, so the rail keeps its own green
+MARKS["FireTrapFuse"] = ("sigils", "schoolFire", "FireTrap")
+MARKS["HawkPerch"] = ("figures", "gilt", picture("Media/Textures/Medallions/Hawks/HawkSigil.png"))
+MARKS["HawkPerchMirror"] = ("figures", "gilt", picture("Media/Textures/Medallions/Hawks/HawkSigil.png", True))
+MARKS.update({f"Arrow{angle}": ("figures", "giltLit", picture(f"Media/Textures/Pips/PipArrow{angle}.png")) for angle in (105, 90, 75)})
 # the amber spell fire of the approved hawk mock: dark ember to the crest's gilt to white heat
 GILT = [[0.0, "000000"], [0.06, "2a0a02"], [0.18, "a8320a"], [0.34, "f26a12"], [0.52, "ffb22e"], [0.72, "ffe39a"], [1.0, "fffdf4"]]
 

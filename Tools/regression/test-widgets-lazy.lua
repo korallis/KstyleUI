@@ -311,12 +311,19 @@ do
 	-- on the target and Furious Howl), each aura feed with its two motion copies (114 regions), the potion pendant (12), Growl's orders and
 	-- the tracking mark's still glyphs (4 each), the range ring and the pet's focus bar, less the forged bodies the tracking mark gave up.
 	-- Tranquilizing Shot's glyph on the lower left foot is part of that total.
+	-- With the crest rail and its second rail on top of those auras and homes, the lit hunter comes to 5,377, the mage to 5,024 and the warlock, with Soulstone and Ritual of Doom on its second rail, to 5,254.
+	-- The hunter's marks then burn as auras through the same kit (KstyleUI_ActionBars/SlabMedals.lua's Medals.Mark): a fire and a still
+	-- on the kit's motion copies in place of each forged sheen, a sheet drawn only once its spell is known and its seat shown, and the
+	-- ready shot's faces built only when they first come up. That takes the hunter from 5,377 to the measured 5,181.
+	-- Each seated bloom (an Aspect, Trueshot or a Sting head) then draws a copy of its socket body on its flame copy, so the socket that grows
+	-- is hidden with the light when a newer flare masks it under hidden values: one texture per lit seat, built with the copy because the
+	-- engine's copies refuse new regions while auras are secret. The lit hunter's three take it to the measured 5,184.
 	-- Each signature pop-off the lit story knows (SlabPopoffs.lua) adds 10, its Blender sheet once in each motion face among
 	-- them, and Power Infusion's target and focus slots 16 more, each with the sheet, ring, late warning and flare the priest's own
 	-- slot has. The warlock knows two, the mage and priest one, and the hunter none.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4968, DRUID = 5280, SHAMAN = 4919, HUNTER = 5350, MAGE = 4963, WARLOCK = 5247 }) do
+	for class, limit in pairs({ PRIEST = 4968, DRUID = 5280, SHAMAN = 4919, HUNTER = 5184, MAGE = 5028, WARLOCK = 5273 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")
