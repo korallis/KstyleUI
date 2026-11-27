@@ -26,7 +26,9 @@ awk '
   /^\+/ {
     line++
     text = substr($0, 2)
-    if (tolower(text " ") ~ pat && text !~ tk) { printf "%s:%d: %s\n", file, line, text; bad++ }
+    scan = text
+    gsub(/data:image\/[a-zA-Z0-9.+-]+;base64,[a-zA-Z0-9+\/=]+/, "", scan)
+    if (tolower(scan " ") ~ pat && scan !~ tk) { printf "%s:%d: %s\n", file, line, scan; bad++ }
     next
   }
   END {
