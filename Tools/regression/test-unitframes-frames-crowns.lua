@@ -81,7 +81,13 @@ for _, class in ipairs(ORDER) do
 	local n = spec.count
 	for i, p in ipairs(crown.pips) do
 		assert(tostring(W.LastCall(p.steel, "SetTexture")[1]):find(spec.art .. "Steel90.png", 1, true), class .. " piece " .. i .. " is upright dormant steel")
-		assert(tostring(W.LastCall(p.blade, "SetStatusBarTexture")[1]):find(spec.art .. "90.png", 1, true), class .. " piece " .. i .. " lights its upright art")
+		if class == "HUNTER" then
+			-- The aura plan: under Frames too a hunter's arrow burns as the upright arrow figure's aura.
+			assert(tostring(W.LastCall(p.aura.moving, "SetTexture")[1]):find("Auras\\Figures\\Arrow90.png", 1, true), "hunter arrow " .. i .. " burns the upright arrow's aura")
+			assert(p.aura.button._shownAnimations[1] == p.aura.loop, "and at Full its loop is the slot's shown animation")
+		else
+			assert(tostring(W.LastCall(p.blade, "SetStatusBarTexture")[1]):find(spec.art .. "90.png", 1, true), class .. " piece " .. i .. " lights its upright art")
+		end
 		assert(math.abs(p.frame:GetWidth() - (class == "DRUID" and claw or dagger)) < 1e-6, class .. " piece " .. i .. " is the size of the combo pieces")
 		local point, anchor, rel, x, y = p.frame:GetPoint(1)
 		local mirror = select(4, crown.pips[n + 1 - i].frame:GetPoint(1))

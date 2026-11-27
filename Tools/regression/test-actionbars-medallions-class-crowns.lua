@@ -83,7 +83,22 @@ for _, class in ipairs(ORDER) do
 		p.env = env
 		local angle = spec.angles[i]
 		assert(tostring(Last(p.steel, "SetTexture")[1]):find(spec.art .. "Steel" .. angle .. ".png", 1, true), class .. " piece " .. i .. " is dormant art at " .. angle)
-		assert(tostring(Last(p.blade, "SetStatusBarTexture")[1]):find(spec.art .. angle .. ".png", 1, true), class .. " piece " .. i .. " lights its own art")
+		if class == "HUNTER" then
+			-- The aura plan: a hunter's arrows burn as Blender auras, each the shot's arrow figure at its angle over its body drawn black.
+			local a = p.aura
+			for _, t in ipairs({ a.moving, a.still }) do
+				local clip = t:GetParent()
+				local bar = clip:GetParent()
+				local fill, low, high = bar:GetStatusBarTexture(), bar:GetMinMaxValues()
+				assert(select(2, clip:GetPoint(1)) == fill and select(2, clip:GetPoint(2)) == fill and Last(clip, "SetClipsChildren")[1] == true and low == i - 1 and high == i,
+					"arrow " .. i .. " shows only inside its own stack's application bar fill")
+				assert(tostring(Last(t, "SetTexture")[1]):find("Auras\\Figures\\Arrow" .. angle .. ".png", 1, true) and Last(t, "SetBlendMode")[1] == "ADD", "arrow " .. i .. " burns the arrow figure's aura at " .. angle)
+			end
+			assert(a.moving:GetParent():GetParent():GetParent() ~= a.still:GetParent():GetParent():GetParent(), "the burning and the still copy sit on slots of their own")
+			assert(tostring(Last(p.blade, "SetStatusBarTexture")[1]):find(spec.art .. angle .. ".png", 1, true) and Last(p.blade, "SetStatusBarColor")[1] + Last(p.blade, "SetStatusBarColor")[2] + Last(p.blade, "SetStatusBarColor")[3] == 0, "over the arrow's body swept up in black")
+		else
+			assert(tostring(Last(p.blade, "SetStatusBarTexture")[1]):find(spec.art .. angle .. ".png", 1, true), class .. " piece " .. i .. " lights its own art")
+		end
 		local _, _, _, x, y = p.frame:GetPoint(1)
 		assert(math.abs(math.deg(math.atan2(y, x)) - angle) < 1, class .. " piece " .. i .. " fans out at " .. angle)
 		local low, high = p.blade:GetMinMaxValues()
@@ -280,6 +295,31 @@ do
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 0)
 	assert(slot._applicationBar[2].interpolation == 0, "and Off takes once the restriction ends")
 	Clean(env, K, "secret auras")
+end
+
+-- The hunter's arrow auras loop as the engine's shown animation only at Full with the crest awake, and otherwise hold their first frame
+-- (review of the hunter auras: the crown was the one hunter mark left still).
+do
+	local env, K, ns = New("HUNTER")
+	local crown = ns.SlabCrown.state.crown
+	local a = crown.pips[1].aura
+	local function Bound() for _, g in ipairs(a.button._shownAnimations) do if g == a.loop then return true end end return false end
+	env.SetTarget(true)
+	env.RunTimers()
+	assert(Bound() and crown.burn:GetAlpha() == 1 and crown.cool:GetAlpha() == 0, "at Full with the crest awake the burning copy shows and its loop is its slot's shown animation")
+	Slots.Set(env, "player", { { id = 1310687, count = 1 } })
+	assert(a.loop:IsPlaying(), "a stack shows the slot and the engine plays the loop")
+	env.SetTarget(false)
+	env.RunTimers()
+	assert(ns.Slab.Resting() and not Bound() and not a.loop:IsPlaying() and crown.cool:GetAlpha() == 1 and crown.burn:GetAlpha() == 0, "the crest resting: the loop leaves its slot and the still copy shows")
+	env.SetTarget(true)
+	env.RunTimers()
+	assert(Bound() and a.loop:IsPlaying(), "woken with the stack still up, the loop plays again")
+	K.Options.Write("Medallions", "motion", "calm")
+	assert(not Bound() and crown.cool:GetAlpha() == 1 and crown.burn:GetAlpha() == 0, "Calm shows the still copy")
+	K.Options.Write("Medallions", "motion", "full")
+	Slots.Set(env, "player", nil)
+	Clean(env, K, "hunter arrow auras")
 end
 
 -- The hunter's arrows stay clear of the hawk perches.

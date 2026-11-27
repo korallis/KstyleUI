@@ -154,7 +154,7 @@ function Pips.Fed(class, parent)
 		if crown then
 			crown:SetShown(name == kind)
 			crown:Listen(OWNER .. ":" .. name, name == kind)
-			pending = not crown:SetMotion(moving) or pending
+			pending = not crown:SetMotion(moving, Effects.Allows("ambient")) or pending
 		end
 	end
 	Warm()
