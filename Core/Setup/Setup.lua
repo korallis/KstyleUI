@@ -301,17 +301,21 @@ end
 local aspect, band, lane, factor = ns.Scale.Aspect(), ns.Scale.Band(), nil, Setup.EditMode.Factor()
 local rootWidth, rootHeight
 local screenWidth, screenHeight = Screen()
+local parent, size, auto = ns.Scale.Sizing()
 ns.Callbacks.Register("ScaleChanged", "Setup", function()
 	local width, k = Setup.EditMode.WarningLane(), Setup.EditMode.Factor()
 	local rw, rh = Setup.RootSize()
 	local sw, sh = Screen()
+	local p, s, a = ns.Scale.Sizing()
 	local rescaled = math.abs(k - factor) > 1e-3 or (rootWidth and (math.abs(rw - rootWidth) > 0.5 or math.abs(rh - rootHeight) > 0.5))
 	local resized = sw ~= screenWidth or sh ~= screenHeight
+	local sized = p ~= parent or s ~= size or a ~= auto
 	factor, rootWidth, rootHeight, screenWidth, screenHeight = k, rw, rh, sw, sh
+	parent, size, auto = p, s, a
 	local scaled = rescaled and not resized
 	if scaled or ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band or (lane and width ~= lane) then
 		aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
-		Restyle(scaled)
+		Restyle(scaled and sized)
 	end
 	lane = width
 end)

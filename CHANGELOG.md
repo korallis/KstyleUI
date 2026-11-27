@@ -1,5 +1,17 @@
 # KstyleUI changelog
 
+## v0.3.5.4 (2026-11-27)
+
+A hotfix for ultrawide screens and the HUD width: cooldown viewers placed by a setup from before v0.3.5.3 move with the HUD again, while viewers you move yourself still stay put when the UI Scale changes.
+
+Highlights:
+
+- Cooldown viewers an older setup placed follow the HUD again when you change its width or switch Centred and Spread.
+
+### Fixed
+
+- Setup: on a layout from a setup before v0.3.5.3, the cooldown viewers follow the HUD again when you change the HUD width or switch an ultrawide screen between Centred and Spread, as in v0.3.5.2.
+
 ## v0.3.5.3 (2026-11-27)
 
 A hotfix for players who use the game's UI Scale: KstyleUI can now follow it instead of keeping its own pixel-perfect size, from settings or from setup.
