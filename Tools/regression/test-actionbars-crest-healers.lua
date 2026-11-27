@@ -1242,7 +1242,7 @@ do
 			assert(Shows(fire) == (on and burning) and Shows(fire.still) == (on and not burning), why .. " (flame " .. k .. ")")
 			assert(not on or Engine(function() return fire.loop:IsPlaying() end), why .. ": a lit flame's loop plays (flame " .. k .. ")")
 		end
-		assert(Shows(renew) == burning and Shows(renew.still) == not (burning or off) and Shows(renew.bare) == (off == true), why .. " (Renew)")
+		assert(Shows(renew) == burning and Shows(renew.still) == not (burning or off) and (renew.bare ~= nil and Shows(renew.bare)) == (off == true), why .. " (Renew)")
 	end
 	local inner = { id = 10952, count = 20, start = 0, duration = 600 }
 	Slots.Set(env, "player", { inner })
