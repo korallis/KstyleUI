@@ -351,6 +351,17 @@ for _, case in ipairs({
 	assert(Lit(orb) == "01" .. none:sub(3), case.school .. ": the other Missile Barrage ID lights the bolts too (" .. Lit(orb) .. ")")
 	if case.heat then
 		assert(#orb.procs[case.heat].fires == 3, "Heating Up has three stacks")
+		-- The owner asked for procs shown clearly: on a full Fire orb, fire drawn over the light itself was lost in its glare, so
+		-- each stack burns on the vessel's rim, outside the light, and its band is wide enough not to cut the ring's sides.
+		local light = orb.fill:GetWidth()
+		for n, fire in ipairs(orb.procs[case.heat].fires) do
+			assert(fire:GetWidth() > light, "Heating Up's stack " .. n .. " burns outside the light (" .. fire:GetWidth() .. " over " .. light .. ")")
+		end
+		for _, slot in ipairs(orb.lits) do
+			if slot.bar and slot.container == orb.procs[case.heat].container then
+				assert(slot.bar._width >= orb.procs[case.heat].fires[1]:GetWidth(), "a Heating Up band spans the whole rim (its geometry reads secret inside the aura slot, so its set width)")
+			end
+		end
 		for count = 1, 3 do
 			Up(env, 400625, count)
 			assert(Heat(orb, orb.procs[case.heat]) == count, count .. " Heating Up stacks fill " .. count .. " thirds of the rim, not " .. Heat(orb, orb.procs[case.heat]))

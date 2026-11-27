@@ -407,7 +407,7 @@ The tree's procs light inside the glass (Clearcasting and Missile Barrage on eve
 | --- | --- | --- |
 | Clearcasting | 12536 | Violet glitter drifting through the glass, on top of the ring's own Clearcasting piece, which stays |
 | Missile Barrage | 400589, 1326083 | Three arcane missiles circling the glass |
-| Heating Up | 400625 | Fire round the glass's rim, a third of the rim per stack, from three application bars (`SetApplicationBar`, minimum `n - 1`, maximum `n`) |
+| Heating Up | 400625 | Fire on the vessel's rim round the light, a third of the rim per stack (drawn 1.3 times the light's width, so it burns on the dark copper rather than in the light's glare), from three application bars (`SetApplicationBar`, minimum `n - 1`, maximum `n`) |
 | Fingers of Frost | 400670 | Rime over the glass, a second layer for the second charge |
 
 The orb is 118 units across, its glass 0.72 to 0.78 of that by race; the light, the procs and the glass's highlight are framed on the glass, so one sheet fits every vessel. Every sheet is rendered in Blender (`Tools/media/forge/orb.py`, packed by `Tools/media/forge/orbs.py`): 16 frames over 1.6 s for every loop. The orb takes the tree's great cooldown from the rail, and from the crest's cooldown rim, so it is counted once; it claims it only once the orb has been placed and shows, so an orb that fails to build or waits for combat to end leaves the cooldown where it was. Under Frames, or with the orb switched off, there is no orb and that cooldown goes back to the rail or the rim.

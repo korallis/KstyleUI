@@ -10,7 +10,7 @@ local NONE = {}
 ns.SlabOrb = Orb
 
 local OPENING, VESSEL, LIGHT, CORE, BURST, MENISCUS = 118, 1.05, 2.05, 2.9, 1.5, 8
-local GLOW, GLOW_ALPHA, COVER = 1.3, 0.55, 2
+local GLOW, GLOW_ALPHA, COVER, RIM = 1.3, 0.55, 2, 1.3
 local RACES = { Human = 0.78, Gnome = 0.72, Orc = 0.74, Scourge = 0.76, Troll = 0.74, Skyborne = 0.74 }
 local SCHOOLS = { "Arcane", "Fire", "Frost" }
 local COLORS = { Arcane = "schoolArcane", Fire = "schoolFire", Frost = "schoolFrost" }
@@ -85,7 +85,7 @@ local function Path(token)
 	return (Tokens.Texture(token))
 end
 
-local function Band(p, parent, level, radius, n, of)
+local function Band(p, parent, level, radius, n, of, wide)
 	local bar = CreateFrame("StatusBar", nil, parent)
 	bar:SetFrameLevel(level)
 	bar:SetOrientation("VERTICAL")
@@ -94,8 +94,9 @@ local function Band(p, parent, level, radius, n, of)
 	bar:SetMinMaxValues(0, 1)
 	bar:SetValue(0)
 	local high = of and 2 * radius / of or 2 * radius
-	bar:SetSize(Widgets.Snap(p, p.light), Widgets.Snap(p, high))
-	bar:SetPoint("BOTTOM", p, "CENTER", 0, Widgets.Snap(p, -radius + (of and (n - 1) * high or 0)))
+	local low, top = Widgets.Snap(p, -radius + (of and (n - 1) * high or 0)), Widgets.Snap(p, -radius + (of and n * high or high))
+	bar:SetSize(Widgets.Snap(p, wide or p.light), top - low)
+	bar:SetPoint("BOTTOM", p, "CENTER", 0, low)
 	return bar
 end
 
@@ -128,9 +129,10 @@ local function Proc(p, each, level)
 			slot:SetAllPoints(p)
 			slot:SetFrameLevel(level + 1)
 			slot.container, slot.hold = lit.container, lit.hold
-			local bar = Band(p, slot, level + 1, p.radius, n, each.bands and each.stacks)
+			local reach = each.bands and RIM or 1
+			local bar = Band(p, slot, level + 1, p.radius * reach, n, each.bands and each.stacks, p.light * reach)
 			local token = each.bands and each.token or each.token .. n
-			lit.fires[n] = Medals.Aura(p, flame.layers, token, p.light, "white", nil, nil, nil, { flame = Clip(flame.layers, bar, p), calm = Clip(calm.layers, bar, p) })
+			lit.fires[n] = Medals.Aura(p, flame.layers, token, p.light * reach, "white", nil, nil, nil, { flame = Clip(flame.layers, bar, p), calm = Clip(calm.layers, bar, p) })
 			slot.bar = bar
 			slot:SetApplicationBar(bar, { minApplications = n - 1, maxApplications = n })
 			p.lits[#p.lits + 1] = slot
