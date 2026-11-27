@@ -234,8 +234,9 @@ class WorkflowsTest(unittest.TestCase):
         text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
         self.assertIn("  BASE: ${{ github.event_name == 'push' && github.event.before != "
                       "'0000000000000000000000000000000000000000' && github.event.before || 'HEAD^1' }}\n", text)
-        for job in ("scope", "lua", "lint-python-package"):
+        for job in ("scope", "lua"):
             self.assertIn("fetch-depth: ${{ github.event_name == 'push' && '0' || '2' }}", jobs_of(text)[job], job)
+        self.assertIn("fetch-depth: 0\n", jobs_of(text)["lint-python-package"])
         script = textwrap.dedent(jobs_of(text)["scope"].split("        run: |\n", 1)[1])
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
