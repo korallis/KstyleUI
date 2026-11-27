@@ -122,7 +122,7 @@ end
 
 local function Order(data)
 	local tree = data.trees[Rail.Tree()] or NONE
-	local seats, spare, used = {}, {}, {}
+	local seats, spare, used, places = {}, {}, {}, nil
 	local function take(key, list)
 		if not used[key] and Learned(key) then
 			used[key] = true
@@ -166,9 +166,11 @@ local function Order(data)
 				n = n + 1
 			end
 		end
-		seats, spare = {}, {}
+		seats, spare, places = {}, {}, {}
 		for i = 1, SEATS do
-			seats[#seats + 1] = out[i]
+			if out[i] then
+				seats[#seats + 1], places[#seats + 1] = out[i], i
+			end
 		end
 		for i = n, #rest do
 			local key = rest[i]
@@ -180,7 +182,7 @@ local function Order(data)
 	for i = #spare, SPARES + 1, -1 do
 		spare[i] = nil
 	end
-	return seats, spare
+	return seats, spare, places
 end
 
 function Rail.Seats()
@@ -188,14 +190,15 @@ function Rail.Seats()
 	if not data then
 		return NONE, NONE
 	end
-	local keys, extra = Order(data)
-	local seats, spare = {}, {}
-	for _, key in ipairs(keys) do
-		seats[#seats + 1] = { key = key, spell = Learned(key) }
+	local keys, extra, places = Order(data)
+	local seats, spare, last = {}, {}, 0
+	for i, key in ipairs(keys) do
+		last = places and places[i] or i
+		seats[#seats + 1] = { key = key, spell = Learned(key), place = last }
 	end
 	local slot, spell = Trinket()
 	if slot then
-		seats[#seats + 1] = { key = "trinket", slot = slot, press = spell }
+		seats[#seats + 1] = { key = "trinket", slot = slot, press = spell, place = last + 1 }
 	end
 	for _, key in ipairs(extra) do
 		spare[#spare + 1] = { key = key, spell = Learned(key), small = true }
@@ -236,7 +239,7 @@ end
 local function Named(seats)
 	local keys = {}
 	for i, at in ipairs(seats) do
-		keys[i] = at.key .. (at.slot or "")
+		keys[i] = at.key .. (at.slot or "") .. "@" .. (at.place or i)
 	end
 	return table.concat(keys, ",")
 end
@@ -620,6 +623,7 @@ local function Major(r, seat, ability)
 	seat.out = Move(seat.rise, 0, 0, 0.001, 1, "NONE")
 	Grow(seat.rise, from, from, 0.001, 1)
 	seat.back = Move(seat.rise, 0, 0, LIFT_RUN, 2, "OUT")
+	seat.down = Move(seat.rise, 0, 0, LIFT_RUN, 2, "OUT")
 	seat.pop = Grow(seat.rise, from, POP, POP_RUN, 2)
 	seat.turns = { Turn(seat.rise, TURN, LIFT_RUN, 2, "OUT") }
 	seat.settle = Grow(seat.rise, POP, 1, SETTLE_RUN, 3)
@@ -633,6 +637,7 @@ local function Major(r, seat, ability)
 	seat.home = ns.Slab.Group(seat.ghost)
 	ns.Slab.Fade(seat.home, 1, 1, FOLD_RUN, 1)
 	seat.away = Move(seat.home, 0, 0, HOME_RUN, 2, "IN_OUT")
+	seat.across = Move(seat.home, 0, 0, HOME_RUN, 2, "IN_OUT")
 	Grow(seat.home, 1, size / CROWN, HOME_RUN, 2)
 	ns.Slab.Fade(seat.home, 1, 0, HOME_RUN, 2)
 	r.majors[#r.majors + 1] = seat
@@ -642,16 +647,23 @@ local function Aim(r, seat)
 	local _, _, _, sx, sy = seat:GetPoint(1)
 	local _, _, _, cx, cy = r.crown:GetPoint(1)
 	local dx, dy = (sx or 0) - (cx or 0), (sy or 0) - (cy or 0)
-	if seat.small then
-		dx, dy = 0, 0
-	end
-	if seat.aim and seat.aim[1] == dx and seat.aim[2] == dy and seat.aim[3] == r.low then
+	local corner = seat.small and not r.low
+	if seat.aim and seat.aim[1] == dx and seat.aim[2] == dy and seat.aim[3] == r.low and seat.aim[4] == corner then
 		return
 	end
-	seat.aim = { dx, dy, r.low }
+	seat.aim = { dx, dy, r.low, corner }
+	local half = corner and 0.5 or 1
 	seat.out:SetOffset(dx, dy)
-	seat.back:SetOffset(-dx, -dy)
-	seat.away:SetOffset(dx, dy)
+	seat.back:SetOffset(-dx, corner and 0 or -dy)
+	seat.back:SetDuration(LIFT_RUN * half)
+	seat.down:SetOffset(0, corner and -dy or 0)
+	seat.down:SetDuration(LIFT_RUN * half)
+	seat.down:SetStartDelay(corner and LIFT_RUN * half or 0)
+	seat.away:SetOffset(corner and 0 or dx, dy)
+	seat.away:SetDuration(HOME_RUN * half)
+	seat.across:SetOffset(corner and dx or 0, 0)
+	seat.across:SetDuration(HOME_RUN * half)
+	seat.across:SetStartDelay(corner and HOME_RUN * half or 0)
 	local pop, turn = r.low and 1 or POP, r.low and 0 or TURN
 	seat.pop:SetScaleTo(pop, pop)
 	seat.settle:SetScaleFrom(pop, pop)
@@ -721,7 +733,7 @@ end
 
 function Rail.Ready(seat)
 	if seat.ready == false then
-		Light(seat, true, true, Mood(seat:GetParent()))
+		Light(seat, true, true, Mood(seat))
 	end
 end
 
@@ -844,11 +856,12 @@ function Rail.Place(r, anchor)
 	for _, seat in pairs(r.made) do
 		seat:Hide()
 	end
-	local n = math.max(#seats, 1)
+	local n = math.max(seats[#seats] and seats[#seats].place or #seats, 1)
 	Medals.Place(r.crown, r, low and -n / 2 * PITCH - LOW_CROWN or 0, low and LOW_Y or CROWN_Y)
 	for i, at in ipairs(seats) do
 		local seat = Made(r, at)
-		local x = low and (i - n / 2) * PITCH or (i - (n + 1) / 2) * PITCH
+		local p = at.place or i
+		local x = low and (p - n / 2) * PITCH or (p - (n + 1) / 2) * PITCH
 		Medals.Place(seat, r, x, low and LOW_Y or PEAK - BOW * (x / SPAN) ^ 2)
 		r.order[i] = seat
 	end

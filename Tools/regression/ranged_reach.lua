@@ -87,29 +87,50 @@ local function Samples(group)
 	return SAMPLES[group]
 end
 
--- Sweep(solver, region, l, r, t, b, unit) -> the box l, r, t, b of the region's drawn content over every pass of every Translation,
+-- Sweep(solver, region, l, r, t, b, unit) -> the boxes {l, r, t, b} the region's drawn content takes over every pass of every Translation,
 -- Rotation and Scale animation group on it and on each frame above it, sampled through each pass: a frame's scale and turn about its own
--- centre, then its offset, as the client applies them; a frame's groups are swept one at a time, and each frame's sweep bounds the next.
+-- centre, then its offset, as the client applies them; a frame's groups are swept one at a time. Each sample keeps its own box, so a
+-- path that turns a corner is measured where it goes rather than by the box round its ends; only where nested groups would multiply
+-- past CAP boxes are the boxes coming in from the frames below merged into one first.
+local CAP = 256
 local function Sweep(solver, region, l, r, t, b, unit)
-	local node = region
+	local boxes, node = { { l, r, t, b } }, region
 	while node do
-		local at = solver:rect(node)
-		local cx, cy = at and (at[1] + at[3]) / 2 or (l + r) / 2, at and (at[2] + at[4]) / 2 or (t + b) / 2
-		local nl, nr, nt, nb = l, r, t, b
-		for _, group in ipairs(node._groups or {}) do
-			for _, sample in ipairs(Samples(group)) do
-				local x, y, c, s, scale = sample[1], sample[2], sample[3], sample[4], sample[5]
-				for _, corner in ipairs({ { l, t }, { r, t }, { l, b }, { r, b } }) do
-					local dx, dy = (corner[1] - cx) * scale, (corner[2] - cy) * scale
-					local px, py = cx + dx * c - dy * s + x * unit, cy + dx * s + dy * c + y * unit
-					nl, nr, nt, nb = math.min(nl, px), math.max(nr, px), math.max(nt, py), math.min(nb, py)
+		local groups = node._groups or {}
+		if #groups > 0 then
+			local count = 0
+			for _, group in ipairs(groups) do count = count + #Samples(group) end
+			if #boxes * (count + 1) > CAP then
+				local u = { boxes[1][1], boxes[1][2], boxes[1][3], boxes[1][4] }
+				for _, box in ipairs(boxes) do
+					u[1], u[2], u[3], u[4] = math.min(u[1], box[1]), math.max(u[2], box[2]), math.max(u[3], box[3]), math.min(u[4], box[4])
+				end
+				boxes = { u }
+			end
+			local at = solver:rect(node)
+			local out = {}
+			for _, box in ipairs(boxes) do
+				local bl, br, bt, bb = box[1], box[2], box[3], box[4]
+				local cx, cy = at and (at[1] + at[3]) / 2 or (bl + br) / 2, at and (at[2] + at[4]) / 2 or (bt + bb) / 2
+				out[#out + 1] = box
+				for _, group in ipairs(groups) do
+					for _, sample in ipairs(Samples(group)) do
+						local x, y, c, s, scale = sample[1], sample[2], sample[3], sample[4], sample[5]
+						local nl, nr, nt, nb = math.huge, -math.huge, -math.huge, math.huge
+						for _, corner in ipairs({ { bl, bt }, { br, bt }, { bl, bb }, { br, bb } }) do
+							local dx, dy = (corner[1] - cx) * scale, (corner[2] - cy) * scale
+							local px, py = cx + dx * c - dy * s + x * unit, cy + dx * s + dy * c + y * unit
+							nl, nr, nt, nb = math.min(nl, px), math.max(nr, px), math.max(nt, py), math.min(nb, py)
+						end
+						out[#out + 1] = { nl, nr, nt, nb }
+					end
 				end
 			end
+			boxes = out
 		end
-		l, r, t, b = nl, nr, nt, nb
 		node = node:GetParent()
 	end
-	return l, r, t, b
+	return boxes
 end
 
 local function Textures(frame, list)
@@ -125,7 +146,7 @@ end
 local WIDEST = {
 	HUNTER = { 1293241, 19574, 3045, 19577, 14305, 19263, 20572, 20554, 20594, 1259799, 20600, 1260270, 13795, 24579, 14916, 19801 },
 	MAGE = { 12042, 12043, 12051, 11129, 11958, 12472, 2136, 20572, 20554, 1260270 },
-	WARLOCK = { 603, 18288, 6789, 18708, 6353, 17877, 20572, 20554, 1259821, 1299026, 7744, 1260270 },
+	WARLOCK = { 6789, 1122, 18288, 18708, 6353, 20572, 20554, 1259821, 1299026, 7744, 1260270 },
 }
 local SPARES = 6
 
@@ -218,12 +239,14 @@ function Reach.Check(sizes, classes)
 					if box and content then
 						checked = checked + 1
 						local w, h = box[3] - box[1], box[4] - box[2]
-						local l, r, t, b = Sweep(solver, region, box[1] + content[1] * w, box[1] + content[2] * w, box[4] - content[3] * h, box[4] - content[4] * h, unit)
 						local name = at .. " " .. class .. " " .. p.key .. "'s " .. tostring(texture[1]):match("[^\\/]+$")
 						local own = p.key == "crestRail" and railed or avoid
-						assert(own == railed or math.abs(l - cx) <= 80 * unit and math.abs(r - cx) <= 80 * unit, name .. " stays inside the crest's column")
-						for _, a in ipairs(own) do
-							assert(r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses an action slot, the level badge, a unit frame, a cast bar or the cooldown row")
+						for _, swept in ipairs(Sweep(solver, region, box[1] + content[1] * w, box[1] + content[2] * w, box[4] - content[3] * h, box[4] - content[4] * h, unit)) do
+							local l, r, t, b = swept[1], swept[2], swept[3], swept[4]
+							assert(own == railed or math.abs(l - cx) <= 80 * unit and math.abs(r - cx) <= 80 * unit, name .. " stays inside the crest's column")
+							for _, a in ipairs(own) do
+								assert(r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses an action slot, the level badge, a unit frame, a cast bar or the cooldown row")
+							end
 						end
 					end
 				end

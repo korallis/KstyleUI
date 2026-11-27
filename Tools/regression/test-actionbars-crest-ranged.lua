@@ -612,7 +612,10 @@ do
 	Slots.Enchant(env, 1, { start = 0, duration = 1800 })
 	local stone = Piece(ns, "crestStone")
 	assert(stone.lit:IsShown() and AB.W.LastCall(stone.bar, "SetTimerDuration"), "a Spellstone on the weapon fills its jewel and drains it")
-	assert(select(2, Piece(ns, "crestSpellLock", 2)), "no Felhunter: Death Coil's orb charges on the lower left")
+	assert(ns.SlabRail.Holds({ 6789 }) and not select(2, Piece(ns, "crestSpellLock", 2)), "no Felhunter, Death Coil on the rail: no second Death Coil cooldown on the lower left")
+	K.Options.Write("ActionBars", "crestRail", false)
+	assert(select(2, Piece(ns, "crestSpellLock", 2)), "with the rail off, Death Coil's orb charges on the lower left")
+	K.Options.Write("ActionBars", "crestRail", true)
 	env._petSpells[19244] = true
 	env.FireEvent("UNIT_PET", "player")
 	assert(select(2, Piece(ns, "crestSpellLock", 1)), "a Felhunter's Spell Lock blade takes the lower left")
@@ -639,8 +642,10 @@ do
 	Clean(env, K)
 end
 
+-- The rail switched off, so Death Coil's orb is the lower left's fallback while no Felhunter is out.
 do
 	local env, K, ns = New("WARLOCK", { known = { 172, 688, 691, 706, 6201, 6789 } })
+	K.Options.Write("ActionBars", "crestRail", false)
 	assert(select(2, Piece(ns, "crestDemon", 2)) and select(2, Piece(ns, "crestSpellLock", 2)), "no demon: the armor sigil on the left band, Death Coil on the lower left")
 	env.SetCombat(true)
 	env._pet = { max = 1200, missing = 300 }
@@ -675,7 +680,7 @@ end
 for class, keys in pairs({ HUNTER = { "crestShot", "crestAspect", "crestPet", "crestMark", "crestSting", "crestAutoShot", "crestGust", "crestCooldowns", "crestRail", "crestTrueshot",
 	"crestTracking", "crestRange", "crestPetAbility", "crestOrders", "crestPotion" },
 	MAGE = { "crestArmor", "crestManaGem", "crestCounterspell", "crestSchool", "crestFrozen", "crestYourSpell", "crestWard", "crestClearcasting", "crestCooldowns" },
-	WARLOCK = { "crestTorments", "crestWisps", "crestDemon", "crestHealthstone", "crestStone", "crestConflagrate", "crestCurse", "crestSpellLock", "crestTrance", "crestCooldowns" } }) do
+	WARLOCK = { "crestTorments", "crestWisps", "crestDemon", "crestHealthstone", "crestStone", "crestConflagrate", "crestCurse", "crestTrance", "crestCooldowns", "crestRail" } }) do
 	local deterrence = class == "HUNTER" and { 13165, 883, 1130, 1978, 19552, 3045, 19574, 75, 2643, 19263, 19506, 24293 } or nil
 	local env, K, ns = New(class, { known = deterrence, tree = deterrence and 1, bags = { [6265] = 2, [5512] = 1, [5514] = 1 }, pet = { max = 100, missing = 0 },
 		petSpells = { 24579, 14916 } })

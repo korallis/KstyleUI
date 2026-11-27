@@ -34,8 +34,8 @@ Twenty-four major cooldowns in the sets had no crest piece matched by spell ID w
 | Priest | Confounding Flash 1277455 | 120 s | Row candidate | As above |
 | Druid | Challenging Roar 5209 | 600 s | Row candidate | A taunt on enemies; no buff on the player |
 | Paladin | Holy Wrath 2812 | 60 s | Row candidate | An attack with no lasting effect on the player |
-| Warlock | Soul Fire 6353 | 60 s | Dedicated crest | A Demonology seat on the crest rail, filling a free seat; the cast ring shows it while it casts |
-| Warlock | Inferno 1122 | 3600 s | Row candidate | A summon used once an hour; the pet's own frame carries it |
+| Warlock | Soul Fire 6353 | 60 s | Dedicated crest | A seat on the crest rail in every tree (the second rail when Fel Domination takes its seat); the cast ring shows it while it casts |
+| Warlock | Inferno 1122 | 3600 s | Dedicated crest | A seat on the crest rail in every tree, as the crest plan's ledger seats it; the pet's own frame carries the Infernal |
 | Paladin | Lay on Hands 633 | 1200 s | Row candidate | An instant emergency heal with no buff to time |
 | Paladin | Divine Intervention 19752 | 3600 s | Row candidate | A sacrifice on another player, used once an hour |
 | Priest | Desperate Prayer 13908 | 600 s | Row candidate | An instant emergency heal with no buff to time |
@@ -181,11 +181,13 @@ The crest rail ([medallions-effects.md](medallions-effects.md#crest-rail)) seats
 | Hunter | Readiness | Not confirmed for any Forever tree by the guides or the client's spell data |
 | Mage | Icy Veins | As above |
 | Mage | Arcane Wrath | Already the crest's own charge piece (`crestSchool`); a medal would show it twice |
-| Mage | Cone of Cold | A Frost rotation cooldown past the tree's four seats; free seats take fills, the second rail takes long cooldowns only |
+| Mage | Blast Wave | A Fire rotation button under 60 s, outside the ledger's rail order; Cone of Cold fills Fire's free seat |
 | Warlock | Metamorphosis, Demonic Howl | Not confirmed for any Forever tree by the guides or the client's spell data |
 | Warlock | Conflagrate | Already the crest's own socket (`crestConflagrate`) |
-| Warlock | Inferno, Ritual of Doom | Summons used once an hour, out of every tree's rotation in the guides |
-| Warlock | Soulstone | A resurrection placed on the player before a fight, whose cooldown needs its own piece; not railed yet |
+| Warlock | Bane of Doom | Already the crest's Bane torment spire, which times it; a medal would show it twice |
+| Warlock | Shadowburn | A Destruction rotation button under 60 s, outside the ledger's rail order |
+| Warlock | Ritual of Doom | A summoning ritual the ledger leaves unseated in every tree |
+| Warlock | Soulstone | A resurrection kept on an ally before a fight; the ledger leaves it unseated, and its 30-minute cooldown needs its own piece |
 
 ## Conditional racials
 
@@ -193,7 +195,7 @@ Some racial spells sit in every class's set but only for the race that owns them
 
 ## Shorter cooldowns not classified here
 
-The ledger covers majors of 60 s or more and procs. Rotational spells under 60 s without a crest piece are not classified yet; the role-critical ones need the same review. The rotation cooldowns that fill a tree's free rail seats have seats on the crest rail (`KstyleUI_ActionBars/SlabRail.lua`): the hunter's Strider Kick 1317257 (8 s cooldown, a 3 s buff), Sniper Shot, Aimed Shot and the fire traps, the mage's Fire Blast, Blast Wave and Ice Barrier, and the warlock's Soul Fire and Shadowburn.
+The ledger covers majors of 60 s or more and procs. Rotational spells under 60 s without a crest piece are not classified yet; the role-critical ones need the same review. The rotation cooldowns that fill a tree's free rail seats have seats on the crest rail (`KstyleUI_ActionBars/SlabRail.lua`): the hunter's Strider Kick 1317257 (8 s cooldown, a 3 s buff), Sniper Shot, Aimed Shot and the fire traps, the mage's Fire Blast (Arcane), Cone of Cold (Fire) and Ice Barrier (Frost). Each fills only the free seats of the tree the ledger names it for.
 
 ## Not yet proved
 

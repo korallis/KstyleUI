@@ -1353,8 +1353,8 @@ if CLASS == "HUNTER" then
 		majors = { "rapid", "wrath", "deter", "intimidate" },
 		trees = {
 			{ majors = { "wrath", "rapid", "intimidate" }, fill = { "trap" } },
-			{ majors = { "rapid" }, fill = { "sniper", "aimed", "trap" } },
-			{ majors = { "rapid" }, fill = { "trap", "strider" } },
+			{ majors = { "rapid" }, fill = { "trap", "sniper", "aimed" } },
+			{ majors = { "rapid", "deter" }, fill = { "trap", "strider" } },
 		},
 		signs = { { { 19574 }, { 19577 } }, { { 1310786, 1310785, 1310687 }, AIMED }, { { 19263 }, { 1317257 } } },
 	})
@@ -1434,15 +1434,14 @@ if CLASS == "MAGE" then
 			evocation = { spells = { 12051 }, sigil = "Vortex", unit = "player" },
 			snap = { spells = { 12472 } },
 			blast = { spells = FIRE_BLAST },
-			wave = { spells = { 13021, 13020, 13019, 13018, 11113 } },
 			cone = { spells = { 10161, 10160, 10159, 8492, 120 } },
 			barrier = { spells = { 13033, 13032, 13031, 11426 } },
 		},
 		majors = { "power", "presence", "combustion", "block", "snap", "evocation" },
 		trees = {
-			{ majors = { "power", "presence" }, fill = { "blast" } },
-			{ majors = { "combustion" }, fill = { "blast", "wave" } },
-			{ majors = { "block", "snap", "evocation" }, fill = { "barrier", "cone" } },
+			{ majors = { "power", "presence", "evocation" }, fill = { "blast" } },
+			{ majors = { "combustion", "block", "evocation" }, fill = { "cone" } },
+			{ majors = { "block", "evocation", "snap" }, fill = { "barrier" } },
 		},
 		signs = { { { 12042 }, { 12043 } }, { { 11129 }, { 11113 } }, { { 12472 }, { 11426 } } },
 	})
@@ -1525,22 +1524,22 @@ if CLASS == "WARLOCK" then
 		end
 	end
 
+	local COIL = { 17926, 17925, 6789 }
 	ns.SlabRail.Register("WARLOCK", {
 		color = "jewelShard",
 		burst = "medBurstWarlock",
 		abilities = {
 			amplify = { spells = { 18288 }, sigil = "Curse", unit = "player" },
 			domination = { spells = { 18708 }, sigil = "Horns", unit = "player" },
-			doom = { spells = { 603 } },
-			coil = { spells = { 17926, 17925, 6789 } },
+			coil = { spells = COIL },
+			inferno = { spells = { 1122 } },
 			soulfire = { spells = { 17924, 6353 } },
-			shadowburn = { spells = { 18871, 18870, 18869, 18868, 18867, 17877 } },
 		},
-		majors = { "doom", "amplify", "coil", "domination" },
+		majors = { "coil", "inferno", "amplify", "domination", "soulfire" },
 		trees = {
-			{ majors = { "doom", "amplify", "coil" } },
-			{ majors = { "doom", "coil" }, fill = { "soulfire" } },
-			{ majors = { "doom", "amplify", "coil" }, fill = { "shadowburn" } },
+			{ majors = { "coil", "inferno", "amplify", "domination", "soulfire" } },
+			{ majors = { "coil", "inferno", "domination", "soulfire" } },
+			{ majors = { "coil", "inferno", "amplify", "domination", "soulfire" } },
 		},
 		signs = { { { 18288 } }, { { 18708 } }, { { 1293818, 1293817, 18932, 18931, 18930, 17962 }, { 18871, 18870, 18869, 18868, 18867, 17877 } } },
 	})
@@ -1564,7 +1563,7 @@ if CLASS == "WARLOCK" then
 			CURSES[5].spells), feeds = CURSES },
 		{ key = "crestSpellLock", seat = PERCH_LEFT, build = Effect, feed = "cooldown", color = "schoolShadow", choices = {
 			{ look = "blade", known = function() return Medals.Known({ 691 }) and (SpellLock() or 19244) end, active = SpellLock },
-			{ look = "orb", known = { 17926, 17925, 6789 } },
+			{ look = "orb", known = Railed(false, COIL, COIL) },
 		} },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelShard", families = { { spells = { 18288 }, sigil = "Curse", major = true },
 			{ spells = { 18708 }, sigil = "Horns", major = true }, { spells = { 6229, 11739, 11740, 28610 }, sigil = "Shade" },

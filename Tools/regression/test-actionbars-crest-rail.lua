@@ -82,14 +82,14 @@ local function Auras(env, list)
 	Slots.Set(env, "player", #auras > 0 and auras or nil)
 end
 
-for _, case in ipairs({ { 1, "wrath,rapid,intimidate,trap" }, { 2, "rapid,sniper,aimed,trap" }, { 3, "rapid,trap,strider,wrath" } }) do
+for _, case in ipairs({ { 1, "wrath,rapid,intimidate,trap" }, { 2, "rapid,trap,sniper,aimed" }, { 3, "rapid,deter,trap,strider" } }) do
 	local env, K, ns = New("HUNTER", { known = ALL, tree = case[1], trinket = true })
 	local rail = assert(Rail(ns), "a hunter who knows a rail ability sees the rail")
 	assert(Keys(rail) == case[2] .. ",trinket", "the tree the game names stands its own four abilities, then the trinket: " .. Keys(rail))
 	Clean(env, K)
 end
 
-for _, case in ipairs({ { BM, "wrath,rapid,intimidate,trap" }, { MM, "rapid,sniper,aimed,trap" }, { SV, "rapid,trap,strider,deter" } }) do
+for _, case in ipairs({ { BM, "wrath,rapid,intimidate,trap" }, { MM, "rapid,trap,sniper,aimed" }, { SV, "rapid,deter,trap,strider" } }) do
 	local env, K, ns = New("HUNTER", { known = case[1] })
 	assert(Keys(Rail(ns)) == case[2], "with no tree from the game, the tree's signature spells choose it: " .. Keys(Rail(ns)))
 	Clean(env, K)
@@ -100,10 +100,10 @@ do
 	local most = 3
 	env.C_SpecializationInfo = { GetSpecializationInfo = function(i) return i, "tree", "", 0, "DAMAGER", nil, i == most and 31 or 5 end }
 	env.FireEvent("PLAYER_TALENT_UPDATE")
-	assert(Keys(Rail(ns)) == "rapid,trap,strider,wrath", "with no primary tree, the tree with the most points spent is chosen: " .. Keys(Rail(ns)))
+	assert(Keys(Rail(ns)) == "rapid,deter,trap,strider", "with no primary tree, the tree with the most points spent is chosen: " .. Keys(Rail(ns)))
 	most = 2
 	env.FireEvent("PLAYER_TALENT_UPDATE")
-	assert(Keys(Rail(ns)) == "rapid,sniper,aimed,trap", "respending the points re-seats the rail with the same spells known: " .. Keys(Rail(ns)))
+	assert(Keys(Rail(ns)) == "rapid,trap,sniper,aimed", "respending the points re-seats the rail with the same spells known: " .. Keys(Rail(ns)))
 	Clean(env, K)
 end
 
@@ -124,9 +124,13 @@ do
 	wrath.home:SetScript("OnPlay", function() folded = true end)
 	tree = 2
 	env.FireEvent("ACTIVE_TALENT_GROUP_CHANGED")
-	assert(Keys(rail) == "rapid,sniper,aimed,trap", "switching trees re-seats the rail with the same spells known: " .. Keys(rail))
+	assert(Keys(rail) == "rapid,trap,sniper,aimed", "switching trees re-seats the rail with the same spells known: " .. Keys(rail))
 	assert(not wrath:IsShown() and not wrath.aura.loop:IsPlaying() and not wrath.breath:IsPlaying(), "the dropped seat stops its aura and breathing")
 	assert(not folded and rail.owner ~= wrath, "the dropped seat gives up the crown without starting a fold home")
+	wrath.ready = false
+	wrath.sweep:GetScript("OnCooldownDone")(wrath.sweep)
+	assert(not wrath.relight:IsPlaying() and not wrath.flare[1]:IsPlaying() and not wrath.glinting:IsPlaying(),
+		"the dropped seat's own sweep ending claims no flare on the shown rail")
 	Clean(env, K)
 end
 
@@ -481,8 +485,8 @@ end
 do
 	local env, K, ns = New("HUNTER", { known = { 13165, 883, 75, 19574, 3045, 19263, 14305, 1317257 }, tree = 3 })
 	local rail, row = Rail(ns), Seated(ns, "crestCooldowns")
-	assert(rail and Keys(rail) == "rapid,trap,strider,wrath" and Spares(rail) == "deter" and not (row and Hunter(row) ~= ""),
-		"a survival rail seats its own tree, Bestial Wrath in its free seat and Deterrence on the second rail, so no cooldown row is left")
+	assert(rail and Keys(rail) == "rapid,deter,trap,strider" and Spares(rail) == "wrath" and not (row and Hunter(row) ~= ""),
+		"a survival rail seats Rapid Fire and Deterrence, fills its free seats with a fire trap and Strider Kick and stands Bestial Wrath on the second rail, so no cooldown row is left")
 	Clean(env, K)
 end
 
@@ -520,14 +524,15 @@ end
 -- its rotation cooldowns in any free seat, then the class's other long cooldowns; a long cooldown beyond the four seats stands as a
 -- round medal on the second rail.
 local MAGE = { 12042, 12043, 12051, 11129, 11958, 12472, 2136, 11113, 120, 11426 }
-local WARLOCK = { 603, 18288, 6789, 18708, 6353, 17877 }
+local WARLOCK = { 603, 18288, 6789, 18708, 6353, 1122, 17877 }
 for _, case in ipairs({
-	{ "MAGE", MAGE, 1, "power,presence,blast,combustion", "block,snap,evocation" },
-	{ "MAGE", MAGE, 2, "combustion,blast,wave,power", "presence,block,snap,evocation" },
-	{ "MAGE", MAGE, 3, "block,snap,evocation,barrier", "power,presence,combustion" },
-	{ "WARLOCK", WARLOCK, 1, "doom,amplify,coil,domination", "" },
-	{ "WARLOCK", WARLOCK, 2, "doom,coil,soulfire,amplify", "domination" },
-	{ "WARLOCK", WARLOCK, 3, "doom,amplify,coil,shadowburn", "domination" },
+	{ "MAGE", MAGE, 1, "power,presence,evocation,blast", "combustion,block,snap" },
+	{ "MAGE", MAGE, 2, "combustion,block,evocation,cone", "power,presence,snap" },
+	{ "MAGE", MAGE, 3, "block,evocation,snap,barrier", "power,presence,combustion" },
+	{ "WARLOCK", WARLOCK, 1, "coil,inferno,amplify,domination", "soulfire" },
+	{ "WARLOCK", WARLOCK, 2, "coil,inferno,domination,soulfire", "amplify" },
+	{ "WARLOCK", WARLOCK, 3, "coil,inferno,amplify,domination", "soulfire" },
+	{ "WARLOCK", { 603, 18288, 6789, 6353, 1122, 17877 }, 1, "coil,inferno,amplify,soulfire", "" },
 }) do
 	local env, K, ns = New(case[1], { known = case[2], tree = case[3], trinket = true })
 	local rail = assert(Rail(ns), case[1] .. ": a caster who knows a rail ability sees the rail")
@@ -591,8 +596,9 @@ do
 	Clean(env, K)
 end
 
--- A second-rail medal whose cooldown buffs takes the crown when pressed, like a seat, popping there in place rather than flying
--- over the unit frame beside it.
+-- A second-rail medal whose cooldown buffs lifts to the crown when pressed, like a seat. Its straight line would cross the top
+-- corner of the unit frame beside it, so it flies across above the main rail first and then down to the crown, and folds home
+-- the same way back.
 do
 	local env, K, ns = New("MAGE", { known = { 12042, 12043, 2136, 11129, 11958 }, tree = 1 })
 	Awake(env)
@@ -600,8 +606,21 @@ do
 	assert(Keys(rail) == "power,presence,blast,combustion" and Spares(rail) == "block", "Ice Block stands on the second rail")
 	local block = rail.spare[1]
 	Cast(env, 11958)
-	assert(block.struck and block.dip:IsPlaying() and block.rise:IsPlaying() and block.gate:GetAlpha() == 1, "pressed: the small medal dips and its crown pops in place")
-	assert(select(1, block.out:GetOffset()) == 0 and select(2, block.out:GetOffset()) == 0, "the crown's lift starts at the crown, not at the small medal")
+	assert(block.struck and block.dip:IsPlaying() and block.rise:IsPlaying() and block.gate:GetAlpha() == 1, "pressed: the small medal dips and its crown rises")
+	local _, _, _, sx, sy = block:GetPoint(1)
+	local _, _, _, cx, cy = rail.crown:GetPoint(1)
+	local dx, dy = sx - cx, sy - cy
+	assert(dx < -60 and dy > 20, "the medal stands left of and above the crown (" .. dx .. ", " .. dy .. ")")
+	local function at(anim) local x, y = anim:GetOffset() return x .. "," .. y end
+	assert(at(block.out) == dx .. "," .. dy, "the lift starts at the small medal")
+	assert(at(block.back) == -dx .. ",0" and at(block.down) == "0," .. -dy, "it flies across at the medal's height, then down to the crown")
+	assert(block.down:GetStartDelay() == block.back:GetDuration(), "the drop starts as the flight across ends")
+	assert(at(block.away) == "0," .. dy and at(block.across) == dx .. ",0" and block.across:GetStartDelay() == block.away:GetDuration(),
+		"the fold rises from the crown first, then flies across home")
+	local seat = rail.order[1]
+	local _, _, _, ax, ay = seat:GetPoint(1)
+	assert(at(seat.back) == (cx - ax) .. "," .. (cy - ay) and at(seat.down) == "0,0" and at(seat.across) == "0,0",
+		"a seat on the main rail still flies straight to the crown and back")
 	Auras(env, { { 27619, 10 } })
 	assert(block.crowned:IsShown() and rail.owner == block, "active: its buff, by the aura's own id, owns the crown")
 	Clean(env, K)
@@ -632,7 +651,7 @@ do
 	env.C_Spell.GetSpellName = function(id) return "spell " .. id end
 	local values = {}
 	for _, option in ipairs(ns.SlabRail.Choices()) do values[#values + 1] = option.value end
-	assert(table.concat(values, ",") == ",power,presence,combustion,block,snap,evocation,blast,wave,barrier,cone",
+	assert(table.concat(values, ",") == ",power,presence,evocation,combustion,block,snap,blast,cone,barrier",
 		"the list offers the tree's choice, then every known ability of the class's lists: " .. table.concat(values, ","))
 	K.Options.Write("ActionBars", "crestRailSeat1", "evocation")
 	env.RunTimers()
@@ -646,7 +665,7 @@ do
 	K.Options.Write("ActionBars", "crestRailSeat1", "nothing")
 	K.Options.Write("ActionBars", "crestRailSeat3", "")
 	env.RunTimers()
-	assert(Keys(rail) == "power,presence,blast,combustion,trinket", "an unknown pick falls back to the tree's choice: " .. Keys(rail))
+	assert(Keys(rail) == "power,presence,evocation,blast,trinket", "an unknown pick falls back to the tree's choice: " .. Keys(rail))
 	Clean(env, K)
 end
 
@@ -655,6 +674,19 @@ do
 	K.Options.Write("ActionBars", "crestRailSeat2", "evocation")
 	env.RunTimers()
 	assert(Keys(Rail(ns)) == "power,block", "an unlearned pick falls back to the tree's choice")
+	Clean(env, K)
+end
+
+-- A pick for a late seat keeps its number when the seats before it have nothing to hold: Rail seat 4 stands fourth, not second.
+do
+	local env, K, ns = New("MAGE", { known = { 12042, 12051 }, tree = 1 })
+	K.Options.Write("ActionBars", "crestRailSeat4", "evocation")
+	env.RunTimers()
+	local rail = Rail(ns)
+	assert(Keys(rail) == "power,evocation", "the two known abilities stand: " .. Keys(rail))
+	local _, _, _, first = rail.order[1]:GetPoint(1)
+	local _, _, _, fourth = rail.order[2]:GetPoint(1)
+	assert(fourth - first == 93, "Evocation stands three seats (31 units each) right of the first seat, in seat 4: " .. (fourth - first))
 	Clean(env, K)
 end
 
