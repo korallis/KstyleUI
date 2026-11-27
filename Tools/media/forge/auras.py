@@ -75,7 +75,7 @@ for name, (art, threshold) in {"Horn": ("Horn.png", 0.5), "Sword": ("Sword.png",
                                "Stain": ("Stain.png", 0.3)}.items():
     MARKS["Effects/" + name] = ("effects", NEUTRAL, (art, threshold))
 # the mage's and warlock's marks (KstyleUI_ActionBars/SlabRanged.lua); Facet and Healthstone are one gem in two lights,
-# and each demon burns twice: in the live pet's green on its sigil (HornsPet with no demon out) and in fel violet as the
+# and each demon burns twice: in the live pet's green on its sigil (HornsPet for a pet out whose spellbook names none of the four demons) and in fel violet as the
 # sacrificed demon (ImpFel and the rest), while Horns stays the armor perch's violet
 MARKS.update({
     "Intellect": ("glyphs", "schoolArcane", casters.D["Intellect"]),

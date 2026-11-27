@@ -326,8 +326,8 @@ do
 		"the known summon, curse, Torment and cooldown load their sheets")
 	local voidwalker, recklessness, immolate, void = Loaded()
 	assert(not voidwalker and not recklessness and not immolate and not void, "an unknown summon, curse, Torment or pet cooldown loads no sheet")
-	-- Recklessness is already on the target when it is learned: its prepared sheet must start without another cast
-	-- (review of ff8ccbf0, prepare-active-slot-loop).
+	-- Recklessness is already on the target when it is learned, so its slot has no new show edge: its prepared sheet must
+	-- start without another cast.
 	Slots.Set(env, "target", { { id = 704, harmful = true, start = 0, duration = 120 } })
 	R.Learn(env, 697, 704, 348)
 	voidwalker, recklessness, immolate, void = Loaded()
@@ -352,6 +352,12 @@ do
 	assert(not demon.fel[2].seat, "without Demonic Sacrifice no sacrificed demon's sheet loads")
 	R.Learn(env, 18788)
 	assert(demon.fel[1].seat and demon.fel[2].seat and not demon.fel[3].seat, "learning Demonic Sacrifice loads the known demons' violet sheets only")
+	env._pet = nil
+	env.FireEvent("UNIT_PET", "player")
+	Slots.Set(env, "player", { { id = 18790, start = 0, duration = 1800 } })
+	local violet = demon.fel[2].seat
+	assert(demon.fel[2]:IsShown() and violet.fire:IsVisible() and violet.fire.loop:IsPlaying() and Art(violet.fire) == (K.Tokens.Texture("auraGlyphVoidwalkerFel")),
+		"the Voidwalker sacrificed after Demonic Sacrifice is learned burns its violet sheet on the band")
 	Clean(env, K)
 end
 

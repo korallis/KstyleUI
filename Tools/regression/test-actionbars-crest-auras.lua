@@ -194,8 +194,8 @@ do
 	local flame, calm = button.flame, button.calm
 	assert(flame and calm and not flame.auraLoops and #(calm._regions or {}) == 0, "a sigil whose spell is not known loads no sheet")
 	Medals.Engine({ rim }, true, true)
-	-- Rapid Fire is already up when it is learned: the tracker update's prepare, size, bind and rest must start its
-	-- loop without another cast, since an aura already shown brings no new show edge.
+	-- Rapid Fire is already up when it is learned, so its slot has no new show edge to start the loop on: the tracker
+	-- update's prepare, size, bind and rest must start it without another cast.
 	Slots.Set(env, "player", { { id = 3045, count = 0, icon = 132208, start = 0, duration = 15 } })
 	env.C_SpellBook.IsSpellKnown = function(id) return id == 3045 end
 	Medals.Prepare(rim)

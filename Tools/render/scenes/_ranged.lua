@@ -106,7 +106,7 @@ local STORIES = {
 					{ unit = "target", id = 412538, icon = 135818, at = 2, duration = 4, harmful = true }, { unit = "target", id = 122, icon = 135848, at = 3.5, duration = 8, harmful = true },
 					{ unit = "player", id = 11129, icon = 135824, at = 4, duration = 15 } } },
 			frost = { known = { 7302, 759, 11426, 11180, 118, 116, 11958, 2139, 122 },
-				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "target", id = 12579, icon = 135836, at = 1, duration = 15, harmful = true },
+				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "target", id = 12579, icon = 135836, at = 1, duration = 15, harmful = true, count = 3 },
 					{ unit = "player", id = 11426, icon = 135988, at = 2, duration = 60 }, { unit = "target", id = 116, icon = 135846, at = 3, duration = 9, harmful = true },
 					{ unit = "target", id = 12494, icon = 135842, at = 3.5, duration = 5, harmful = true } } },
 			low = { known = { 168, 1459, 116, 118, 2136, 122 }, items = {}, cooling = { [2136] = { 4, 8 } },
