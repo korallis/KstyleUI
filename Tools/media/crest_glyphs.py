@@ -8,8 +8,9 @@ shape: the Curses (Weakness, Burst, Tongue, Elements, Hourglass), the torment sp
 Siphon), the mage's Intellect and spells (Intellect, ChillShard, PolyCurl), a warlock's armor and its demons (Horns, Imp,
 Voidwalker, Succubus, Fangs for the Felhunter), the bag gems (Facet) and the bail they hang from (Bail). The hunter's
 marks are forged in Blender instead (Tools/media/forge/marks.py). On the crest these glyphs now burn as animated
-auras (Tools/media/forge/auras.py, which seats the line figures through designs_casters.LINEART); the flat files remain the
-crest's flat textures (the Fire Vulnerability and Winter's Chill embers draw ChillShard as a status bar).
+auras (Tools/media/forge/auras.py, which seats the line figures through designs_casters.LINEART); the flat files stay as
+the tokens' own art: the flare that blooms from a lit mark, the black figure under a bare mark, and marks with no aura
+such as the Bail.
 
     python3 Tools/media/crest_glyphs.py [--out DIR]
 """

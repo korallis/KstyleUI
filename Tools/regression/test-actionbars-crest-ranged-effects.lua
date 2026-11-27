@@ -302,6 +302,61 @@ do
 	Clean(env, K)
 end
 
+-- The approved plan loads each sheet only once its spell is known, and learning another spell later loads that one too:
+-- one summon, curse, Torment and cooldown known at first, then a second of each learned.
+do
+	local env, K, ns = New("WARLOCK", { known = { 688, 702, 172, 6229 }, pet = { max = 100, missing = 0 } })
+	local demon, curse, spires, rim = Piece(ns, "crestDemon"), Piece(ns, "crestCurse"), Piece(ns, "crestTorments"), Piece(ns, "crestCooldowns")
+	local function Sigil(name)
+		for _, button in ipairs(rim.sigils) do
+			if button.family.sigil == name then
+				for _, region in ipairs(button.auraHosts.fire._regions) do
+					if region.loop then return Art(region) end
+				end
+				return false
+			end
+		end
+	end
+	local function Loaded()
+		return demon.marks.glyphVoidwalker ~= nil, curse.lits[2].mark ~= nil, spires.spires[3].rune ~= nil, Sigil("Void")
+	end
+	assert(demon.marks.glyphImp and curse.lits[1].mark and spires.spires[1].rune and Sigil("Shade") == (K.Tokens.Texture("auraSigilShade")),
+		"the known summon, curse, Torment and cooldown load their sheets")
+	local voidwalker, recklessness, immolate, void = Loaded()
+	assert(not voidwalker and not recklessness and not immolate and not void, "an unknown summon, curse, Torment or pet cooldown loads no sheet")
+	R.Learn(env, 697, 704, 348)
+	voidwalker, recklessness, immolate, void = Loaded()
+	assert(voidwalker and recklessness and immolate and void == (K.Tokens.Texture("auraSigilVoid")),
+		"learning a summon, a curse and a Torment loads their sheets, and the Voidwalker's Sacrifice sigil with its summon")
+	assert(curse.lits[2].mark.loop and spires.spires[3].rune.loop and demon.fel[2].seat, "the learned sheets burn as auras, the sacrificed Voidwalker's among them")
+	Clean(env, K)
+end
+
+-- The approved plan burns the mage's ChillShard as an aura wherever it is drawn: each Winter's Chill ember is the sheet,
+-- clipped to the engine-fed stack bar so the count still lights one ember per stack.
+do
+	local env, K, ns = New("MAGE", { known = { 11180 } })
+	local chill = Piece(ns, "crestSchool", 2)
+	local embers = {}
+	for _, part in ipairs(chill.parts) do
+		if part._count then embers[#embers + 1] = part end
+	end
+	local ember = embers[1]
+	local clip = ember and ember.aura and ember.aura:GetParent():GetParent()
+	assert(#embers == 5 and ember.aura and ember.aura.loop and Art(ember.aura) == (K.Tokens.Texture("auraGlyphChillShard")) and ember:GetStatusBarTexture():GetAlpha() == 0
+		and clip:DoesClipChildren() and select(2, clip:GetPoint(1)) == ember:GetStatusBarTexture(), "each Winter's Chill ember burns the ChillShard aura clipped to its stack bar")
+	for _, count in ipairs({ 2, 5 }) do
+		Slots.Set(env, "target", { { id = 12579, harmful = true, start = 0, duration = 15, count = count } })
+		local lit = 0
+		for _, part in ipairs(embers) do
+			local _, high = part:GetMinMaxValues()
+			lit = lit + (env.Reveal(part:GetValue()) >= high and 1 or 0)
+		end
+		assert(lit == count, count .. " stacks of Winter's Chill fill " .. count .. " embers (" .. lit .. ")")
+	end
+	Clean(env, K)
+end
+
 do
 	local env, K, ns = New("MAGE", { known = { 1326079 } })
 	local arc = Piece(ns, "crestSchool", 3)
@@ -320,12 +375,16 @@ do
 	local demon, stone, curse = Piece(ns, "crestDemon"), Piece(ns, "crestHealthstone"), Piece(ns, "crestCurse")
 	assert(At(ns, demon, -64, 0) and demon.pet:IsShown() and demon.health:GetOrientation() == "VERTICAL" and demon.health:GetReverseFill(), "the demon's health lights the left band from the top")
 	assert(env.Reveal(demon.health:GetValue()) == 75 and demon.sigil:IsShown(), "its health is the engine's value, under the demon's sigil")
-	-- The approved plan loads a mark's sheet only for a spell the character knows: no Voidwalker summoned or known, no Voidwalker sheet.
-	assert(not demon.marks.glyphImp and demon.fel[1].seat and demon.fel[4].seat and not demon.fel[2].seat and not demon.fel[3].seat,
-		"only the known demons' sacrifice sigils load, and no demon's own sigil before it is out")
+	-- The approved plan loads a mark's sheet only for a spell the character knows: no Voidwalker summon known, no Voidwalker sheet.
+	assert(demon.marks.glyphImp and not demon.marks.glyphImp:IsShown() and demon.marks.glyphFangs and not demon.marks.glyphVoidwalker
+		and demon.fel[1].seat and demon.fel[4].seat and not demon.fel[2].seat and not demon.fel[3].seat,
+		"only the known demons' sigils and sacrifice sigils load, waiting hidden until their demon is out")
+	local horns = demon.marks.glyphHornsPet
+	assert(horns:IsVisible() and horns.fire and Art(horns.fire) == (K.Tokens.Texture("auraGlyphHornsPet")), "no demon out: the horns burn in the pet's green light")
 	env._petSpells[3110] = true
 	env.FireEvent("UNIT_PET", "player")
-	assert(demon.marks.glyphImp:IsVisible() and not demon.marks.glyphHorns:IsShown(), "an Imp out shows the Imp's sigil in place of the horns")
+	local imp = demon.marks.glyphImp
+	assert(imp:IsVisible() and not horns:IsShown() and Art(imp.fire) == (K.Tokens.Texture("auraGlyphImp")), "an Imp out burns the Imp's green sigil in place of the horns")
 	assert(Near(ns, stone, 80, 312), "the Healthstone hangs from the lower right")
 	assert(not stone.lit:IsShown() and not stone.rest:IsVisible() and stone.bail:IsVisible() and Art(stone.bail):find("Bail"), "no Healthstone: the empty bail hangs there")
 	env._bags[5512] = 1
@@ -356,7 +415,7 @@ do
 			if region.loop then fel[#fel + 1] = Art(region) end
 		end
 	end
-	assert(#fel == 1 and fel[1] == (K.Tokens.Texture("auraGlyphFangs")) and not demon.pet:IsShown(), "the sacrificed Felhunter's sigil burns its aura on the band")
+	assert(#fel == 1 and fel[1] == (K.Tokens.Texture("auraGlyphFangsFel")) and not demon.pet:IsShown(), "the sacrificed Felhunter's sigil burns its fel violet aura on the band")
 	env._pet = { max = 100, missing = 25 }
 	Slots.Set(env, "target", { { id = 702, harmful = true, start = 0, duration = 120 } })
 	assert(curse.lits[1]:IsShown() and curse.lits[1]._durationBar[1] == curse.lits[1].art and At(ns, curse, 64, 0), "your Curse of Weakness burns its fuse down the right band")

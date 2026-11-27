@@ -213,6 +213,9 @@ Work through the modules in any order. Every module has the same three checks at
 - [ ] In a vehicle or on a flight path, the leave button beside bar 1 gets you out or lands early. Scale bar 1 in Layout Mode: the leave button scales with it.
 - [ ] Switch bar 3 on and off: its mover comes and goes in Layout Mode.
 - [ ] Switch to the gamepad interface and back, once out of combat and once in combat: KstyleUI's bars hide and the gamepad bars work, then everything comes back, with no Lua error and no "action blocked" message.
+- [ ] Mage, with Blizzard's Cooldown Manager turned off (Options > Gameplay > Advanced Options): cast Arcane Intellect, Polymorph and Arcane Power. Each crest mark burns as an animated aura in its spell's colour at Full motion, holds one still frame at Calm and shows only its end state at Off. On a frost mage, each Winter's Chill stack fills one burning ember.
+- [ ] Warlock: summon each demon you know in turn. The left band's sigil burns that demon in green; with no demon out it burns green horns. Use Demonic Sacrifice: the sacrificed demon burns in violet along the band. Learn a new curse, Torment or summon: its mark burns at once, with no reload.
+- [ ] Mage or warlock, in a boss pull with a cooldown sigil lit: switch between Full, Calm and Off. The sigil keeps showing its burning or still face, with no Lua error and no "action blocked" message.
 
 ### Cooldowns
 

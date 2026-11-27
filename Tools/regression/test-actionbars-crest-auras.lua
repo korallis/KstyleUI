@@ -185,11 +185,17 @@ end
 -- The fire's copy keeps its loop bound at every level, so a level first chosen under hidden values finds it ready (review of 071e48df,
 -- restricted-entry-without-full-binding).
 do
-	env.C_SpellBook.IsSpellKnown = function(id) return id == 3045 end
+	-- The plan loads a sheet only once its spell is known: the rim is built and bound at Full before Rapid Fire is learned.
+	env.C_SpellBook.IsSpellKnown = function() return false end
 	local rim = Medals.CooldownRim(parent, { families = { { spells = { 3045 }, sigil = "Volley" } }, color = "jewelHawk" }, 5)
 	Medals.Place(rim, parent, 0, 0)
+	Medals.Prepare(rim)
 	local button = rim.sigils[1]
 	local flame, calm = button.flame, button.calm
+	assert(flame and calm and not flame.auraLoops and #(calm._regions or {}) == 0, "a sigil whose spell is not known loads no sheet")
+	env.C_SpellBook.IsSpellKnown = function(id) return id == 3045 end
+	Medals.Prepare(rim)
+	Medals.Place(rim, parent, 0, 0)
 	assert(flame and calm and not button.auraLoops and not button.fires and not flame.fires, "a cooldown sigil's aura burns on its own slot copies and hooks nothing")
 	assert(flame.auraLoops and #flame.auraLoops == 1, "the fire's copy hands its loop to the engine")
 	local fire

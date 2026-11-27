@@ -6,8 +6,9 @@
 -- another build or level band, whose fields replace the class's: a hunter's rail (the five-seat cooldown rail: Intimidation
 -- cast at 1 s, a fire trap at 2 s (ready again at 17 s), Rapid Fire at 4 s (its buff to 19 s), the trinket used at 7 s and Bestial Wrath at
 -- 9 s (the pet's buff to 27 s), each cooling only from its cast), melee or level 8 build, a mage's arcane,
--- fire (Fire Vulnerability at three stacks), frost or level 10 build, a warlock's felhunter (Spell Lock cooling), sacrifice
--- (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, the hunter's bite (Mongoose Bite ready) or raptor
+-- fire (Fire Vulnerability at three stacks), frost (Winter's Chill embers) or level 10 build, a warlock's felhunter (Spell Lock
+-- cooling), sacrifice (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, each caster's sigils build (every
+-- cooldown sigil of the class up at once: the mage's five, the warlock's four with the Voidwalker's Sacrifice), the hunter's bite (Mongoose Bite ready) or raptor
 -- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
 -- breakout_fire), timed as the break-out design's clips: an aura's warn time puts it in its pandemic window, a usable
 -- spell's window and the pet's health steps and leaving time play out on the clock. RENDER_TRACKERS_OFF=1 turns the class's
@@ -16,7 +17,8 @@
 -- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
 -- Content, Happy) in place of the story's own, so the haunch shows or goes. RENDER_CAST_ON_FRAME=off gives the action bars the
 -- centred cast bars' layout elements the unit frames register in the game, so the hunter's rail takes its own flat row.
--- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it.
+-- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it. A mage's crest
+-- is drawn as players asked for it, with Blizzard's Cooldown Manager switched off: render its stories with RENDER_COOLDOWN_VIEWER=off (hud.lua).
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
 local Ranged = {}
@@ -79,6 +81,10 @@ local STORIES = {
 		},
 		builds = {
 			arcane = {},
+			sigils = { known = { 7302, 759, 118, 116, 12042, 12043, 11129, 12051, 11958 }, cooling = {},
+				auras = { { unit = "player", id = 12042, icon = 136048, at = 1, duration = 15 }, { unit = "player", id = 12043, icon = 136031, at = 1.5, duration = 30 },
+					{ unit = "player", id = 11129, icon = 135824, at = 2, duration = 15 }, { unit = "player", id = 12051, icon = 136075, at = 2.5, duration = 8 },
+					{ unit = "player", id = 11958, icon = 135865, at = 3, duration = 10 } } },
 			breakout = { known = { 7302, 759, 118, 116, 2139, 122, 1326079 }, cooling = { [1326079] = { 4.6, 4 }, [2139] = { 5.6, 5.6 } },
 				items = { [5514] = { icon = 134104, steps = { { 0, 1 } }, used = 7.4, cooldown = 120 } },
 				auras = { { unit = "player", id = 7302, icon = 135843, at = 1.4, duration = 9.5, warn = 10 },
@@ -137,6 +143,9 @@ local STORIES = {
 			sacrifice = { known = { 172, 980, 348, 18265, 688, 18788, 6201, 1120, 702, 6789 }, pet = false, cooling = { [6789] = { 4, 15 } }, auras = {
 				{ unit = "player", id = 18789, icon = 136218, at = 0.5, duration = 1800 }, { unit = "target", id = 348, icon = 135817, at = 1, duration = 15, harmful = true },
 				{ unit = "target", id = 702, icon = 136138, at = 1.5, duration = 120, harmful = true }, { unit = "target", id = 172, icon = 136118, at = 2, duration = 18, harmful = true } } },
+			sigils = { known = { 172, 702, 697, 18288, 18708, 6229, 706 }, pet = false, cooling = {},
+				auras = { { unit = "player", id = 18288, icon = 136132, at = 1, duration = 30 }, { unit = "player", id = 18708, icon = 237564, at = 1.5, duration = 15 },
+					{ unit = "player", id = 6229, icon = 136121, at = 2, duration = 30 }, { unit = "player", id = 7812, icon = 136190, at = 2.5, duration = 30 } } },
 			nodemon = { pet = false, auras = {
 				{ unit = "player", id = 706, icon = 136185, at = 0.5, duration = 1800 }, { unit = "target", id = 348, icon = 135817, at = 1, duration = 15, harmful = true },
 				{ unit = "target", id = 172, icon = 136118, at = 2, duration = 18, harmful = true }, { unit = "player", id = 17941, icon = 136200, at = 5, duration = 10 } } },

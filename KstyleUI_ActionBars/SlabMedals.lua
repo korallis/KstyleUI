@@ -142,6 +142,9 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 		fire.fed = fed
 		fed.auraLoops = fed.auraLoops or {}
 		fed.auraLoops[#fed.auraLoops + 1] = fire.loop
+		if fed.full == true and fed.auraAwake then
+			fed:AddAuraShownAnimation(fire.loop)
+		end
 		feds[#feds + 1] = fed
 	else
 		if not host.fires then
@@ -195,6 +198,26 @@ function Medals.Mark(piece, parent, art, size, color, r, g, b, level, lights)
 		t:SetAlpha(gold and SHEEN or SHEEN_SMALL)
 	end
 	return t, host ~= parent and host or t, tint, gold, aura ~= nil
+end
+
+function Medals.Later(piece, spells, make)
+	piece.later = piece.later or {}
+	piece.later[#piece.later + 1] = { spells, make }
+end
+
+function Medals.Prepare(piece)
+	if not piece.later or Medals.Locked() then
+		return
+	end
+	for i = #piece.later, 1, -1 do
+		local each = piece.later[i]
+		local need = each[1]
+		if type(need) == "function" and need() or type(need) == "table" and Medals.Known(need) then
+			table.remove(piece.later, i)
+			each[2]()
+			piece.sized = nil
+		end
+	end
 end
 
 function Medals.Layer(holder, level)
@@ -792,7 +815,15 @@ local function Sigil(r, lit, key, family, color, size, bloom)
 		end
 		button.flame, button.calm = lights.flame, lights.calm
 	end
-	Medals.Mark(r, button, art, size * SIGIL, color, pale, pale, pale, nil, lights)
+	local function Draw()
+		Medals.Mark(r, button, art, size * SIGIL, color, pale, pale, pale, nil, lights)
+	end
+	local need = lights and (family.art or (not family.known or family.known[1]) and (family.known or family.spells))
+	if need then
+		Medals.Later(r, need, Draw)
+	else
+		Draw()
+	end
 	r.add(Medals.Texture(button, "BORDER", 0, "medRing", "white", size))
 	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
 	button.timer:SetAllPoints(button)

@@ -542,9 +542,13 @@ for _, name in ipairs({
 	TEXTURES[name].forged = true
 end
 TEXTURES.glyphHealthstone = { file = "Textures\\Glyphs\\Facet.png" }
+for name, base in pairs({ HornsPet = "Horns", ImpFel = "Imp", VoidwalkerFel = "Voidwalker", SuccubusFel = "Succubus", FangsFel = "Fangs" }) do
+	TEXTURES["glyph" .. name] = { file = TEXTURES["glyph" .. base].file }
+end
 for kind, names in pairs({
 	Glyph = { "Burst", "ChillShard", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Healthstone", "Horns", "Hourglass", "Imp", "Intellect",
-		"PolyCurl", "Siphon", "Succubus", "Swirl", "Tongue", "Voidwalker", "Weakness" },
+		"PolyCurl", "Siphon", "Succubus", "Swirl", "Tongue", "Voidwalker", "Weakness", "HornsPet", "ImpFel", "VoidwalkerFel", "SuccubusFel",
+		"FangsFel" },
 	Sigil = { "Arcane", "Crystal", "Curse", "Flame", "Horns", "Hourglass", "Shade", "Void", "Vortex" },
 }) do
 	for _, name in ipairs(names) do
