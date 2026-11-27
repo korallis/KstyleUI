@@ -163,9 +163,10 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- A resolution change keeps the rule from before this hotfix, as the owner chose: setup re-places an unstamped
--- viewer too, so older layouts adapt to the new screen (only game UI Scale and Follow changes leave it alone).
-do
+-- A resolution change keeps what v0.3.5.2 did, as the owner chose: only a new layout class, band or warning lane
+-- restyles, and that restyle re-places an unstamped viewer too, so older layouts adapt to the new screen. Only game
+-- UI Scale and Follow changes use the ratio and root-size triggers and leave a hand-moved viewer alone.
+local function Resolution(width, height)
 	local state = { saved = { { layoutName = "Mine", layoutType = F.ACCOUNT, systems = F.Modern().systems } }, active = 1 }
 	local screen = { 1920, 1080 }
 	local env, K = W.New({ boot = false, width = 1920, height = 1080, uiScale = DEFAULT_GAME_SCALE, size = "auto", setup = function(e)
@@ -177,11 +178,23 @@ do
 	env.RunTimers()
 	K.Store.Account().editModeRows["KstyleUI DPS"][F.BUFF_BAR] = nil
 	F.Find(F.Named(state, "KstyleUI DPS"), F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX = 100
-	screen[1], screen[2] = 2560, 1440
-	SetGameScale(env, DEFAULT_GAME_SCALE, 2560, 1440)
-	local bars = F.Find(F.Named(state, "KstyleUI DPS"), F.VIEWER, F.BUFF_BAR).anchorInfo
-	assert(not near(bars.offsetX, 100), "a resolution change re-places an unstamped buff bar viewer, as before this hotfix")
+	local saves = state.saves
+	screen[1], screen[2] = width, height
+	env.UIParent._width, env.UIParent._height = UI_HEIGHT * width / height / DEFAULT_GAME_SCALE, UI_HEIGHT / DEFAULT_GAME_SCALE
+	env.FireEvent("DISPLAY_SIZE_CHANGED")
+	env.RunTimers()
 	assert(#env._errors == 0, tostring(env._errors[1]))
+	local layout = F.Named(state, "KstyleUI DPS")
+	return state.saves - saves, F.Find(layout, F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX, F.Find(layout, F.TRACKER).anchorInfo.offsetX
+end
+
+do
+	-- 1920x1080 to 2560x1440 stays 16:9: the ratio moves (1 to 0.984375) but no earlier trigger fires, so nothing moves.
+	local saves, bar, tracker = Resolution(2560, 1440)
+	assert(saves == 0 and near(bar, 100) and near(tracker, 1347), string.format("a 16:9 resolution change restyles nothing, as before this hotfix: %d saves, bar %s, tracker %s", saves, bar, tracker))
+	-- 1920x1080 to 3440x1440 changes the layout class to 21:9: the earlier rule re-places the unstamped viewer too.
+	saves, bar = Resolution(3440, 1440)
+	assert(saves == 1 and not near(bar, 100), string.format("a 21:9 resolution change re-places an unstamped viewer, as before this hotfix: %d saves, bar %s", saves, bar))
 end
 
 print("scale game ok")
