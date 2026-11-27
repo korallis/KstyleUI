@@ -676,9 +676,27 @@ do
 	assert(not state.call.runes[1].loop:IsPlaying(), "a hidden medal stops its runes")
 	state.call:Show()
 	assert(state.call.runes[1].loop:IsPlaying(), "and shown again plays them")
+	-- The medals own their loops, so a motion change reaches them with nothing else on the crest changing.
 	K.Options.Write("Medallions", "motion", "calm")
-	env.RunTimers()
-	ns.SlabMedals.Rest()
-	assert(not wolf.loop:IsPlaying() and wolf.still:GetAlpha() == 1, "Calm holds the still")
+	assert(not wolf.loop:IsPlaying() and wolf.still:GetAlpha() == 1 and wolf:GetAlpha() == 0, "Calm holds the wolf's still")
+	for i, fire in ipairs(state.call.runes) do
+		assert(not fire.loop:IsPlaying() and fire.still:GetAlpha() == 1, "and each rune's (" .. i .. ")")
+	end
+	K.Options.Write("Medallions", "motion", "full")
+	assert(wolf.loop:IsPlaying() and wolf:GetAlpha() == 1 and state.call.runes[4].loop:IsPlaying(), "Full plays them again")
 	Clean(env, K, "totem auras")
+
+	-- Under Frames no crest rests or wakes the medals, so their own motion callback is all that reaches them.
+	env, K, ns = New("SHAMAN")
+	state = ns.Totems.state
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	wolf = state.wolf.figure
+	for _, level in ipairs({ "calm", "full" }) do
+		K.Options.Write("Medallions", "motion", level)
+		local full = level == "full"
+		assert(wolf.loop:IsPlaying() == full and wolf.still:GetAlpha() == (full and 0 or 1), "under Frames " .. level .. " reaches the wolf")
+		assert(state.call.runes[2].loop:IsPlaying() == full, "and the runes")
+	end
+	Clean(env, K, "totem auras under Frames")
 end

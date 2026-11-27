@@ -631,6 +631,9 @@ end
 local function OnMotion()
 	for _, b in ipairs(state.sockets) do PaintSpire(b, false) end
 	PaintRing()
+	local restless = Seat() ~= ns.Slab.hub
+	for _, fire in ipairs(state.call.runes) do Medals.Burn(fire, restless) end
+	Medals.Burn(state.wolf.figure, restless)
 end
 
 local function Listen(on)

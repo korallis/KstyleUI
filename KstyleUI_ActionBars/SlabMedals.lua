@@ -82,8 +82,8 @@ local function Cell(t, token, cell)
 	return t
 end
 
-local function Moving()
-	return Effects.Allows("ambient") and not ns.Slab.Resting()
+local function Moving(fire)
+	return Effects.Allows("ambient") and not (ns.Slab.Resting() and not (fire and fire.restless))
 end
 
 local function Burn(fire, moving)
@@ -108,6 +108,11 @@ local function Rearm(containers)
 	end
 end
 
+function Medals.Burn(fire, restless)
+	fire.restless = restless
+	Burn(fire, Moving(fire))
+end
+
 local function Fed(frame)
 	while frame do
 		if frame.container then
@@ -119,7 +124,7 @@ end
 
 local function Showing(host)
 	for _, fire in ipairs(host.fires) do
-		Burn(fire, Moving())
+		Burn(fire, Moving(fire))
 	end
 end
 
@@ -167,7 +172,7 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights, owner)
 		end
 		host.fires[#host.fires + 1] = fire
 	end
-	Burn(fire, Moving())
+	Burn(fire, Moving(fire))
 	return fire, span > 1
 end
 
@@ -1319,7 +1324,7 @@ function Medals.Rest()
 	local restricted = Medals.Restricted()
 	for _, fire in ipairs(auras) do
 		if not (restricted and fire.fed) then
-			Burn(fire, not still)
+			Burn(fire, Moving(fire))
 		end
 	end
 	for _, button in ipairs(restricted and NONE or feds) do
