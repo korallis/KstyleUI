@@ -1,4 +1,4 @@
--- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment and its review): every class has one or two, the mage's listed first and the hunter's second, each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each class's pop-offs take seats of their own or the overlay seat they were chosen for; each lights from its own aura on its own unit and no other, and goes when the aura goes; at Full the flare rises, at Calm it is still and at Off it is dark; the aura's end folds it at Full only, and Calm, Off, the crest coming to rest or the piece hiding stop a fold already running or waiting for its frame; Ice Block covers the emblem, Evocation's ticks loop into the mana gem at Full only, Divine Shield's fold shrinks into the Forbearance ring that lights from the debuff, Power Infusion also lights when the priest casts it on a target, focus or, in a party or raid, a member they have not selected, with the same flare, ring, late warning and shared fold, keeps lighting through target and focus changes, draws once for one ally reached through two names, keeps a missing member's slot hidden and listens only while it shows, arms its late warning from the aura events of the player, the target and every party or raid member, a late joiner included, hears no member after the group is gone, and, joined in combat or turned into a raid while auras are secret, keeps the variant built before, builds nothing protected and lights the new member once when the restriction lifts, Bestial Wrath lights from the pet on the upper seat with its flare rising a short way out of the pet band, and either rank of Nightfall builds Shadow Trance; the switch hides them; while auras are secret, from before combat until the restriction lifts, nothing touches the slots and an aura's end still folds.
+-- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment and its review): every class but the hunter has one or two, the mage's listed first, and the hunter none (its crest rail, SlabRail.lua, crowns Bestial Wrath and Deterrence while they run), each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each class's pop-offs take seats of their own or the overlay seat they were chosen for; each lights from its own aura on its own unit and no other, and goes when the aura goes; at Full the flare rises, at Calm it is still and at Off it is dark; the aura's end folds it at Full only, and Calm, Off, the crest coming to rest or the piece hiding stop a fold already running or waiting for its frame; Ice Block covers the emblem, Evocation's ticks loop into the mana gem at Full only, Divine Shield's fold shrinks into the Forbearance ring that lights from the debuff, Power Infusion also lights when the priest casts it on a target, focus or, in a party or raid, a member they have not selected, with the same flare, ring, late warning and shared fold, keeps lighting through target and focus changes, draws once for one ally reached through two names, keeps a missing member's slot hidden and listens only while it shows, arms its late warning from the aura events of the player, the target and every party or raid member, a late joiner included, hears no member after the group is gone, and, joined in combat or turned into a raid while auras are secret, keeps the variant built before, builds nothing protected and lights the new member once when the restriction lifts, and either rank of Nightfall builds Shadow Trance; the switch hides them; while auras are secret, from before combat until the restriction lifts, nothing touches the slots and an aura's end still folds.
 local F = dofile("Tools/regression/crest_armory_fixture.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local AB, Slots, New, Clean = F.AB, F.Slots, F.New, F.Clean
@@ -24,7 +24,6 @@ local UNCONFIRMED = { [407788] = "Avenging Wrath", [23989] = "Readiness", [40197
 -- the aura that lights the pop-off and the unit that carries it.
 local SIGNATURES = {
 	MAGE = { { art = "Crystal", known = 11958, aura = 11958 }, { art = "Vortex", known = 12051, aura = 12051 } },
-	HUNTER = { { art = "Beast", known = 19574, aura = 19574, unit = "pet" }, { art = "Deflect", known = 19263, aura = 19263 } },
 	PALADIN = { { art = "Bubble", known = 642, aura = 642 }, { art = "Sun", known = 20216, aura = 20216 } },
 	PRIEST = { { art = "Infusion", known = 10060, aura = 10060 }, { art = "Focus", known = 14751, aura = 14751 } },
 	WARLOCK = { { art = "Void", known = 18094, aura = 17941 }, { art = "Curse", known = 18288, aura = 18288 } },
@@ -79,11 +78,11 @@ local function Finish(env)
 	while W.FinishGroups(env) do end
 end
 
--- The rows: the mage first, then the hunter, one or two each, known spells of their own class, seats of their own.
+-- The rows: the mage first, one or two each, none for the hunter (its crest rail owns its two moments), known spells of their own class, seats of their own.
 do
 	local _, _, ns = New("MAGE", {})
 	local classes = ns.SlabPopoffs.CLASSES
-	assert(#classes == 9 and classes[1][1] == "MAGE" and classes[2][1] == "HUNTER", "all nine classes have pop-offs, the mage's first and the hunter's next")
+	assert(#classes == 8 and classes[1][1] == "MAGE", "every class but the hunter has pop-offs, the mage's first")
 	local seen = {}
 	for _, entry in ipairs(classes) do
 		local class, rows = entry[1], entry[2]
@@ -108,6 +107,19 @@ do
 		end
 	end
 	assert(ns.SlabSeats.Name(classes[1][2][1].seat) == "emblem" and ns.SlabSeats.Name(classes[1][2][2].seat) == "perchRight", "Ice Block's shell sits over the emblem and Evocation over the mana gem's seat")
+end
+
+-- The hunter's two moments belong to its cooldown rail (SlabRail.lua), which crowns Bestial Wrath from the pet and Deterrence from the hunter
+-- while they run: a hunter who knows both, with both auras up, builds no pop-off of its own.
+do
+	local henv, hK, hns = New("HUNTER", { 19574, 19263 })
+	henv.SetTarget(true)
+	henv.RunTimers()
+	assert(hns.SlabRail.ABILITIES.wrath.spells[1] == 19574 and hns.SlabRail.ABILITIES.deter.spells[1] == 19263, "the rail carries Bestial Wrath and Deterrence")
+	Gain(henv, "pet", 19574)
+	Gain(henv, "player", 19263)
+	assert(#Pops(hns) == 0, "the hunter builds no pop-off; the rail shows its moments")
+	Clean(henv, hK, "hunter")
 end
 
 -- Every class: each pop-off lights from its own aura on its own unit and goes when it goes; another unit, another class's aura or another
@@ -373,36 +385,6 @@ for _, level in ipairs({ "calm", "off" }) do
 	Finish(env)
 end
 Clean(env, K, "switch")
-
--- The hunter's Bestial Wrath takes the upper seat, which no hunter piece holds, so the Serpent Sting fuse on the right band never turns it away;
--- a traverse from the pet band would cross the Hunter's Mark reticle and the Auto Shot emblem (test-actionbars-crest-popoffs-reach), so the
--- review's choice was a short rise out of the pet band: the flare appears 10 units outside the band's centre (42, -46, SlabRanged.PET) along
--- the crest's radius and lifts 8 units further out, while the sigil and ring stay on the upper seat (0, 80).
-do
-	local henv, hK, hns = New("HUNTER", { 19574, 19263, 1978 })
-	henv.SetTarget(true)
-	henv.RunTimers()
-	local wrath = assert(Pop(hns, "Beast"), "Bestial Wrath builds once known")
-	local crest = hns.SlabTrackers.state.forms.crest
-	assert(hns.SlabSeats.Name(wrath.spec.seat) == "upper" and #crest.refused == 0 and crest.claims.bandRight == "crestSting", "Bestial Wrath holds the upper seat beside Serpent Sting's band: " .. table.concat(crest.refused, "; "))
-	local out = math.sqrt(42 * 42 + 46 * 46)
-	for _, gate in ipairs({ wrath.lits[1].flareGate, wrath.lits[1].flareGate.other }) do
-		local flare = gate.lit.flare
-		local _, _, _, x, y = flare:GetPoint(1)
-		assert(math.abs(x - 42 * (1 + 10 / out)) < 0.01 and math.abs(y + 80 + 46 * (1 + 10 / out)) < 0.01, string.format("Bestial Wrath's flare appears just outside the pet band, not at %.1f, %.1f from the upper seat", x, y))
-		local ex, ey = 0, 0
-		for _, anim in ipairs(flare.play._anims) do
-			if anim._type == "Translation" then
-				local dx, dy = anim:GetOffset()
-				ex, ey = ex + dx, ey + dy
-			end
-		end
-		assert(math.abs(ex - 42 * 8 / out) < 0.01 and math.abs(ey + 46 * 8 / out) < 0.01, string.format("Bestial Wrath's flare lifts 8 units out of the pet band, not %.1f, %.1f", ex, ey))
-	end
-	Gain(henv, "pet", 19574)
-	assert(wrath.lits[1]:IsShown(), "Bestial Wrath lights from the pet")
-	Clean(henv, hK, "hunter")
-end
 
 -- The paladin's Divine Shield folds into the Forbearance ring, which lights from the debuff on the paladin and not on the target.
 do

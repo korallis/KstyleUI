@@ -3311,7 +3311,7 @@ ns.Locale.Add({
 	["Raid warning"] = "Avertissement raid",
 	["Raids"] = "Raids",
 	["Raids and dungeons"] = "Raids et donjons",
-	["Raises your signature moments, such as Ice Block or Bestial Wrath, off the crest while they last."] = "Fait jaillir vos moments embl\195\169matiques, comme Bloc de glace ou Courroux bestial, au-dessus du blason tant qu'ils durent.",
+	["Raises your signature moments, such as Ice Block or Divine Shield, off the crest while they last."] = "Fait jaillir vos moments embl\195\169matiques, comme Bloc de glace ou Bouclier divin, au-dessus du blason tant qu'ils durent.",
 	["Range and highlight"] = "Port\195\169e et surbrillance",
 	["Range ring"] = "Anneau de port\195\169e",
 	["Range spell"] = "Sort de port\195\169e",

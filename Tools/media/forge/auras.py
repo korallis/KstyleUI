@@ -130,10 +130,10 @@ BANDS = {"Gust": 4}  # mark: its strip's length over its height
 # the signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua), each sigil in its spell's school. A "popoffs" mark (named
 # Pop/<Art>) draws the sigil of its name as a "sigils" mark does and bakes it into Popoffs/, apart from the crest marks'
 # sheets of the same sigils in their seats' colours.
-for name, colour in (("Crystal", "schoolFrost"), ("Vortex", "schoolArcane"), ("Beast", "schoolFire"), ("Deflect", "schoolPhysical"),
-                     ("Bubble", "schoolHoly"), ("Sun", "jewelHoly"), ("Infusion", "schoolHoly"), ("Focus", "schoolArcane"),
-                     ("Void", "schoolShadow"), ("Curse", "jewelShard"), ("Sweep", "schoolPhysical"), ("Veil", "schoolShadow"),
-                     ("Innervate", "schoolNature"), ("Swift", "schoolNature"), ("Bolt", "schoolFrost")):
+for name, colour in (("Crystal", "schoolFrost"), ("Vortex", "schoolArcane"), ("Bubble", "schoolHoly"), ("Sun", "jewelHoly"),
+                     ("Infusion", "schoolHoly"), ("Focus", "schoolArcane"), ("Void", "schoolShadow"), ("Curse", "jewelShard"),
+                     ("Sweep", "schoolPhysical"), ("Veil", "schoolShadow"), ("Innervate", "schoolNature"), ("Swift", "schoolNature"),
+                     ("Bolt", "schoolFrost")):
     MARKS["Pop/" + name] = ("popoffs", colour, None)
 # the amber spell fire of the approved hawk mock: dark ember to the crest's gilt to white heat
 GILT = [[0.0, "000000"], [0.06, "2a0a02"], [0.18, "a8320a"], [0.34, "f26a12"], [0.52, "ffb22e"], [0.72, "ffe39a"], [1.0, "fffdf4"]]

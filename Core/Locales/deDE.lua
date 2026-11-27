@@ -3311,7 +3311,7 @@ ns.Locale.Add({
 	["Raid warning"] = "Schlachtzugswarnung",
 	["Raids"] = "Schlachtz\195\188ge",
 	["Raids and dungeons"] = "Schlachtz\195\188ge und Dungeons",
-	["Raises your signature moments, such as Ice Block or Bestial Wrath, off the crest while they last."] = "Hebt deine markanten Momente wie Eisblock oder Zorn des Wildtiers \195\188ber das Wappen, solange sie anhalten.",
+	["Raises your signature moments, such as Ice Block or Divine Shield, off the crest while they last."] = "Hebt deine markanten Momente wie Eisblock oder Gottesschild \195\188ber das Wappen, solange sie anhalten.",
 	["Range and highlight"] = "Reichweite und Hervorhebung",
 	["Range ring"] = "Reichweitenring",
 	["Range spell"] = "Reichweitenzauber",

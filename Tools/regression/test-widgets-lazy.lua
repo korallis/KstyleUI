@@ -313,7 +313,7 @@ do
 	-- Tranquilizing Shot's glyph on the lower left foot is part of that total.
 	-- Each signature pop-off the lit story knows (SlabPopoffs.lua) adds 10, its Blender sheet once in each motion face among
 	-- them, and Power Infusion's target and focus slots 16 more, each with the sheet, ring, late warning and flare the priest's own
-	-- slot has. The hunter and warlock know two, the mage and priest one.
+	-- slot has. The warlock knows two, the mage and priest one, and the hunter none.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
 	for class, limit in pairs({ PRIEST = 4968, DRUID = 5280, SHAMAN = 4919, HUNTER = 5350, MAGE = 4963, WARLOCK = 5247 }) do

@@ -510,7 +510,7 @@ for _, element in ipairs({ "Earth", "Fire", "Water", "Air" }) do
 	TEXTURES["totemRune" .. element] = { file = "Textures\\Totems\\Rune" .. element .. ".png" }
 end
 for _, name in ipairs({
-	"Aegis", "Aimed", "Arcane", "Axe", "Bark", "Beast", "Bolt", "Brave", "Bubble", "Bulwark", "Charm", "Crossed", "Crystal", "Curse", "Dash",
+	"Aegis", "Aimed", "Arcane", "Axe", "Bark", "Bolt", "Brave", "Bubble", "Bulwark", "Charm", "Crossed", "Crystal", "Curse", "Dash",
 	"Deflect", "Drop", "Evade", "Eye", "Fang", "Farseer", "Feedback", "FireTrap", "Flame", "Flurry", "Focus", "Gear", "Ghost",
 	"Grave", "Hand", "Heart", "Horns", "Hourglass", "Infusion", "Innervate", "Intimidate", "Lifeline", "Mend", "Moon", "Paw",
 	"Potion", "Regen", "Roots", "Rush", "Sacrifice", "Shade", "Shatter", "Skull", "Smoke", "Sniper", "Star", "Stone", "Strider",
@@ -611,7 +611,7 @@ for _, set in ipairs({
 		end
 	end
 end
-for _, name in ipairs({ "Beast", "Bolt", "Bubble", "Crystal", "Curse", "Deflect", "Focus", "Infusion", "Innervate", "Sun", "Sweep", "Swift", "Veil", "Void", "Vortex" }) do
+for _, name in ipairs({ "Bolt", "Bubble", "Crystal", "Curse", "Focus", "Infusion", "Innervate", "Sun", "Sweep", "Swift", "Veil", "Void", "Vortex" }) do
 	TEXTURES["pop" .. name] = { file = "Textures\\Sigils\\" .. name .. ".png", aura = "auraPopoff" .. name }
 	TEXTURES["auraPopoff" .. name] = { file = "Textures\\Auras\\Popoffs\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25 }
 end

@@ -263,7 +263,7 @@ local function Light(env, ns, class)
 	local before = env.C_SpellBook.IsSpellKnown
 	env.C_SpellBook.IsSpellKnown = function(id, bank) return known[id] == true or before(id, bank) end
 	ns.SlabTrackers.Update()
-	for _, unit in ipairs({ "player", "pet", "target", "focus" }) do
+	for _, unit in ipairs({ "player", "target", "focus" }) do
 		local list = {}
 		for _, aura in ipairs(env._slotAuras[unit] or {}) do list[#list + 1] = aura end
 		for _, aura in ipairs(auras[unit] or {}) do list[#list + 1] = aura end
@@ -318,30 +318,17 @@ local function Covers(region, poses, peer, meant)
 	end
 end
 
--- Meant(popoff, region) -> whether the pop-off's region draws a pixel over another piece on purpose: an overlay (Ice Block's shell,
--- Divine Shield's bubble, Evocation over the mana gem) and Evocation's ticks cover only the piece on their own seat, and a flare the row
--- anchors away from its seat (Bestial Wrath's, rising out of the pet band) covers only the pet band; its sigil and ring are held to
--- every peer. Seats compare in crest units.
+-- Meant(popoff) -> whether a region of the pop-off draws a pixel over another piece on purpose: an overlay (Ice Block's shell,
+-- Divine Shield's bubble, Evocation over the mana gem) and Evocation's ticks cover only the piece on their own seat; the sigil, ring and flare are held
+-- to every peer. Seats compare in crest units.
 local function Near(a, b)
 	return a and b and math.abs(a[1] - b[1]) < 4 and math.abs(a[2] - b[2]) < 4
 end
 
-local function Flare(popoff, region)
-	for _, lit in ipairs(popoff.frame.spec.anchor and popoff.frame.lits or {}) do
-		local gate = lit.flareGate
-		for _, each in ipairs(gate and { gate, gate.other } or {}) do
-			local node = region
-			while node and node ~= each.lit.flare do node = node:GetParent() end
-			if node then return true end
-		end
-	end
-	return false
-end
-
-local function Meant(popoff, region)
-	local seat, own, rising = popoff.at, popoff.overlay or popoff.frame.spec.ticks, Flare(popoff, region)
+local function Meant(popoff)
+	local seat, own = popoff.at, popoff.overlay or popoff.frame.spec.ticks
 	return function(_, _, _, peer)
-		return own and Near(peer.piece.at, seat) or rising and peer.key == "crestPet" or false
+		return own and Near(peer.piece.at, seat) or false
 	end
 end
 
@@ -501,7 +488,7 @@ function Reach.Check(sizes, classes, popoffs)
 						for _, a in ipairs(own) do
 							assert(r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses an action slot, the level badge, a unit frame, a cast bar or the cooldown row")
 						end
-						local poses, meant = popoffs and Poses(solver, region, unit), popoffs and Meant(p, region)
+						local poses, meant = popoffs and Poses(solver, region, unit), popoffs and Meant(p)
 						for _, a in ipairs(popoffs and peers or {}) do
 							local x, y
 							if a.piece ~= p then
