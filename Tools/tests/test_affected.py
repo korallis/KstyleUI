@@ -48,6 +48,14 @@ class RecordFromTraceTest(unittest.TestCase):
             result = affected.record_from_trace(text, root)
         self.assertEqual(result["files"], ["Core/Init.lua", "Core/Scale.lua"])
 
+    def test_a_file_on_another_windows_drive_is_outside_the_repository(self):
+        # Bug fix: on the windows-latest runner Lua lives on C: and the project on D:, and relpath raised ValueError.
+        import ntpath
+        text = "\n".join(["f C:\\Users\\runneradmin\\lua\\strict.lua", "f D:\\a\\KstyleUI\\KstyleUI\\Core\\Init.lua"])
+        with mock.patch.object(affected.os, "path", ntpath), mock.patch.object(affected.os, "sep", "\\"):
+            result = affected.record_from_trace(text, "D:\\a\\KstyleUI\\KstyleUI")
+        self.assertEqual(result["files"], ["Core/Init.lua"])
+
     def test_a_language_file_run_with_no_game_language_is_idle_unless_the_test_also_reads_it(self):
         # Intent: the approved faster-gate plan, a language file change runs only the tests it can reach.
         text = "\n".join(["s Core/Locales/deDE.lua", "s Core/Locales/frFR.lua", "f Core/Locales/frFR.lua", "f Core/Init.lua"])
@@ -376,9 +384,12 @@ class RunAllAffectedTest(GitRepoCase):
         }, "base")
         self.cache = self.repo / "cache.json"
 
-    def affected(self, base="HEAD", jobs="2"):
+    def affected(self, base="HEAD", jobs="2", verify=None):
         full = dict(os.environ, LUA=lua(), JOBS=jobs, KSTYLEUI_DEPS_CACHE=str(self.cache), KSTYLEUI_SLOTS="0")
         full.pop("CI", None)
+        full.pop("KSTYLEUI_DEPS_VERIFY", None)
+        if verify:
+            full["KSTYLEUI_DEPS_VERIFY"] = verify
         if not jobs:
             del full["JOBS"]
         return subprocess.run([BASH, "Tools/regression/run-all.sh", "--affected", base], cwd=self.repo, env=full,
@@ -412,7 +423,19 @@ class RunAllAffectedTest(GitRepoCase):
         self.assertEqual(self.ran(result), ["test-a", "test-d"])
         self.assertIn("affected: running 2 of 4 test files", result.stdout)
         self.assertIn("Mod/a.lua changed", result.stdout)
-        self.assertTrue(result.stdout.rstrip().endswith("(affected mode: 2 of 4 test files ran; the other 2 did not; bash scripts/gate.sh release runs them all)"))
+        self.assertTrue(result.stdout.rstrip().endswith("(affected mode: 2 of 4 test files ran; the other 2 did not; the nightly run runs them all)"))
+
+    def test_a_record_restored_from_another_commit_counts_only_where_the_files_it_read_are_unchanged(self):
+        # Review finding on the checks workflow: a nightly record made before a helper started loading Mod/b.lua
+        # must not leave out test-a when a pull request then changes only Mod/b.lua.
+        self.affected()
+        self.commit({"Mod/a.lua": 'dofile("Mod/b.lua")\nreturn 1\n'}, "a now loads b")
+        self.write({"Mod/b.lua": "return 2 -- edited\n"})
+        self.assertEqual(self.ran(self.affected()), ["test-b"], "unverified, the old record of test-a misses Mod/b.lua")
+        result = self.affected(verify="1")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.ran(result), ["test-a", "test-b", "test-d"], "verified, the records that read the old Mod/a.lua count as none")
+        self.assertIn("no record of what it loads yet", result.stdout)
 
     def test_a_language_file_change_runs_the_test_that_sets_a_language_and_not_the_one_that_does_not(self):
         # Intent: the approved faster-gate plan. A language file returns on its first line where GetLocale is unset.

@@ -18,13 +18,13 @@ To see a failing test's full output, run that test alone, for example `lua5.1 To
 
 ## Modes
 
-No workflow runs these tests: the local gate does. A developer's pre-push run is `--affected`, which `bash scripts/gate.sh` uses. The full run with no argument is what `bash scripts/gate.sh release` makes, with lint and the Python suite, on the commit a release tag will point at. Functional tests, instruction budgets, memory limits and hang guards fail on every computer; CPU-time overruns print a warning.
+The `checks` workflow runs the files a pull request or push reaches with `--shard I/8 --affected <base>`, none for a change no Lua test can see; the `nightly` workflow runs every file and records what each loads for the next pull requests. The checks workflow sets `KSTYLEUI_DEPS_VERIFY=1`, which keeps a restored record only while every file, listing and tracked name it read is unchanged in the checkout, so a record from an older commit never leaves a test out. `bash scripts/gate.sh lua` runs `--affected` locally. Functional tests, instruction budgets, memory limits and hang guards fail on every computer; CPU-time overruns print a warning.
 
 | Option | What it runs | Last line |
 | --- | --- | --- |
 | none | Every `test-*.lua` | `passed N, failed M` |
 | `--shard I/N` | Slice I of N of the files; prints `shard I/N: X of Y test files`. | `passed N, failed M` for the slice |
-| `--affected [BASE]` | The files that load something changed against BASE (default `origin/staging`) | `passed N, failed M (affected mode: X of Y test files ran; the other Z did not; bash scripts/gate.sh release runs them all)` |
+| `--affected [BASE]` | The files that load something changed against BASE (default `origin/staging`) | `passed N, failed M (affected mode: X of Y test files ran; the other Z did not; the nightly run runs them all)` |
 | `--margins` | The files one at a time, then the files within 20% of a budget | `passed N, failed M` |
 | `--write-weights` | Every file, then writes `weights.json` | `passed N, failed M` |
 | `--list` | Prints selected paths without needing Lua, taking slots, checking locales or writing records | `N test files selected; no tests run` |

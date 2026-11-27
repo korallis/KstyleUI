@@ -583,7 +583,7 @@ def main(argv):
         print("wrote {0} weights to {1}".format(len(measured), HERE / "weights.json"))
     summary = "passed {0}, failed {1}".format(passed, failed)
     if args.affected:
-        summary += " (affected mode: {0} of {1} test files ran; the other {2} did not; bash scripts/gate.sh release runs them all)".format(
+        summary += " (affected mode: {0} of {1} test files ran; the other {2} did not; the nightly run runs them all)".format(
             len(tests), len(every), len(every) - len(tests))
     print(summary)
     return 0 if failed == 0 else 1

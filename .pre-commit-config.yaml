@@ -48,14 +48,13 @@ repos:
         pass_filenames: false
         always_run: true
 
-      # luacheck checks the whole tree, so a change to .luacheckrc or the generated globals
-      # re-checks every file. .luacheckrc holds the exclusions.
+      # luacheck checks the files pre-commit passes: the changed ones before a push, every one in CI.
+      # On GitHub a change to .luacheckrc or the generated globals re-checks the whole tree. .luacheckrc holds the exclusions.
       - id: luacheck
         name: luacheck
-        entry: luacheck --no-color .
+        entry: bash Tools/hooks/luacheck.sh
         language: system
         files: (\.lua|^\.luacheckrc)$
-        pass_filenames: false
 
       - id: addon-crlf
         name: addon files use CRLF (fix with python3 Tools/dev/crlf.py)

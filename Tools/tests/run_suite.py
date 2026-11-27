@@ -1,9 +1,10 @@
-"""Run the Python suite one process per test file, a few at a time: run_suite.py [BASE] [--dir FOLDER].
+"""Run the Python suite one process per test file, a few at a time: run_suite.py [BASE] [--dir FOLDER] [--skip NAME]...
 
 scripts/gate.sh starts this from the repository root. With BASE, a tool test in TOOL_TESTS runs only when its
 tool, its own file or a suite helper changed against BASE; KSTYLEUI_RELEASE=1 (the release gate) or no BASE runs
 every file. KSTYLEUI_PY_JOBS sets how many files run at once (4 by default). A file in WIDE starts several
-processes of its own, so it runs alone, before the others.
+processes of its own, so it runs alone, before the others. --skip leaves out a named file; pull request checks leave out
+the render comparisons, which the nightly run keeps.
 """
 
 import argparse
@@ -89,9 +90,16 @@ def main(argv):
     parser = argparse.ArgumentParser(prog="run_suite.py", description="Run the Python suite.")
     parser.add_argument("base", nargs="?", help="leave out the tool tests whose tool is unchanged against this ref")
     parser.add_argument("--dir", default=str(HERE), help="the folder of test_*.py files (default Tools/tests)")
+    parser.add_argument("--skip", action="append", default=[], metavar="NAME", help="leave out this test file")
     args = parser.parse_args(argv)
     folder = Path(args.dir)
     names = sorted(path.name for path in folder.glob("test_*.py"))
+    unknown = [name for name in args.skip if name not in names]
+    if unknown:
+        parser.error("--skip names no test file: " + ", ".join(unknown))
+    names = [name for name in names if name not in args.skip]
+    if args.skip:
+        print("python suite: left out {0} by request: {1}".format(len(args.skip), ", ".join(args.skip)), flush=True)
     changes = None
     if args.base and os.environ.get("KSTYLEUI_RELEASE") != "1":
         sys.path.insert(0, str(HERE.parent / "regression"))
@@ -105,7 +113,7 @@ def main(argv):
     print("python suite: {0} of {1} test files, {2} at a time".format(len(run), len(names), jobs), flush=True)
     if skipped:
         print("python suite: left out {0} tool tests whose tools did not change against {1}: {2}; "
-              "bash scripts/gate.sh release runs them all".format(len(skipped), args.base, ", ".join(skipped)), flush=True)
+              "the nightly run runs them all".format(len(skipped), args.base, ", ".join(skipped)), flush=True)
     start = time.monotonic()
     failed, tests, unchecked = [], 0, 0
     for result in results(run, jobs, lambda name: run_file(folder, name)):

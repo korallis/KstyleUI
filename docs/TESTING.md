@@ -420,4 +420,4 @@ Type `/reload` (or log out) after your last check, so the game writes everything
 - Which screens and resolutions you tested.
 - Your font choice from the fonts screenshots.
 
-When every module passes, including the pass with the forced restrictions on, `staging` can move to `main`. Before the tag is pushed, `bash scripts/gate.sh release` passes on the exact commit to be tagged ([`DEVELOPING.md`](DEVELOPING.md), Releases and testing).
+When every module passes, including the pass with the forced restrictions on, `staging` can move to `main`. Before the tag is pushed, the `nightly` workflow passes on the exact commit to be tagged ([`DEVELOPING.md`](DEVELOPING.md), Releases and testing).
