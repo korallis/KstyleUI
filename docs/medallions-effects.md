@@ -355,8 +355,8 @@ Every seat's sigil is forged in Blender (`Tools/media/forge/marks.py`, the trink
 | Active | A major with a buff (Rapid Fire, Deterrence or the pet's Bestial Wrath; Arcane Power, Presence of Mind, Combustion, Ice Block or Evocation; Amplify Curse or Fel Domination): the crown's aura slot shows the lifted medal with its aura burning, rising from its seat in 0.28 s with a 16 degree turn and a pop to 1.29 that settles to 1.21 in 0.16 s, its ring draining with the aura under a bead, a notch at the last fifth and a countdown; the seat's own aura slot darkens it and drains its ring. The newest still-running major owns the crown, newest by your own cast, or, for a buff already running when the rail binds, by the aura's start while auras are readable; when it ends, an older one still running takes it back | Lift and burning aura | In place, still aura | No crown, no seat ring |
 | About to end | The seat ring's last fifth amber and last twelfth red (`Medals.Ember`), under the seat's drain so Off hides them with it | Yes | Yes | No |
 | Ended | The crown's timer ending folds a steel medal home to its seat over 0.3 s after 0.35 s | Fold | Vanishes | Vanishes |
-| Cooling | A dark sweep over the face with its countdown in the lower half, a small steel sigil above it so each cooling seat still reads, and a steel ring 5 units wider refilling (`SetReverse`); a trinket's global cooldown leaves it lit, and so does a spell's global cooldown, which only the cooldown event names; a rebuild that cannot match that event's reading shows an active cooldown steel | Yes | Yes | Yes |
-| Ready again | The sweep's `OnCooldownDone`, or a cooldown event finding it ready: the gold relights over 0.18 s, with a glow (44 units to 1.3) and a gilt ring (34 units to 1.35) fading from 0.9 over 0.3 s, and the glint; a seat a rebuild could only guess steel lights at once with no relight or flare, as no cooldown of its own ended | Relight, flare and glint | Relight | Lit at once |
+| Cooling | A dark sweep over the face with its countdown in the lower half, a small steel sigil above it so each cooling seat still reads, and a steel ring 5 units wider refilling (`SetReverse`); a trinket's global cooldown leaves it lit, and so does a spell's global cooldown, which only the cooldown event names; a rebuild that cannot match that event's reading shows an active cooldown steel as a guess, while a cooldown that event confirmed stays confirmed | Yes | Yes | Yes |
+| Ready again | The sweep's `OnCooldownDone`, or a cooldown event finding it ready: the gold relights over 0.18 s, with a glow (44 units to 1.3) and a gilt ring (34 units to 1.35) fading from 0.9 over 0.3 s, and the glint; a seat a rebuild could only guess steel, never one a cooldown event confirmed cooling, lights at once with no relight or flare, as no cooldown of its own ended | Relight, flare and glint | Relight | Lit at once |
 
 The flares follow the crest's motion rules: each ready flare (glow, gilt ring and glint) and each press (burst, dip and ring flash) claims the crest's one flare as a whole, so a newer one stops every part of an older one still playing; a motion change or hiding the crest stops whatever is in flight, the crown's aura included, and a layout change does not move a hidden rail. A hidden rail plays nothing: a cooldown that ends or a buff that shows or ends while it is hidden only sets the seat's state (lit, steel, crowned), with no flare, breath, burning aura or fold. While auras are secret the rail reads no aura: a buff that opens unseen, with no cast of yours to date it, takes its place by arrival, and once auras read again each running buff is dated by its start and the newest takes the crown.
 
@@ -364,7 +364,9 @@ Feeds: `C_Spell.GetSpellCooldownDuration(spell, true)` into `SetCooldownFromDura
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Ready: known seat or second-rail medal built
+    [*] --> Ready: known seat or second-rail medal built, no cooldown active
+    [*] --> Guessed: built during an active cooldown no cooldown event has read for it
+    Ready --> Guessed: a rebuild finds an active cooldown it cannot match to the cooldown event's kept reading (another spell, start or duration, or a secret one)
     Ready --> Pressed: your cast of the seat's spell
     Pressed --> Active: a buffed major's aura lands (crown; a second-rail medal runs the lane under the seats as a spark)
     Pressed --> Cooling: no buff
@@ -372,7 +374,11 @@ stateDiagram-v2
     Active --> AboutToEnd: last fifth of the aura
     AboutToEnd --> Ended: the aura ends
     Ended --> Cooling: the medal folds home, an older running major takes the crown back
-    Cooling --> ReadyAgain: the sweep's OnCooldownDone
+    Cooling --> Cooling: a rebuild, even with the cooldown's start and duration secret, keeps a confirmed cooldown steel
+    Cooling --> ReadyAgain: the sweep's OnCooldownDone, or a cooldown event finding it ready
+    Guessed --> Cooling: a cooldown event reads the spell's own cooldown
+    Guessed --> Ready: a cooldown event finds only the global cooldown, or none, and the seat lights at once with no relight or flare
+    Guessed --> ReadyAgain: the sweep's OnCooldownDone
     ReadyAgain --> Ready
 ```
 

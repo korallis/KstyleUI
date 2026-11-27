@@ -1,4 +1,4 @@
--- SlabRail.lua: every class's crest rail (docs/medallions-effects.md#crest-rail): a class registers its abilities and one list per talent tree, and up to four known abilities of the tree the game names (its long cooldowns first, then its rotation cooldowns in any free seat, or the seats the player picks in the settings) and the on-use trinket stand as forged medals on an arc above the crest (a flat row between the cooldown rows while the centred cast bars show), while the class's other known long cooldowns and the player's racial stand as smaller round medals on a second rail flanking it; a ready medal burns with its sigil's animated Blender aura, the rail's own or the one its sigil publishes (the still sigil, or the spell's own icon, where neither is yet), breathes and is crossed by a glint, a press dips it, bursts and flashes its ring, a buffed one rises to the crown from either rail, where the engine shows the aura's own slot burning with a draining ring, a bead, a last-fifth notch and a countdown, the newest running buff, by your cast or its readable start, owns the crown (handed off by the engine's aura-shown signal), an ended one cools to steel and folds home, a dark sweep and a refilling steel ring count the cooldown under a small steel mark and the medal relights with a flare; the global cooldown flag counts only as a cooldown event reads it, kept for that same cooldown (spell, start and duration), so a rebuild shows an active cooldown steel unless that event named it the global cooldown, and a seat a rebuild could only guess steel relights with no flare; each flare or press claims the crest's one flare as a whole; the seats are chosen afresh only while the crest can be rebuilt, so the other trackers stand down for the medals picked out of lockdown, take back at once the cues of any the rail could not show, and a switched-off rail stays while locked until they can take their cues back; a hidden rail plays nothing, and no aura is read while auras are secret, an unseen buff dated once they read; Calm lights in place with still auras and no lift, burst or breathing, Off shows only lit, cooling and ready, a motion change or hiding stops what is in flight, and Lua never reads or compares a secret.
+-- SlabRail.lua: every class's crest rail (docs/medallions-effects.md#crest-rail): a class registers its abilities and one list per talent tree, and up to four known abilities of the tree the game names (its long cooldowns first, then its rotation cooldowns in any free seat, or the seats the player picks in the settings) and the on-use trinket stand as forged medals on an arc above the crest (a flat row between the cooldown rows while the centred cast bars show), while the class's other known long cooldowns and the player's racial stand as smaller round medals on a second rail flanking it; a ready medal burns with its sigil's animated Blender aura, the rail's own or the one its sigil publishes (the still sigil, or the spell's own icon, where neither is yet), breathes and is crossed by a glint, a press dips it, bursts and flashes its ring, a buffed one rises to the crown from either rail, where the engine shows the aura's own slot burning with a draining ring, a bead, a last-fifth notch and a countdown, the newest running buff, by your cast or its readable start, owns the crown (handed off by the engine's aura-shown signal), an ended one cools to steel and folds home, a dark sweep and a refilling steel ring count the cooldown under a small steel mark and the medal relights with a flare; the global cooldown flag counts only as a cooldown event reads it, kept for that same cooldown (spell, start and duration), so a rebuild shows an active cooldown steel unless that event named it the global cooldown, and a seat a rebuild could only guess steel, never one already confirmed cooling, relights with no flare; each flare or press claims the crest's one flare as a whole; the seats are chosen afresh only while the crest can be rebuilt, so the other trackers stand down for the medals picked out of lockdown, take back at once the cues of any the rail could not show, and a switched-off rail stays while locked until they can take their cues back; a hidden rail plays nothing, and no aura is read while auras are secret, an unseen buff dated once they read; Calm lights in place with still auras and no lift, burst or breathing, Off shows only lit, cooling and ready, a motion change or hiding stops what is in flight, and Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -807,7 +807,7 @@ local function Cool(seat, event, full, calm)
 		local cd = api and type(api.GetSpellCooldown) == "function" and api.GetSpellCooldown(seat.spell)
 		local active = type(cd) == "table" and cd.isActive
 		if IsSecret(active) then
-			cooling = seat.ready == false
+			cooling, guess = seat.ready == false, seat.guess
 		elseif active ~= true then
 			cooling = false
 		else
@@ -816,7 +816,7 @@ local function Cool(seat, event, full, calm)
 			if event == "SPELL_UPDATE_COOLDOWN" then
 				local gcd = cd.isOnGCD
 				if IsSecret(gcd) then
-					cooling, seat.heardSpell = seat.ready == false, nil
+					cooling, guess, seat.heardSpell = seat.ready == false, seat.guess, nil
 				else
 					cooling = gcd ~= true
 					if plain and type(start) == "number" and type(length) == "number" then
@@ -828,7 +828,7 @@ local function Cool(seat, event, full, calm)
 			elseif plain and seat.heardSpell == seat.spell and seat.heardStart == start and seat.heardLength == length then
 				cooling = seat.heardCooling
 			else
-				cooling, guess = true, true
+				cooling, guess = true, seat.ready ~= false or seat.guess
 			end
 		end
 	end
