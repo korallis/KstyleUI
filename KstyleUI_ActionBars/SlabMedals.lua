@@ -1344,7 +1344,7 @@ local function Cooling(m, id, event)
 	if event == "SPELL_UPDATE_COOLDOWN" or event == nil and m.cooling[id] == nil then
 		local get = C_Spell and C_Spell.GetSpellCooldown
 		local cd = type(get) == "function" and get(id)
-		m.cooling[id] = type(cd) == "table" and cd.isActive == true and (event == nil or cd.isOnGCD ~= true)
+		m.cooling[id] = type(cd) == "table" and cd.isActive == true and (event == nil or IsSecret(cd.isOnGCD) or cd.isOnGCD ~= true)
 	end
 	return m.cooling[id] == true
 end

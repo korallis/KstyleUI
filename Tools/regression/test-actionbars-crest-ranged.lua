@@ -349,9 +349,17 @@ do
 	env._petBarEmpty = nil
 	env.FireEvent("PET_BAR_UPDATE")
 	assert(family.ready:IsShown(), "the pet bar filled with the ability ready lights the perch")
+	local screech = family.lits[2]
+	env._petCd[24579] = { env.Secret(0), env.Secret(0) }
+	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
+	assert(not family.ready:IsShown(), "a pet slot whose cooldown turns secret takes the ready cue dark")
+	Slots.Set(env, "target", { { id = 24579, icon = 132182, harmful = true, mine = true, start = 0, duration = 30 } })
+	assert(screech:IsShown(), "your pet's Demoralizing Screech still rings the perch while its cooldown reads secret")
+	Slots.Set(env, "target", {})
 	env._petCd[24579] = nil
 	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
-	local screech = family.lits[2]
+	assert(family.ready:IsShown(), "the slot readable again and ready relights the perch")
+	assert(not screech:IsShown(), "the Screech ring went with its aura")
 	Slots.Set(env, "target", { { id = 24579, icon = 132182, harmful = true, mine = false, start = 0, duration = 30 } })
 	assert(not screech:IsShown(), "another hunter's pet's Demoralizing Screech never lights your perch's ring")
 	Slots.Set(env, "target", { { id = 24579, icon = 132182, harmful = true, mine = true, start = 0, duration = 30 } })
@@ -415,6 +423,16 @@ do
 	env._spellCd[19801] = nil
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(tranq.ready:IsShown(), "cooled: lit again")
+	-- AGENTS.md: check issecretvalue before inspecting potentially secret data. Lua cannot catch a secret compared with true, so the check is seen asked.
+	local flag, asked, ask = env.Secret(true), false, env.issecretvalue
+	env.issecretvalue = function(v) asked = asked or rawequal(v, flag); return ask(v) end
+	env._spellCd[19801], env._gcd[19801] = { 0, 20 }, flag
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	env.issecretvalue = ask
+	assert(asked and not tranq.ready:IsShown(), "a secret global cooldown flag on the spell cooldown event is checked before use and leaves the cooling glyph unlit")
+	env._spellCd[19801], env._gcd[19801] = nil, nil
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(tranq.ready:IsShown(), "a readable cooldown again: lit")
 	K.Options.Write("ActionBars", "crestTranq", false)
 	assert(not Seated(ns, "crestTranq"), "Tranquilizing Shot off hides its seat")
 	Clean(env, K)
