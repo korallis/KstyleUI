@@ -282,8 +282,9 @@ do
 		print("lazy regions " .. module .. ": " .. created)
 	end
 	-- A healer, hunter, mage or warlock with every crest tracker known and lit (the render harness's RENDER_TRACKERS=lit
-	-- story) creates no more action bar regions than staging did before its crest broke out of its sockets (b4ec7887b); a
-	-- lit Rogue is 5,063, so 4,900 holds only the stock fixture above. A hunter's forged marks each add a solid body, and
+	-- story) starts from the action bar regions staging created before its crest broke out of its sockets (b4ec7887b), and
+	-- each class's ceiling below adds only the regions named here for the layers and auras chosen since; a lit Rogue is 5,063,
+	-- so 4,900 holds only the stock fixture above. A hunter's forged marks each add a solid body, and
 	-- the perched and emblem ones a shadow and a halo (49 regions); each of the six Sting marks, drawn at 24 units so it
 	-- reads, adds a shadow, a halo and two dark shades (24 regions), and each lit Aspect but the Hawk a dark silhouette
 	-- over the unlit hawk (6 regions), which takes its limit from 4,915 to 4,980. The hunter,
