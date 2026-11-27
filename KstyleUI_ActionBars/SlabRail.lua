@@ -752,7 +752,7 @@ end
 
 local function Cool(seat, flare, full, calm)
 	local cooling
-	if seat.slot or seat.ability.items then
+	if seat.item then
 		local start, length, enable, gcd = Stored(seat)
 		cooling = not (IsSecret(start) or IsSecret(length) or IsSecret(enable) or IsSecret(gcd)) and type(length) == "number" and length > 0
 			and enable ~= 0 and enable ~= false and gcd ~= true
@@ -838,6 +838,7 @@ local function Made(r, at)
 		end
 	end
 	seat.spell, seat.slot, seat.press = at.spell, at.slot, at.press
+	seat.item = at.slot ~= nil or seat.ability.items ~= nil
 	return seat
 end
 
@@ -926,7 +927,7 @@ function Rail.Paint(r, event, _, _, spell)
 	elseif event == "SPELL_UPDATE_COOLDOWN" or event == "BAG_UPDATE_COOLDOWN" then
 		local item, full, calm = event == "BAG_UPDATE_COOLDOWN", Mood(r)
 		for _, seat in ipairs(r.all) do
-			if (seat.slot ~= nil or seat.ability.items ~= nil) == item then
+			if seat.item == item then
 				Cool(seat, true, full, calm)
 			end
 		end
