@@ -16,7 +16,8 @@ local ARRIVE = { { 0, 0, RISE_RUN - 0.08 }, { 0, 1, 0.1 } }
 local FOLD, FOLD_RUN = 1.4, 0.4
 local MOTE, TICK, TICK_RUN, TICK_OUT, TICK_FROM = 12, 2, 0.6, 0.2, 0.5
 local FORBEARANCE = 25771
-local folds, watching = {}, false
+local OWNER = "ActionBars.SlabPopoffs"
+local folds, watching, twins = {}, false, {}
 
 local function Move(group, dx, dy, duration, order, smoothing)
 	local t = group:CreateAnimation("Translation")
@@ -64,22 +65,45 @@ local function After(piece, spec, level)
 	return lit
 end
 
-local function Ally(piece, spec, unit, size, level)
-	local lit = Medals.Lit(piece, setmetatable({ unit = unit, filter = "HELPFUL|PLAYER" }, { __index = spec }), level)
-	Medals.Sheet(piece, lit, "pop" .. spec.art, size)
-	lit.timer = piece.add(Medals.Timer(lit, level + 1, "ringLine16", spec.color), size + TRACK)
-	lit:SetDurationCooldown(lit.timer)
-	return lit
+local function Twin(twin)
+	local same = UnitIsUnit and UnitIsUnit(twin.unit, twin.other)
+	twin:SetAlpha(1)
+	if not (issecretvalue and issecretvalue(same)) then
+		twin:SetShown(same ~= true)
+	elseif twin.SetAlphaFromBoolean then
+		twin:Show()
+		twin:SetAlphaFromBoolean(same, 0, 1)
+	else
+		twin:Hide()
+	end
+end
+
+local function Twins()
+	for _, twin in ipairs(twins) do
+		Twin(twin)
+	end
+end
+
+local function Unseen(parent, unit, other, level)
+	local twin = Medals.Layer(parent, level)
+	twin.unit, twin.other = unit, other
+	twins[#twins + 1] = twin
+	if #twins == 1 then
+		K.Events.Register(OWNER, "PLAYER_TARGET_CHANGED", Twins)
+		K.Events.Register(OWNER, "PLAYER_FOCUS_CHANGED", Twins)
+	end
+	Twin(twin)
+	return twin
 end
 
 local function Fold(piece, spec, size, level)
 	local fold = Medals.Layer(piece, level)
 	piece.add(Medals.Texture(fold, "ARTWORK", 0, "sigil" .. spec.art, spec.color, size, "ADD"))
-	piece.add(Medals.Texture(fold, "BACKGROUND", 0, "glow", spec.color, size * 2, "ADD"))
+	piece.add(Medals.Texture(fold, "BACKGROUND", 0, "glow", spec.color, size, "ADD"))
 	fold:SetAlpha(0)
 	fold:Hide()
 	fold.play = ns.Slab.Group(fold)
-	ns.Slab.Grow(fold.play, 1, spec.after and spec.after.size / size or FOLD, FOLD_RUN)
+	ns.Slab.Grow(fold.play, 1, spec.after and spec.after.size / size or spec.overlay and 1 / FOLD or FOLD, FOLD_RUN)
 	ns.Slab.Fade(fold.play, 1, 0, FOLD_RUN)
 	fold.play:SetScript("OnFinished", function() fold:Hide() end)
 	fold.play:SetScript("OnStop", function() fold:Hide() end)
@@ -96,7 +120,7 @@ end
 
 local function Folds(piece)
 	piece.settling = nil
-	if piece.up or not (piece:IsVisible() and Effects.Allows("ambient") and not ns.Slab.Resting()) then
+	if next(piece.ups) or not (piece:IsVisible() and Effects.Allows("ambient") and not ns.Slab.Resting()) then
 		return
 	end
 	piece.fold.play:Stop()
@@ -108,46 +132,74 @@ local function Watch(piece, lit)
 	local watch = ns.Slab.Group(Medals.Layer(lit, lit:GetFrameLevel()), "REPEAT")
 	ns.Slab.Fade(watch, 1, 1, 1)
 	watch:SetScript("OnPlay", function()
-		piece.up = true
+		piece.ups[watch] = true
 		piece.fold.play:Stop()
 	end)
 	watch:SetScript("OnStop", function()
-		piece.up = nil
+		piece.ups[watch] = nil
 		if not piece.settling and C_Timer and C_Timer.After then
-			piece.settling = true
-			C_Timer.After(0, function() Folds(piece) end)
+			local mark = {}
+			piece.settling = mark
+			C_Timer.After(0, function()
+				if piece.settling == mark then Folds(piece) end
+			end)
 		end
 	end)
 	lit:AddAuraShownAnimation(watch)
-	piece.watch = watch
+	lit.watch = watch
+end
+
+local function Hidden(piece)
+	piece.settling = nil
+	piece.fold.play:Stop()
+end
+
+local function Life(piece, lit, spec, size, level)
+	Medals.Sheet(piece, lit, "pop" .. spec.art, size)
+	lit.timer = piece.add(Medals.Timer(lit, level + 1, "ringLine16", spec.color), size + TRACK)
+	lit:SetDurationCooldown(lit.timer)
+	piece.add(Medals.Ember(piece, lit, lit.timer, "RingLine16", level + 2, size + TRACK))
+	lit.loops = { Medals.Steps(lit, ARRIVE), spec.ticks and Ticks(piece, lit, spec, level + 2) or nil }
+	for _, flare in ipairs(Medals.Flare(piece, lit, level + 4, "sigil" .. spec.art, spec.overlay and size / POP or size * BURST)) do
+		flare:SetVertexColor(K.Tokens.Color(spec.color))
+	end
+	local gate, seat = lit.flareGate, spec.seat
+	local reach = math.sqrt(seat[1] * seat[1] + seat[2] * seat[2])
+	for _, each in ipairs(gate and { gate, gate.other } or {}) do
+		Travel(each.lit.flare, spec.from or { -seat[1] * RISE / reach, -seat[2] * RISE / reach })
+	end
+	return lit
+end
+
+local function Ally(piece, spec, unit, others, size, level)
+	local host = piece
+	for _, other in ipairs(others) do
+		host = Unseen(host, unit, other, level)
+	end
+	host.root, host.add, host.parts, host.lits, host.units = true, piece.add, piece.parts, piece.lits, piece.units
+	local ally = setmetatable({ unit = unit, filter = "HELPFUL|PLAYER" }, { __index = spec })
+	return Life(host, Medals.Lit(host, ally, level), ally, size, level)
 end
 
 function Popoffs.Build(parent, spec, level)
 	local size = spec.size or SIZE
 	local piece = Medals.Piece(parent, level, size)
-	local lit = Medals.Lit(piece, spec, level + 1)
-	Medals.Sheet(piece, lit, "pop" .. spec.art, size)
-	lit.timer = piece.add(Medals.Timer(lit, level + 2, "ringLine16", spec.color), size + TRACK)
-	lit:SetDurationCooldown(lit.timer)
-	piece.add(Medals.Ember(piece, lit, lit.timer, "RingLine16", level + 3, size + TRACK))
-	lit.loops = { Medals.Steps(lit, ARRIVE), spec.ticks and Ticks(piece, lit, spec, level + 3) or nil }
-	for _, flare in ipairs(Medals.Flare(piece, lit, level + 5, "sigil" .. spec.art, size * BURST)) do
-		flare:SetVertexColor(K.Tokens.Color(spec.color))
-	end
-	local gate = lit.flareGate
-	for _, each in ipairs(gate and { gate, gate.other } or {}) do
-		Travel(each.lit.flare, spec.from or { 0, -RISE })
-	end
+	local lits = { Life(piece, Medals.Lit(piece, spec, level + 1), spec, size, level + 1) }
+	local others = { "player" }
 	for _, unit in ipairs(spec.allies or {}) do
-		Ally(piece, spec, unit, size, level + 1)
+		lits[#lits + 1] = Ally(piece, spec, unit, others, size, level + 1)
+		others[#others + 1] = unit
 	end
 	if spec.after then
 		After(piece, spec, level + 1)
 	end
 	if not Medals.twin then
-		piece.fold = Fold(piece, spec, size, level + 4)
+		piece.fold, piece.ups = Fold(piece, spec, size, level + 4), {}
 		folds[#folds + 1] = piece.fold
-		Watch(piece, lit)
+		for _, lit in ipairs(lits) do
+			Watch(piece, lit)
+		end
+		piece:HookScript("OnHide", Hidden)
 		if not watching then
 			watching = true
 			Medals.OnRest(Calm)
@@ -175,7 +227,7 @@ Popoffs.CLASSES = {
 	} },
 	{ "HUNTER", {
 		Row("upper", "Beast", "schoolFire", { 19574 }, { unit = "pet", from = PET }),
-		Row("popHunter", "Deflect", "schoolPhysical", { 19263 }),
+		Row("popHunter", "Deflect", "schoolPhysical", { 19263 }, { from = { 0, -RISE } }),
 	} },
 	{ "PALADIN", {
 		Row("emblem", "Bubble", "schoolHoly", { 642, 1020 }, { overlay = true, size = 96, from = { 0, 0 }, after = { spell = FORBEARANCE, size = 60, color = "jewelHoly" } }),

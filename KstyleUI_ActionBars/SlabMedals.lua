@@ -626,7 +626,7 @@ local function Bare(frame, twin, keep)
 	end
 	for _, child in ipairs({ frame:GetChildren() }) do
 		if keep[child] then
-			Bare(child, twin, keep)
+			Bare(child, child.root and child or twin, keep)
 		elseif not Slotted(child, twin, keep) then
 			child:Hide()
 		end

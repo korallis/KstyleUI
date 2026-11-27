@@ -28,7 +28,7 @@ local function Content(path, coords)
 		local file = tostring(path):gsub("\\", "/"):match("Media/.+$")
 		local ok, alpha, w, h = pcall(Png.Alpha, file or "")
 		local l, r, t, b = 1, 0, 1, 0
-		local cw, ch = ok and w / columns, ok and h / rows
+		local cw, ch = ok and math.floor(w / columns), ok and math.floor(h / rows)
 		for y = 0, ok and h - 1 or -1 do
 			for x = 0, w - 1 do
 				if alpha(x, y) >= 64 then
@@ -38,43 +38,113 @@ local function Content(path, coords)
 			end
 			runs[y] = list
 		end
-		CONTENT[key] = ok and r > l and { l, r, t, b } or false
+		CONTENT[key] = ok and r > l and { l, r, t, b, alpha = alpha, w = cw, h = ch, columns = columns, rows = rows, full = { w, h } } or false
 	end
 	return CONTENT[key]
 end
 
--- Motion(region) -> the largest scale its own Scale animations reach and the box its Translation paths sweep, in its units.
-local function Motion(region)
-	local scale, x0, x1, y0, y1 = 1, 0, 0, 0, 0
+-- Solid(region, u, v) -> whether the texture draws a pixel of alpha 64 or more at u, v of its box (0 to 1 from the left and the top):
+-- in any frame of a flipbook's cells, or at the texel its texture coordinates pick.
+local function Solid(region, u, v)
+	local texture, coords = region._state.Texture, region._state.TexCoord
+	local content = texture and Content(texture[1], coords)
+	if not content then
+		return false
+	end
+	if content.columns * content.rows > 1 then
+		local x, y = math.floor(u * content.w), math.floor(v * content.h)
+		if x < 0 or y < 0 or x >= content.w or y >= content.h then
+			return false
+		end
+		for row = 0, content.rows - 1 do
+			for column = 0, content.columns - 1 do
+				if content.alpha(column * content.w + x, row * content.h + y) >= 64 then
+					return true
+				end
+			end
+		end
+		return false
+	end
+	local c = coords and #coords == 4 and coords or { 0, 1, 0, 1 }
+	local x, y = math.floor((c[1] + u * (c[2] - c[1])) * content.full[1]), math.floor((c[3] + v * (c[4] - c[3])) * content.full[2])
+	if x < 0 or y < 0 or x >= content.full[1] or y >= content.full[2] then
+		return false
+	end
+	return content.alpha(x, y) >= 64
+end
+
+-- Moves(node) -> the scales the node's own Scale animations reach (1 among them), their pivot as an anchor point and offset in the
+-- node's units, and the offsets its Translation paths pass through, sampled along each move.
+local function Moves(node)
+	local scales, origin, offsets = { 1 }, nil, { { 0, 0 } }
+	for _, group in ipairs(node._groups or {}) do
+		local orders, x, y = {}, 0, 0
+		for _, anim in ipairs(group._anims or {}) do
+			local order = anim._state.Order and anim._state.Order[1] or 1
+			orders[order] = orders[order] or {}
+			table.insert(orders[order], anim)
+			if anim._type == "Scale" then
+				for _, field in ipairs({ "ScaleFrom", "ScaleTo" }) do
+					local sx, sy = unpack(anim._state[field] or { 1, 1 })
+					scales[#scales + 1] = math.max(sx or 1, sy or 1)
+				end
+				origin = origin or anim._state.Origin
+			end
+		end
+		for order = 1, 64 do
+			for _, anim in ipairs(orders[order] or {}) do
+				if anim._type == "Translation" then
+					local ox, oy = unpack(anim._state.Offset or { 0, 0 })
+					for step = 1, 4 do
+						offsets[#offsets + 1] = { x + (ox or 0) * step / 4, y + (oy or 0) * step / 4 }
+					end
+					x, y = x + (ox or 0), y + (oy or 0)
+				end
+			end
+		end
+	end
+	return scales, origin, offsets
+end
+
+local PIVOT = { CENTER = { 0.5, 0.5 }, BOTTOM = { 0.5, 0 }, TOP = { 0.5, 1 }, LEFT = { 0, 0.5 }, RIGHT = { 1, 0.5 }, BOTTOMLEFT = { 0, 0 }, BOTTOMRIGHT = { 1, 0 }, TOPLEFT = { 0, 1 }, TOPRIGHT = { 1, 1 } }
+
+-- Poses(solver, region, unit) -> the screen boxes (left, right, top, bottom; y up) the region's box reaches as it and every parent above
+-- it play their animations: each node, from the region up, scales the box about its own pivot to each scale it reaches, so a parent's
+-- scale also carries the child's offset from that pivot, and moves it to each offset along its Translation paths; the first is at rest.
+local function Poses(solver, region, unit)
+	local box = solver:rect(region._barOwner or region)
+	local poses = { { box[1], box[3], box[4], box[2] } }
 	local node = region
 	while node do
-		for _, group in ipairs(node._groups or {}) do
-			local orders, x, y = {}, 0, 0
-			for _, anim in ipairs(group._anims or {}) do
-				local order = anim._state.Order and anim._state.Order[1] or 1
-				orders[order] = orders[order] or {}
-				table.insert(orders[order], anim)
-				if anim._type == "Scale" and node == region then
-					for _, field in ipairs({ "ScaleFrom", "ScaleTo" }) do
-						local sx, sy = unpack(anim._state[field] or { 1, 1 })
-						scale = math.max(scale, sx or 1, sy or 1)
+		local scales, origin, offsets = Moves(node)
+		if #scales > 1 or #offsets > 1 then
+			local rect = solver:rect(node._barOwner or node) or box
+			local at = PIVOT[origin and origin[1] or "CENTER"] or PIVOT.CENTER
+			local px = rect[1] + (rect[3] - rect[1]) * at[1] + (origin and origin[2] or 0) * unit
+			local py = rect[2] + (rect[4] - rect[2]) * at[2] + (origin and origin[3] or 0) * unit
+			local moved = {}
+			for _, p in ipairs(poses) do
+				for _, k in ipairs(scales) do
+					for _, o in ipairs(offsets) do
+						local dx, dy = o[1] * unit, o[2] * unit
+						moved[#moved + 1] = { px + (p[1] - px) * k + dx, px + (p[2] - px) * k + dx, py + (p[3] - py) * k + dy, py + (p[4] - py) * k + dy, travel = p.travel or dx ~= 0 or dy ~= 0 }
 					end
 				end
 			end
-			for order = 1, 64 do
-				for _, anim in ipairs(orders[order] or {}) do
-					if anim._type == "Translation" then
-						local ox, oy = unpack(anim._state.Offset or { 0, 0 })
-						x, y = x + (ox or 0), y + (oy or 0)
-						x0, x1, y0, y1 = math.min(x0, x), math.max(x1, x), math.min(y0, y), math.max(y1, y)
-					end
+			poses = {}
+			local seen = {}
+			for _, p in ipairs(moved) do
+				local key = string.format("%.1f %.1f %.1f %.1f %s", p[1], p[2], p[3], p[4], tostring(p.travel))
+				if not seen[key] then
+					seen[key] = true
+					poses[#poses + 1] = p
 				end
 			end
 			boxes = out
 		end
 		node = node:GetParent()
 	end
-	return scale, x0, x1, y0, y1
+	return poses
 end
 
 local function Textures(frame, list)
@@ -107,7 +177,10 @@ local function Light(env, ns, class)
 	env.C_SpellBook.IsSpellKnown = function(id, bank) return known[id] == true or before(id, bank) end
 	ns.SlabTrackers.Update()
 	for _, unit in ipairs({ "player", "pet", "target", "focus" }) do
-		Slots.Set(env, unit, auras[unit])
+		local list = {}
+		for _, aura in ipairs(env._slotAuras[unit] or {}) do list[#list + 1] = aura end
+		for _, aura in ipairs(auras[unit] or {}) do list[#list + 1] = aura end
+		Slots.Set(env, unit, list)
 	end
 	local lit = 0
 	for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
@@ -132,15 +205,41 @@ local function Box(solver, region, unit, sweep)
 	if not (box and content) then
 		return nil
 	end
-	local scale, x0, x1, y0, y1 = 1, 0, 0, 0, 0
-	if sweep then
-		scale, x0, x1, y0, y1 = Motion(region)
+	local l, r, t, b = math.huge, -math.huge, -math.huge, math.huge
+	for _, p in ipairs(sweep and Poses(solver, region, unit) or { { box[1], box[3], box[4], box[2] } }) do
+		local w, h = p[2] - p[1], p[3] - p[4]
+		l, r = math.min(l, p[1] + content[1] * w), math.max(r, p[1] + content[2] * w)
+		t, b = math.max(t, p[3] - content[3] * h), math.min(b, p[3] - content[4] * h)
 	end
-	local w, h = box[3] - box[1], box[4] - box[2]
-	local mx, my = (box[1] + box[3]) / 2, (box[2] + box[4]) / 2
-	local l, r = mx + (box[1] + content[1] * w - mx) * scale + x0 * unit, mx + (box[1] + content[2] * w - mx) * scale + x1 * unit
-	local t, b = my + (box[4] - content[3] * h - my) * scale + y1 * unit, my + (box[4] - content[4] * h - my) * scale + y0 * unit
 	return l, r, t, b, tostring(texture[1]):match("[^\\/]+$")
+end
+
+-- Covers(region, poses, peer, meant) -> the first screen pixel where the region, in any of its poses (from Poses), draws a pixel (alpha
+-- 64 or more) on a pixel the peer's texture draws at rest, unless meant(x, y, pose) allows it; nil when they never meet.
+local function Covers(region, poses, peer, meant)
+	for _, p in ipairs(poses) do
+		local l, r, t, b = math.max(p[1], peer[1]), math.min(p[2], peer[2]), math.min(p[3], peer[3]), math.max(p[4], peer[4])
+		for y = math.floor(b) + 0.5, t, 1 do
+			for x = math.floor(l) + 0.5, r, 1 do
+				if Solid(region, (x - p[1]) / (p[2] - p[1]), (p[3] - y) / (p[3] - p[4])) and Solid(peer.region, (x - peer[1]) / (peer[2] - peer[1]), (peer[3] - y) / (peer[3] - peer[4])) then
+					if not meant(x, y, p) then
+						return x, y
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Meant(solver, popoff) -> whether the pop-off draws a pixel over another piece on purpose: an overlay (Ice Block's shell, Divine
+-- Shield's bubble, Evocation over the mana gem) covers what lies inside its own timer ring's box, so only its reach past that box counts, and a pop-off
+-- that rises from another piece (Bestial Wrath from the pet band) or sends ticks into its seat (Evocation into the mana gem) passes over what
+-- lies on its way while it travels.
+local function Meant(solver, popoff)
+	local own = popoff.overlay and solver:rect(popoff.frame.lits[1].timer)
+	return function(x, y, pose)
+		return own and own[1] <= x and x <= own[3] and own[2] <= y and y <= own[4] or popoff.from and pose.travel
+	end
 end
 
 function Reach.Check(sizes, classes, popoffs)
@@ -196,7 +295,7 @@ function Reach.Check(sizes, classes, popoffs)
 			local checked = 0
 			local pieces = {}
 			for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-				pieces[#pieces + 1] = { key = p.spec.key, overlay = p.spec.overlay, rim = not ns.SlabSeats.Name(p.spec.seat), regions = RING[p.spec.key] and {} or Textures(p, {}) }
+				pieces[#pieces + 1] = { key = p.spec.key, frame = p, overlay = p.spec.overlay, from = p.spec.ticks or p.spec.from and (p.spec.from[1] ~= 0 or p.spec.from[2] ~= 0), seat = ns.SlabSeats.Name(p.spec.seat), rim = not ns.SlabSeats.Name(p.spec.seat), regions = RING[p.spec.key] and {} or Textures(p, {}) }
 			end
 			for i, p in ipairs(ns.SlabHawks and ns.SlabHawks.state.perches or {}) do
 				pieces[#pieces + 1] = { key = "hawk perch " .. i, regions = Textures(p.holder, {}) }
@@ -221,11 +320,10 @@ function Reach.Check(sizes, classes, popoffs)
 				end
 				for _, p in ipairs(pieces) do
 					for _, region in ipairs(not p.rim and p.regions or {}) do
-						local l, r, t, b
-						if Drawn(region) then
-							l, r, t, b = Box(solver, region, unit, false)
+						if Drawn(region) and Box(solver, region, unit, false) then
+							local box = solver:rect(region._barOwner or region)
+							peers[#peers + 1] = { box[1], box[3], box[4], box[2], key = p.key, piece = p, region = region }
 						end
-						if l then peers[#peers + 1] = { l, b, r, t, p.key, p } end
 					end
 				end
 				assert(#peers > 8, at .. " " .. class .. ": the other drawn crest pieces are measured (" .. #peers .. ")")
@@ -255,11 +353,13 @@ function Reach.Check(sizes, classes, popoffs)
 						for _, a in ipairs(avoid) do
 							assert(r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses an action slot, the level badge, a unit frame or a cast bar")
 						end
-						if popoffs and not p.overlay and Drawn(region) then
-							l, r, t, b = Box(solver, region, unit, false)
-							for _, a in ipairs(peers) do
-								assert(a[6] == p or r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " at its seat covers " .. tostring(a[5]) .. ", another crest piece")
+						local poses, meant = popoffs and Poses(solver, region, unit), popoffs and Meant(solver, p)
+						for _, a in ipairs(popoffs and peers or {}) do
+							local x, y
+							if a.piece ~= p then
+								x, y = Covers(region, poses, a, meant)
 							end
+							assert(not x, string.format("%s covers %s's %s, another crest piece, at %d, %d (at its seat or on its way there)", name, a.key, tostring(a.region._state.Texture[1]):match("[^\\/]+$"), x or 0, y or 0))
 						end
 					end
 				end

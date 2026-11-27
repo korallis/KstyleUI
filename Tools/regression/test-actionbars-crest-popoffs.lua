@@ -1,4 +1,4 @@
--- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment and its review): every class has one or two, the mage's listed first and the hunter's second, each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each class's pop-offs take seats of their own or the overlay seat they were chosen for; each lights from its own aura on its own unit and no other, and goes when the aura goes; at Full the flare rises, at Calm it is still and at Off it is dark; the aura's end folds it at Full only, and Calm, Off or the crest coming to rest stop a fold already running; Ice Block covers the emblem, Evocation's ticks loop into the mana gem at Full only, Divine Shield's fold shrinks into the Forbearance ring that lights from the debuff, Power Infusion also lights when the priest casts it on a target or focus, Bestial Wrath rises from the pet band, and either rank of Nightfall builds Shadow Trance; the switch hides them; while auras are secret, from before combat until the restriction lifts, nothing touches the slots and an aura's end still folds.
+-- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment and its review): every class has one or two, the mage's listed first and the hunter's second, each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each class's pop-offs take seats of their own or the overlay seat they were chosen for; each lights from its own aura on its own unit and no other, and goes when the aura goes; at Full the flare rises, at Calm it is still and at Off it is dark; the aura's end folds it at Full only, and Calm, Off, the crest coming to rest or the piece hiding stop a fold already running or waiting for its frame; Ice Block covers the emblem, Evocation's ticks loop into the mana gem at Full only, Divine Shield's fold shrinks into the Forbearance ring that lights from the debuff, Power Infusion also lights when the priest casts it on a target or focus, with the same flare, ring, late warning and shared fold, and once when the target or focus is the priest or the focus is the target, Bestial Wrath rises from the pet band, and either rank of Nightfall builds Shadow Trance; the switch hides them; while auras are secret, from before combat until the restriction lifts, nothing touches the slots and an aura's end still folds.
 local F = dofile("Tools/regression/crest_armory_fixture.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local AB, Slots, New, Clean = F.AB, F.Slots, F.New, F.Clean
@@ -171,8 +171,8 @@ Gain(env, "player", 11958)
 assert(lit:IsShown() and rise:IsPlaying(), "at Full the aura lights the pop-off and its flare plays")
 assert(AB.W.LastCall(lit._cooldown, "SetCooldownFromDurationObject"), "its ring drains with the aura")
 local sheet = lit.auraLoops and lit.auraLoops[1]
-assert(sheet and sheet:IsPlaying() and sheet:GetParent():GetTexture():find("Auras\\Popoffs\\Crystal.png", 1, true), "at Full its Blender sheet loops in the lit slot")
-assert(block.up and not block.fold.play:IsPlaying(), "it is up and not folding")
+assert(sheet and sheet:IsPlaying() and sheet:GetParent():GetTexture():find("Auras\\Sigils\\Crystal.png", 1, true), "at Full its Blender sheet loops in the lit slot")
+assert(next(block.ups) and not block.fold.play:IsPlaying(), "it is up and not folding")
 Gone(env)
 assert(not lit:IsShown() and block.fold:IsShown() and block.fold.play:IsPlaying(), "at Full the aura's end folds it")
 Finish(env)
@@ -297,6 +297,42 @@ assert(not block.fold.play:IsPlaying(), "a hidden pop-off never folds")
 K.Options.Write("ActionBars", "crestPopoffs", true)
 env.RunTimers()
 assert(block:IsShown() and evocation:IsShown(), "and turning it back on shows them again")
+Finish(env)
+
+-- Hiding a pop-off, by its switch or by a style that has no crest, stops a running fold and a fold that waits for the next frame,
+-- so neither plays when the pop-off shows again. The stub does not run OnHide when a frame stops being visible; the game does.
+local function Hid(frame)
+	assert(not frame:IsVisible(), "the pop-off is hidden")
+	local fn = frame:GetScript("OnHide")
+	if fn then fn(frame) end
+end
+local function Show(write)
+	write(true)
+	env.RunTimers()
+	assert(block:IsVisible(), "the pop-off shows again")
+	Finish(env)
+end
+for what, write in pairs({
+	switch = function(on) K.Options.Write("ActionBars", "crestPopoffs", on) end,
+	style = function(on) K.Options.Write("HudStyle", "style", on and "medallions" or "frames") end,
+}) do
+	Gain(env, "player", 11958)
+	Gone(env)
+	assert(block.fold.play:IsPlaying(), what .. ": the fold runs")
+	write(false)
+	env.RunTimers()
+	Hid(block)
+	assert(not block.fold.play:IsPlaying() and not block.fold:IsShown(), what .. ": hiding the pop-off stops its running fold")
+	Show(write)
+	Gain(env, "player", 11958)
+	Slots.Set(env, "player", nil)
+	write(false)
+	Hid(block)
+	write(true)
+	env.RunTimers()
+	assert(not block.fold.play:IsPlaying() and not block.fold:IsShown(), what .. ": a fold that waited for the next frame does not play once the pop-off was hidden")
+	Finish(env)
+end
 Clean(env, K, "switch")
 
 -- The hunter's Bestial Wrath rises off the pet band into its seat, at the pet band's offset below it.
@@ -342,23 +378,76 @@ do
 	Clean(penv, pK, "paladin")
 end
 
--- The priest's Power Infusion also lights when cast on the target or focus, only from the priest's own cast.
+-- The priest's Power Infusion on the target or focus, only from the priest's own cast, gets the display it gets on the priest: its
+-- flare rises, its ring and late warning drain with it, and its end folds the one pop-off; a recipient two units name draws once.
+local function Seen(region, root)
+	local alpha = 1
+	while region and region ~= root do
+		alpha = alpha * region:GetAlpha()
+		region = region:GetParent()
+	end
+	return alpha
+end
+
+local function Drains(slot)
+	local n = 0
+	for _, m in ipairs(slot.mirrors or {}) do
+		if m:IsShown() and m._cooldown and AB.W.LastCall(m._cooldown, "SetCooldownFromDurationObject") then n = n + 1 end
+	end
+	return n
+end
+
 do
 	local renv, rK, rns = New("PRIEST", { 10060 })
+	local same = {}
+	renv.UnitIsUnit = function(a, b) return a == b or same[a .. "=" .. b] or same[b .. "=" .. a] or false end
 	renv.SetTarget(true)
+	renv.FireEvent("PLAYER_FOCUS_CHANGED")
 	renv.RunTimers()
 	local infusion = assert(Pop(rns, "Infusion"), "Power Infusion builds once known")
+	local self = infusion.lits[1]
+	Gain(renv, "player", 10060)
+	local warned = Drains(self)
+	assert(self:IsShown() and self.flareGate.lit.flare.play:IsPlaying() and warned > 0, "on the priest the flare rises and the late warning drains")
+	Gone(renv)
+	Finish(renv)
 	for _, unit in ipairs({ "target", "focus" }) do
 		local ally = assert(On(infusion, unit), "Power Infusion has a slot on the " .. unit)
 		Gain(renv, unit, 10060, { mine = false })
 		assert(not ally:IsShown(), "another priest's Power Infusion on the " .. unit .. " lights nothing")
 		Gain(renv, unit, 10060, { mine = true })
-		assert(ally:IsShown() and not infusion.lits[1]:IsShown(), "the priest's own Power Infusion on the " .. unit .. " lights its slot")
+		assert(ally:IsShown() and not self:IsShown(), "the priest's own Power Infusion on the " .. unit .. " lights its slot")
+		assert(ally:IsVisible() and Seen(ally, infusion) == 1, "a " .. unit .. " who is someone else draws")
+		assert(ally.flareGate and ally.flareGate.lit.flare.play:IsPlaying(), "on the " .. unit .. " the flare rises as it does on the priest")
+		assert(AB.W.LastCall(ally._cooldown, "SetCooldownFromDurationObject") and Drains(ally) == warned, "on the " .. unit .. " the ring and the late warning drain with it")
+		assert(next(infusion.ups) and not infusion.fold.play:IsPlaying(), "it is up and not folding")
 		Slots.Set(renv, unit, nil)
-		assert(not ally:IsShown(), "and goes when it goes")
+		renv.RunTimers()
+		assert(not ally:IsShown() and infusion.fold.play:IsPlaying(), "its end on the " .. unit .. " folds the pop-off")
+		Finish(renv)
 	end
+	-- The priest targeting themself: the target's slot lights beside the priest's own, and only one draws.
+	local target, focus = On(infusion, "target"), On(infusion, "focus")
+	same["target=player"] = true
+	renv.FireEvent("PLAYER_TARGET_CHANGED")
 	Gain(renv, "player", 10060)
-	assert(infusion.lits[1]:IsShown(), "Power Infusion on the priest lights the pop-off")
+	Gain(renv, "target", 10060, { mine = true })
+	assert(self:IsVisible() and target:IsShown() and not target:IsVisible(), "a target who is the priest draws once")
+	-- The focus who is also the target, with the comparison secret: the engine applies the secret answer, and the focus slot draws nothing.
+	same["target=player"] = nil
+	local secret = renv.Secret(true)
+	same["focus=target"] = secret
+	renv.FireEvent("PLAYER_TARGET_CHANGED")
+	Gain(renv, "focus", 10060, { mine = true })
+	local gated
+	for frame in function(_, f) return f ~= infusion and f:GetParent() or nil end, nil, focus do
+		local call = frame._state.AlphaFromBoolean
+		gated = gated or call and call[1] == secret and call[2] == 0 and call[3] == 1
+	end
+	assert(target:IsVisible() and Seen(target, infusion) == 1 and focus:IsVisible() and gated, "a focus who is the target draws once")
+	same["focus=target"] = nil
+	renv.FireEvent("PLAYER_FOCUS_CHANGED")
+	assert(focus:IsVisible() and Seen(focus, infusion) == 1, "a new focus draws again")
 	Clean(renv, rK, "priest")
 end
 
