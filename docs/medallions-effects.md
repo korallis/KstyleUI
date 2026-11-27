@@ -416,7 +416,7 @@ While auras are secret the orb reads none: the aura slots keep drawing what the 
 
 ## Mage crest rail
 
-The mage's **Cooldown rail** (Action Bars > Slab and cooldowns > Cooldown rail, on by default, Medallions only) is the hunter's rail with a mage's kit: up to eight known abilities and the on-use trinket, in the order the talent tree picks, each burning its sigil's animated Blender aura in the mage's violet (`pipMageGlow`; the racials' sigils tinted by it). The orb's own cooldown is never seated.
+The mage's **Cooldown rail** (Action Bars > Slab and cooldowns > Cooldown rail, on by default, Medallions only) is the hunter's rail with a mage's kit: up to eight known abilities and the on-use trinket, in the order the talent tree picks, each burning its sigil's animated Blender aura in the mage's violet (`pipMageGlow`; the racials' sigils tinted by it). The orb's own cooldown is never seated. No mage seat rises to the crown: the mage's kit names no buff for a seat to crown, so a pressed seat dips, bursts and cools in place.
 
 | Tree (signature) | Seats, in order, known ones only |
 | --- | --- |

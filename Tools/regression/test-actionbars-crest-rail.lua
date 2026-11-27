@@ -135,6 +135,26 @@ do
 	Clean(env, K)
 end
 
+-- isOnGCD means something only inside SPELL_UPDATE_COOLDOWN (SpellSharedDocumentation.lua): there the global cooldown alone
+-- leaves a seat lit; a rebuild outside the event reads isActive alone, and the next cooldown event settles it.
+do
+	local env, K, ns = New("HUNTER", { known = BM })
+	Awake(env)
+	local rapid = Rail(ns).made.rapid
+	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = true } end
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(rapid.ready == true, "the global cooldown alone leaves Rapid Fire's seat lit")
+	K.Options.Write("ActionBars", "crestRail", false)
+	env.RunTimers()
+	K.Options.Write("ActionBars", "crestRail", true)
+	env.RunTimers()
+	rapid = Rail(ns).made.rapid
+	assert(rapid.ready == false, "rebuilt outside the cooldown event, a seat whose cooldown reads active shows steel")
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(rapid.ready == true, "the next cooldown event sees only the global cooldown and relights it")
+	Clean(env, K)
+end
+
 do
 	local env, K, ns = New("HUNTER", { known = { 13165, 883, 75, 19574, 3045, 14305 } })
 	assert(Keys(Rail(ns)) == "wrath,rapid,trap", "an unlearned ability and an empty trinket slot leave no seat: " .. Keys(Rail(ns)))
