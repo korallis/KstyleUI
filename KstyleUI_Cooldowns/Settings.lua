@@ -467,7 +467,7 @@ function Settings.Schema()
 	local schema = {
 		{ type = "toggle", key = "quietCooldown", label = L["Quieter cooldowns"], help = L["Removes the bright edge from the global cooldown and keeps cooling icons readable."] },
 		{ type = "toggle", key = "readableCountdown", label = L["Readable countdowns"], help = L["Uses the same bare seconds and minute labels as action buttons."] },
-		{ type = "toggle", key = "medallionsIcons", label = L["Match Medallions sockets"], help = L["Uses the action slab's metal frame for cooldown and tracked buff icons in Medallions."] },
+		{ type = "toggle", key = "medallionsIcons", label = L["Match Medallions sockets"], help = L["In Medallions, shows cooldowns as round crest medals on rails and tracked buffs in a metal frame."] },
 		{ type = "header", label = L["Cooldown Manager"] },
 		{
 			type = "dropdown", key = "path", label = L["Display"],

@@ -421,7 +421,7 @@ function Style.Decorate(icon, group)
 		icon.Restyle = function(self)
 			restyle(self)
 			self.countBase, self.keyBase = nil, nil
-			Style.Dress(self)
+			Style.Dress(self, group)
 			Style.PlaceText(self, group)
 			if self.rankDots then Style.Rank(self, self.rank) end
 			Style.TextColour(self.countdown, self.rule and self.rule.timerColour, "slotNumber")
@@ -433,8 +433,8 @@ function Style.Decorate(icon, group)
 	return icon
 end
 
-function Style.Dress(icon)
-	Widgets.MedallionsIcon(icon, ns.Settings.current.medallionsIcons == true and K.HudStyle.Current() == "medallions")
+function Style.Dress(icon, group)
+	Widgets.MedallionsIcon(icon, ns.Settings.current.medallionsIcons == true and K.HudStyle.Current() == "medallions", ns.Settings.COOLDOWN_GROUPS[group] == true)
 end
 
 function Style.Tooltips(frame)
@@ -456,6 +456,7 @@ function Style.SetProc(icon, on)
 		return
 	end
 	icon:SetProc(on)
+	if icon.medIconFrame then Widgets.MedallionsProc(icon) end
 end
 
 function Style.Glow(store, frame, key, on, r, g, b)

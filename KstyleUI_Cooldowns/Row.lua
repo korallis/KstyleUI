@@ -13,6 +13,7 @@ local OVERFLOW = { buffs = true }
 local COOLDOWN_GROUPS = ns.Settings.COOLDOWN_GROUPS
 local EMPTY = ns.Rules.EMPTY
 local SWIPE_ALPHA = 0.65
+local RAIL = { 0.16, 0.06 }
 local styleCooldown
 
 local function StyleCooldown(icon, real)
@@ -61,7 +62,7 @@ function Row:StyleIcon(icon)
 	Style.PlaceText(icon, self.group)
 	Style.Mouse(icon, current.tooltips and not icon.ruleHidden and not icon.blank)
 	Style.Accent(icon)
-	Style.Dress(icon)
+	Style.Dress(icon, self.group)
 	Style.Lift(icon)
 	self:Look(icon)
 end
@@ -75,7 +76,7 @@ function Row:Recharge(icon, dress)
 		icon.rechargeSwipe = swipe
 		charge:SetDrawSwipe(swipe)
 		if swipe then
-			charge:SetSwipeTexture((K.Tokens.Texture("iconMask")))
+			charge:SetSwipeTexture((K.Tokens.Texture(icon.medRound and "dot" or "iconMask")))
 			charge:SetSwipeColor(Widgets.Rgba("black", SWIPE_ALPHA))
 		end
 	end
@@ -142,7 +143,7 @@ function Row:Swing(icon, start, duration)
 	if start and not sweep then
 		sweep = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate")
 		sweep:SetAllPoints(icon.icon)
-		sweep:SetSwipeTexture((K.Tokens.Texture("iconMask")))
+		sweep:SetSwipeTexture((K.Tokens.Texture(icon.medRound and "dot" or "iconMask")))
 		sweep:SetSwipeColor(Widgets.Rgba("black", SWIPE_ALPHA))
 		sweep:SetDrawEdge(false)
 		sweep:SetDrawBling(false)
@@ -218,6 +219,46 @@ function Row:Place()
 			end
 			icon:ClearAllPoints()
 			icon:SetPoint("TOPLEFT", self.content, "TOPLEFT", Widgets.Snap(self.holder, x), -Widgets.Snap(self.holder, y))
+		end
+	end
+	self:Rails()
+end
+
+function Row:Rails()
+	local lines, order = {}, {}
+	for i = 1, self.count do
+		local icon = self.icons[i]
+		local _, _, _, x, y = icon:GetPoint(1)
+		if icon.medRound and not icon.ruleGap and x then
+			local size = icon.opts.size
+			local line = lines[y]
+			if not line then
+				line = { left = x, right = x + size, size = size }
+				lines[y] = line
+				order[#order + 1] = y
+			end
+			line.left, line.right, line.size = math.min(line.left, x), math.max(line.right, x + size), math.max(line.size, size)
+		end
+	end
+	self.rails = self.rails or {}
+	for i = 1, math.max(#order, #self.rails) do
+		local rail, y = self.rails[i], order[i]
+		local line = y and lines[y]
+		if line and not rail then
+			rail = { self.content:CreateTexture(nil, "BACKGROUND", nil, 1), self.content:CreateTexture(nil, "BACKGROUND", nil, 2) }
+			rail[1]:SetColorTexture(K.Tokens.Color("black"))
+			rail[2]:SetColorTexture(K.Tokens.Color("medSocketLip"))
+			self.rails[i] = rail
+		end
+		for layer, texture in ipairs(rail or {}) do
+			texture:SetShown(line ~= nil and line.right - line.left > line.size)
+			if line then
+				local half = line.size / 2
+				texture:ClearAllPoints()
+				texture:SetPoint("LEFT", self.content, "TOPLEFT", line.left + half, y - half)
+				texture:SetPoint("RIGHT", self.content, "TOPLEFT", line.right - half, y - half)
+				texture:SetHeight(Widgets.Snap(self.holder, line.size * RAIL[layer]))
+			end
 		end
 	end
 end
