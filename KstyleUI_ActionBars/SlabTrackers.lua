@@ -538,7 +538,7 @@ function Trackers.Update()
 	form.lua, form.hooked = {}, {}
 	for _, key in ipairs(order) do
 		local spec = specs[key]
-		local piece = form.pieces[key] or not restricted and Build(form, name, key, spec)
+		local piece = form.pieces[key] or not restricted and not (spec.lazy and not spec.active(spec)) and Build(form, name, key, spec)
 		if piece then
 			Medals.Retexture(piece, spec.texture)
 			for _, face in ipairs(restricted and {} or { piece, unpack(piece.twins or {}) }) do

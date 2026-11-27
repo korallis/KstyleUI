@@ -1,4 +1,4 @@
--- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment and its review): every class has one or two, the mage's listed first and the hunter's second, each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each class's pop-offs take seats of their own or the overlay seat they were chosen for; each lights from its own aura on its own unit and no other, and goes when the aura goes; at Full the flare rises, at Calm it is still and at Off it is dark; the aura's end folds it at Full only, and Calm, Off, the crest coming to rest or the piece hiding stop a fold already running or waiting for its frame; Ice Block covers the emblem, Evocation's ticks loop into the mana gem at Full only, Divine Shield's fold shrinks into the Forbearance ring that lights from the debuff, Power Infusion also lights when the priest casts it on a target or focus, with the same flare, ring, late warning and shared fold, and once when the target or focus is the priest or the focus is the target, Bestial Wrath rises from the pet band, and either rank of Nightfall builds Shadow Trance; the switch hides them; while auras are secret, from before combat until the restriction lifts, nothing touches the slots and an aura's end still folds.
+-- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment and its review): every class has one or two, the mage's listed first and the hunter's second, each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each class's pop-offs take seats of their own or the overlay seat they were chosen for; each lights from its own aura on its own unit and no other, and goes when the aura goes; at Full the flare rises, at Calm it is still and at Off it is dark; the aura's end folds it at Full only, and Calm, Off, the crest coming to rest or the piece hiding stop a fold already running or waiting for its frame; Ice Block covers the emblem, Evocation's ticks loop into the mana gem at Full only, Divine Shield's fold shrinks into the Forbearance ring that lights from the debuff, Power Infusion also lights when the priest casts it on a target, focus or, in a party or raid, a member they have not selected, with the same flare, ring, late warning and shared fold, keeps lighting through target and focus changes, draws once for one ally reached through two names, keeps a missing member's slot hidden and listens only while it shows, Bestial Wrath lights from the pet on the upper seat, and either rank of Nightfall builds Shadow Trance; the switch hides them; while auras are secret, from before combat until the restriction lifts, nothing touches the slots and an aura's end still folds.
 local F = dofile("Tools/regression/crest_armory_fixture.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local AB, Slots, New, Clean = F.AB, F.Slots, F.New, F.Clean
@@ -160,6 +160,9 @@ local lit = block.lits[1]
 assert(not lit:IsShown() and not block.fold:IsShown(), "with no aura the pop-off and its fold draw nothing")
 local w = block:GetWidth()
 assert(w >= 2 * evocation:GetWidth(), "the Ice Block shell is drawn round the emblem, wider than a seated pop-off")
+local _, shellAt, _, sx, sy = block:GetPoint(1)
+local _, gemAt, _, gx, gy = evocation:GetPoint(1)
+assert(shellAt == gemAt and sx == 0 and sy == 0 and (gx ~= 0 or gy ~= 0), "the shell is centred on the emblem, where Evocation sits off it on the gem")
 
 -- Full: the aura lights it, the flare plays in place over the emblem, the ring drains, and the end folds it.
 local full = lit.flareGate.lit
@@ -221,23 +224,35 @@ assert(#into == 2 and into[1][1] == -into[2][1] and into[2][1] * seat[1] > 0 and
 Gain(env, "player", 12051)
 assert(vlit:IsShown() and Slots.Engine(env, function() return F.Lit(evocation) end), "Evocation lights")
 assert(ticks:IsPlaying(), "at Full the ticks loop")
-Gone(env)
-Finish(env)
-Motion(env, K, "calm")
-Gain(env, "player", 12051)
--- Calm and Off show the twin faces whose hold layer the engine lights; the Full face keeps its loop but stays dark.
-local looping = false
-for _, face in ipairs({ evocation, unpack(evocation.twins or {}) }) do
-	local loop, alpha, node = face.lits[1].loops and face.lits[1].loops[#face.lits[1].loops], 1, face.lits[1].hold
-	while node do
-		alpha, node = alpha * node:GetAlpha(), node:GetParent()
-	end
-	looping = looping or loop ~= nil and loop:IsPlaying() and alpha > 0
+-- One tick every 2 s, as the plan's Evocation treatment says: the group's orders run one after another.
+local ends = {}
+for _, a in ipairs(ticks._anims) do
+	local order = a:GetOrder()
+	ends[order] = math.max(ends[order] or 0, a:GetDuration())
 end
-assert(not looping, "at Calm no shown face loops its ticks")
+local period = 0
+for _, d in pairs(ends) do period = period + d end
+assert(math.abs(period - 2) < 0.001, "a tick runs every 2 s (" .. period .. ")")
 Gone(env)
-Motion(env, K, "full")
+assert(not vlit:IsShown() and not ticks:IsPlaying(), "the channel's end stops the ticks")
 Finish(env)
+for _, level in ipairs({ "calm", "off" }) do
+	Motion(env, K, level)
+	Gain(env, "player", 12051)
+	-- Calm and Off show the twin faces whose hold layer the engine lights; the Full face keeps its loop but stays dark.
+	local looping = false
+	for _, face in ipairs({ evocation, unpack(evocation.twins or {}) }) do
+		local loop, alpha, node = face.lits[1].loops and face.lits[1].loops[#face.lits[1].loops], 1, face.lits[1].hold
+		while node do
+			alpha, node = alpha * node:GetAlpha(), node:GetParent()
+		end
+		looping = looping or loop ~= nil and loop:IsPlaying() and alpha > 0
+	end
+	assert(not looping and vlit:IsShown(), "at " .. level .. " Evocation lights and no shown face loops its ticks")
+	Gone(env)
+	Motion(env, K, "full")
+	Finish(env)
+end
 Clean(env, K, "evocation")
 
 -- Calm: the still flare and no fold.
@@ -333,20 +348,41 @@ for what, write in pairs({
 	assert(not block.fold.play:IsPlaying() and not block.fold:IsShown(), what .. ": a fold that waited for the next frame does not play once the pop-off was hidden")
 	Finish(env)
 end
+-- In the game the switch hides the pop-off before its slots are disabled, so the slot's watch stops after the pop-off's OnHide; the stub
+-- disables the slots first, so the test hides the piece and then stops the watch the way the disabled slot does. It schedules nothing,
+-- and no fold plays when the pop-off shows again before the next frame.
+Gain(env, "player", 11958)
+block:Hide()
+Hid(block)
+lit.watch:Stop()
+assert(not block.settling, "an aura that ends on a hidden pop-off schedules no fold")
+block:Show()
+env.RunTimers()
+assert(not block.fold.play:IsPlaying() and not block.fold:IsShown(), "and none plays when it shows again before the next frame")
+Gone(env)
+Finish(env)
+-- Calm, then Full again, before the fold's frame: the waiting fold is dropped.
+for _, level in ipairs({ "calm", "off" }) do
+	Gain(env, "player", 11958)
+	Slots.Set(env, "player", nil)
+	assert(block.settling, level .. ": the aura's end waits a frame to fold")
+	K.Options.Write("Medallions", "motion", level)
+	K.Options.Write("Medallions", "motion", "full")
+	env.RunTimers()
+	assert(not block.fold.play:IsPlaying() and not block.fold:IsShown(), level .. ": a fold waiting for its frame is dropped when the motion level drops, even if Full returns first")
+	Finish(env)
+end
 Clean(env, K, "switch")
 
--- The hunter's Bestial Wrath rises off the pet band into its seat, at the pet band's offset below it.
+-- The hunter's Bestial Wrath takes the upper seat, which no hunter piece holds, so the Serpent Sting fuse on the right band never turns it away;
+-- a rise from the pet band would cross the Hunter's Mark reticle and the Auto Shot emblem (test-actionbars-crest-popoffs-reach).
 do
-	local henv, hK, hns = New("HUNTER", { 19574, 19263 })
+	local henv, hK, hns = New("HUNTER", { 19574, 19263, 1978 })
 	henv.SetTarget(true)
 	henv.RunTimers()
 	local wrath = assert(Pop(hns, "Beast"), "Bestial Wrath builds once known")
-	local moves = {}
-	for _, a in ipairs(wrath.lits[1].flareGate.lit.flare.play._anims) do
-		if a._type == "Translation" then moves[#moves + 1] = { a:GetOffset() } end
-	end
-	local pet, at = hns.SlabSeats.AT.pet, wrath.spec.seat
-	assert(#moves == 2 and moves[1][1] == pet[1] - at[1] and moves[1][2] == pet[2] - at[2] and moves[2][1] == -moves[1][1], "the flare starts on the pet band and rises into the seat")
+	local crest = hns.SlabTrackers.state.forms.crest
+	assert(hns.SlabSeats.Name(wrath.spec.seat) == "upper" and #crest.refused == 0 and crest.claims.bandRight == "crestSting", "Bestial Wrath holds the upper seat beside Serpent Sting's band: " .. table.concat(crest.refused, "; "))
 	Gain(henv, "pet", 19574)
 	assert(wrath.lits[1]:IsShown(), "Bestial Wrath lights from the pet")
 	Clean(henv, hK, "hunter")
@@ -449,6 +485,101 @@ do
 	renv.FireEvent("PLAYER_FOCUS_CHANGED")
 	assert(focus:IsVisible() and Seen(focus, infusion) == 1, "a new focus draws again")
 	Clean(renv, rK, "priest")
+end
+
+-- Power Infusion's chosen reach (the crest plan's review): a party or raid member the priest has not selected, such as one healed by a click-cast,
+-- lights the same pop-off; it stays through target and focus changes; a member who is also the target, the focus or the priest
+-- draws once; a member who is not there watches nothing; and the pop-off listens for identity and roster changes only while shown.
+local function Shown(from, art)
+	for _, p in ipairs(Pops(from)) do
+		if p.spec.art == art and p:IsShown() then return p end
+	end
+end
+
+local function Listeners(at, event)
+	local n = 0
+	for _, f in ipairs(at._frames) do
+		if f._events[event] then n = n + 1 end
+	end
+	return n
+end
+
+do
+	local genv, gK, gns = New("PRIEST", { 10060 })
+	local same, members, raid = {}, {}, false
+	genv.UnitIsUnit = function(a, b) return a == b or same[a .. "=" .. b] or same[b .. "=" .. a] or false end
+	genv.IsInGroup = function() return next(members) ~= nil end
+	genv.IsInRaid = function() return raid end
+	local exists = genv.UnitExists
+	genv.UnitExists = function(unit) return members[unit] == true or exists(unit) end
+	genv.SetTarget(true)
+	genv.RunTimers()
+	local solo = assert(Shown(gns, "Infusion"), "Power Infusion builds once known")
+	assert(not On(solo, "party1") and not On(solo, "raid1"), "a priest on their own watches no party or raid member")
+	members.party1, members.party2 = true, true
+	genv.FireEvent("GROUP_ROSTER_UPDATE")
+	genv.RunTimers()
+	local party = assert(Shown(gns, "Infusion"), "in a party the pop-off shows")
+	assert(party ~= solo and not solo:IsShown() and On(party, "party4") and not On(party, "raid1"), "in a party the pop-off watches the four party members")
+	local p2, p3 = On(party, "party2"), On(party, "party3")
+	local host = p3:GetParent()
+	while host and not (host.unit == "party3" and host.other == nil) do host = host:GetParent() end
+	assert(host and not host:IsShown() and not p3:IsVisible(), "a party member who is not there keeps their slot hidden, so it reads no auras")
+	members.party3 = true
+	genv.FireEvent("GROUP_ROSTER_UPDATE")
+	assert(host:IsShown(), "and joining shows it")
+	members.party3 = nil
+	genv.FireEvent("GROUP_ROSTER_UPDATE")
+	assert(not host:IsShown(), "and leaving hides it again")
+	Gain(genv, "party2", 10060, { mine = false })
+	assert(not p2:IsShown(), "another priest's Power Infusion on a party member lights nothing")
+	Gain(genv, "party2", 10060, { mine = true })
+	assert(p2:IsVisible() and Seen(p2, party) == 1 and p2.flareGate.lit.flare.play:IsPlaying(), "the priest's Power Infusion on a party member they have not selected lights and rises")
+	assert(Drains(p2) > 0, "and its ring and late warning drain")
+	genv.SetTarget(false)
+	genv.FireEvent("PLAYER_FOCUS_CHANGED")
+	assert(p2:IsVisible() and Seen(p2, party) == 1, "it stays lit through target and focus changes")
+	same["target=party2"] = true
+	genv.SetTarget(true)
+	Gain(genv, "target", 10060, { mine = true })
+	local target = On(party, "target")
+	assert(target:IsVisible() and p2:IsShown() and not p2:IsVisible(), "a party member who is the target draws once")
+	same["target=party2"] = nil
+	genv.SetTarget(true)
+	Slots.Set(genv, "target", nil)
+	genv.RunTimers()
+	assert(p2:IsVisible() and not party.fold.play:IsPlaying(), "a new target leaves the party member's pop-off drawn and unfolded")
+	Slots.Set(genv, "party2", nil)
+	genv.RunTimers()
+	assert(party.fold.play:IsPlaying(), "its end on the party member folds the pop-off")
+	Finish(genv)
+	raid, members.raid1, members.raid5 = true, true, true
+	same["raid1=player"] = true
+	genv.FireEvent("GROUP_ROSTER_UPDATE")
+	genv.RunTimers()
+	local band = assert(Shown(gns, "Infusion"), "in a raid the pop-off shows")
+	assert(band ~= party and On(band, "raid40") and not On(band, "party1"), "in a raid it watches the forty raid members")
+	local r1, r5 = On(band, "raid1"), On(band, "raid5")
+	Gain(genv, "raid5", 10060, { mine = true })
+	assert(r5:IsVisible() and Seen(r5, band) == 1, "the priest's Power Infusion on a raid member lights")
+	Gain(genv, "player", 10060)
+	Gain(genv, "raid1", 10060, { mine = true })
+	assert(band.lits[1]:IsVisible() and r1:IsShown() and not r1:IsVisible(), "the raid member who is the priest draws once")
+	local on = Listeners(genv, "GROUP_ROSTER_UPDATE")
+	assert(on > 0 and Listeners(genv, "PLAYER_FOCUS_CHANGED") > 0, "a shown Power Infusion pop-off listens for roster and identity changes")
+	gK.Options.Write("ActionBars", "crestPopoffs", false)
+	genv.RunTimers()
+	Hid(band)
+	assert(Listeners(genv, "GROUP_ROSTER_UPDATE") == on - 1, "switched off it stops listening")
+	same["raid1=player"] = nil
+	genv.FireEvent("GROUP_ROSTER_UPDATE")
+	local mine = r1
+	while mine and mine.other ~= "player" do mine = mine:GetParent() end
+	assert(mine and not mine:IsShown(), "a hidden pop-off does not notice a changed raid")
+	gK.Options.Write("ActionBars", "crestPopoffs", true)
+	genv.RunTimers()
+	assert(Listeners(genv, "GROUP_ROSTER_UPDATE") == on and r1:IsVisible(), "shown again it listens and reads the raid afresh")
+	Clean(genv, gK, "group priest")
 end
 
 -- A warlock who knows only the second rank of Nightfall still builds Shadow Trance's pop-off.

@@ -127,14 +127,14 @@ local function Poses(solver, region, unit)
 				for _, k in ipairs(scales) do
 					for _, o in ipairs(offsets) do
 						local dx, dy = o[1] * unit, o[2] * unit
-						moved[#moved + 1] = { px + (p[1] - px) * k + dx, px + (p[2] - px) * k + dx, py + (p[3] - py) * k + dy, py + (p[4] - py) * k + dy, travel = p.travel or dx ~= 0 or dy ~= 0 }
+						moved[#moved + 1] = { px + (p[1] - px) * k + dx, px + (p[2] - px) * k + dx, py + (p[3] - py) * k + dy, py + (p[4] - py) * k + dy }
 					end
 				end
 			end
 			poses = {}
 			local seen = {}
 			for _, p in ipairs(moved) do
-				local key = string.format("%.1f %.1f %.1f %.1f %s", p[1], p[2], p[3], p[4], tostring(p.travel))
+				local key = string.format("%.1f %.1f %.1f %.1f", p[1], p[2], p[3], p[4])
 				if not seen[key] then
 					seen[key] = true
 					poses[#poses + 1] = p
@@ -222,7 +222,7 @@ local function Covers(region, poses, peer, meant)
 		for y = math.floor(b) + 0.5, t, 1 do
 			for x = math.floor(l) + 0.5, r, 1 do
 				if Solid(region, (x - p[1]) / (p[2] - p[1]), (p[3] - y) / (p[3] - p[4])) and Solid(peer.region, (x - peer[1]) / (peer[2] - peer[1]), (peer[3] - y) / (peer[3] - peer[4])) then
-					if not meant(x, y, p) then
+					if not meant(x, y, p, peer) then
 						return x, y
 					end
 				end
@@ -231,14 +231,16 @@ local function Covers(region, poses, peer, meant)
 	end
 end
 
--- Meant(solver, popoff) -> whether the pop-off draws a pixel over another piece on purpose: an overlay (Ice Block's shell, Divine
--- Shield's bubble, Evocation over the mana gem) covers what lies inside its own timer ring's box, so only its reach past that box counts, and a pop-off
--- that rises from another piece (Bestial Wrath from the pet band) or sends ticks into its seat (Evocation into the mana gem) passes over what
--- lies on its way while it travels.
-local function Meant(solver, popoff)
-	local own = popoff.overlay and solver:rect(popoff.frame.lits[1].timer)
-	return function(x, y, pose)
-		return own and own[1] <= x and x <= own[3] and own[2] <= y and y <= own[4] or popoff.from and pose.travel
+-- Meant(popoff) -> whether the pop-off draws a pixel over another piece on purpose: an overlay (Ice Block's shell, Divine Shield's bubble,
+-- Evocation over the mana gem) and Evocation's ticks cover only the piece on their own seat. Seats compare in crest units.
+local function Near(a, b)
+	return a and b and math.abs(a[1] - b[1]) < 4 and math.abs(a[2] - b[2]) < 4
+end
+
+local function Meant(popoff)
+	local seat, own = popoff.at, popoff.overlay or popoff.frame.spec.ticks
+	return function(_, _, _, peer)
+		return own and Near(peer.piece.at, seat) or false
 	end
 end
 
@@ -295,7 +297,9 @@ function Reach.Check(sizes, classes, popoffs)
 			local checked = 0
 			local pieces = {}
 			for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-				pieces[#pieces + 1] = { key = p.spec.key, frame = p, overlay = p.spec.overlay, from = p.spec.ticks or p.spec.from and (p.spec.from[1] ~= 0 or p.spec.from[2] ~= 0), seat = ns.SlabSeats.Name(p.spec.seat), rim = not ns.SlabSeats.Name(p.spec.seat), regions = RING[p.spec.key] and {} or Textures(p, {}) }
+				local seat = p.spec.seat
+				seat = type(seat) == "table" and seat or ns.SlabSeats.AT[seat]
+				pieces[#pieces + 1] = { key = p.spec.key, frame = p, overlay = p.spec.overlay, at = seat, seat = ns.SlabSeats.Name(p.spec.seat), rim = not ns.SlabSeats.Name(p.spec.seat), regions = RING[p.spec.key] and {} or Textures(p, {}) }
 			end
 			for i, p in ipairs(ns.SlabHawks and ns.SlabHawks.state.perches or {}) do
 				pieces[#pieces + 1] = { key = "hawk perch " .. i, regions = Textures(p.holder, {}) }
@@ -353,7 +357,7 @@ function Reach.Check(sizes, classes, popoffs)
 						for _, a in ipairs(avoid) do
 							assert(r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses an action slot, the level badge, a unit frame or a cast bar")
 						end
-						local poses, meant = popoffs and Poses(solver, region, unit), popoffs and Meant(solver, p)
+						local poses, meant = popoffs and Poses(solver, region, unit), popoffs and Meant(p)
 						for _, a in ipairs(popoffs and peers or {}) do
 							local x, y
 							if a.piece ~= p then

@@ -14,10 +14,22 @@ local SIZE, TRACK, BURST = 26, 4, 1.1
 local RISE, RISE_RUN, RISE_FROM, FLASH, POP, POP_RUN = 22, 0.32, 0.55, 0.05, 1.15, 0.35
 local ARRIVE = { { 0, 0, RISE_RUN - 0.08 }, { 0, 1, 0.1 } }
 local FOLD, FOLD_RUN = 1.4, 0.4
-local MOTE, TICK, TICK_RUN, TICK_OUT, TICK_FROM = 12, 2, 0.6, 0.2, 0.5
+local MOTE, TICK, TICK_RUN, TICK_OUT, TICK_FROM = 12, 2, 0.6, 0.2, 0.2
 local FORBEARANCE = 25771
 local OWNER = "ActionBars.SlabPopoffs"
-local folds, watching, twins = {}, false, {}
+local pieces, watching = {}, false
+local seen, present, live = { target = {}, focus = {}, roster = {} }, {}, {}
+local PARTY, RAID, kind = {}, {}, nil
+for i = 1, 4 do
+	PARTY[i] = "party" .. i
+end
+for i = 1, 40 do
+	RAID[i] = "raid" .. i
+end
+
+local function Kind()
+	return IsInRaid and IsInRaid() and "raid" or IsInGroup and IsInGroup() and "party" or "solo"
+end
 
 local function Move(group, dx, dy, duration, order, smoothing)
 	local t = group:CreateAnimation("Translation")
@@ -78,22 +90,68 @@ local function Twin(twin)
 	end
 end
 
-local function Twins()
-	for _, twin in ipairs(twins) do
+local function Present(layer)
+	local here = UnitExists and UnitExists(layer.unit)
+	layer:SetShown(issecretvalue and issecretvalue(here) or here == true)
+end
+
+local function Fresh(list)
+	for _, twin in ipairs(list) do
 		Twin(twin)
 	end
+end
+
+local function OnTarget()
+	Fresh(seen.target)
+end
+
+local function OnFocus()
+	Fresh(seen.focus)
+end
+
+local function OnRoster()
+	if Kind() ~= kind then
+		kind = Kind()
+		ns.SlabTrackers.Update()
+	end
+	for _, layer in ipairs(present) do
+		Present(layer)
+	end
+	Fresh(seen.roster)
 end
 
 local function Unseen(parent, unit, other, level)
 	local twin = Medals.Layer(parent, level)
 	twin.unit, twin.other = unit, other
-	twins[#twins + 1] = twin
-	if #twins == 1 then
-		K.Events.Register(OWNER, "PLAYER_TARGET_CHANGED", Twins)
-		K.Events.Register(OWNER, "PLAYER_FOCUS_CHANGED", Twins)
+	for token, list in pairs(seen) do
+		if unit == token or other == token or token == "roster" and unit ~= "target" and unit ~= "focus" then
+			list[#list + 1] = twin
+		end
 	end
 	Twin(twin)
 	return twin
+end
+
+local function Listening(piece, on)
+	live[piece] = on or nil
+	local any = false
+	for each in pairs(live) do
+		live[each] = each:IsShown() or nil
+		any = any or each:IsShown()
+	end
+	for event, fn in pairs({ PLAYER_TARGET_CHANGED = OnTarget, PLAYER_FOCUS_CHANGED = OnFocus, GROUP_ROSTER_UPDATE = OnRoster }) do
+		if any then
+			K.Events.Register(OWNER, event, fn)
+		else
+			K.Events.Unregister(OWNER, event)
+		end
+	end
+	if on then
+		kind = Kind()
+		OnRoster()
+		OnTarget()
+		OnFocus()
+	end
 end
 
 local function Fold(piece, spec, size, level)
@@ -112,15 +170,20 @@ end
 
 local function Calm(still)
 	if still then
-		for _, fold in ipairs(folds) do
-			fold.play:Stop()
+		for _, piece in ipairs(pieces) do
+			piece.settling = nil
+			piece.fold.play:Stop()
 		end
 	end
 end
 
+local function Moving(piece)
+	return piece:IsVisible() and Effects.Allows("ambient") and not ns.Slab.Resting()
+end
+
 local function Folds(piece)
 	piece.settling = nil
-	if next(piece.ups) or not (piece:IsVisible() and Effects.Allows("ambient") and not ns.Slab.Resting()) then
+	if next(piece.ups) or not Moving(piece) then
 		return
 	end
 	piece.fold.play:Stop()
@@ -137,7 +200,7 @@ local function Watch(piece, lit)
 	end)
 	watch:SetScript("OnStop", function()
 		piece.ups[watch] = nil
-		if not piece.settling and C_Timer and C_Timer.After then
+		if not piece.settling and Moving(piece) and C_Timer and C_Timer.After then
 			local mark = {}
 			piece.settling = mark
 			C_Timer.After(0, function()
@@ -156,9 +219,9 @@ end
 
 local function Life(piece, lit, spec, size, level)
 	Medals.Sheet(piece, lit, "pop" .. spec.art, size)
-	lit.timer = piece.add(Medals.Timer(lit, level + 1, "ringLine16", spec.color), size + TRACK)
+	lit.timer = piece.add(Medals.Timer(lit, level + 1, "ringLine16", spec.color), spec.ring or size + TRACK)
 	lit:SetDurationCooldown(lit.timer)
-	piece.add(Medals.Ember(piece, lit, lit.timer, "RingLine16", level + 2, size + TRACK))
+	piece.add(Medals.Ember(piece, lit, lit.timer, "RingLine16", level + 2, spec.ring or size + TRACK))
 	lit.loops = { Medals.Steps(lit, ARRIVE), spec.ticks and Ticks(piece, lit, spec, level + 2) or nil }
 	for _, flare in ipairs(Medals.Flare(piece, lit, level + 4, "sigil" .. spec.art, spec.overlay and size / POP or size * BURST)) do
 		flare:SetVertexColor(K.Tokens.Color(spec.color))
@@ -173,6 +236,12 @@ end
 
 local function Ally(piece, spec, unit, others, size, level)
 	local host = piece
+	if unit ~= "target" and unit ~= "focus" then
+		host = Medals.Layer(piece, level)
+		host.unit = unit
+		present[#present + 1] = host
+		Present(host)
+	end
 	for _, other in ipairs(others) do
 		host = Unseen(host, unit, other, level)
 	end
@@ -190,16 +259,24 @@ function Popoffs.Build(parent, spec, level)
 		lits[#lits + 1] = Ally(piece, spec, unit, others, size, level + 1)
 		others[#others + 1] = unit
 	end
+	for _, unit in ipairs(spec.group or {}) do
+		lits[#lits + 1] = Ally(piece, spec, unit, spec.group == RAID and { "player", "target", "focus" } or { "target", "focus" }, size, level + 1)
+	end
 	if spec.after then
 		After(piece, spec, level + 1)
 	end
 	if not Medals.twin then
 		piece.fold, piece.ups = Fold(piece, spec, size, level + 4), {}
-		folds[#folds + 1] = piece.fold
+		pieces[#pieces + 1] = piece
 		for _, lit in ipairs(lits) do
 			Watch(piece, lit)
 		end
 		piece:HookScript("OnHide", Hidden)
+		if spec.allies then
+			piece:HookScript("OnShow", function() Listening(piece, true) end)
+			piece:HookScript("OnHide", function() Listening(piece, false) end)
+			Listening(piece, piece:IsVisible())
+		end
 		if not watching then
 			watching = true
 			Medals.OnRest(Calm)
@@ -217,24 +294,25 @@ local function Row(seat, art, color, spells, extra)
 	return row
 end
 
-local UPPER = ns.SlabSeats.AT.upper
-local PET = { Ranged.PET[1] - UPPER[1], Ranged.PET[2] - UPPER[2] }
-
 Popoffs.CLASSES = {
 	{ "MAGE", {
-		Row("emblem", "Crystal", "schoolFrost", { 11958, 27619 }, { known = { 11958 }, overlay = true, size = 96, from = { 0, 0 } }),
+		Row("emblem", "Crystal", "schoolFrost", { 11958, 27619 }, { known = { 11958 }, overlay = true, size = 96, ring = 70, from = { 0, 0 } }),
 		Row(Ranged.PENDANT, "Vortex", "schoolArcane", { 12051 }, { overlay = true, ticks = true, from = { 0, 0 } }),
 	} },
 	{ "HUNTER", {
-		Row("upper", "Beast", "schoolFire", { 19574 }, { unit = "pet", from = PET }),
+		Row("upper", "Beast", "schoolFire", { 19574 }, { unit = "pet" }),
 		Row("popHunter", "Deflect", "schoolPhysical", { 19263 }, { from = { 0, -RISE } }),
 	} },
 	{ "PALADIN", {
-		Row("emblem", "Bubble", "schoolHoly", { 642, 1020 }, { overlay = true, size = 96, from = { 0, 0 }, after = { spell = FORBEARANCE, size = 60, color = "jewelHoly" } }),
+		Row("emblem", "Bubble", "schoolHoly", { 642, 1020 }, { overlay = true, size = 52, ring = 48, from = { 0, 0 }, after = { spell = FORBEARANCE, size = 44, color = "jewelHoly" } }),
 		Row("popRight", "Sun", "jewelHoly", { 20216 }),
 	} },
 	{ "PRIEST", {
-		Row("popLeft", "Infusion", "schoolHoly", { 10060 }, { allies = { "target", "focus" } }),
+		Row("popLeft", "Infusion", "schoolHoly", { 10060 }, { allies = { "target", "focus" }, choices = {
+			{ lazy = true, group = RAID, active = function() return Kind() == "raid" end },
+			{ lazy = true, group = PARTY, active = function() return Kind() == "party" end },
+			{},
+		} }),
 		Row("popRight", "Focus", "schoolArcane", { 14751 }),
 	} },
 	{ "WARLOCK", {
