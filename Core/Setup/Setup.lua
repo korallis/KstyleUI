@@ -294,16 +294,23 @@ ns.Callbacks.Register("SettingChanged", "Setup", function(_, module, key)
 	if Layouts.LiftSetting(module, key) then Restyle() end
 end)
 
+local function Screen()
+	if type(GetPhysicalScreenSize) == "function" then return GetPhysicalScreenSize() end
+end
+
 local aspect, band, lane, factor = ns.Scale.Aspect(), ns.Scale.Band(), nil, Setup.EditMode.Factor()
 local rootWidth, rootHeight
+local screenWidth, screenHeight = Screen()
 ns.Callbacks.Register("ScaleChanged", "Setup", function()
 	local width, k = Setup.EditMode.WarningLane(), Setup.EditMode.Factor()
 	local rw, rh = Setup.RootSize()
+	local sw, sh = Screen()
 	local rescaled = math.abs(k - factor) > 1e-3 or (rootWidth and (math.abs(rw - rootWidth) > 0.5 or math.abs(rh - rootHeight) > 0.5))
-	factor, rootWidth, rootHeight = k, rw, rh
+	local resized = sw ~= screenWidth or sh ~= screenHeight
+	factor, rootWidth, rootHeight, screenWidth, screenHeight = k, rw, rh, sw, sh
 	if rescaled or ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band or (lane and width ~= lane) then
 		aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
-		Restyle(rescaled)
+		Restyle(rescaled and not resized)
 	end
 	lane = width
 end)
