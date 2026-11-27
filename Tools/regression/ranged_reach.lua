@@ -96,9 +96,9 @@ function Reach.Check(sizes, classes)
 		local from = Layouts.Style("DPS", FRAMES[3], "medallions")
 		local k = (cast[3] - cast[1]) / from.width
 		for _, key in ipairs(ROW) do
-			local place, size = Layouts.Style("DPS", key, "medallions"), Layouts.Element(key)
+			local place, box = Layouts.Style("DPS", key, "medallions"), Layouts.Element(key)
 			local x, y = (cast[1] + cast[3]) / 2 + (place.x - from.x) * k, cast[2] + (place.y - from.y) * k
-			rail[#rail + 1] = { x - size.width * k / 2, y, x + size.width * k / 2, y + size.height * k }
+			rail[#rail + 1] = { x - box.width * k / 2, y, x + box.width * k / 2, y + box.height * k }
 		end
 		for _, class in ipairs(classes or { "HUNTER", "MAGE", "WARLOCK" }) do
 			local _, ns = Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
