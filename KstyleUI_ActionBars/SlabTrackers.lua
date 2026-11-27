@@ -1,4 +1,4 @@
--- SlabTrackers.lua: the crest trackers' one lifecycle for every class (docs/medallions-effects.md#crest-trackers lists the API): a class registers its rows with Register, each row a piece built from SlabMedals (or its own builder) only while the class knows its spell and its switch is on, on the crest under Medallions and as a row of medals above the stance bar under Frames; the melee classes' rows live here: a warrior's Battle Shout, the opening and Enrage, a paladin's Seal, Judgement and its Judgement on the target, a rogue's Slice and Dice, Rupture and poison vials, and each class's major cooldowns burning round the rim.
+-- SlabTrackers.lua: the crest trackers' one lifecycle for every class (docs/medallions-effects.md#crest-trackers lists the API): a class registers its rows with Register, each row a piece built from SlabMedals (or its own builder) only while the class knows its spell and its switch is on, on the crest under Medallions and as a row of medals above the stance bar under Frames; the melee classes' rows live here: a warrior's Battle Shout, the opening and Enrage, a paladin's Seal, Judgement and its Judgement on the target, a rogue's Slice and Dice, Rupture and poison vials, and each class's major cooldowns burning round the rim; a class's own feed kinds (hooks.kinds) listen only while a piece of that kind is prepared.
 local _, ns = ...
 
 local K = KstyleUI
@@ -35,7 +35,7 @@ local SHARED = {
 	{ spells = { 1259812, 1259813, 1259817, 1259821, 1259823 }, sigil = "Gear", race = true }, { spells = { 1260270 }, sigil = "Regen", race = true },
 	{ spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {}, sigil = "Potion" },
 }
-local CLASSES, HOOKS, JOINED = {}, {}, {}
+local CLASSES, HOOKS, JOINED, HOOKED = {}, {}, {}, {}
 local GATES = { "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }
 Trackers.CLASSES = CLASSES
 
@@ -99,6 +99,12 @@ function Trackers.Register(class, rows, hooks)
 		cooldowns = row.seat == "cooldowns" and row or cooldowns
 	end
 	HOOKS[class] = hooks or HOOKS[class]
+	for kind, events in pairs(hooks and hooks.kinds or {}) do
+		LUA[kind], ROUTE[kind], HOOKED[kind] = events, {}, true
+		for _, event in ipairs(events) do
+			ROUTE[kind][type(event) == "table" and event[1] or event] = true
+		end
+	end
 	local at = hooks and (hooks.armory or hooks.lowTrinkets) and ARMORY_TRINKET or TRINKET
 	for slot = 13, cooldowns and 14 or 0 do
 		table.insert(CLASSES[class], { key = "crestTrinkets", seat = { slot == 13 and -at[1] or at[1], at[2] }, slot = slot, feed = "item", known = Trinket, color = cooldowns.color,
@@ -528,7 +534,7 @@ function Trackers.Update()
 	end
 	local restricted = Medals.Locked()
 	local prepared = {}
-	form.lua = {}
+	form.lua, form.hooked = {}, {}
 	for _, key in ipairs(order) do
 		local spec = specs[key]
 		local piece = form.pieces[key] or not restricted and Build(form, name, key, spec)
@@ -541,7 +547,8 @@ function Trackers.Update()
 			prepared[key] = piece
 			if LUA[spec.feed] then
 				piece.spec = spec
-				form.lua[#form.lua + 1] = piece
+				local list = HOOKED[spec.feed] and form.hooked or form.lua
+				list[#list + 1] = piece
 			end
 		end
 	end
@@ -563,11 +570,13 @@ function Trackers.Update()
 	Motion()
 	Paint()
 	local kinds, seen = {}, {}
-	for _, piece in ipairs(form.lua) do
-		local kind = piece.spec.feed
-		if not seen[kind] then
-			seen[kind] = true
-			kinds[#kinds + 1] = kind
+	for _, list in ipairs({ form.lua, form.hooked }) do
+		for _, piece in ipairs(list) do
+			local kind = piece.spec.feed
+			if not seen[kind] then
+				seen[kind] = true
+				kinds[#kinds + 1] = kind
+			end
 		end
 	end
 	table.sort(kinds)

@@ -305,9 +305,12 @@ do
 	-- still in place of each flat glyph, a seated one over a socket plate, and each perch or fuse head an aura slot feeds adds a
 	-- transparent copy of its still for the Calm arrival cue. That takes the mage from 4,925 to 4,953 and the warlock, whose five
 	-- curse heads, four spire feet and live and sacrificed demon sheets are each their own aura, from 5,099 to 5,227.
+	-- The hunter's new homes take it from 5,224 to 5,345: the pet's family ability perch lights a cooldown and two ringed aura feeds (the pet's debuff
+	-- on the target and Furious Howl), each aura feed with its two motion copies (114 regions), the potion pendant (12), Growl's orders and
+	-- the tracking mark's still glyphs (4 each), the range ring and the pet's focus bar, less the forged bodies the tracking mark gave up.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5224, MAGE = 4953, WARLOCK = 5227 }) do
+	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5345, MAGE = 4953, WARLOCK = 5227 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")

@@ -205,10 +205,15 @@ local function Copies(env, ns, class)
 			assert(#twin.lits == #piece.lits and twin:IsShown() == piece:IsShown(), what .. " has the piece's slots and shows with it")
 			for k, lit in ipairs(piece.lits) do
 				local copy = twin.lits[k]
-				assert(lit.hold and copy.hold and lit.hold ~= copy.hold and lit.hold:GetAlpha() == 1 and copy.hold:GetAlpha() == 0, what .. ": the piece's own slot shows and the copy's is dark")
-				assert(copy.container ~= lit.container, what .. " has an aura feed of its own")
-				if piece:IsShown() then
-					assert(Rect(copy) == Rect(lit), what .. ": slot " .. k .. " sits at " .. Rect(copy) .. ", not on the piece's at " .. Rect(lit))
+				if not lit.container then
+					-- A cooldown feed beside aura slots (the hunter's pet ability) has no slot to copy: the copy leaves it dark.
+					assert(not copy:IsVisible(), what .. ": slot " .. k .. " is a cooldown, which the copy leaves dark")
+				else
+					assert(lit.hold and copy.hold and lit.hold ~= copy.hold and lit.hold:GetAlpha() == 1 and copy.hold:GetAlpha() == 0, what .. ": the piece's own slot shows and the copy's is dark")
+					assert(copy.container ~= lit.container, what .. " has an aura feed of its own")
+					if piece:IsShown() then
+						assert(Rect(copy) == Rect(lit), what .. ": slot " .. k .. " sits at " .. Rect(copy) .. ", not on the piece's at " .. Rect(lit))
+					end
 				end
 			end
 			env._engine = true

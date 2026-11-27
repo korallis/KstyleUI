@@ -526,17 +526,20 @@ for _, name in ipairs({
 end
 for _, name in ipairs({
 	"ArcLeft", "ArcPet", "ArcRight", "ArmorArcane", "ArmorFrost", "Bail", "Beast", "BlackArrow", "Burst", "Cheetah",
-	"ChillShard", "Compass", "Counter", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Frost", "Haunch", "Hawk", "Horns", "Hound", "Hourglass",
+	"ChillShard", "Counter", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Frost", "Haunch", "Hawk", "Horns", "Hourglass",
 	"Imp", "Intellect", "Lacerate", "MarkReticle", "Mongoose", "Monkey", "Pack", "PolyCurl", "Raptor", "RimLeft",
-	"Scorpid", "Serpent", "Siphon", "Succubus", "Swirl", "Tongue", "Trueshot", "Viper", "ViperSting", "Voidwalker", "Weakness",
+	"Scorpid", "Serpent", "Siphon", "Succubus", "Swirl", "Tongue", "Viper", "ViperSting", "Voidwalker", "Weakness",
 	"Wild", "Wyvern"
 }) do
 	TEXTURES["glyph" .. name] = { file = "Textures\\Glyphs\\" .. name .. ".png" }
 end
+for name, file in pairs({ Trueshot = "Sigils\\Aimed", Compass = "Glyphs\\MarkReticle", Hound = "Sigils\\Paw", Family = "Sigils\\Intimidate", Growl = "Figures\\Growl" }) do
+	TEXTURES["glyph" .. name] = { file = "Textures\\" .. file .. ".png" }
+end
 for _, name in ipairs({
-	"glyphBeast", "glyphBlackArrow", "glyphCheetah", "glyphCompass", "glyphCounter", "glyphHaunch", "glyphHawk", "glyphHound", "glyphLacerate", "glyphMongoose",
-	"glyphMonkey", "glyphPack", "glyphRaptor", "glyphScorpid", "glyphSerpent", "glyphTrueshot", "glyphViper", "glyphViperSting", "glyphWild",
-	"glyphWyvern", "sigilAimed", "sigilCharm", "sigilDeflect", "sigilFireTrap", "sigilIntimidate", "sigilPaw", "sigilSniper",
+	"glyphBeast", "glyphBlackArrow", "glyphCheetah", "glyphCounter", "glyphHaunch", "glyphHawk", "glyphLacerate", "glyphMongoose",
+	"glyphMonkey", "glyphPack", "glyphRaptor", "glyphScorpid", "glyphSerpent", "glyphViper", "glyphViperSting", "glyphWild",
+	"glyphWyvern", "glyphTrueshot", "glyphHound", "glyphFamily", "sigilAimed", "sigilCharm", "sigilDeflect", "sigilFireTrap", "sigilIntimidate", "sigilPaw", "sigilSniper",
 	"sigilStrider", "sigilVolley"
 }) do
 	TEXTURES[name].forged = true

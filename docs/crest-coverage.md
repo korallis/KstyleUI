@@ -125,20 +125,20 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 | 13 | Auto Shot and swing 75 | The Auto Shot ring round the crest |
 | 14 | Summon Hawk 1293241 | The two hawk perches |
 | 15 | Pet health | The light along the lower right band |
-| 16 | Pet dead or missing 982 | A forged hound on the pet's perch: steel while no pet is out, red with a breathing halo while it lies dead; a death the game marks secret shows no hound rather than a guess |
+| 16 | Pet dead or missing 982 | The paw sigil on the pet's perch, standing in for the hound until its animated aura lands: steel while no pet is out, red with a breathing halo while it lies dead; a death the game marks secret shows no paw rather than a guess |
 | 17 | Pet happiness 6991 | The forged haunch on the pet's perch |
 | 18 | Mend Pet 136 | Motes along the pet's band |
-| 19 | Pet Focus | No crest piece yet: the pet frame shows it, and the pet band already carries health, mood and Mend Pet |
-| 20 | Pet family ability cooldowns | No crest piece: each family has different abilities, and the pet action bar times them |
-| 21 | Pet-applied debuffs and buffs | No crest piece yet: the target frame's debuffs show them |
-| 22 | Pet target and Growl | No crest piece: autocast state lives on the pet action bar, which the crest does not mirror |
+| 19 | Pet Focus | A second, smaller light within the pet's health along the lower right band, fed the pet's focus and maximum unchanged (`UnitPower`, `UnitPowerMax` on `UNIT_POWER_UPDATE` and `UNIT_MAXPOWER`), so a secret value is never compared |
+| 20 | Pet family ability cooldowns | A perch on the right trinket seat (33, -24) with a stand-in family mark, built for the first family ability the pet's spellbook knows (`C_SpellBook.IsSpellKnown` on the pet bank, refreshed on `PET_BAR_UPDATE`): lit while it is ready, dark while it cools |
+| 21 | Pet-applied debuffs and buffs | The same perch ringed red, the ring draining with the aura, while the pet's Screech, Scorpid Poison, Rend or Dust Cloud runs on the target, and ringed gilt while Furious Howl runs on you |
+| 22 | Pet target and Growl | Growl's mark on the lower band seat (0, -39) while a pet that knows Growl is out: red while Growl's autocast is on in a group or off alone (`C_Spell.GetSpellAutoCast`, `IsInGroup`), or while the pet attacks something other than your hostile target (`UnitIsUnit` on `pettarget`), steel otherwise; a reading the game marks secret leaves it steel |
 | 23 | Armed trap on the ground | Unavailable: the Forever API contracts name no function or event for a placed hunter trap, and a trap is not a totem; the fire trap seat's cooldown starts when it is placed |
 | 24 | Serpent Sting 1978 | The Sting fuse on the right band |
 | 25 | Hunter's Mark 1130 | The reticle on the left band |
 | 26 | Viper Sting 3034 | The Sting fuse; its cooldown on the short rail (Utility) |
 | 27 | Scorpid Sting 3043 | The Sting fuse |
 | 28 | Lacerate bleed | The Sting fuse burns Lacerate 24118 to 24120 and 1299332; Lacerating Strikes 1310533 is not in the supported build's ability catalog |
-| 29 | Immolation Trap burn 13797 | No crest piece yet: a fuse needs a forged mark of its own, and the hunter's marks are being remade as animated auras first |
+| 29 | Immolation Trap burn 13797 | The Sting fuse burns it in fire's colour with the fire trap's mark at its head, like the stings |
 | 30 | Mongoose Bite 1495 | Its fangs over the emblem when usable |
 | 31 | Expose Prey 1310532 | Not in the supported build's ability catalog, so no piece is drawn for it |
 | 32 | Counterattack 19306 | Its blades over the emblem when usable |
@@ -149,16 +149,16 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 | 37 | Proc roots and stuns 19184, 19407 | Deliberately quiet: passive control chances |
 | 38 | Active Aspect | The perched Aspect on the lower left |
 | 39 | No Aspect, or Cheetah or Pack in combat | The perch shows grey steel with no Aspect and the animal it names otherwise; no extra warning yet |
-| 40 | Trueshot Aura 19506, 20905, 20906, 1299346, 1299348 | A forged arrow through a ring on the upper left: gold while the aura is up, steel while it is down |
-| 41 | Track type matching the target 24293 | A forged compass on the upper right with Improved Tracking: gold while the active tracking's creature type is the target's, steel while not, hidden with no target; a type the game marks secret stays steel |
-| 42 | Lone Wolf (no pet out) | The steel hound on the pet's perch |
-| 43 | Range and the dead zone | Unavailable on the crest: the game reports range per action slot (`ACTION_RANGE_CHECK_UPDATE`), which tints the buttons, and a spell-range read would have to poll |
+| 40 | Trueshot Aura 19506, 20905, 20906, 1299346, 1299348 | The Aimed Shot sigil on the upper left, standing in for its own mark until the animated aura lands: gold while the aura is up, steel while it is down |
+| 41 | Track type matching the target 24293 | The reticle mark on the upper right with Improved Tracking, standing in for a compass until its animated aura lands: gold while the active tracking's creature type is a hostile target's (the type's number, `UnitCreatureType`'s second return), steel against a hostile target it does not match, hidden with no target or a friendly one (`UnitCanAttack`, repainted on `UNIT_FACTION`); a type the game marks secret stays steel |
+| 42 | Lone Wolf (no pet out) | The steel paw on the pet's perch |
+| 43 | Range and the dead zone | A ring round the emblem against a hostile target: gilt while only melee reaches it (Raptor Strike or Wing Clip in range), red while neither Auto Shot nor melee does. The game's own range events drive it (`C_Spell.EnableSpellRangeCheck` and `SPELL_RANGE_CHECK_UPDATE`), so nothing polls. Unreadable remainder: inside Auto Shot's minimum range and outside melee, the dead zone, both spells read out of range, the same as too far, so the dead zone shows red and the crest cannot tell the two apart |
 | 44 | Mana and the five-second rule | The five-second ring round the level badge; mana itself on the player frame |
 | 45 | Rapid Recuperation 1223987 | Deliberately quiet: a passive mana return |
 | 46 | Threat on the target | No crest piece: the crest's threat glow is for tanks; nameplates and the role meters show threat |
 | 47 | Freezing Trap 1499 | Short rail (Utility) |
 | 48 | Frost Trap 13809 | Short rail (Utility) |
-| 49 | Tranquilizing Shot 19801 | No crest piece: the game lists it in no Cooldown Manager set and the rail has no seat for it; the action bar times it |
+| 49 | Tranquilizing Shot 19801 | No crest piece yet: its home is a round medal on the second rail, whose seat lists are filled by the crest-seat work for every class; the game lists it in no Cooldown Manager set, so until then the action bar times it |
 | 50 | Scatter Shot 19503 | Short rail (Utility) |
 | 51 | Concussive Shot 5116 | Short rail (Utility) |
 | 52 | Wing Clip 2974 | Nothing to time: it has no cooldown, and the game lists it only as a hidden tracked buff |
@@ -170,7 +170,7 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 | 58 | On-use trinket | The hunter rail's trinket seat |
 | 59 | Racial cooldown | The shared racial sigils on the cooldown rim while the buff runs |
 | 60 | Ammo | The Auto Shot ring turns amber below 200 and red with none |
-| 61 | Potion and consumable cooldowns | The shared Potion sigil while the potion's buff runs; no pendant yet, as the crest cannot tell which potion the player will drink next |
+| 61 | Potion and consumable cooldowns | A gem pendant on the left trinket seat (-33, -24) holding the first potion the bags carry from a best-first list of healing and mana potions, steel under a charging ring while potions cool down, an empty bail with none (`C_Item.GetItemCount`, `GetItemCooldown`); the shared Potion sigil while the potion's buff runs |
 
 ## Conditional racials
 

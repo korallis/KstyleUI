@@ -20,7 +20,10 @@
 -- story with other aura spell IDs, so one seat shows each of its choices: 13165:13163 perches Aspect of the Monkey for
 -- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
 -- Content, Happy) in place of the story's own, so the haunch shows or goes; RENDER_PET_DEAD=1 lays the pet dead, so its perch shows the red
--- hound. The hunter's story also carries Trueshot Aura from 3 s and Track Beasts from 0.2 s on a beast target, for Improved Tracking's compass. RENDER_CAST_ON_FRAME=off gives the action bars the
+-- hound. The hunter's story also carries Trueshot Aura from 3 s and Track Beasts from 0.2 s on a hostile beast target (creature type 1), for Improved Tracking's
+-- compass, a pet that knows Screech (its debuff on the target from 5.5 s) and Growl at 70 focus, and three Healing Potions, one drunk at 5 s.
+-- RENDER_RANGE=far|melee|shot sets what reaches the target: nothing (the emblem rings red), only melee (gilt; Raptor Strike is then known) or the shot (no ring, the default
+-- when unset reads no answer). RENDER_CAST_ON_FRAME=off gives the action bars the
 -- centred cast bars' layout elements the unit frames register in the game, so the hunter's rail takes its own flat row.
 -- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it. The hunter's
 -- default story keeps the cooldown rail on, so Rapid Fire at 4 s feeds the rail and the crest's gust waits for Quick Shots at 5 s:
@@ -34,10 +37,11 @@ local Ranged = {}
 local STORIES = {
 	HUNTER = {
 		lit = 6.5,
-		known = { 13165, 883, 1130, 1978, 19552, 3045, 19263, 19574, 2643, 1495, 75, 19506, 24293 },
+		known = { 13165, 883, 1130, 1978, 19552, 3045, 19263, 19574, 2643, 1495, 75, 19506, 24293, 13795, 24579, 14916 },
 		usable = { [2643] = 3 },
 		tracking = { 1494, at = 0.2 },
-		creature = "Beast",
+		creature = 1,
+		items = { [929] = { icon = 134830, steps = { { 0, 3 } }, used = 5, cooldown = 120 } },
 		swings = { 0.5, 3.3, 6.1 },
 		icons = { [13165] = 136076, [13163] = 132159, [883] = 132161, [1130] = 132212, [1978] = 132204, [3045] = 132208, [19263] = 132369,
 			[19574] = 132127, [19306] = 132336, [2973] = 132223, [3044] = 132218, [2643] = 132330, [1495] = 132215, [75] = 135489,
@@ -52,6 +56,7 @@ local STORIES = {
 			{ unit = "player", id = 6150, icon = 132347, at = 5, duration = 12 },
 			{ unit = "pet", id = 136, icon = 132179, at = 6, duration = 15 },
 			{ unit = "pet", id = 19574, icon = 132127, at = 6.2, duration = 18 },
+			{ unit = "target", id = 24579, icon = 132182, at = 5.5, duration = 4, harmful = true },
 		},
 		builds = {
 			rail = { known = { 13165, 883, 1130, 1978, 3045, 19574, 19577, 14305, 2643, 75 }, cooling = { [19577] = { 1, 60 }, [14305] = { 2, 15 }, [3045] = { 4, 300 }, [19574] = { 9, 120 } },
@@ -209,6 +214,7 @@ function Ranged.Install(env, class)
 	env._story = -1
 	local known = {}
 	for _, id in ipairs(s.known) do known[id] = true end
+	known[2973] = class == "HUNTER" and os.getenv("RENDER_RANGE") == "melee" or known[2973]
 	env.C_SpellBook = env.C_SpellBook or {}
 	env.Enum.SpellBookSpellBank = env.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
 	local before = env.C_SpellBook.IsSpellKnown
@@ -271,8 +277,15 @@ function Ranged.Install(env, class)
 		env.C_Minimap = env.C_Minimap or {}
 		env.C_Minimap.GetNumTrackingTypes = function() return 1 end
 		env.C_Minimap.GetTrackingInfo = function() return { name = "Tracking", spellID = tracking[1], active = env._story >= tracking.at } end
-		env.UnitCreatureType = function(unit) if unit == "target" then return s.creature end end
-		env.C_CreatureInfo = { GetCreatureTypeInfo = function(id) return types[id] and { name = types[id] } end }
+		env.UnitCreatureType = function(unit) if unit == "target" and types[s.creature] then return types[s.creature], s.creature end end
+		env.UnitCanAttack = function(_, unit) return unit == "target" end
+		local reach = os.getenv("RENDER_RANGE")
+		spell.EnableSpellRangeCheck = function() end
+		spell.IsSpellInRange = function(id)
+			if reach == "far" then return false end
+			if reach == "melee" then return id ~= 75 end
+			if reach == "shot" then return id == 75 end
+		end
 	end
 	local pet = s.pet
 	local exists = env.UnitExists
@@ -290,6 +303,8 @@ function Ranged.Install(env, class)
 			return 100 * (1 - missing)
 		end
 		env.UnitHealthMax = function(unit, ...) if unit == "pet" then return 100 end return most and most(unit, ...) end
+		env.UnitPower = function(unit) if unit == "pet" then return 70 end return 0 end
+		env.UnitPowerMax = function(unit) if unit == "pet" then return 100 end return 0 end
 		local mood = tonumber(os.getenv("RENDER_PET_MOOD") or "")
 		env.C_PetInfo = { GetPetHappiness = function() return mood or pet.mood end }
 	end

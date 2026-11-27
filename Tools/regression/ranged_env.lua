@@ -1,4 +1,4 @@
--- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), a change to the addon before it is enabled (opts.before), pet, ammo, the minimap's tracking (opts.tracking, a Track spell; env._herbs adds Find Herbs) and the target's creature type (opts.creature), usable strikes, item and spell cooldowns and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error.
+-- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), a change to the addon before it is enabled (opts.before), pet, ammo, the minimap's tracking (opts.tracking, a Track spell; env._herbs adds Find Herbs) the target's creature type number (opts.creature) and whether it can be attacked (env._attackable), the pet's focus, spellbook (opts.petSpells) and autocast (env._autocast), the group (env._grouped), the pet's target (env._petTarget) and spell range (env._range), usable strikes, item and spell cooldowns and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error, and Listening says whether the tracker lifecycle holds an event.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -8,9 +8,6 @@ local KNOWN = {
 	MAGE = { 168, 759, 11426, 12574, 116, 118, 12042, 11958, 2139, 122 },
 	WARLOCK = { 172, 980, 348, 688, 6201, 1120, 18094, 18288, 706, 702, 17962, 2362, 6789 },
 }
-
--- The creature types by C_CreatureInfo ID, as an English client names them.
-local TYPES = { "Beast", "Dragonkin", "Demon", "Elemental", "Giant", "Undead", "Humanoid" }
 
 -- The shared stub's Hide runs no OnHide. With opts.hiding a shown frame that hides, by Hide or SetShown(false), runs OnHide on
 -- itself and every shown descendant, as the client does, so a test reaches a hide handler only through the code that hides it.
@@ -78,6 +75,7 @@ local function New(class, opts)
 			e.C_DurationUtil = { CreateDuration = function() return { SetTimeFromStart = function(d, start, duration) d.start, d.duration = start, duration end } end }
 			e.GetTime = e.GetTime or function() return e._now or 0 end
 			e._petSpells = {}
+			for _, id in ipairs(opts.petSpells or {}) do e._petSpells[id] = true end
 			e.C_SpellBook.IsSpellKnown = function(id, bank) if bank == 1 then return e._petSpells[id] == true end return e._known[id] == true end
 			e.Enum.SpellBookSpellBank = e.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
 			e._pet = opts.pet
@@ -96,8 +94,24 @@ local function New(class, opts)
 					return { name = "Tracking", spellID = e._tracking or 1494, active = e._tracking ~= nil }
 				end,
 			}
-			e.UnitCreatureType = function(unit) if unit == "target" and e._target then return e._creature end end
-			e.C_CreatureInfo = { GetCreatureTypeInfo = function(id) return TYPES[id] and { name = TYPES[id] } end }
+			-- UnitCreatureType's second return is the creature type ID; the name is the client's, a secret with a secret ID.
+			e.UnitCreatureType = function(unit)
+				if unit == "target" and e._target and e._creature ~= nil then
+					return type(e._creature) ~= "number" and e.Secret("Creature") or "Creature", e._creature
+				end
+			end
+			e._attackable = true
+			e.UnitCanAttack = function(_, unit) return unit == "target" and e._target and e._attackable or false end
+			e.UnitPower = function(unit) return e.Secret(unit == "pet" and e._pet and e._pet.focus or 0) end
+			e.UnitPowerMax = function(unit) return e.Secret(unit == "pet" and e._pet and 100 or 0) end
+			e._autocast, e._range, e._rangeChecks = {}, {}, {}
+			e.C_Spell.GetSpellAutoCast = function(id) return true, e._autocast[id] end
+			e.C_Spell.EnableSpellRangeCheck = function(id, on) e._rangeChecks[id] = on end
+			e.C_Spell.IsSpellInRange = function(id, unit) if unit == "target" and e._target then return e._range[id] end end
+			e.IsInGroup = function() return e._grouped end
+			local exists = e.UnitExists
+			e.UnitExists = function(unit) if unit == "pettarget" then return e._petTarget ~= nil end return exists(unit) end
+			e.UnitIsUnit = function(a, b) if a == "pettarget" and b == "target" then return e._petTarget == "yours" end return a == b end
 			e.GetInventoryItemID = function(_, slot) return opts.trinket and slot == 13 and 5002 or nil end
 			e.GetInventoryItemCooldown = function() return 0, 0, 1, false end
 			e.C_Item.GetItemSpell = function(id) if id == 5002 then return "Use", 9002 end end
@@ -110,6 +124,21 @@ local function New(class, opts)
 	})
 	if opts.hiding then
 		Hiding(env)
+	end
+	env._owned = {}
+	local events = K.Events
+	for _, name in ipairs({ "Register", "RegisterUnit" }) do
+		local register = events[name]
+		events[name] = function(owner, event, ...)
+			env._owned[owner] = env._owned[owner] or {}
+			env._owned[owner][event] = true
+			return register(owner, event, ...)
+		end
+	end
+	local clear = events.UnregisterAll
+	events.UnregisterAll = function(owner)
+		env._owned[owner] = nil
+		return clear(owner)
 	end
 	if opts.frames then
 		K.Options.Write("HudStyle", "style", "frames")
@@ -188,5 +217,11 @@ local function Learn(env, ...)
 	env.FireEvent("SPELLS_CHANGED")
 end
 
+-- Listening(env, event) -> whether the crest trackers hold the event, so a test sees a switch give its events back.
+local function Listening(env, event)
+	local owned = env._owned["ActionBars.SlabTrackers"]
+	return owned ~= nil and owned[event] == true
+end
 
-return { AB = AB, Slots = Slots, SIZES = SIZES, KNOWN = KNOWN, New = New, Piece = Piece, Seated = Seated, Shown = Shown, Updating = Updating, Clean = Clean, Tint = Tint, Icons = Icons, Learn = Learn }
+return { AB = AB, Slots = Slots, SIZES = SIZES, KNOWN = KNOWN, New = New, Piece = Piece, Seated = Seated, Shown = Shown, Updating = Updating, Clean = Clean, Tint = Tint, Icons = Icons, Learn = Learn,
+	Listening = Listening }
