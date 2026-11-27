@@ -108,7 +108,7 @@ Forty-four procs in the sets had no crest piece. The Cooldown Manager hides 21 o
 
 ## Hunter homes
 
-The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61 hunter rows) proposes a home for every need: the medal rail, the crown and ring, a perch, inside the crest, a pendant, or a rail of round medals. This table gives each hunter row its home today, or the reason it has none. "Short rail" is the Cooldown Manager mirror's Essential or Utility row drawn as round medals (`KstyleUI_Cooldowns`, Match Medallions sockets); it shows a spell only while the game lists it in that set and does not hide it, so a "(hidden)" set entry reaches it only after the player shows it in the game's Cooldown Manager settings. "Hunter rail" is the five-seat crest rail (`SlabRail.lua`), which seats up to four abilities of the talent tree the game names and the trinket.
+The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61 hunter rows) proposes a home for every need: the medal rail, the crown and ring, a perch, inside the crest, a pendant, or a rail of round medals. This table gives each hunter row its home today, or the reason it has none. "Short rail" is the Cooldown Manager mirror's Essential or Utility row drawn as round medals (`KstyleUI_Cooldowns`, Match Medallions sockets); it shows a spell only while the game lists it in that set and does not hide it, so a "(hidden)" set entry reaches it only after the player shows it in the game's Cooldown Manager settings. "Hunter rail" is the five-seat crest rail (`SlabRail.lua`), which seats up to four abilities of the talent tree the game names and the trinket, with the tree's other long cooldowns and the racial on its smaller second rail.
 
 | # | Need | Home or reason |
 | --- | --- | --- |
@@ -170,7 +170,7 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 | 56 | Scare Beast 1513 | Short rail (Utility, hidden by the game until shown) |
 | 57 | Crowd control time, breaks and diminishing returns | Unavailable: breaks and diminishing returns need the combat log, which is closed to addons; the control's own debuff shows on the target frame |
 | 58 | On-use trinket | The hunter rail's trinket seat |
-| 59 | Racial cooldown | The shared racial sigils on the cooldown rim while the buff runs |
+| 59 | Racial cooldown | A round medal on the hunter rail's second rail; with the rail off, the shared racial sigils on the cooldown rim while the buff runs |
 | 60 | Ammo | The Auto Shot ring turns amber below 200 and red with none |
 | 61 | Potion and consumable cooldowns | A gem pendant on the left trinket seat (-33, -24) holding the first potion the bags carry from a best-first list of healing and mana potions, steel under a charging ring while potions cool down and ready again once they recharge, an empty bail with none (`C_Item.GetItemCount`, `GetItemCooldown`); the shared Potion sigil while the potion's buff runs |
 

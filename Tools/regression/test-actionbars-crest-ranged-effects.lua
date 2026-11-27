@@ -4,8 +4,9 @@ local Budget = dofile("Tools/regression/path_budget.lua")
 local Png = dofile("Tools/regression/png.lua")
 -- The socketed crest on staging 3e037a6be measured 229,200 addon instructions and 1,700 widget calls for a hundred unchanged
 -- mage cooldown updates, and 46,100 and 2,000 for a hundred warlock pet health ticks, with this fixture; the mage's crest rail
--- then added its two seats' cooldown repaint, measured at 269,700 instructions.
-local BUDGET_COOLDOWN, BUDGET_HEALTH = { 269700, 1700 }, { 46100, 2000 }
+-- then added its two seats' cooldown repaint, measured at 269,700 instructions, and the hunter's crest needs
+-- (staging b107b6f0) added 2,400 to the mage's path there (226,800 to 229,200), measured on top of the rail at 271,900.
+local BUDGET_COOLDOWN, BUDGET_HEALTH = { 271900, 1700 }, { 46100, 2000 }
 local AB, Slots, New, Piece, Seated, Shown, Clean, Tint, Icons = R.AB, R.Slots, R.New, R.Piece, R.Seated, R.Shown, R.Clean, R.Tint, R.Icons
 
 local SHARED = { crestCooldowns = true, crestRail = true }

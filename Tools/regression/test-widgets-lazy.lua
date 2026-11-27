@@ -311,9 +311,10 @@ do
 	-- on the target and Furious Howl), each aura feed with its two motion copies (114 regions), the potion pendant (12), Growl's orders and
 	-- the tracking mark's still glyphs (4 each), the range ring and the pet's focus bar, less the forged bodies the tracking mark gave up.
 	-- Tranquilizing Shot's glyph on the lower left foot is part of that total.
+	-- With the crest rail and its second rail on top of those auras and homes, the lit hunter comes to 5,377, the mage to 5,024 and the warlock, with Soulstone and Ritual of Doom on its second rail, to 5,254.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5350, MAGE = 4953, WARLOCK = 5227 }) do
+	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5377, MAGE = 5024, WARLOCK = 5254 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")
