@@ -153,7 +153,11 @@ def normalize(path, root):
     if not path:
         return None
     if os.path.isabs(path):
-        path = os.path.relpath(path, root)
+        try:
+            path = os.path.relpath(path, root)
+        except ValueError:
+            # Windows: relpath refuses a path on another drive, such as Lua installed on C: beside a project on D:.
+            return None
     path = posixpath.normpath(path.replace(os.sep, "/"))
     if path == "." or path == ".." or path.startswith("../") or path.startswith(".git/"):
         return None

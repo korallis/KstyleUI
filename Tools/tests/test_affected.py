@@ -48,6 +48,14 @@ class RecordFromTraceTest(unittest.TestCase):
             result = affected.record_from_trace(text, root)
         self.assertEqual(result["files"], ["Core/Init.lua", "Core/Scale.lua"])
 
+    def test_a_file_on_another_windows_drive_is_outside_the_repository(self):
+        # Bug fix: on the windows-latest runner Lua lives on C: and the project on D:, and relpath raised ValueError.
+        import ntpath
+        text = "\n".join(["f C:\\Users\\runneradmin\\lua\\strict.lua", "f D:\\a\\KstyleUI\\KstyleUI\\Core\\Init.lua"])
+        with mock.patch.object(affected.os, "path", ntpath), mock.patch.object(affected.os, "sep", "\\"):
+            result = affected.record_from_trace(text, "D:\\a\\KstyleUI\\KstyleUI")
+        self.assertEqual(result["files"], ["Core/Init.lua"])
+
     def test_a_language_file_run_with_no_game_language_is_idle_unless_the_test_also_reads_it(self):
         # Intent: the approved faster-gate plan, a language file change runs only the tests it can reach.
         text = "\n".join(["s Core/Locales/deDE.lua", "s Core/Locales/frFR.lua", "f Core/Locales/frFR.lua", "f Core/Init.lua"])
