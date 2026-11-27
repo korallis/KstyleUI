@@ -435,35 +435,12 @@ function Style.Decorate(icon, group)
 end
 
 local FACES = {}
-for token, spells in pairs({
-	auraSigilVolley = { 3045 },
-	auraSigilPaw = { 19574 },
-	auraSigilDeflect = { 19263 },
-	auraSigilIntimidate = { 19577 },
-	auraSigilFireTrap = { 13795, 14302, 14303, 14304, 14305, 13813, 14316, 14317 },
-	auraSigilSniper = { 1310786, 1310785, 1310687 },
-	auraSigilAimed = { 20904, 20903, 20902, 20901, 20900, 19434 },
-	auraSigilStrider = { 1317257 },
-	auraGlyphHawk = { 13165, 14318, 14319, 14320, 14321, 14322, 25296, 469145 },
-	auraGlyphMonkey = { 13163 },
-	auraGlyphCheetah = { 5118 },
-	auraGlyphPack = { 13159 },
-	auraGlyphWild = { 20043, 20190 },
-	auraGlyphBeast = { 13161, 1299445, 1299446, 1299447 },
-	auraGlyphViper = { 415423 },
-	auraGlyphSerpent = { 1978, 13549, 13550, 13551, 13552, 13553, 13554, 13555, 25295 },
-	auraGlyphViperSting = { 3034, 14279, 14280 },
-	auraGlyphScorpid = { 3043, 14275, 14276, 14277 },
-	auraGlyphWyvern = { 19386, 24132, 24133, 24131, 24134, 24135 },
-	auraGlyphLacerate = { 24118, 24119, 24120, 1299332 },
-	auraGlyphBlackArrow = { 3674, 14296 },
-	auraGlyphCounter = { 20910, 20909, 19306, 1242634 },
-	auraGlyphMongoose = { 14271, 14270, 14269, 1495 },
-	auraGlyphRaptor = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 },
-	auraGlyphHaunch = { 136, 3111, 3661, 3662, 13542, 13543, 13544 },
-}) do
-	for _, spell in ipairs(spells) do
-		FACES[spell] = token
+for _, families in pairs(K.SpellFamilies) do
+	for _, family in pairs(families) do
+		local aura = select(5, Tokens.Texture(family.glyph or "sigil" .. family.sigil))
+		for _, spell in ipairs(aura and family.spells or {}) do
+			FACES[spell] = aura
+		end
 	end
 end
 

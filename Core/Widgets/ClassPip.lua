@@ -30,7 +30,7 @@ local CLASSES = {
 		art = "pipShard", glowColor = "pipMageGlow", count = 4, unit = "player", filter = "HELPFUL",
 		spells = { 400573, 1300176, 1300177, 400586 }, known = { 400574, 1239696, 1239697, 1239699, 1239700 },
 	},
-	HUNTER = { art = "pipArrow", glowColor = "jewelHawk", count = 3, unit = "player", filter = "HELPFUL", spells = { 1310687, 1310785, 1310786 } },
+	HUNTER = { art = "pipArrow", glowColor = "jewelHawk", count = 3, unit = "player", filter = "HELPFUL", spells = ns.SpellFamilies.HUNTER.sniper.spells },
 	BEAR = { art = "pipTalon", glowColor = "pipBearGlow", count = 5, unit = "target", filter = "HARMFUL|PLAYER", spells = { 1328617, 1328616, 414644, 1235826, 1235827 } },
 	STORM = { art = "pipStorm", glowColor = "pipStormGlow", count = 3, unit = "player", filter = "HELPFUL", spells = { 10432, 10431, 8134, 945, 905, 325, 324 } },
 	PALADIN = {

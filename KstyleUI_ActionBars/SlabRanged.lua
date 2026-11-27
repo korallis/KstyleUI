@@ -1310,25 +1310,16 @@ local function Motion(form, _, still)
 end
 
 if CLASS == "HUNTER" then
-	local ASPECTS = {
-		{ spells = { 13165, 14318, 14319, 14320, 14321, 14322, 25296, 469145 }, color = "gilt", glyph = "glyphHawk" },
-		{ spells = { 13163 }, color = "neutral", glyph = "glyphMonkey" },
-		{ spells = { 5118 }, color = "steelLit", glyph = "glyphCheetah" },
-		{ spells = { 13159 }, color = "steelLit", glyph = "glyphPack" },
-		{ spells = { 20043, 20190 }, color = "schoolNature", glyph = "glyphWild" },
-		{ spells = { 13161, 1299445, 1299446, 1299447 }, color = "hostile", glyph = "glyphBeast" },
-		{ spells = { 415423 }, color = "magic", glyph = "glyphViper" },
-	}
-	local STINGS = {
-		{ spells = { 1978, 13549, 13550, 13551, 13552, 13553, 13554, 13555, 25295 }, color = "schoolNature", glyph = "glyphSerpent" },
-		{ spells = { 3034, 14279, 14280 }, color = "magic", glyph = "glyphViperSting" },
-		{ spells = { 3043, 14275, 14276, 14277 }, color = "neutral", glyph = "glyphScorpid" },
-		{ spells = { 19386, 24132, 24133, 24131, 24134, 24135 }, color = "schoolFire", glyph = "glyphWyvern" },
-		{ spells = { 24118, 24119, 24120, 1299332 }, color = "hostile", glyph = "glyphLacerate" },
-		{ spells = { 3674, 14296 }, color = "schoolShadow", glyph = "glyphBlackArrow" },
-		{ spells = { 13797, 14298, 14299, 14300, 14301 }, known = { 13795, 14302, 14303, 14304, 14305 }, color = "schoolFire", glyph = "sigilFireTrap" },
-	}
-	local RAPTOR = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 }
+	local FAMILIES = K.SpellFamilies.HUNTER
+	local function Family(key, color)
+		return { spells = FAMILIES[key].spells, glyph = FAMILIES[key].glyph, color = color }
+	end
+	local ASPECTS = { Family("hawk", "gilt"), Family("monkey", "neutral"), Family("cheetah", "steelLit"), Family("pack", "steelLit"), Family("wild", "schoolNature"),
+		Family("beast", "hostile"), Family("viper", "magic") }
+	local STINGS = { Family("serpent", "schoolNature"), Family("viperSting", "magic"), Family("scorpid", "neutral"), Family("wyvern", "schoolFire"),
+		Family("lacerate", "hostile"), Family("blackArrow", "schoolShadow"),
+		{ spells = { 13797, 14298, 14299, 14300, 14301 }, known = { 13795, 14302, 14303, 14304, 14305 }, color = "schoolFire", glyph = "sigilFireTrap" } }
+	local RAPTOR = FAMILIES.raptor.spells
 	local MELEE = Trackers.Joined(RAPTOR, { 14268, 14267, 2974 })
 	local GROWL = { 14921, 14920, 14919, 14918, 14917, 14916, 2649 }
 	local SCREECH, SCORPID = { 24579, 24578, 24577, 24423 }, { 24640, 24587, 24586, 24583 }
@@ -1341,9 +1332,9 @@ if CLASS == "HUNTER" then
 	local POTIONS = { 13446, 13444, 3928, 13443, 1710, 6149, 929, 3827, 858, 3385, 118, 2455 }
 	local TRUESHOT, TRUESHOT_SEAT, COMPASS_SEAT = { 19506, 20905, 20906, 1299346, 1299348 }, { Polar(74, 140) }, { Polar(74, 40) }
 	local TRACKS = { [1494] = 1, [19879] = 2, [19878] = 3, [19880] = 4, [19882] = 5, [19884] = 6, [19883] = 7 }
-	local COUNTER, MONGOOSE, AIMED, MULTI = { 20910, 20909, 19306, 1242634 }, { 14271, 14270, 14269, 1495 }, { 20904, 20903, 20902, 20901, 20900, 19434 }, { 2643 }
+	local COUNTER, MONGOOSE, AIMED, MULTI = FAMILIES.counter.spells, FAMILIES.mongoose.spells, FAMILIES.aimed.spells, { 2643 }
 	local SHOTS, SHOWS = {}, {}
-	for _, shot in ipairs({ { COUNTER, { glyph = "glyphCounter", color = "hostile" } }, { MONGOOSE, { glyph = "glyphMongoose", color = "hostile" } },
+	for _, shot in ipairs({ { COUNTER, { glyph = FAMILIES.counter.glyph, color = "hostile" } }, { MONGOOSE, { glyph = FAMILIES.mongoose.glyph, color = "hostile" } },
 		{ AIMED, { arrows = { 90 }, color = "giltLit" } }, { MULTI, { arrows = { 105, 90, 75 }, color = "steelLit" } } }) do
 		SHOWS[#SHOWS + 1] = shot[2]
 		for _, id in ipairs(shot[1]) do SHOTS[id] = shot[2] end
@@ -1377,11 +1368,11 @@ if CLASS == "HUNTER" then
 		{ key = "crestAspect", seat = PERCH_LEFT, size = PERCH, build = Effect, choices = {
 			{ feed = "aura", look = "glyph", glyph = "glyphHawk", spells = Trackers.Joined(ASPECTS[1].spells, ASPECTS[2].spells, ASPECTS[3].spells, ASPECTS[4].spells,
 				ASPECTS[5].spells, ASPECTS[6].spells, ASPECTS[7].spells), feeds = ASPECTS, learned = true },
-			{ build = Flash, seat = EMBLEM, overlay = true, size = FLASH, feed = "cooldown", look = "orb", glyph = "glyphRaptor", color = "gilt", known = RAPTOR },
+			{ build = Flash, seat = EMBLEM, overlay = true, size = FLASH, feed = "cooldown", look = "orb", glyph = FAMILIES.raptor.glyph, color = "gilt", known = RAPTOR },
 		} },
 		{ key = "crestPet", seat = At(BAND.pet), choices = {
 			{ build = Pet, band = "pet", feed = "pet", light = "giltLit", focus = "steelLit", known = { 883 }, mood = true, lost = true,
-				mend = { 136, 3111, 3661, 3662, 13542, 13543, 13544 } },
+				mend = FAMILIES.mend.spells },
 			{ build = Flash, seat = EMBLEM, overlay = true, size = FLASH, feed = "cooldown", look = "orb", color = "schoolArcane", known = { 14287, 14286, 14285, 14284, 14283, 14282, 14281, 3044 } },
 		} },
 		{ key = "crestMark", seat = At(BAND.mark), build = Mark, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile",
