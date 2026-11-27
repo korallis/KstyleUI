@@ -21,7 +21,9 @@
 -- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
 -- Content, Happy) in place of the story's own, so the haunch shows or goes. RENDER_CAST_ON_FRAME=off gives the action bars the
 -- centred cast bars' layout elements the unit frames register in the game, so the hunter's rail takes its own flat row.
--- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it. A mage's crest
+-- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it. The hunter's
+-- default story keeps the cooldown rail on, so Rapid Fire at 4 s feeds the rail and the crest's gust waits for Quick Shots at 5 s:
+-- a gust still or clip starts after 5 s and reads the strip across the ring's inner band, not the rail. A mage's crest
 -- is drawn as players asked for it, with Blizzard's Cooldown Manager switched off: render every mage story and build (low, arcane,
 -- fire, frost, sigils, breakout) with RENDER_COOLDOWN_VIEWER=off (hud.lua).
 local Slots = dofile("Tools/regression/aura_slots.lua")
