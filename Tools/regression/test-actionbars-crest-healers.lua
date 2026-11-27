@@ -408,8 +408,14 @@ do
 	env._aurasSecret = true
 	env.SetCombat(true)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	-- The clock moves past any unfurl that began unseen, so the handoff completes and the leaves' own binding decides.
+	env.GetTime = function() return env._now end
+	local after, armed = env.C_Timer.After, {}
+	env.C_Timer.After = function(_, fn) armed[#armed + 1] = fn end
 	K.Options.Write("Medallions", "motion", "full")
-	env.RunTimers()
+	env._now = env._now + 1
+	for _, fn in ipairs(armed) do fn() end
+	env.C_Timer.After = after
 	assert(bloom.moving:GetAlpha() == 1 and bloom.calm:GetAlpha() == 0, "Full chosen under hidden values shows the moving leaves")
 	local bound = {}
 	for _, group in ipairs(moving._shownAnimations or {}) do bound[group] = true end
@@ -1010,7 +1016,7 @@ for _, size in ipairs(SIZES) do
 			if piece:IsVisible() and not piece.sigils and piece.spec.seat ~= "plaque" then
 				local sheets = {}
 				for _, part in ipairs(piece.parts) do
-					if part.loop then sheets[part], sheets[part.still] = true, true end
+					if part.loop then sheets[part], sheets[part.still] = true, true if part.bare then sheets[part.bare] = true end end
 				end
 				for n, part in ipairs(piece.parts) do
 					local texture = part._state and part._state.Texture and part._state.Texture[1]
@@ -1228,14 +1234,15 @@ do
 			copy[verb] = function(...) writes = writes + 1 return real(...) end
 		end
 	end
-	-- Lit(n, burning, why): flames 1 to n and Renew show the moving fire (burning) or the still; spent flames show neither.
-	local function Lit(n, burning, why)
+	-- Lit(n, burning, why, off): flames 1 to n and Renew show the moving fire (burning) or the still; spent flames show neither.
+	-- At Off (off) Renew's still is its bare copy, which carries no refresh cue.
+	local function Lit(n, burning, why, off)
 		for k, fire in ipairs(flames) do
 			local on = k <= n
 			assert(Shows(fire) == (on and burning) and Shows(fire.still) == (on and not burning), why .. " (flame " .. k .. ")")
 			assert(not on or Engine(function() return fire.loop:IsPlaying() end), why .. ": a lit flame's loop plays (flame " .. k .. ")")
 		end
-		assert(Shows(renew) == burning and Shows(renew.still) == not burning, why .. " (Renew)")
+		assert(Shows(renew) == burning and Shows(renew.still) == not (burning or off) and Shows(renew.bare) == (off == true), why .. " (Renew)")
 	end
 	local inner = { id = 10952, count = 20, start = 0, duration = 600 }
 	Slots.Set(env, "player", { inner })
@@ -1252,7 +1259,7 @@ do
 	for _, level in ipairs({ "calm", "full", "off", "full" }) do
 		K.Options.Write("Medallions", "motion", level)
 		env.RunTimers()
-		Lit(3, level == "full", level .. " chosen under hidden values shows at once")
+		Lit(3, level == "full", level .. " chosen under hidden values shows at once", level == "off")
 	end
 	inner.count = 10
 	Slots.Set(env, "player", { inner })
@@ -1309,6 +1316,28 @@ do
 		and Under(renew.aura.still, calm.flicker:GetParent()), "and holds its still light still")
 	Slots.Set(env, "target", { { id = 10901, count = 0, start = 0, duration = 30 }, { id = 25315, count = 0, start = 0, duration = 15, pandemic = true } })
 	assert(Engine(function() return flame.flicker:IsPlaying() end), "inside the pandemic window Renew's light flickers")
+	-- Off removes the refresh cue: under hidden values, Calm shows the still copy, holding the flicker still, and Off its bare copy,
+	-- which no pandemic cue reaches (review of a1c85ca7, figure-refresh-dim-at-off).
+	local bare = renew.lights.bare
+	assert(bare and renew.aura.bare and Under(renew.aura.bare, bare) and not bare.flicker and #(bare._pandemicAnimations or {}) == 0,
+		"Renew's bare still copy carries no refresh cue")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	local function Shows(region)
+		return Engine(function() return region:IsVisible() and region:GetEffectiveAlpha() > 0 end)
+	end
+	K.Options.Write("Medallions", "motion", "calm")
+	env.RunTimers()
+	assert(Shows(renew.aura.still) and not Shows(renew.aura.bare) and not Shows(renew.aura), "Calm under hidden values shows Renew's still light, its flicker held still")
+	K.Options.Write("Medallions", "motion", "off")
+	env.RunTimers()
+	assert(Shows(renew.aura.bare) and not Shows(renew.aura.still) and not Shows(renew.aura), "Off under hidden values shows Renew's bare light, with no refresh dimming")
+	assert(Engine(function() return renew.aura.bare:GetEffectiveAlpha() end) == 1, "and at Renew's full alpha")
+	K.Options.Write("Medallions", "motion", "full")
+	env.RunTimers()
+	assert(Shows(renew.aura) and not Shows(renew.aura.bare), "Full brings Renew's moving light back")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
 	local seat = b.innerFire.ring[1]
 	local last = b.innerFire.lits[2].aura
 	assert(Under(last, seat) and Under(last.still, seat) and b.innerFire.flicker:GetParent() == seat, "Inner Fire's last flame flickers its moving and still light with its seat")
