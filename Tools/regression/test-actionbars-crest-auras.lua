@@ -180,30 +180,53 @@ do
 	Slots.Set(env, "player", nil)
 end
 
+-- A cooldown sigil burns on two copies of its slot, so a motion level changed under hidden values still applies at once (the owner's rule in
+-- test-actionbars-crest-motion.lua): the fire on a copy whose layer is dark unless the crest is awake at Full, the still on one dark only then.
 do
 	env.C_SpellBook.IsSpellKnown = function(id) return id == 3045 end
 	local rim = Medals.CooldownRim(parent, { families = { { spells = { 3045 }, sigil = "Volley" } }, color = "jewelHawk" }, 5)
 	Medals.Place(rim, parent, 0, 0)
 	local button = rim.sigils[1]
-	assert(not button.fires and button.auraLoops and #button.auraLoops == 1, "a cooldown sigil's aura hands its loop to its engine button and hooks nothing on it")
-	Medals.Engine({ rim }, true, true)
+	local flame, calm = button.flame, button.calm
+	assert(flame and calm and not button.auraLoops and not button.fires and not flame.fires, "a cooldown sigil's aura burns on its own slot copies and hooks nothing")
+	assert(flame.auraLoops and #flame.auraLoops == 1, "the fire's copy hands its loop to the engine")
 	local fire
-	for _, region in ipairs(button._regions) do
+	for _, region in ipairs(flame._regions) do
 		if region.loop then fire = region end
 	end
-	assert(fire and Engine(fire, button), "at Full the sigil's engine button holds the loop")
+	assert(fire and fire.still:GetParent() == calm, "the fire burns on one copy and the still on the other")
+	local burning, resting = rim.lit.flames, rim.lit.stills
+	Medals.Engine({ rim }, true, true)
+	Medals.Rest()
+	assert(Engine(fire, flame) and burning:GetAlpha() == 1 and resting:GetAlpha() == 0, "at Full the fire's copy shows and holds the loop, the still's copy is dark")
 	local dropped = Removals(rim.lit)
 	Slots.Set(env, "player", { { id = 3045, count = 0, icon = 132208, start = 0, duration = 15 } })
-	assert(button:IsShown() and fire.loop:IsPlaying(), "the sigil lit: the engine plays its loop")
+	assert(flame:IsShown() and fire.loop:IsPlaying(), "the sigil lit: the engine plays its loop")
 	env.SetTarget(false)
 	env.RunTimers()
-	assert(not Engine(fire, button) and not fire.loop:IsPlaying() and fire.still:GetAlpha() == 1, "the crest resting: the sigil's loop leaves the engine and stops")
+	assert(not Engine(fire, flame) and not fire.loop:IsPlaying() and burning:GetAlpha() == 0 and resting:GetAlpha() == 1, "the crest resting: the loop leaves the engine and the still shows")
 	env.SetTarget(true)
 	env.RunTimers()
-	assert(Engine(fire, button) and fire.loop:IsPlaying(), "woken with the sigil still lit, its loop plays again")
+	assert(Engine(fire, flame) and fire.loop:IsPlaying() and burning:GetAlpha() == 1, "woken with the sigil still lit, its loop plays again")
 	assert(#dropped == 0, "resting and waking leave the rim's flares and other cues bound")
+
+	env._aurasSecret = true
+	env.SetCombat(true)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	K.Options.Write("Medallions", "motion", "calm")
+	env.RunTimers()
+	Medals.Rest()
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+	assert(burning:GetAlpha() == 0 and resting:GetAlpha() == 1, "Calm chosen under hidden values: the fire's copy goes dark and the still shows at once")
+	K.Options.Write("Medallions", "motion", "full")
+	env.RunTimers()
+	Medals.Rest()
+	assert(burning:GetAlpha() == 1 and resting:GetAlpha() == 0, "and Full brings the fire back at once")
+	env._aurasSecret = false
+	env.SetCombat(false)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
 	Slots.Set(env, "player", nil)
-	assert(not button:IsShown() and not fire.loop:IsPlaying(), "the sigil cleared: its loop stops")
+	assert(not flame:IsShown() and not fire.loop:IsPlaying(), "the sigil cleared: its loop stops")
 end
 
 assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))

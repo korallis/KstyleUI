@@ -168,9 +168,11 @@ def Wall(p):
 
 @glyph
 def Sweep(p):
-    p.arc(0.5, 0.56, 0.3, 160, 360)
-    p.line((0.8, 0.56), (0.68, 0.44))
-    p.line((0.8, 0.56), (0.88, 0.42))
+    # a sword swung through a crescent arc: the arc trails the blade
+    p.arc(0.5, 0.5, 0.36, 150, 300, width=0.05)
+    p.arc(0.5, 0.5, 0.29, 165, 285, width=0.035)
+    blade(p, 0.24, 0.8, 0.8, 0.2)
+    p.dot(0.2, 0.84, 0.05)
 
 
 @glyph
@@ -243,38 +245,49 @@ def Voice(p):
 # Rogue
 @glyph
 def Flurry(p):
-    for k in range(3):
-        a = math.radians(k * 120 - 90)
-        p.curve(lambda t, a=a: (0.5 + 0.36 * t * math.cos(a + 1.3 * t), 0.5 + 0.36 * t * math.sin(a + 1.3 * t)), 0.12, 1,
-                width=0.11)
+    # three fanned daggers from one grip
+    for ang in (-38, 0, 38):
+        a = math.radians(ang - 90)
+        blade(p, 0.5 + 0.16 * math.cos(a), 0.84 + 0.16 * math.sin(a), 0.5 + 0.7 * math.cos(a), 0.84 + 0.7 * math.sin(a))
+        p.line((0.5, 0.86), (0.5 + 0.16 * math.cos(a), 0.84 + 0.16 * math.sin(a)), width=0.06)
 
 
 @glyph
 def Rush(p):
-    for x in (0.28, 0.5):
-        p.line((x, 0.22), (x + 0.22, 0.5), (x, 0.78))
+    # a heart struck by a bolt
+    heart(p, 0.42, 0.58, 0.018)
+    p.line((0.9, 0.06), (0.64, 0.28), (0.82, 0.34), (0.5, 0.66), width=0.07)
 
 
 @glyph
 def Evade(p):
-    p.arc(0.5, 0.5, 0.3, 200, 340)
-    p.arc(0.5, 0.5, 0.3, 20, 160)
-    p.line((0.78, 0.39), (0.79, 0.25))
-    p.line((0.78, 0.39), (0.64, 0.36))
-    p.line((0.22, 0.61), (0.21, 0.75))
-    p.line((0.22, 0.61), (0.36, 0.64))
+    # a hooded cloak swept aside, two motion lines trailing it
+    p.line((0.56, 0.12), (0.4, 0.3), (0.42, 0.46))
+    p.line((0.56, 0.12), (0.66, 0.34), (0.62, 0.46))
+    p.line((0.42, 0.46), (0.34, 0.86), (0.6, 0.78), (0.86, 0.84), (0.62, 0.46))
+    p.line((0.48, 0.5), (0.5, 0.78), width=0.05)
+    p.arc(0.5, 0.5, 0.4, 150, 200, width=0.05)
+    p.arc(0.5, 0.5, 0.32, 160, 205, width=0.05)
 
 
 @glyph
 def Dash(p):
-    arrow(p, 0.36, 0.5, 0.82, 0.5, 0.16)
-    p.line((0.16, 0.34), (0.42, 0.34))
-    p.line((0.16, 0.66), (0.42, 0.66))
+    # a winged boot
+    p.line((0.34, 0.2), (0.34, 0.64), (0.3, 0.78), (0.78, 0.8), (0.8, 0.7), (0.56, 0.62), (0.54, 0.2))
+    p.line((0.3, 0.2), (0.58, 0.2))
+    for k, (dx, dy) in enumerate(((-0.24, -0.1), (-0.26, 0.02), (-0.22, 0.13))):
+        p.line((0.34, 0.36 + k * 0.08), (0.34 + dx, 0.36 + k * 0.08 + dy))
 
 
 @glyph
 def Smoke(p):
-    spiral(p, 0.5, 0.5, 0.04, 0.33, 1.6, math.pi / 2)
+    # a burst smoke cloud
+    for cx, cy, r in ((0.32, 0.6, 0.15), (0.5, 0.48, 0.19), (0.7, 0.6, 0.15), (0.5, 0.7, 0.13)):
+        p.arc(cx, cy, r, 0, 360, width=0.07)
+    for cx, cy, r in ((0.32, 0.6, 0.15), (0.5, 0.48, 0.19), (0.7, 0.6, 0.15), (0.5, 0.7, 0.13)):
+        p.dot(cx, cy, r - 0.035)
+    for x, y in ((0.18, 0.28), (0.82, 0.3), (0.5, 0.16)):
+        p.dot(x, y, 0.04)
 
 
 @glyph
@@ -533,22 +546,31 @@ def Farseer(p):
 # Races
 @glyph
 def Axe(p):
-    p.line((0.28, 0.86), (0.6, 0.16))
-    p.fill((0.55, 0.22), (0.7, 0.16), (0.84, 0.26), (0.88, 0.42), (0.8, 0.56), (0.66, 0.56), (0.47, 0.42))
+    # a double-bitted axe
+    p.line((0.5, 0.12), (0.5, 0.9))
+    for s in (-1, 1):
+        p.fill((0.5, 0.24), (0.5 + s * 0.2, 0.16), (0.5 + s * 0.36, 0.12), (0.5 + s * 0.3, 0.36), (0.5 + s * 0.36, 0.6),
+               (0.5 + s * 0.2, 0.54), (0.5, 0.48))
 
 
 @glyph
 def Tusks(p):
-    bezier(p, (0.38, 0.82), (0.12, 0.5), (0.4, 0.18))
-    bezier(p, (0.62, 0.82), (0.88, 0.5), (0.6, 0.18))
-    p.line((0.28, 0.84), (0.72, 0.84))
+    # a tusked troll face: long ears, brow, eyes and two tusks curling up from the jaw
+    p.line((0.32, 0.3), (0.06, 0.18), (0.3, 0.46))
+    p.line((0.68, 0.3), (0.94, 0.18), (0.7, 0.46))
+    p.line((0.32, 0.3), (0.5, 0.2), (0.68, 0.3), (0.7, 0.58), (0.6, 0.82), (0.4, 0.82), (0.3, 0.58), (0.32, 0.3))
+    p.dot(0.42, 0.46, 0.04)
+    p.dot(0.58, 0.46, 0.04)
+    for s in (-1, 1):
+        bezier(p, (0.5 + s * 0.08, 0.74), (0.5 + s * 0.3, 0.8), (0.5 + s * 0.3, 0.5), width=0.075)
 
 
 @glyph
 def Stone(p):
-    p.poly((0.32, 0.16), (0.7, 0.2), (0.84, 0.5), (0.68, 0.84), (0.3, 0.8), (0.16, 0.48))
-    p.line((0.32, 0.16), (0.46, 0.5), (0.3, 0.8))
-    p.line((0.46, 0.5), (0.84, 0.5))
+    # a cracked boulder
+    p.poly((0.2, 0.62), (0.26, 0.36), (0.44, 0.22), (0.66, 0.24), (0.82, 0.4), (0.86, 0.64), (0.72, 0.8), (0.3, 0.8))
+    p.line((0.52, 0.23), (0.46, 0.42), (0.56, 0.52), (0.48, 0.8))
+    p.line((0.56, 0.52), (0.74, 0.58))
 
 
 @glyph
@@ -576,12 +598,14 @@ def Star(p):
 
 @glyph
 def Gear(p):
-    p.ring(0.5, 0.5, 0.22)
-    p.ring(0.5, 0.5, 0.08)
+    # a toothed cog
+    p.ring(0.5, 0.5, 0.24, width=0.11)
+    p.ring(0.5, 0.5, 0.07, width=0.06)
     for k in range(8):
-        a = math.radians(k * 45)
-        p.line((0.5 + 0.24 * math.cos(a), 0.5 + 0.24 * math.sin(a)), (0.5 + 0.35 * math.cos(a), 0.5 + 0.35 * math.sin(a)),
-               width=0.11)
+        a = math.radians(k * 45 + 22.5)
+        w = 0.17
+        pts = [(0.5 + r * math.cos(a + s), 0.5 + r * math.sin(a + s)) for r, s in ((0.27, -w), (0.4, -w * 0.62), (0.4, w * 0.62), (0.27, w))]
+        p.fill(*pts)
 
 
 @glyph

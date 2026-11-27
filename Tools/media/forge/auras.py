@@ -34,6 +34,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 sys.path[:0] = [str(HERE), str(HERE.parent)]
 
+import melee_effects
 import sigils
 from finish import load, outline, resize, save, to_lin, to_srgb
 from relief import N, Emblem, forge_lineart
@@ -47,8 +48,27 @@ EDGE = 3                  # cell pixels over which a bare figure's light fades b
 
 # mark: (kind, Core/Tokens.lua colour, design). A "glyphs" mark's design is its factory in the class's designs module
 # (designs_hunter.D["Hawk"]), whose emblem seats on the socket when it has a seated figure; a "sigils" mark draws
-# Tools/media/sigils.py's figure of its name and takes None. Each class adds its marks as it takes the kit.
+# Tools/media/sigils.py's figure of its name and takes None; an "effects" mark (named Effects/<Art>) is a crest object of
+# Tools/media/melee_effects.py, its design the function drawing it, lit in place in its own box so the crest can lay its
+# light over the object's fill. Each class adds its marks as it takes the kit. A mark in "white" bakes a neutral light the
+# game tints: a racial, a potion or Sprint is on every class's rail in that class's colour, and an object takes its
+# piece's colour, which a seal's school or a picked weapon changes.
 MARKS = {}
+NEUTRAL = "white"
+
+# Warrior, paladin and rogue: each class's sigils in its rail's colour (SlabTrackers.lua crestCooldowns), the shared
+# sigils and the crest objects in neutral light.
+for colour, names in (("gilt", "Crossed Skull Wall Heart Sweep Thorns"), ("white", "Bubble Aegis Sun Hand Wing Bulwark Voice"),
+                      ("pipPriestGlow", "Flurry Rush Evade Drop Smoke Ghost"),
+                      (NEUTRAL, "Dash Axe Tusks Stone Eye Grave Shatter Star Gear Regen Potion")):
+    for name in names.split():
+        MARKS[name] = ("sigils", colour, None)
+for name, (art, threshold) in {"Horn": ("Horn.png", 0.5), "Sword": ("Sword.png", 0.5), "Axe": ("Axe.png", 0.5),
+                               "Dagger": ("Dagger.png", 0.5), "Hammer": ("Hammer.png", 0.5), "Shield": ("Shield.png", 0.5),
+                               "Seal": ("Seal.png", 0.5), "Brand": ("Brand.png", 0.5), "Drop": ("Drop.png", 0.5),
+                               "Vial": ("Vial.png", 0.5), "Ward": ("Ward.png", 0.5), "Oath": ("Oath.png", 0.3),
+                               "Stain": ("Stain.png", 0.3)}.items():
+    MARKS["Effects/" + name] = ("effects", NEUTRAL, (art, threshold))
 # the amber spell fire of the approved hawk mock: dark ember to the crest's gilt to white heat
 GILT = [[0.0, "000000"], [0.06, "2a0a02"], [0.18, "a8320a"], [0.34, "f26a12"], [0.52, "ffb22e"], [0.72, "ffe39a"], [1.0, "fffdf4"]]
 
@@ -77,6 +97,13 @@ def figure(name, kind, design, work):
         sigils.GLYPHS[name](pen)
         e = forge_lineart(name, pen.image, work / "maps")
         return e.M, e.H, False
+    if kind == "effects":
+        art, threshold = design
+        rgb, alpha = (melee_effects.ART.get(art) or melee_effects.BAND_ART[art])()
+        alpha = np.asarray(Image.fromarray(alpha.astype(np.float32)).resize((N, N), Image.BILINEAR))
+        tone = np.asarray(Image.fromarray(rgb[..., 0].astype(np.float32)).resize((N, N), Image.BILINEAR))
+        mask = alpha > threshold
+        return mask, np.where(mask, 0.3 + tone, 0), False
     e = design()
     if e.figure is not None:
         return e.figure, np.where(e.figure, e.H, 0), True
@@ -170,17 +197,18 @@ def main(argv=None):
     for name, (kind, colour, design) in MARKS.items():
         if only and name not in only:
             continue
-        mask, height, seated = figure(name, kind, design, work)
-        fields(name, mask, height, work / "fields")
-        frames = work / "frames" / name
+        mask, height, seated = figure(name.split("/")[-1], kind, design, work)
+        stem = name.replace("/", "")
+        fields(stem, mask, height, work / "fields")
+        frames = work / "frames" / stem
         shutil.rmtree(frames, ignore_errors=True)
         subprocess.run([args.blender, "-b", "--factory-startup", "--python-exit-code", "1", "--python", str(HERE / "aura.py"), "--",
-                        str(work / "fields"), name, str(frames), "--frames", str(FRAMES), "--size", str(MASTER),
+                        str(work / "fields"), stem, str(frames), "--frames", str(FRAMES), "--size", str(MASTER),
                         "--palette", json.dumps(palette(hexes[colour])), "--fit", str(1.0 if seated else 1 / SPAN),
                         "--plate", str(RIM_INNER if seated else 0.0), "--pad", str(PAD / (N + 2 * PAD))],
                        check=True, stdout=subprocess.DEVNULL, env=env)
-        path = args.out / kind.capitalize() / f"{name}.png"
-        seam = bake([frames / f"{name}_{i:02d}.png" for i in range(FRAMES)], seated, path)
+        path = args.out / kind.capitalize() / f"{name.split('/')[-1]}.png"
+        seam = bake([frames / f"{stem}_{i:02d}.png" for i in range(FRAMES)], seated, path)
         print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest(), f"seam {seam:.2f}x median step",
               "seated" if seated else "bare")
     if not args.work:
