@@ -11,11 +11,14 @@ if [ -z "$base" ]; then
   base=$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)
 fi
 mb=$(git merge-base "$base" HEAD)
+source "$(dirname "${BASH_SOURCE[0]}")/../Tools/regression/run-all.sh"
+pick_python || exit 2
 status=0
 
 git diff -U0 --no-color --diff-filter=ACMR "$mb" HEAD -- . \
   ':(exclude)*.md' ':(exclude)*.mdx' ':(exclude)*.txt' ':(exclude)*.lock' ':(exclude)*.resolved' \
   ':(exclude)**/check-suppressions.sh' |
+"${py[@]}" "$(dirname "${BASH_SOURCE[0]}")/../Tools/hooks/mask_gallery_images.py" |
 awk '
   BEGIN {
     pat = "((^|[^a-z0-9])hack([^a-z0-9]|$)|(\\/\\/|#|\\/\\*|\\*|--) *xxx([^a-z0-9]|$)|workaround|work around|eslint-disable|biome-ignore|@ts-ignore|@ts-expect-error|@ts-nocheck|# *noqa|type: *ignore|pyright: *ignore|pylint: *disable|swiftlint:disable|nolint|@suppresswarnings|phpstan-ignore|rubocop:disable|luacheck: *ignore|shellcheck +disable|noinspection|nosec|#\\[allow\\(|@suppress)"

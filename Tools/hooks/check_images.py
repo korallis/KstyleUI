@@ -6,6 +6,7 @@ from pathlib import PurePosixPath
 ALLOWED = (
     "Media/",
     "docs/media/readme/", "docs/media/marketing/", "docs/media/plates/", "docs/media/faq/",
+    "docs/renders/media/",
     "docs/store/", "docs/design/mockups/",
     "KstyleUI_DataBars/Media/", "KstyleUI_Minimap/Media/",
     "Tools/icons/setB/Icons/", "Tools/medallions/anchors/", "Tools/media/materials/",
