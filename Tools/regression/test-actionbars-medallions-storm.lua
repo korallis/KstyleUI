@@ -141,7 +141,10 @@ do
 	local state = ns.SlabStorm.state
 	local seats = state.seats
 	assert(#seats == 3 and state.holder:IsShown() and state.listening, "a shaman who knows any rank gets three orbs over three studs")
-	assert(#state.containers == 12 and state.fed == true, "twelve aura containers: the halo's moving and still copies, an orb and a spark's two copies on each seat, and Rising heat, all feeding")
+	assert(#state.containers == 9 and state.fed == true, "nine aura containers of the orbs' own: the halo's moving and still copies, a spark's two copies on each seat, and Rising heat, all feeding")
+	for i, s in ipairs(seats) do
+		assert(state.orbs[i] == s.slot and s.slot.container._enabled == true, "and each orb's own container, which the crest's medal engine feeds, feeding too")
+	end
 	assert(#state.moving == 4 and #state.still == 4, "the halo and each of the three sparks have a moving and a still copy")
 	for i, s in ipairs(seats) do
 		local options = s.orb:GetParent()._applicationBar[2]
@@ -480,7 +483,9 @@ end
 
 -- Each orb is the storm orb's animated aura (the shaman's crest marks take the aura kit): its sheet burns over the orb's
 -- fill turned black, clipped to the fill so a spent charge drains both, and its loop is the orb slot's shown animation
--- only at Full: Calm and Off take it away and stop it, so the engine never plays a loop nobody sees.
+-- only while the crest is awake at Full, the shared rule for the crest's engine-fed loops: a resting crest, Calm and Off
+-- take it away and stop it, so the engine never plays a loop nobody sees, and waking or Full on a shield already up
+-- plays it at once rather than at the next shield.
 do
 	local env, K, ns = New("SHAMAN", { [RANK7] = true })
 	local state = ns.SlabStorm.state
@@ -490,22 +495,44 @@ do
 		end
 		return false
 	end
+	local function Burning(want, why)
+		for i, s in ipairs(state.seats) do
+			assert(Bound(s) == want and s.fire.loop:IsPlaying() == want, why .. " (orb " .. i .. ")")
+		end
+	end
 	for _, s in ipairs(state.seats) do
 		local file = s.fire._state.Texture[1]
 		assert(file == K.Tokens.Texture("auraStormOrb") and s.fire.still._state.Texture[1] == file, "each orb draws the storm orb's aura sheet")
 		assert(s.fire.clip:GetParent() == s.orb and s.orb:GetStatusBarTexture()._state.BlendMode[1] == "BLEND", "over the orb's fill, its black body, clipped to it")
 	end
 	K.Options.Write("Medallions", "motion", "full")
-	for _, s in ipairs(state.seats) do
-		assert(Bound(s), "at Full each orb's aura loops while its charge shows")
-	end
+	Shield(env, 3)
+	Cast(env, RANK7)
+	Burning(false, "a resting crest leaves the lit orbs' loops off")
+	env.SetTarget(true)
+	Burning(true, "waking the crest plays each lit orb's loop at once")
 	for _, level in ipairs({ "calm", "off" }) do
 		K.Options.Write("Medallions", "motion", level)
-		for _, s in ipairs(state.seats) do
-			assert(not Bound(s) and not s.fire.loop:IsPlaying(), level .. " takes each orb's loop away and stops it")
-		end
+		Burning(false, level .. " takes each orb's loop away and stops it")
 		K.Options.Write("Medallions", "motion", "full")
+		Burning(true, "Full on a shield already up plays each loop again")
 	end
+	env.SetTarget(false)
+	Burning(false, "the crest coming to rest stops them")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- The first build sizes the orbs' art under the engine's own buttons, which combat forbids even while auras read:
+-- learning Lightning Shield in readable combat builds nothing until combat ends.
+do
+	local env, K, ns = New("SHAMAN", {})
+	local state = ns.SlabStorm.state
+	env.SetCombat(true)
+	env._known[RANK7] = true
+	ns.SlabStorm.Recheck()
+	assert(state.holder == nil and not state.failed and #env._slotContainers == 0, "learning Lightning Shield in readable combat builds nothing yet")
+	env.SetCombat(false)
+	assert(state.holder:IsShown() and state.listening and state.fed == true, "and the orbs build when combat ends")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

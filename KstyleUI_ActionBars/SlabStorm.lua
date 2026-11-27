@@ -27,7 +27,8 @@ local CAST = {}
 for _, id in ipairs(RANKS) do CAST[id] = true end
 local SLOT = { candidateFilters = { includeSpellIDs = CAST } }
 
-local state = { seats = {}, parts = {}, loops = {}, containers = {}, feeds = {}, flares = {} }
+local state = { seats = {}, parts = {}, loops = {}, containers = {}, feeds = {}, flares = {}, orbs = {} }
+state.medal = { lits = state.orbs }
 Storm.state = state
 
 local function Active()
@@ -68,11 +69,13 @@ local function Fire(frame)
 	frame.play:Play()
 end
 
-local function Container(parent)
+local function Container(parent, medal)
 	local container = CreateFrame("AuraContainer", nil, parent, "CustomAuraContainerTemplate")
 	Widgets.KeepOut(container)
 	container:SetUnit("player")
-	state.containers[#state.containers + 1] = container
+	if not medal then
+		state.containers[#state.containers + 1] = container
+	end
 	return container
 end
 
@@ -137,8 +140,11 @@ local function Build(hub)
 		seat:SetAllPoints(pin)
 		seat:SetFrameLevel(base + 3)
 		local s = { frame = seat, pin = pin, orbit = Orbit(seat, angle) }
-		s.slot, s.orb = Slot(Container(seat), "orb", seat, i - 1, "stormOrb", true)
-		s.fire = Medals.Fill({ add = function(part) part:SetSize(part.units, part.units) return part end }, s.orb, "auraStormOrb", ORB, nil, s.slot)
+		local box = Container(seat, true)
+		s.slot, s.orb = Slot(box, "orb", seat, i - 1, "stormOrb", true)
+		s.slot.container = box
+		s.fire = Medals.Fill({ add = function(part) part:SetSize(part.units, part.units) return part end }, s.orb, "auraStormOrb", ORB)
+		state.orbs[i] = s.slot
 		for n, set in ipairs({ state.moving, state.still }) do
 			set[#set + 1] = Medals.Layer(seat, base + 4)
 			local spark, bar = Slot(Container(set[#set]), "spark", seat, i - 1, "stormOrbSpark", false)
@@ -189,17 +195,7 @@ local function Engine(on, loops, eased)
 	if Restricted() then
 		return
 	end
-	if state.burning ~= loops then
-		for _, s in ipairs(state.seats) do
-			if loops then
-				s.slot:AddAuraShownAnimation(s.fire.loop)
-			else
-				s.slot:RemoveAuraShownAnimation(s.fire.loop)
-				s.fire.loop:Stop()
-			end
-		end
-		state.burning = loops
-	end
+	Medals.Engine({ state.medal }, on, loops or false)
 	if state.eased ~= eased then
 		local modes = Enum and Enum.StatusBarInterpolation or {}
 		for _, f in ipairs(state.feeds) do
@@ -346,7 +342,7 @@ function Storm.Update()
 		return Stop()
 	end
 	if not (state.holder or state.failed) then
-		if Restricted() then
+		if Medals.Locked() then
 			state.listening = nil
 			K.Events.Register(OWNER, "ADDON_RESTRICTION_STATE_CHANGED", Storm.Update)
 			return K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Storm.Update)
