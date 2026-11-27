@@ -945,6 +945,24 @@ for _, case in ipairs({ { "WARRIOR", { 1719, 12975, 12809, 1259799 }, 3, "concus
 	Clean(env, K)
 end
 
+-- A rogue's combo-point daggers fan up out of the ring and the 90-degree one reaches into the middle seat's lower rim, so every
+-- rail seat draws above every frame of the crown's pieces, the dagger passing behind the medal rather than across its face.
+do
+	local env, K, ns = New("ROGUE", { known = { 13750, 13877, 14177, 1856, 5277, 2983 }, tree = 2 })
+	local function Top(frame, level)
+		level = math.max(level or 0, frame:GetFrameLevel())
+		for _, child in ipairs({ frame:GetChildren() }) do level = Top(child, level) end
+		return level
+	end
+	local pips, crown = ns.SlabCrown.state.pips, 0
+	assert(pips and #pips == 5, "the rogue's crown fans five daggers")
+	for _, pip in ipairs(pips) do crown = Top(pip.frame, crown) end
+	for _, seat in ipairs(Rail(ns).order) do
+		assert(seat:GetFrameLevel() > crown, "a rail seat draws over the daggers: seat " .. seat:GetFrameLevel() .. ", dagger " .. crown)
+	end
+	Clean(env, K)
+end
+
 -- Bloodrage's rage comes with its own buff (29131), so the pressed medal rises to the crown and the buff owns it, as a seat's does.
 do
 	local env, K, ns = New("WARRIOR", { known = { 1719, 2687 }, tree = 1 })
