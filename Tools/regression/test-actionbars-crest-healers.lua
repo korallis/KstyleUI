@@ -227,8 +227,11 @@ do
 	Slots.Set(env, "player", { { id = 16870, count = 1, start = 0, duration = 15 } })
 	assert(b.bloom.lit:IsShown() and #b.bloom.ring == 8, "Clearcasting blooms the leaves")
 	local ping = b.bloom.lit.flareGate.lit.flare._regions[1]
-	assert(ping:GetTexture():find("RingLine16", 1, true) and ping._state.VertexColor[1] == K.Tokens.Color("schoolNature") and not b.bloom.fire,
-		"a proc pings a thin ring in nature green, never the druid's burst or fire")
+	local aura = b.bloom.fire.lit._regions[1]
+	assert(ping:GetTexture():find("RingLine16", 1, true) and ping._state.VertexColor[1] == K.Tokens.Color("schoolNature") and not ping:GetTexture():find("Burst", 1, true),
+		"a proc pings a thin ring in nature green, never the druid's burst")
+	assert(aura:GetTexture() == K.Tokens.Texture("medProcAura") and aura._state.VertexColor[1] == K.Tokens.Color("schoolNature"),
+		"and its animated aura loops in nature green while Clearcasting is up, never the druid's ambient fire")
 	env._cooling[18562] = true
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(AB.W.LastCall(b.swiftmend.bar, "SetTimerDuration"), "the gem refills over Swiftmend's cooldown")

@@ -575,13 +575,19 @@ end
 function Medals.Rim(parent, spec, level)
 	local r = Medals.Piece(parent, level, RIM)
 	local lit = Lit(r, spec, level + 1)
-	if spec.ambient then
+	local ambient = spec.ambient or spec.proc and "medProcAura"
+	if ambient then
 		r.still = Mirror(r, lit, level + 1)
-		Medals.Cloud(r.still.lit, spec.ambient, spec.cell or 0)
+		local still = Medals.Cloud(r.still.lit, ambient, spec.cell or 0)
 		lit.awake = Mirror(r, lit, level + 1)
 		r.fire = lit.awake
 		r.fire:SetAlpha(0)
-		r.fire.lit.loop = Medals.Flip(Medals.Cloud(r.fire.lit, spec.ambient, spec.cell or 0), spec.ambient, 1)
+		local fire = Medals.Cloud(r.fire.lit, ambient, spec.cell or 0)
+		r.fire.lit.loop = Medals.Flip(fire, ambient, 1)
+		if spec.proc then
+			still:SetVertexColor(Tokens.Color(spec.proc))
+			fire:SetVertexColor(Tokens.Color(spec.proc))
+		end
 		rims[#rims + 1] = r
 	end
 	if spec.color then

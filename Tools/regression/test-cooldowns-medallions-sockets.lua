@@ -1,4 +1,4 @@
--- test-cooldowns-medallions-sockets.lua: under Medallions the mirror's cooldown rows are round crest medals on a short rail, a proc a gilt ring round one, native tracked buffs keep the slab frame, and each returns to its earlier look on demand.
+-- test-cooldowns-medallions-sockets.lua: under Medallions the mirror's cooldown rows are round crest medals on a short rail, a proc a looping gilt aura round one, native tracked buffs keep the slab frame, and each returns to its earlier look on demand.
 local C = dofile("Tools/regression/cooldowns_env.lua")
 local env, K, ns = C.New({ setup = C.Game })
 C.Enable(env, K)
@@ -21,10 +21,16 @@ local _, _, _, left = rail.rails[1][1]:GetPoint(1)
 local _, _, _, x = rail.icons[1]:GetPoint(1)
 assert(math.abs(left - (x + rail.icons[1].opts.size / 2)) < 0.01, "the rail starts at the first medal's centre")
 ns.Style.SetProc(icon, true)
-assert(icon.medIconProc and icon.medIconProc:IsShown() and icon.medIconProc:GetTexture() == K.Tokens.Texture("ringLine16"), "a proc lights a gilt ring round the medal")
+-- A proc is an animated spell effect, never an icon (the captain's direction for everything a player tracks).
+local aura = icon.medIconProc
+assert(aura and aura.moving:IsShown() and aura.moving:GetTexture() == K.Tokens.Texture("medProcAura") and aura.loop:IsPlaying(), "a proc loops a gilt aura round the medal")
 assert(not (icon.procHalo and icon.procHalo.holder:IsShown()), "and no square halo")
+K.Motion.SetLevel("reduced")
+assert(not aura.loop:IsPlaying() and aura.still:IsShown() and not aura.moving:IsShown(), "calm motion holds the aura still")
+K.Motion.SetLevel("full")
+assert(aura.loop:IsPlaying() and aura.moving:IsShown(), "and full motion plays it again")
 ns.Style.SetProc(icon, false)
-assert(not icon.medIconProc:IsShown(), "the ring goes with the proc")
+assert(not aura.moving:IsShown() and not aura.still:IsShown() and not aura.loop:IsPlaying(), "the aura goes with the proc")
 local buff = env._viewers.BuffIconCooldownViewer._items[1]
 local backdrop = K.Skin.Parts(buff).backdrop
 assert(backdrop.medIconFrame:IsShown(), "automatic tracked buffs use the same frame on the native viewer")
