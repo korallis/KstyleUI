@@ -192,10 +192,11 @@ local function AfterPaint(icon)
 	if usable and icon.onCooldown and (icon.opts.quietCooldown or icon.greyWhileCooling) then
 		local tint = icon.tint
 		local brightness = icon.opts.quietCooldown and 0.65 or 1
-		Widgets.ShadeIcon(icon.icon, brightness * tint[1], brightness * tint[2], brightness * tint[3], icon.greyWhileCooling)
+		Widgets.ShadeButton(icon, brightness * tint[1], brightness * tint[2], brightness * tint[3], icon.greyWhileCooling)
 	end
 	if not icon.usable and icon.inactiveShade == "colour" then
-		icon.icon:SetDesaturated(false)
+		local r, g, b = icon.icon:GetVertexColor()
+		Widgets.ShadeButton(icon, r, g, b, false)
 	end
 	if ns.Settings.current.accent == "quiet" then
 		icon.chrome:SetRim(Widgets.Rgba("slotRim"))

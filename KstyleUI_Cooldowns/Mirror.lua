@@ -588,7 +588,6 @@ local function ShowAuraIcon(row, icon, entry)
 	end
 	Style.SetReady(icon, entry.auraID and icon.rule.activeGlow)
 	Texture(icon.icon, entry)
-	Style.Face(icon, entry)
 	local id = entry.auraID
 	if id then
 		local duration, err = Auras.Duration(entry.auraUnit, id)
