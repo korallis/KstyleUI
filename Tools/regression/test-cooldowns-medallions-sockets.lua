@@ -97,11 +97,11 @@ do
 	henv.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(C.W.LastCall(face.moving, "SetDesaturated")[1] == false, "and ready, it burns in colour again")
 	-- A resized medal refits the aura's overhang to its new size.
-	local x = select(4, face.still:GetPoint(1))
+	local narrow = select(4, face.still:GetPoint(1))
 	deter.opts.size = deter.opts.size * 2
 	deter:Restyle()
 	local wide = select(4, face.still:GetPoint(1))
-	assert(x < 0 and math.abs(wide - 2 * x) <= 1, "a medal twice the size holds an aura overhang twice as wide")
+	assert(narrow < 0 and math.abs(wide - 2 * narrow) <= 1, "a medal twice the size holds an aura overhang twice as wide")
 	-- Numbers only shows the countdown alone, with neither icon nor aura.
 	Write("essential.numbersOnly", true)
 	assert(not face.cover:IsShown() and not face.still:IsShown() and not face.moving:IsShown(), "numbers only hides the aura")
