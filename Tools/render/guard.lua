@@ -221,10 +221,16 @@ local function ellipsis(item)
 	if plain:find("\n", 1, true) or item.rect[3] <= 0 then
 		return nil
 	end
+	-- A zoomed text (scene.lua) is laid out in its unscaled width and drawn through the zoom; at no width it draws nothing.
+	local across = item.zoom and item.zoom[1] or 1
+	if across <= 0 then
+		return nil
+	end
+	local has = item.rect[3] / across
 	local ppu = Guard.ppu
 	local need = Scene.TextWidth(plain, item.font.size, item.font.path)
-	if need * ppu > item.rect[3] * ppu + 0.5 then
-		return string.format("needs %.1f units, has %.1f", need, item.rect[3])
+	if need * ppu > has * ppu + 0.5 then
+		return string.format("needs %.1f units, has %.1f", need, has)
 	end
 	return nil
 end
@@ -349,6 +355,22 @@ Guard.CROSS = 0.35
 -- The glyphs are laid out in the text's own rect, then cut to its clip, so a clipped text's ink never moves into
 -- view. The second return is one line's glyph height, which the crossing rule scales.
 function Guard.Ink(item)
+	local zoom = item.zoom
+	if zoom then
+		-- A zoomed text (scene.lua) is laid out in its unscaled rect and drawn through the zoom from the rect's corner.
+		local r, unscaled = item.rect, {}
+		for key, value in pairs(item) do
+			unscaled[key] = value
+		end
+		unscaled.zoom, unscaled.clip = nil, nil
+		unscaled.rect = { r[1], r[2], zoom[1] > 0 and r[3] / zoom[1] or 0, zoom[2] > 0 and r[4] / zoom[2] or 0 }
+		local ink, glyph = Guard.Ink(unscaled)
+		ink = { r[1] + (ink[1] - r[1]) * zoom[1], r[2] + (ink[2] - r[2]) * zoom[2], ink[3] * zoom[1], ink[4] * zoom[2] }
+		if item.clip then
+			ink = intersect(ink, item.clip)
+		end
+		return ink, glyph * zoom[2]
+	end
 	local rect = item.rect
 	local plain = Scene.PlainText(item.text)
 	local size = item.font and item.font.size or 12
@@ -500,7 +522,7 @@ function Guard.Check(scene)
 				if item.kind == "text" then
 					local ink, glyph = Guard.Ink(item)
 					if item.clip and not item.scroll then
-						local whole = Guard.Ink({ rect = item.rect, text = item.text, font = item.font, natural = item.natural, wordWrap = item.wordWrap, spacing = item.spacing, grow = item.grow, justifyH = item.justifyH, justifyV = item.justifyV, maxLines = item.maxLines })
+						local whole = Guard.Ink({ rect = item.rect, text = item.text, font = item.font, natural = item.natural, wordWrap = item.wordWrap, spacing = item.spacing, grow = item.grow, justifyH = item.justifyH, justifyV = item.justifyV, maxLines = item.maxLines, zoom = item.zoom })
 						local cut = Geometry.Outside(bounds(whole), bounds(item.clip))
 						if cut > slack then
 							clippedTexts[#clippedTexts + 1] = { item = item, card = card, whole = whole, cut = cut }
