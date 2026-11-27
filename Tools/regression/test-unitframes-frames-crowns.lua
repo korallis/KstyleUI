@@ -29,6 +29,12 @@ local function New(class, opts)
 			player.powerType, player.powerToken = class == "DRUID" and 1 or class == "ROGUE" and 3 or 0, class == "DRUID" and "RAGE" or "MANA"
 			e.C_SpellBook = e.C_SpellBook or {}
 			e.C_SpellBook.IsSpellKnown = function(id) return opts.known ~= false and SPEC[class] and id == SPEC[class].known end
+			e.C_UnitAuras = e.C_UnitAuras or {}
+			e.C_UnitAuras.GetPlayerAuraBySpellID = function(id)
+				for _, a in ipairs(e._slotAuras.player or {}) do
+					if a.id == id then return { spellId = id, applications = a.count } end
+				end
+			end
 			if opts.setup then opts.setup(e) end
 		end,
 	})
@@ -84,7 +90,7 @@ for _, class in ipairs(ORDER) do
 		if class == "HUNTER" then
 			-- The aura plan: under Frames too a hunter's arrow burns as the upright arrow figure's aura.
 			assert(tostring(W.LastCall(p.aura.moving, "SetTexture")[1]):find("Auras\\Figures\\Arrow90.png", 1, true), "hunter arrow " .. i .. " burns the upright arrow's aura")
-			assert(p.aura.button._shownAnimations[1] == p.aura.loop, "and at Full its loop is the slot's shown animation")
+			assert(not p.aura.loop:IsPlaying(), "and with no stack held its loop waits")
 		else
 			assert(tostring(W.LastCall(p.blade, "SetStatusBarTexture")[1]):find(spec.art .. "90.png", 1, true), class .. " piece " .. i .. " lights its upright art")
 		end
@@ -129,6 +135,12 @@ for _, class in ipairs(ORDER) do
 	end
 	aura.count = n
 	Slots.Set(env, spec.unit, { aura })
+	if class == "HUNTER" then
+		env.FireEvent("UNIT_AURA", "player", {})
+		for i, p in ipairs(crown.pips) do
+			assert(p.aura.loop:IsPlaying() and p.aura.lit:IsShown(), "at Full under Frames three stacks burn hunter arrow " .. i)
+		end
+	end
 	for i, p in ipairs(crown.pips) do
 		assert(Lit(env, p) and env.issecretvalue(W.LastCall(p.blade, "SetValue")[1]), class .. " piece " .. i .. " lights from the game's secret count")
 	end

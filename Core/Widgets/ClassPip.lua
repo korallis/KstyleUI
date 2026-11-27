@@ -281,8 +281,8 @@ local function Slot(fed, key, anchor, level, low, ease, texture, color, add, con
 	return bar
 end
 
--- A hunter's arrows: a burning and a still copy of each arrow's aura, each in its own container under a layer of the crown's own,
--- because the engine keeps an aura button's animations while auras are secret, and only those layers can swap the copies then.
+-- A hunter's arrows: each arrow's still copy sits on an aura slot under a layer of the crown's own, because only that layer can
+-- swap it while auras are secret, and the engine's stack count reveals it the way it sweeps the other crowns' art.
 local function Gate(fed, level)
 	local gate = CreateFrame("Frame", nil, fed.holder)
 	gate:SetAllPoints(fed.holder)
@@ -296,40 +296,41 @@ local function Gate(fed, level)
 	return gate
 end
 
--- Each copy's aura sits in a frame clipped to its application bar's fill, so the stack count reveals it as it sweeps the other crowns' art.
-local function Ember(fed, p, token, gate, still)
+-- The burning copy is the crown's own frame, not an aura button's, so Lua can stop its loop while auras are secret. It is clipped
+-- to the still copy's application bar fill, and Pace shows and plays it only for a stack the player is known to hold.
+local function Ember(fed, p, token)
 	local rows, columns, frames, seconds, span = Tokens.Flipbook(token)
-	local bar = Slot(fed, "lit" .. p.i, p.frame, gate:GetFrameLevel() + 1, p.i - 1, true, nil, nil, nil, gate.container)
+	local bar = Slot(fed, "lit" .. p.i, p.frame, fed.cool:GetFrameLevel() + 1, p.i - 1, true, nil, nil, nil, fed.cool.container)
 	bar:ClearAllPoints()
 	bar:SetPoint("CENTER", p.frame, "CENTER", 0, 0)
 	bar:SetStatusBarTexture((Tokens.Texture("barFlat")))
 	bar:SetOrientation("VERTICAL")
 	local fill = bar:GetStatusBarTexture()
 	fill:SetAlpha(0)
-	local clip = CreateFrame("Frame", nil, bar)
-	clip:SetClipsChildren(true)
-	clip:SetPoint("TOPLEFT", fill, "TOPLEFT", 0, 0)
-	clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", 0, 0)
-	local t = clip:CreateTexture(nil, "ARTWORK")
-	t:SetTexture((Tokens.Texture(token)))
-	t:SetBlendMode("ADD")
-	t:SetAllPoints(bar)
-	local a = p.aura or { span = span or 1, bars = {} }
-	a.bars[#a.bars + 1] = bar
-	if still then
+	local function Copy(owner)
+		local clip = CreateFrame("Frame", nil, owner)
+		clip:SetClipsChildren(true)
+		clip:SetPoint("TOPLEFT", fill, "TOPLEFT", 0, 0)
+		clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", 0, 0)
+		local t = clip:CreateTexture(nil, "ARTWORK")
+		t:SetTexture((Tokens.Texture(token)))
+		t:SetBlendMode("ADD")
+		t:SetAllPoints(bar)
 		t:SetTexCoord(0, 1 / columns, 0, 1 / rows)
-		a.still = t
-	else
-		a.moving, a.button = t, bar:GetParent()
-		a.loop = t:CreateAnimationGroup()
-		a.loop:SetLooping("REPEAT")
-		local flip = a.loop:CreateAnimation("FlipBook")
-		flip:SetFlipBookRows(rows)
-		flip:SetFlipBookColumns(columns)
-		flip:SetFlipBookFrames(frames)
-		flip:SetDuration(seconds)
-		fed.auras[#fed.auras + 1] = a
+		return t, clip
 	end
+	local a = { span = span or 1, bars = { bar } }
+	a.still = Copy(bar)
+	a.moving, a.lit = Copy(fed.burn)
+	a.lit:Hide()
+	a.loop = a.moving:CreateAnimationGroup()
+	a.loop:SetLooping("REPEAT")
+	local flip = a.loop:CreateAnimation("FlipBook")
+	flip:SetFlipBookRows(rows)
+	flip:SetFlipBookColumns(columns)
+	flip:SetFlipBookFrames(frames)
+	flip:SetDuration(seconds)
+	fed.auras[#fed.auras + 1] = a
 	p.aura = a
 end
 
@@ -339,42 +340,61 @@ local function Bind(feeds, moving)
 	end
 end
 
-local function Burn(fed, burning)
-	for _, a in ipairs(fed.auras) do
-		if burning then
-			a.button:AddAuraShownAnimation(a.loop)
-		elseif fed.bound then
-			a.button:RemoveAuraShownAnimation(a.loop)
-			a.loop:Stop()
+-- The player's stacks, read only while auras are open; nil when they are secret or unreadable, so no secret is ever compared.
+local function Stacks(c)
+	local read = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
+	if c.unit ~= "player" or type(read) ~= "function" or not Widgets.CrownOpen() then
+		return nil
+	end
+	for _, id in ipairs(c.spells) do
+		local ok, aura = pcall(read, id)
+		if not ok or IsSecret(aura) then
+			return nil
+		end
+		if aura then
+			local n = aura.applications
+			if IsSecret(n) or type(n) ~= "number" then
+				return nil
+			end
+			return n
 		end
 	end
-	-- The engine plays a shown animation only when its aura appears, so an aura already up replays it through a fresh enable.
-	if burning and fed.holder:IsShown() then
-		fed.burn.container:SetEnabled(false)
-		fed.burn.container:SetEnabled(true)
+	return 0
+end
+
+-- Arrow i burns and loops only while the crown burns, shows and the player holds i stacks; otherwise, and whenever auras are
+-- secret, every loop stops and the engine-fed still copies show.
+function Crown:Pace()
+	if not self.burn then
+		return
+	end
+	local n = self.burning and self.shown and Stacks(self.c) or 0
+	self.burn:SetAlpha(n > 0 and 1 or 0)
+	self.cool:SetAlpha(n > 0 and 0 or 1)
+	for i, a in ipairs(self.auras) do
+		local lit = i <= n
+		a.lit:SetShown(lit)
+		if not lit then
+			a.loop:Stop()
+		elseif not a.loop:IsPlaying() then
+			a.loop:Play()
+		end
 	end
 end
 
--- burning: whether the arrows' auras loop (Full, and the crest awake); otherwise each shows its first frame. The layers swap at once,
--- secret auras or not; the loops bind only while the engine lets addon code reach its aura buttons.
+-- burning: whether the arrows' auras loop (Full, and the crest awake); otherwise each shows its first frame.
 function Crown:SetBurning(burning)
-	burning = burning == true and self.auras[1] ~= nil
-	if self.burn then
-		self.burn:SetAlpha(burning and 1 or 0)
-		self.cool:SetAlpha(burning and 0 or 1)
-	end
-	return burning
+	self.burning = burning == true and self.auras[1] ~= nil
+	self:Pace()
+	return self.burning
 end
 
 function Crown:SetMotion(moving, burning)
-	burning = self:SetBurning(burning)
+	self:SetBurning(burning)
 	if moving ~= self.moving and pcall(Bind, self.feeds, moving) then
 		self.moving = moving
 	end
-	if burning ~= (self.bound or false) and pcall(Burn, self, burning) then
-		self.bound = burning
-	end
-	return moving == self.moving and burning == (self.bound or false)
+	return moving == self.moving
 end
 
 function Crown:Listen(owner, on)
@@ -388,6 +408,11 @@ function Crown:Listen(owner, on)
 		Events.Register(owner, "PLAYER_TARGET_CHANGED", function()
 			for _, container in ipairs(self.containers) do container:UpdateAllAuras() end
 		end)
+	end
+	if on and self.burn then
+		local function Pace() self:Pace() end
+		Events.RegisterUnit(owner, "UNIT_AURA", Pace, "player")
+		Events.Register(owner, "ADDON_RESTRICTION_STATE_CHANGED", Pace)
 	end
 end
 
@@ -407,6 +432,8 @@ end
 function Crown:SetShown(on)
 	self.holder:SetShown(on)
 	for _, container in ipairs(self.containers) do container:SetEnabled(on) end
+	self.shown = on == true
+	self:Pace()
 end
 
 function Widgets.FedCrown(parent, kind, angles, size, moving)
@@ -428,7 +455,10 @@ function Widgets.FedCrown(parent, kind, angles, size, moving)
 	end
 	local fed = setmetatable({ c = c, holder = holder, container = container, options = { candidateFilters = { includeSpellIDs = ids } }, pips = {}, feeds = {}, auras = {}, containers = { container } }, { __index = Crown })
 	if c.aura then
-		fed.burn, fed.cool = Gate(fed, level + 4), Gate(fed, level + 4)
+		fed.cool = Gate(fed, level + 4)
+		fed.burn = CreateFrame("Frame", nil, holder)
+		fed.burn:SetAllPoints(holder)
+		fed.burn:SetFrameLevel(level + 6)
 	end
 	for i, angle in ipairs(angles) do
 		local set = Widgets.ClassPipSet(kind, angle)
@@ -443,8 +473,7 @@ function Widgets.FedCrown(parent, kind, angles, size, moving)
 		p.halo = Slot(fed, "halo" .. i, p.haloFrame, level + 2, i - 1, false, set.glow, set.glowColor, true)
 		p.blade = Slot(fed, "lit" .. i, frame, level + 3, i - 1, true, set.lit, c.aura and "black" or "white")
 		if c.aura then
-			Ember(fed, p, c.aura .. angle, fed.burn)
-			Ember(fed, p, c.aura .. angle, fed.cool, true)
+			Ember(fed, p, c.aura .. angle)
 		end
 		fed.pips[i] = p
 	end
