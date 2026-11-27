@@ -348,9 +348,11 @@ end
 -- value multiplied, as a texture's own Scales draw (Solver:solve). latest, when given, is filled as
 -- { anim, x, y, start } with the Scale a frame draws: of those past their start delay in a pass that has not ended
 -- (a group that does not loop ends where clip.lua finishes it), the one that started last on the clock, as a later
--- Scale replaces an earlier one; the client's own rule is unproven (docs/TESTING.md, Action Bars). Those starts and
--- ends compare clock times, not the time elapsed since the play, as clip.lua does: 10 + 0.2 is 10.2 while 10.2 - 10
--- falls short of 0.2, so an elapsed test would draw the earlier state at a later Scale's start or a group's end.
+-- Scale replaces an earlier one; the client's own rule is unproven (docs/TESTING.md, Action Bars). Those starts, ends
+-- and a repeating group's passes (its play time plus whole passes) are clock times compared with the clock, as clip.lua
+-- compares them, and the drawn Scale's progress runs from its clock start: 10 + 0.2 is 10.2 while 10.2 - 10 falls short
+-- of 0.2, so a test on the elapsed time would draw the earlier state at a later Scale's start, a group's end or a new
+-- pass. The other animations keep sampling the elapsed time.
 local function animationState(frame, now, latest)
 	local dx, dy, alpha, absolute, sx, sy, turn = 0, 0, 1, false, 1, 1, 0
 	if type(now) ~= "number" then
@@ -371,14 +373,18 @@ local function animationState(frame, now, latest)
 			local offsets, total = animationSchedule(group)
 			local looping = state(group, "Looping")
 			local ended = looping ~= "REPEAT" and looping ~= "BOUNCE" and now >= started + total
-			local pass = started
+			local passStart = started
 			if looping == "REPEAT" and total > 0 then
 				elapsed = elapsed % total
-				pass = now - elapsed
+				local passes = math.floor((now - started) / total)
+				if started + (passes + 1) * total <= now then
+					passes = passes + 1
+				end
+				passStart = started + passes * total
 			elseif clipping and looping == "BOUNCE" and total > 0 then
 				elapsed = elapsed % (2 * total)
 				elapsed = elapsed > total and 2 * total - elapsed or elapsed
-				pass = now - elapsed
+				passStart = now - elapsed
 			end
 			local alphaStart = -1
 			for _, anim in ipairs(group._anims or {}) do
@@ -408,9 +414,10 @@ local function animationState(frame, now, latest)
 					local x = (fx or 1) + ((tx or 1) - (fx or 1)) * p
 					local y = (fy or 1) + ((ty or 1) - (fy or 1)) * p
 					sx, sy = sx * x, sy * y
-					local at = pass + delay
+					local at = passStart + delay
 					if latest and at <= now and not ended and at >= latest[4] then
-						latest[1], latest[2], latest[3], latest[4] = anim, x, y, at
+						local q = eased(duration > 0 and math.min(1, (now - at) / duration) or 1, state(anim, "Smoothing"))
+						latest[1], latest[2], latest[3], latest[4] = anim, (fx or 1) + ((tx or 1) - (fx or 1)) * q, (fy or 1) + ((ty or 1) - (fy or 1)) * q, at
 					end
 				elseif clipping and mine and anim._type == "Rotation" then
 					local degrees, radians = state(anim, "Degrees"), state(anim, "Radians")

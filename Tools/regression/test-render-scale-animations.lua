@@ -111,6 +111,22 @@ near(half[4] / closed[4], 0.25, "the toast is a quarter open halfway through an 
 near(half[2], closed[2], "a Scale about TOP keeps the top edge still")
 near(half[3], closed[3], "a Scale of 1 across leaves the width")
 
+-- The soulbind node's pickup arrows (Blizzard_Soulbinds/Blizzard_SoulbindsNode.xml:186-190) shrink 1.5 to 1 in 0.3 s
+-- in a loop whose fades last 1.2 s; here the Scale is on a frame and an end delay stands in for the fades. Its second
+-- pass starts at 10 + 1.2, which is the clock's 11.2, though 11.2 - 10 falls short of 1.2.
+local arrows = box(env.UIParent, 50, 50, 0, 400)
+local arrowArt = fill(arrows)
+local pickup = arrows:CreateAnimationGroup()
+pickup:SetLooping("REPEAT")
+scale(pickup, { 1.5, 1.5 }, { 1, 1 }, 0.3, 1):SetEndDelay(0.9)
+local arrowRest = find(arrowArt, 9.9).rect
+pickup:Play()
+near(find(arrowArt, 10.15).rect[3] / arrowRest[3], 1.25, "a repeating frame Scale runs in its first pass")
+near(find(arrowArt, 11.1).rect[3], arrowRest[3], "a repeating frame Scale holds its end until its pass ends")
+near(find(arrowArt, 11.2).rect[3] / arrowRest[3], 1.5, "a repeating frame Scale starts its next pass at the clock's pass boundary")
+near(find(arrowArt, 11.35).rect[3] / arrowRest[3], 1.25, "a repeating frame Scale runs from its clock start in a later pass")
+pickup:Stop()
+
 -- Two groups on one frame, the second created played first: the one that started last on the clock draws, not the
 -- product and not the first or last in creation order. The shrink's passes end at 10 + 0.2 and 10.5 + 0.2, which are
 -- the clock's 10.2 and 10.7, though each clock time less its play time falls short of 0.2; clip.lua ends them there.
