@@ -1,4 +1,4 @@
--- SlabUnleashed.lua: Unleashed (docs/medallions-effects.md#unleashed), the crest erupting in class fire while a major cooldown burns: each cooldown rim container gets two more slots of its own newest aura, one awake and one still, each under a gate the crest owns, so motion swaps by gate alpha in combat; they hold the class's ambient fire as a corona hugging the ring, a hot line on the ring's edge, the rune glyphs blazing near white and turning at one and a half times combat speed, a dim outer ring draining with the aura and, awake, the class burst growing out of the ring as a cooldown is assigned. Every layer sits under the level badge and inside a 184-unit mask. The player's own cast lifts the emblem; while auras are readable the corona folds and the glyphs cool when the last tracked aura instance goes, and under hidden values they do so the frame after a hot line's timer ends or its slot's aura clears, once no tracked slot of the player's or the pet's is still lit and while the switch is on, and a cooldown that began while the crest or the switch was hidden lights its slot when they show again. The switch off detaches and disables the slots at the next legal moment. Under Frames the newest-cooldown medal wears the corona over a breathing glow behind the row.
+-- SlabUnleashed.lua: Unleashed (docs/medallions-effects.md#unleashed), the crest erupting in class fire while a major cooldown burns: each cooldown rim container gets two more slots of its own newest aura, one awake and one still, each under a gate the crest owns, so motion swaps by gate alpha in combat; they hold the class's ambient fire as a corona hugging the ring, a hot line on the ring's edge, the rune glyphs blazing near white and turning at one and a half times combat speed, a dim outer ring draining with the aura and, awake, the class burst growing out of the ring as a cooldown is assigned. Every layer sits under the level badge and inside a 184-unit mask. The player's own cast lifts the emblem; while auras are readable the corona folds and the glyphs cool when the last tracked aura instance goes, and under hidden values they do so the frame after a lit hot line's timer ends or its slot's aura clears, once no tracked slot of the player's or the pet's is still lit and while the switch is on; a slot counts as lit only while its layer is in view, so the game's refresh of the slots as the crest or the switch shows again relights a cooldown still up and folds nothing for one that ended out of view. The switch off detaches and disables the slots at the next legal moment. Under Frames the newest-cooldown medal wears the corona over a breathing glow behind the row.
 local _, ns = ...
 
 local K = KstyleUI
@@ -126,13 +126,19 @@ local function Majors(families)
 end
 
 local function Hold(set)
-	set.held = true
 	if set.awake:IsVisible() then
 		set.up, state.lit = true, true
 	end
 end
 
-local function Watch(piece, set)
+local function Drop(set)
+	if set.up then
+		set.up = nil
+		Settle()
+	end
+end
+
+local function Watch(set)
 	local live = CreateFrame("Frame", nil, set.awake.lit)
 	local watch = live:CreateAnimationGroup()
 	watch:SetLooping("REPEAT")
@@ -141,19 +147,9 @@ local function Watch(piece, set)
 		Hold(set)
 	end)
 	watch:SetScript("OnStop", function()
-		set.held, set.up = nil, nil
-		if piece:IsVisible() and set.awake:IsShown() then
-			Settle()
-		else
-			state.lit = nil
-		end
+		Drop(set)
 	end)
 	set.awake.lit:AddAuraShownAnimation(watch)
-	set.awake:SetScript("OnShow", function()
-		if set.held then
-			set.up, state.lit = true, true
-		end
-	end)
 	set.awake:SetScript("OnHide", function()
 		set.up, state.lit = nil, nil
 	end)
@@ -173,10 +169,9 @@ function Unleashed.Dress(piece, spec, form)
 				set.fold, set.cool = Fold(piece, spec)
 				folded = true
 			end
-			Watch(piece, set)
+			Watch(set)
 			set.awake.timer:SetScript("OnCooldownDone", function()
-				set.held, set.up = nil, nil
-				Settle()
+				Drop(set)
 			end)
 			local taken = ns.Slab.Group(set.awake.lit)
 			ns.Slab.Fade(taken, 1, 1, 0.01)

@@ -28,6 +28,13 @@
 --
 -- A bar fed with ExponentialEaseOut on an update keeps bar._ease = { from, to, at = env._now } so the render
 -- harness can draw the sweep (Tools/render/scene.lua, BarFraction).
+--
+-- With env._slotSight set, the fake keeps the client's order around a container going out of view. The client's
+-- container listens for aura changes only while it is visible (Blizzard_AuraContainer.lua:71-79, 157-158), so
+-- Slots.Set and Slots.Enchant skip a container out of view. Showing again marks it for a full rebuild that runs as it
+-- next updates (Blizzard_ManagedAuraContainer.lua:26, 63-65, 98-106): it clears the aura of every slot that has one and
+-- then assigns the aura each slot's filter matches now (Blizzard_ManagedAuraContainer.lua:75-78, 224-236, 591-596;
+-- Blizzard_AuraContainerSlots.lua:177-222; Blizzard_AuraButton.lua:133-153). Slots.Rebuild(env) runs that update.
 local Slots = {}
 
 local function Matches(aura, filter, candidates)
@@ -253,6 +260,9 @@ function Slots.Install(env)
 			return c
 		end
 		c._slots = {}
+		c:SetScript("OnShow", function(self)
+			self._rebuild = env._slotSight or nil
+		end)
 		function c.SetUnit(self, unit) self._unit = unit end
 		function c.SetEnabled(self, on)
 			self._enabled = on
@@ -307,12 +317,18 @@ function Slots.Install(env)
 	end
 end
 
+local function Hears(env, c)
+	return not env._slotSight or c:IsVisible()
+end
+
 -- Set(env, unit, auras) gives the unit these auras (each { id, count, harmful, mine }) and feeds every slot, as a
 -- UNIT_AURA would. Change a count on the same table for an update; a new table is a new aura.
 function Slots.Set(env, unit, auras)
 	env._slotAuras[unit] = auras
 	for _, c in ipairs(env._slotContainers) do
-		Slots.Feed(env, c)
+		if Hears(env, c) then
+			Slots.Feed(env, c)
+		end
 	end
 end
 
@@ -321,7 +337,36 @@ end
 function Slots.Enchant(env, slot, enchant)
 	env._slotEnchants[slot] = enchant
 	for _, c in ipairs(env._slotContainers) do
-		Slots.Feed(env, c)
+		if Hears(env, c) then
+			Slots.Feed(env, c)
+		end
+	end
+end
+
+local function Rebuild(env, c)
+	for _, slot in pairs(c._slots) do
+		if slot.assigned ~= nil then
+			slot.aura = nil
+			Slots.Show(env, c, slot, nil)
+		end
+	end
+	for _, group in pairs(c._groups or {}) do
+		for _, slot in ipairs(group.slots) do
+			if slot.assigned ~= nil then
+				Slots.Show(env, c, slot, nil)
+			end
+		end
+	end
+	Feed(env, c)
+end
+
+-- Rebuild(env) is the next update of every container that showed again while env._slotSight was set.
+function Slots.Rebuild(env)
+	for _, c in ipairs(env._slotContainers) do
+		if c._rebuild and c:IsVisible() then
+			c._rebuild = nil
+			Slots.Engine(env, Rebuild, env, c)
+		end
 	end
 end
 
