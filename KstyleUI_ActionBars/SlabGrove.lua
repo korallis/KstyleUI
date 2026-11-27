@@ -1,4 +1,4 @@
--- SlabGrove.lua: the druid's crest trackers, registered with SlabTrackers, each on its own switch and a full crest in every form: the shoulder figures burn down with your effects on the target (a moon, swarm, bud, sprout, claw marks, tear, roar or sparkle) (as a caster, moonkin or in travel and aquatic form Moonfire or Rejuvenation on the left and Insect Swarm or Regrowth on the right; Rake and Rip tearing across the crest in Cat Form; Demoralizing Roar over the crown and Faerie Fire in Bear Form); Clearcasting blooms leaves round the inner rim over a druid glow; the gem at the top of the ring follows the form: Swiftmend's cooldown (or Nature's Swiftness's, or Innervate's) as a caster, Nature's Swiftness's (or Innervate's) as a moonkin, your Faerie Fire on the target in Cat Form and Maul queued in Bear Form; a third figure above the crown burns down with your Faerie Fire on an enemy or Wild Growth on a friend as a caster and Faerie Fire as a moonkin; Rake shares its figure with Pounce's bleed; a bear gets the tank glow while it holds the target's threat, Growl's fang and Feral Charge's chevrons charging on the foot perches and Primal Bite and Bash ready in the ring sockets, where a caster sees a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burn on the rim. Every form's choice is built out of combat, so a shift only shows one; aura slots, cooldown duration objects and the engine's shown animations draw the timers, so Lua never reads or compares a secret.
+-- SlabGrove.lua: the druid's crest trackers, registered with SlabTrackers, each on its own switch and a full crest in every form: the shoulder figures burn down with your effects on the target (a moon, swarm, bud, sprout, claw marks, tear, roar or sparkle) (as a caster, moonkin or in travel and aquatic form Moonfire or Rejuvenation on the left and Insect Swarm or Regrowth on the right; Rake and Rip tearing across the crest in Cat Form; Demoralizing Roar over the crown and Faerie Fire in Bear Form); Clearcasting blooms leaves round the inner rim over a druid glow; the gem at the top of the ring follows the form: Swiftmend's cooldown (or Nature's Swiftness's, or Innervate's) as a caster, Nature's Swiftness's (or Innervate's) as a moonkin, your Faerie Fire on the target in Cat Form and Maul queued in Bear Form; a third figure above the crown burns down with your Faerie Fire on an enemy or Wild Growth on a friend as a caster and Faerie Fire as a moonkin; Rake shares its figure with Pounce's bleed; a bear gets the tank glow while it holds the target's threat, Growl's fang and Feral Charge's lunging bear head charging on the foot perches and Primal Bite and Bash ready in the ring sockets, where a caster sees a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burn on the rim. Every form's choice is built out of combat, so a shift only shows one; aura slots, cooldown duration objects and the engine's shown animations draw the timers, so Lua never reads or compares a secret.
 local _, ns = ...
 if not (UnitClass and select(2, UnitClass("player")) == "DRUID") then
 	return
@@ -30,6 +30,12 @@ local function Effect(spells, figure, tint, filter, forms, seat, size)
 	return { feed = "aura", unit = "target", filter = filter or "HARMFUL|PLAYER", spells = spells, figure = figure, bloom = tint, forms = forms, seat = seat, size = size }
 end
 
+local function Learned(spells, ...)
+	local feed = Effect(spells, ...)
+	feed.learn = spells
+	return feed
+end
+
 local function Bloom(parent, spec, level, form)
 	if form == "row" then
 		return Medals.Figure(parent, { feed = "aura", spells = CLEARCASTING, figure = "trackerLeaf", burst = spec.burst, bloom = "schoolNature" }, level)
@@ -46,11 +52,12 @@ local function Bloom(parent, spec, level, form)
 	ns.Slab.Fade(r.unfurl, 0, 1, UNFURL)
 	for k = 1, LEAVES do
 		for _, layer in ipairs({ r.leaves, r.calm.lit }) do
-			local leaf = r.add(layer:CreateTexture(nil, "OVERLAY"), LEAF)
-			leaf:SetTexture((K.Tokens.Texture("trackerLeaf")))
-			leaf:SetBlendMode("ADD")
+			local leaf = r.add(CreateFrame("Frame", nil, layer), LEAF)
 			leaf.angle = (k - 0.5) * 360 / LEAVES
-			leaf:SetRotation(-math.rad(leaf.angle))
+			local fire, _, body = Medals.Mark(r, leaf, "trackerLeaf", LEAF, "schoolNature")
+			for _, t in ipairs({ fire, fire.still, body }) do
+				t:SetRotation(-math.rad(leaf.angle))
+			end
 			if r.ring[k] then
 				r.ring[k].twin = leaf
 			else
@@ -114,16 +121,16 @@ ns.SlabTrackers.Register("DRUID", {
 	{ key = "crestSeeds", seat = { -62, 40 }, size = PERCH, build = Medals.Figure, choices = {
 		Effect(ROAR, "figureRoar", "jewelCombo", nil, BEAR, { 0, 88 }, 40),
 		{ forms = CAT, known = Join(RAKE, POUNCE), seat = { -44, 6 }, size = 60, feeds = { Effect(POUNCE, "figureRake", "jewelCombo"), Effect(RAKE, "figureRake", "plateHostile") } },
-		{ forms = Join(CASTER, MOONKIN), known = Join(MOONFIRE, REJUVENATION), feeds = { Effect(MOONFIRE, "figureMoon", "schoolArcane"),
-			Effect(REJUVENATION, "figureBud", "schoolNature", "HELPFUL|PLAYER") } },
+		{ forms = Join(CASTER, MOONKIN), known = Join(MOONFIRE, REJUVENATION), feeds = { Learned(MOONFIRE, "figureMoon", "schoolArcane"),
+			Learned(REJUVENATION, "figureBud", "schoolNature", "HELPFUL|PLAYER") } },
 	} },
 	{ key = "crestSeeds", seat = { 62, 40 }, size = PERCH, build = Medals.Figure, choices = {
 		Effect(FAERIE, "figureFaerie", "schoolArcane", nil, BEAR), Effect(RIP, "figureRip", "plateHostile", nil, CAT, { 44, 6 }, 56),
-		{ forms = Join(CASTER, MOONKIN), known = Join(SWARM, REGROWTH), feeds = { Effect(SWARM, "figureSwarm", "jewelHawk"),
-			Effect(REGROWTH, "figureSprout", "schoolNature", "HELPFUL|PLAYER") } },
+		{ forms = Join(CASTER, MOONKIN), known = Join(SWARM, REGROWTH), feeds = { Learned(SWARM, "figureSwarm", "jewelHawk"),
+			Learned(REGROWTH, "figureSprout", "schoolNature", "HELPFUL|PLAYER") } },
 	} },
 	{ key = "crestThird", seat = { 0, 92 }, size = 30, build = Medals.Figure, choices = {
-		{ forms = CASTER, known = Join(FAERIE, GROWTH), feeds = { Effect(FAERIE, "figureFaerie", "schoolArcane"), Effect(GROWTH, "figureGrowth", "schoolNature", "HELPFUL|PLAYER") } },
+		{ forms = CASTER, known = Join(FAERIE, GROWTH), feeds = { Learned(FAERIE, "figureFaerie", "schoolArcane"), Learned(GROWTH, "figureGrowth", "schoolNature", "HELPFUL|PLAYER") } },
 		Effect(FAERIE, "figureFaerie", "schoolArcane", nil, MOONKIN), Gems({ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FAERIE, color = "schoolArcane",
 			forms = CAT, seat = "lowerLeft" }),
 	} },

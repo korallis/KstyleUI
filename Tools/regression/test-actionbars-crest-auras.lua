@@ -15,8 +15,8 @@ AB.Enable(env, K)
 env.RunTimers()
 local Medals, Tokens = ns.SlabMedals, K.Tokens
 
--- No class takes the kit in this change, so a real forged glyph borrows a real 4x4 ambient sheet as its aura: the
--- shape every aura sheet has (Core/Tokens.lua medAmbient*), with span 1.25 for the bare variant.
+-- No forged mark carries a baked aura yet (the classes that take the kit so far draw flat marks), so a real forged
+-- glyph borrows a real 4x4 ambient sheet as its aura: the shape every aura sheet has (Core/Tokens.lua medAmbient*), with span 1.25 for the bare variant.
 local SHEET = "medAmbientWarrior"
 local texture, flipbook = Tokens.Texture, Tokens.Flipbook
 Tokens.Texture = function(name)

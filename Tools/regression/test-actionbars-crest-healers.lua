@@ -478,6 +478,26 @@ do
 	assert(math.abs(vr - r) + math.abs(vg - g) + math.abs(vb - b) < 1e-6, "Windfury lights the rune in air's colour")
 	assert(main.lit:IsShown() and not main.rim:IsShown() and not main.pulse:IsPlaying(), "an imbue lights the stone and stops the pulse")
 	assert(off.gutter:IsPlaying() and not main.gutter:IsPlaying(), "the last five minutes gutter")
+	-- The stone's light and its rune are the imbue's animated auras, in its element's colour; with no imbue the light
+	-- hides, and its loops stop with it rather than play unseen.
+	local stone, rune = main.runes[1], main.runes[3]
+	assert(stone._state.Texture[1] == Tokens.Texture("auraTrackerStone") and rune._state.Texture[1] == Tokens.Texture("auraTrackerRune"), "the stone's light and its rune burn their own sheets")
+	local sr, sg, sb = stone:GetVertexColor()
+	assert(math.abs(sr - r) + math.abs(sg - g) + math.abs(sb - b) < 1e-6, "the stone's light burns in the imbue's colour too")
+	assert(stone.loop:IsPlaying() and rune.loop:IsPlaying() and stone:GetAlpha() == 1, "both loop at Full with the crest awake")
+	local function Hidden(frame)
+		local hide = frame:GetScript("OnHide")
+		if hide then hide(frame) end -- the game runs OnHide down the tree as it hides a frame; the stub's Hide does not
+		for _, kid in ipairs(frame._kids or {}) do Hidden(kid) end
+	end
+	local imbue = env._enchants[16]
+	env._enchants[16] = nil
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	Hidden(main.light)
+	assert(not main.light:IsShown() and not stone.loop:IsPlaying() and not rune.loop:IsPlaying(), "no imbue hides the light and stops both loops")
+	env._enchants[16] = imbue
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	assert(main.light:IsShown() and stone.loop:IsPlaying() and rune.loop:IsPlaying(), "the imbue back plays them again")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(not off.gutter:IsPlaying() and off.gutter.still and off.gutter.still:IsPlaying() and not (main.gutter.still and main.gutter.still:IsPlaying()),
 		"Calm does not gutter: the stone in its last five minutes holds its light still, at the flicker's low alpha")
@@ -495,6 +515,12 @@ do
 	env._ankhs = 0
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(ankh.lit.bar:GetAlpha() < 1, "no Ankh in the bags: the ankh greys")
+	for _, light in ipairs({ ankh.lit.aura, ankh.lit.aura.still }) do
+		assert(light._state.Desaturated and light._state.Desaturated[1] == true, "its burning light greys too, moving or still")
+	end
+	env._ankhs = 1
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(ankh.lit.aura._state.Desaturated[1] == false and ankh.lit.aura.still._state.Desaturated[1] == false, "and an Ankh back lights it gold again")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -551,10 +577,10 @@ do
 	env._enchants[16] = { enchantID = 9999, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
 	Slots.Enchant(env, 1, { start = 0, duration = 3600 })
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	assert(main.light:GetAlpha() == 0 and main.rim:IsShown() and main.pulse:IsPlaying(), "an enchant that is no imbue leaves the stone dark under the pulsing rim")
+	assert(not main.light:IsShown() and main.rim:IsShown() and main.pulse:IsPlaying(), "an enchant that is no imbue leaves the stone dark under the pulsing rim")
 	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 200000, chargesRemaining = 0, hasExpirationTime = true }
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	assert(main.light:GetAlpha() == 1 and not main.rim:IsShown() and main.gutter:IsPlaying(), "Windfury in combat with auras secret lights the rune, drops the rim and gutters its last minutes")
+	assert(main.light:IsShown() and not main.rim:IsShown() and main.gutter:IsPlaying(), "Windfury in combat with auras secret lights the rune, drops the rim and gutters its last minutes")
 	env._enchants[16].remainingTimeMs = 1800000
 	env._enchants[17] = { enchantID = 1666, remainingTimeMs = 200000, chargesRemaining = 0, hasExpirationTime = true }
 	Slots.Enchant(env, 2, { start = 0, duration = 3600 })
@@ -568,7 +594,7 @@ do
 	local function Lit(row, token)
 		local r, g, b = Tokens.Color(token)
 		local vr, vg, vb = row.rune:GetVertexColor()
-		return row.light:GetAlpha() == 1 and math.abs(vr - r) + math.abs(vg - g) + math.abs(vb - b) < 1e-6
+		return row.light:IsShown() and math.abs(vr - r) + math.abs(vg - g) + math.abs(vb - b) < 1e-6
 	end
 	assert(Lit(mainRow, "totemAir") and Lit(offRow, "totemFire"), "Windfury and Flametongue each light the rune in their element's colour")
 	assert(AB.W.LastCall(mainRow.lit._cooldown, "SetCooldownFromDurationObject"), "each weapon's stone drains a gilt ring with the enchant's own timer")
@@ -577,7 +603,7 @@ do
 	assert(Lit(mainRow, "totemFire"), "Flametongue over Windfury in combat with auras secret turns the rune to fire at once")
 	env._enchants[16] = { enchantID = 9999, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	assert(mainRow.light:GetAlpha() == 0 and mainRow.rim:IsShown(), "an enchant that is no imbue leaves the stone dark under its rim")
+	assert(not mainRow.light:IsShown() and mainRow.rim:IsShown(), "an enchant that is no imbue leaves the stone dark under its rim")
 	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
 	assert(offRow.gutter:IsPlaying() and not mainRow.gutter:IsPlaying(), "the off hand's last five minutes gutter in the row too")
@@ -831,7 +857,7 @@ do
 	end
 	assert(At(b.seedLeft, -62, 40, 30) and At(b.seedRight, 62, 40, 30) and At(b.third, 0, 92, 30), "the moon and the swarm perch on the ring, the sparkle above the crown")
 	assert(At(b.rake, -44, 6, 60) and At(b.rip, 44, 6, 56) and At(b.roar, 0, 88, 40), "the rakes and the tear cross the crest, the roar rises over the crown")
-	assert(At(b.growl, -30, -60, 22) and At(b.charge, 30, -60, 22), "the fang and the chevrons stand at the feet")
+	assert(At(b.growl, -30, -60, 22) and At(b.charge, 30, -60, 22), "the fang and the charging bear head stand at the feet")
 	local moon = b.seedLeft.lits[1]
 	local function Breathing()
 		for _, group in ipairs(moon._shownAnimations or {}) do
@@ -877,8 +903,8 @@ end
 
 -- Every piece stays inside the crest's footprint at four screens: within 78 units of the centre across, from 78 below
 -- to 110 above (under the cast bar), and off the level badge; blooms, sparks and flares are soft glow and may spill, as
--- may an aura sheet's margin round the figure it lights (its body, the black figure under it, is held), and the
--- five-second ring is the badge's own.
+-- may an aura sheet's margin round the figure it lights: the sheet is its figure's size times the kit's span, so the
+-- figure inside it is held like any other part, and the five-second ring is the badge's own.
 for _, size in ipairs(SIZES) do
 	for _, case in ipairs({ { "PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 } }, { "PRIEST", { 10952, 10947, 15473, 15334, 15286, 19280, 1309636, 15487 }, 28 },
 		{ "DRUID", DRUID }, { "DRUID", DRUID, 1 }, { "DRUID", DRUID, 8 }, { "SHAMAN", { 16362, 10414, 20608, 16166, 29228 } } }) do
@@ -897,12 +923,21 @@ for _, size in ipairs(SIZES) do
 			end
 			return unpack(e)
 		end
+		local span = select(5, K.Tokens.Flipbook("auraFigureLance"))
 		for key, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
 			if piece:IsVisible() and not piece.sigils and piece.spec.seat ~= "plaque" then
+				local sheets = {}
+				for _, part in ipairs(piece.parts) do
+					if part.loop then sheets[part], sheets[part.still] = true, true end
+				end
 				for n, part in ipairs(piece.parts) do
 					local texture = part._state and part._state.Texture and part._state.Texture[1]
 					local pl2, pr2, pb2, pt2 = Edges(part)
-					if not (type(texture) == "string" and (texture:find("Glow", 1, true) or texture:find("Burst", 1, true) or texture:find("Auras\\", 1, true))) and pl2 then
+					if pl2 and sheets[part] then
+						local mx, my, hw, hh = (pl2 + pr2) / 2, (pb2 + pt2) / 2, (pr2 - pl2) / 2 / span, (pt2 - pb2) / 2 / span
+						pl2, pr2, pb2, pt2 = mx - hw, mx + hw, my - hh, my + hh
+					end
+					if not (type(texture) == "string" and (texture:find("Glow", 1, true) or texture:find("Burst", 1, true))) and pl2 then
 						local l, r, bo, t = (pl2 - cx) / u, (pr2 - cx) / u, (pb2 - cy) / u, (pt2 - cy) / u
 						assert(l >= -78.5 and r <= 78.5 and bo >= -78.5 and t <= 110.5, at .. key .. " part " .. n .. " leaves the crest's footprint: " .. string.format("%.0f %.0f %.0f %.0f", l, r, bo, t))
 						local clear = pr2 <= pl or pl2 >= pr or pt2 <= pb or pb2 >= pt or (r - l) >= 100
@@ -1077,46 +1112,98 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- Every mark a priest's, druid's or shaman's crest draws in light is an animated aura from the shared kit (this change's
--- goal: the crest marks become animated spell-effect auras, never static icons): each cooldown sigil, figure, Inner Fire
--- flame and imbue rune draws its Auras sheet, and none is left as a flat additive drawing. The Clearcasting leaves round
--- the crest stay flat (rotated textures), and so do the sigils every class shares (race spells and potions), which are
--- not these classes' own, and Dash, which the druid shares with the rogue's Sprint and whose aura the rogue's marks bring.
+-- Every mark a priest's, druid's or shaman's crest draws in light is an animated aura from the shared kit (the crest
+-- marks become animated spell-effect auras, never static icons), and a sheet loads only once its spell is known (a
+-- picture loads only when it is needed). For each character below, in both HUD styles, the shown pieces hold exactly
+-- these sheets, each owned by something that plays its loop: an engine aura button that has it among its shown
+-- loops, or the frame whose show and hide start and stop it. No mark of these classes' own is left a flat additive
+-- drawing; the sigils every class shares (race spells, potions and Dash) are another change's.
 do
-	local FLAT = { "\\Figures\\", "\\Sigils\\", "Trackers\\Flame", "Trackers\\Rune" }
+	local COMMON = { Axe = true, Eye = true, Gear = true, Grave = true, Potion = true, Regen = true, Shatter = true, Star = true, Stone = true, Tusks = true, Dash = true }
+	local HOLY = "Figures\\Dome Figures\\Fiend Figures\\Lance Figures\\Mending Figures\\Renew Sigils\\Infusion Trackers\\Flame"
+	local SHADOW = "Figures\\Fangs Figures\\MindOrb Figures\\Plague Figures\\Reaper Trackers\\Flame"
+	local CASTER = "Figures\\Bud Figures\\Faerie Figures\\Moon Figures\\Sprout Figures\\Swarm Sigils\\Bark Trackers\\Leaf"
+	local CAT, BEAR = "Figures\\Rake Figures\\Rip Sigils\\Bark Trackers\\Leaf", "Figures\\Faerie Figures\\Roar Sigils\\Bark Trackers\\Leaf"
+	local SHAMAN_CREST = "Figures\\Ankh Sigils\\Bolt Trackers\\Flame Trackers\\Rune Trackers\\Stone"
+	local CASES = {
+		{ "PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 }, nil, HOLY, HOLY },
+		{ "PRIEST", { 10952, 10947, 15473, 15334, 15286, 19280, 1309636, 15487 }, 28, SHADOW, SHADOW .. " Figures\\Shroud" },
+		{ "DRUID", DRUID, nil, CASTER, CASTER }, { "DRUID", DRUID, 1, CAT, CAT }, { "DRUID", DRUID, 8, BEAR, BEAR },
+		{ "SHAMAN", { 16362, 10414, 20608, 16166, 29228 }, nil, SHAMAN_CREST, SHAMAN_CREST .. " Figures\\Shock" },
+	}
 	local function Walk(frame, fn)
 		for _, region in ipairs(frame._regions or {}) do fn(region) end
 		for _, kid in ipairs(frame._kids or {}) do Walk(kid, fn) end
 	end
-	for _, case in ipairs({ { "PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 } }, { "PRIEST", { 10952, 10947, 15473, 15334, 15286, 19280, 1309636, 15487 }, 28 },
-		{ "DRUID", DRUID }, { "DRUID", DRUID, 1 }, { "DRUID", DRUID, 8 }, { "SHAMAN", { 16362, 10414, 20608, 16166, 29228 } } }) do
+	local function Has(list, item)
+		for _, each in ipairs(list or {}) do
+			if each == item then return true end
+		end
+	end
+	local function Owned(fire)
+		local host = fire:GetParent()
+		return fire.fed and Has(fire.fed.auraLoops, fire.loop) or Has(host.fires, fire)
+	end
+	-- Sheets(ns) -> the shown pieces' loaded aura sheets, sorted and joined, and the own marks still flat.
+	local function Sheets(ns, at)
+		local seen, flat = {}, {}
+		for _, form in pairs(ns.SlabTrackers.state.forms) do
+			for key, piece in pairs(form.pieces) do
+				if piece:IsVisible() then
+					Walk(piece, function(t)
+						local file = t._state and t._state.Texture and t._state.Texture[1]
+						if type(file) ~= "string" then return end
+						local sheet = file:match("Textures\\Auras\\(.+)%.png$")
+						if sheet and t.loop then
+							assert(Owned(t), at .. key .. "'s " .. sheet .. " loop has no owner")
+							assert(t.still._state.Texture[1] == file, at .. key .. "'s " .. sheet .. " still is its own sheet")
+							seen[sheet] = true
+						elseif not sheet and (t._state.BlendMode or {})[1] == "ADD" then
+							local kind, name = file:match("\\(%a+)\\(%a+)%.png$")
+							if (kind == "Figures" or kind == "Sigils" and not COMMON[name] or file:find("Trackers\\[FLRS][a-z]+%.png$") and not file:find("Swing"))
+								and not file:find("Medallions\\Trackers\\Stone") then
+								flat[#flat + 1] = key .. " " .. file
+							end
+						end
+					end)
+				end
+			end
+		end
+		local list = {}
+		for sheet in pairs(seen) do list[#list + 1] = sheet end
+		table.sort(list)
+		return table.concat(list, " "), flat
+	end
+	for _, case in ipairs(CASES) do
 		local env, K, ns = New(case[1], case[2])
 		env._form = case[3]
 		env.FireEvent("UPDATE_SHAPESHIFT_FORM")
-		local at = case[1] .. " form " .. tostring(case[3] or 0) .. ": "
-		local sheets, flat, shared = 0, {}, { ["\\Sigils\\Dash.png"] = true }
-		for _, family in ipairs(ns.SlabTrackers.SHARED) do
-			shared["\\Sigils\\" .. family.sigil .. ".png"] = true
+		for i, style in ipairs({ "medallions", "frames" }) do
+			K.Options.Write("HudStyle", "style", style)
+			env.RunTimers()
+			local at = case[1] .. " form " .. tostring(case[3] or 0) .. " " .. style .. ": "
+			local sheets, flat = Sheets(ns, at)
+			local want = {}
+			for sheet in case[3 + i]:gmatch("%S+") do want[#want + 1] = sheet end
+			table.sort(want)
+			want = table.concat(want, " ")
+			assert(sheets == want, at .. "the shown marks burn " .. want .. ", got " .. sheets)
+			assert(#flat == 0, at .. "no own mark is left a flat additive drawing: " .. table.concat(flat, ", "))
 		end
-		for key, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-			Walk(piece, function(t)
-				local file = t._state and t._state.Texture and t._state.Texture[1]
-				if type(file) ~= "string" then return end
-				if file:find("Textures\\Auras\\", 1, true) and not file:find("Socket", 1, true) then
-					sheets = sheets + 1
-				elseif (t._state.BlendMode or {})[1] == "ADD" then
-					for _, kind in ipairs(FLAT) do
-						if file:find(kind, 1, true) and not shared[file:match("\\Sigils\\%w+%.png$") or ""] then
-							flat[#flat + 1] = key .. " " .. file
-						end
-					end
-				end
-			end)
-		end
-		assert(sheets > 0, at .. "the crest draws aura sheets")
-		assert(#flat == 0, at .. "no mark is left a flat additive drawing: " .. table.concat(flat, ", "))
 		assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 	end
+
+	-- A shaman who knows only Flame Shock loads only the flame; learning Stormstrike loads its bolt, and Riptide's wave
+	-- stays unloaded.
+	local env, K, ns = New("SHAMAN", { 29228 })
+	local figure = Tracker(ns, "SHAMAN").built.flameShock
+	local function Loaded(i) return figure.lits[i].aura._state.Texture ~= nil end
+	assert(Loaded(1) and not Loaded(2) and not Loaded(3), "only the known spell's figure loads its sheet")
+	env._known[17364] = true
+	env.FireEvent("SPELLS_CHANGED")
+	env.RunTimers()
+	assert(Loaded(2) and not Loaded(3), "learning Stormstrike loads its bolt; Riptide's wave still waits")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
 print("actionbars crest healers ok")

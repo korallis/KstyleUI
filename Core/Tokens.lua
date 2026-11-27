@@ -573,7 +573,7 @@ for _, mark in ipairs({
 		"Mend", "Moon", "Roots", "Sacrifice", "Swift", "Veil" } },
 	{ "figure", "Figure", "Figures\\", { "Ankh", "Bud", "Charge", "Dome", "Faerie", "Fangs", "Fiend", "Growl", "Growth", "Lance", "Mending",
 		"MindOrb", "Moon", "Plague", "Rake", "Reaper", "Renew", "Rip", "Roar", "Shock", "Shroud", "Sprout", "Strike", "Swarm", "Tide", "Wolf" } },
-	{ "tracker", "Tracker", "Trackers\\", { "Flame", "Leaf", "Rune" } },
+	{ "tracker", "Tracker", "Trackers\\", { "Flame", "Leaf", "Rune", "Stone" } },
 	{ "totemRune", "TotemRune", "Totems\\Rune", { "Earth", "Fire", "Water", "Air" } },
 	{ nil, "Storm", "Storm\\Storm", { "Orb" } },
 }) do

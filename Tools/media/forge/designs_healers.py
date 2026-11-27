@@ -8,7 +8,7 @@ it and a draining bar cuts both at the same height.
 
 Colour: a sigil burns in its class's crest colour, as its rail tints it today (Nature's Swiftness, which the druid and
 the shaman share, in nature green); a figure in the school colour figures.py draws it in; Inner Fire's flame and
-the storm orb in their own art's colours; the leaf in nature green; the imbue rune and the element runes white,
+the storm orb in their own art's colours; the leaf in nature green; the imbue's rune and stone and the element runes white,
 because the crest tints them by element.
 """
 import sys
@@ -16,6 +16,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+from scipy import ndimage as ndi
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -53,6 +54,18 @@ def traced(path, threshold=0.5):
     return image
 
 
+def rim(path, scale=0.86, width=0.06):
+    """A shipped plate's edge as a ring, shrunk into its box so the flames that rise from it stay inside the cell."""
+    def image():
+        disc = traced(path)().resize((round(sigils.N * scale),) * 2, Image.BICUBIC)
+        box = Image.new("L", (sigils.N, sigils.N))
+        box.paste(disc, ((sigils.N - disc.width) // 2,) * 2)
+        inside = np.asarray(box) >= 128
+        edge = inside & (ndi.distance_transform_edt(inside) <= sigils.N * width)
+        return Image.fromarray((edge * 255).astype(np.uint8))
+    return image
+
+
 # "Folder/Name" (its sheet, Media/Textures/Auras/Folder/Name.png): (folder, Core/Tokens.lua colour or "#rrggbb", a
 # drawing: white on black, any size); the folder in the key keeps the figure Moon apart from the sigil Moon
 MARKS = {}
@@ -64,6 +77,7 @@ MARKS.update({
     "Trackers/Flame": ("trackers", "#ffbd45", traced("Media/Textures/Medallions/Trackers/Flame.png")),
     "Trackers/Leaf": ("trackers", "schoolNature", traced("Media/Textures/Medallions/Trackers/Leaf.png")),
     "Trackers/Rune": ("trackers", "white", traced("Media/Textures/Medallions/Trackers/Rune.png")),
+    "Trackers/Stone": ("trackers", "white", rim("Media/Textures/Medallions/Trackers/Stone.png")),
     "Storm/StormOrb": ("storm", "#7fc4ff", traced("Media/Textures/Medallions/Storm/StormOrb.png", 0.35)),
 })
 for element in ("Earth", "Fire", "Water", "Air"):

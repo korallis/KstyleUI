@@ -47,7 +47,7 @@ end
 Trackers.RACIALS = RACIALS
 local CLASSES, HOOKS, JOINED, HOOKED = {}, {}, {}, {}
 local GATES = { "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }
-Trackers.CLASSES, Trackers.SHARED = CLASSES, SHARED
+Trackers.CLASSES = CLASSES
 
 local state = { forms = {} }
 Trackers.state = state

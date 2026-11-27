@@ -65,7 +65,9 @@ end
 
 function Medals.Texture(parent, layer, sublevel, texture, color, size, blend)
 	local t = parent:CreateTexture(nil, layer, nil, sublevel)
-	t:SetTexture(texture:find("\\", 1, true) and texture or (Tokens.Texture(texture)))
+	if texture then
+		t:SetTexture(texture:find("\\", 1, true) and texture or (Tokens.Texture(texture)))
+	end
 	t:SetVertexColor(Tokens.Color(color))
 	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
 	if blend then
@@ -108,6 +110,17 @@ local function Rearm(containers)
 	end
 end
 
+function Medals.Load(fire)
+	if fire.sheet then
+		local file = (Tokens.Texture(fire.sheet))
+		fire:SetTexture(file)
+		fire.still:SetTexture(file)
+		Cell(fire, fire.token, 0)
+		Cell(fire.still, fire.token, AURA_STILL)
+		fire.sheet = nil
+	end
+end
+
 function Medals.Burn(fire, restless)
 	fire.restless = restless
 	Burn(fire, Moving(fire))
@@ -136,9 +149,11 @@ end
 
 function Medals.Aura(piece, host, token, size, color, r, g, b, lights, owner)
 	local _, _, _, _, span, tint = Tokens.Flipbook(token)
+	local lazy = piece.lazy
+	local file = not lazy and token
 	local flame, calm = lights and lights.flame, lights and lights.calm
-	local fire = piece.add(Cell(Medals.Texture(flame or host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, 0))
-	fire.still = piece.add(Cell(Medals.Texture(calm or host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, AURA_STILL))
+	local fire = piece.add(Cell(Medals.Texture(flame or host, "ARTWORK", 0, file, "white", size * span, "ADD"), token, 0))
+	fire.still = piece.add(Cell(Medals.Texture(calm or host, "ARTWORK", 0, file, "white", size * span, "ADD"), token, AURA_STILL))
 	fire.gated, fire.calm = flame ~= nil, calm ~= nil
 	host = flame or host
 	if tint then
@@ -151,6 +166,14 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights, owner)
 		end
 	end
 	fire.loop = Medals.Flip(fire, token, 1)
+	if lazy then
+		fire.sheet, fire.token = token, token
+		if lazy ~= true then
+			fire.wants = lazy
+			piece.lazies = piece.lazies or {}
+			piece.lazies[#piece.lazies + 1] = fire
+		end
+	end
 	auras[#auras + 1] = fire
 	local fed = Fed(host)
 	if owner then
@@ -806,7 +829,9 @@ function Medals.Figure(parent, spec, level)
 		bar:SetStatusBarColor(Tokens.Color(each.color or "white"))
 		bar:SetMinMaxValues(0, 1)
 		bar:SetValue(1)
+		f.lazy = each.learn and function() return Medals.Known(each.learn) ~= nil end
 		lit.aura = Medals.Fill(f, bar, select(5, Tokens.Texture(each.figure)), size, each.color)
+		f.lazy = nil
 		local alpha = each.alpha or 1
 		bar:SetAlpha(alpha)
 		local spark = f.add(Medals.Texture(bar, "OVERLAY", 0, "glow", each.color or "white", size * SPARK, "ADD"))
@@ -879,6 +904,14 @@ function Medals.Rim(parent, spec, level)
 	end
 	r.spec = spec
 	return r
+end
+
+local function Learned(f)
+	return f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
+end
+
+local function Seated(r, f)
+	return Learned(f) and not (r.spec.railed and r.spec.railed(f.spells))
 end
 
 local function Sigil(r, lit, key, family, color, size, bloom)
@@ -1103,8 +1136,7 @@ end
 local function Arrange(r)
 	local n = 0
 	for _, b in ipairs(r.sigils) do
-		local f = b.family
-		local on = (f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil) and not (r.spec.railed and r.spec.railed(f.spells))
+		local on = Seated(r, b.family)
 		b.container:SetAuraSlotEnabled(b.key, on)
 		for _, slot in ipairs({ b.flashed or false, b.flame or false, b.calm or false }) do
 			if slot then
@@ -1129,7 +1161,15 @@ function Medals.Place(piece, anchor, x, y)
 	piece:ClearAllPoints()
 	piece:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, x), Widgets.Snap(anchor, y))
 	Medals.Size(piece)
-	if piece.sigils and not Medals.Locked() then
+	if Medals.Locked() then
+		return
+	end
+	for _, fire in ipairs(piece.lazies or NONE) do
+		if fire.sheet and fire.wants() then
+			Medals.Load(fire)
+		end
+	end
+	if piece.sigils then
 		Arrange(piece)
 	end
 end

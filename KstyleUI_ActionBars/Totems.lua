@@ -105,7 +105,7 @@ end
 
 local function Burning(parent, name, color)
 	local parts = {}
-	local fire = Medals.Mark({ add = function(part) parts[#parts + 1] = part return part end }, parent, name, 1, color)
+	local fire = Medals.Mark({ lazy = true, add = function(part) parts[#parts + 1] = part return part end }, parent, name, 1, color)
 	for _, t in ipairs({ fire, fire.still }) do
 		t:SetVertexColor(Tokens.Color(color))
 	end
@@ -494,6 +494,12 @@ local function Fill()
 	state.call.known = call or recall
 	local form, spell = Wolf()
 	state.wolf.form = form
+	if state.call.known then
+		for _, fire in ipairs(state.call.runes) do Medals.Load(fire) end
+	end
+	if form then
+		Medals.Load(state.wolf.figure)
+	end
 	state.wolf:SetAttribute("spell", spell)
 end
 

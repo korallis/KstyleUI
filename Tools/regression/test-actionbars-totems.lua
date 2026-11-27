@@ -12,7 +12,7 @@ local function New(class, opts)
 		width = size[1],
 		height = size[2],
 		setup = function(e)
-			e._totems, e._known = {}, { [66842] = true, [36936] = true }
+			e._totems, e._known = {}, opts.known or { [66842] = true, [36936] = true }
 			e.C_ActionBar.GetMultiCastBarIndex = function() return 12 end
 			e.GetMultiCastTotemSpells = function(slot) return unpack(KNOWN[slot] or {}) end
 			e.GetTotemInfo = function(slot)
@@ -699,4 +699,16 @@ do
 		assert(state.call.runes[2].loop:IsPlaying() == full, "and the runes")
 	end
 	Clean(env, K, "totem auras under Frames")
+
+	-- A medal's sheets load only once its spell is known: Call of the Elements' runes wait for the spell, and learning
+	-- it loads them.
+	env, K, ns = New("SHAMAN", { known = {} })
+	state = ns.Totems.state
+	assert(not state.call:IsShown() and state.call.runes[1]._state.Texture == nil, "an unknown Call loads no rune sheet")
+	assert(state.wolf.figure._state.Texture[1] == Tokens.Texture("auraFigureWolf"), "while the known Ghost Wolf has its own")
+	env._known[66842] = true
+	env.FireEvent("SPELLS_CHANGED")
+	env.RunTimers()
+	assert(state.call:IsShown() and state.call.runes[3]._state.Texture[1] == Tokens.Texture("auraTotemRuneWater"), "learning Call loads its runes")
+	Clean(env, K, "totem auras on learning")
 end
