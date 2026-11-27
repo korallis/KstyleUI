@@ -1,4 +1,4 @@
--- test-actionbars-crest-ranged.lua: a hunter's, mage's and warlock's crest trackers (KstyleUI_ActionBars/SlabRanged.lua) through the one tracker lifecycle: no other class registers them; every seat has a choice for each build, pet state and level band (Raptor Strike and Arcane Shot before the Aspect and the pet, a melee hunter's strike for the Mark, Arcane Intellect before the mana gem, the mage's school debuff by talent, armor for a warlock with no demon); aura pieces light through Blizzard's aura slots and Lua reads no aura; the pet's light along the band is its health as a bar fed the engine's values, with a forged haunch only below Happy (amber light and halo at Content, red at Unhappy, gilt and no haunch at Happy, none for a secret value), moved by UNIT_HAPPINESS alone, landing, breathing, blinking for 3 s and fading green by the motion level, gone with the pet, and Mend Pet's motes; the pet's focus fed unchanged and repainted alone; the paw on the pet's perch while no pet is out, red and breathing at Full while it lies dead, none for a secret death; Trueshot Aura's sigil lit gilt while up and steel while down; Improved Tracking's mark gold when the tracked type is a hostile target's, steel when not, gone with no target or a friendly one, listening only while switched on and blind to a secret type or reaction; the range ring gilt, red, secret and friendly from the game's range events, never polled; the pet's family ability, its debuff ring and Furious Howl; Growl's orders by autocast, group, the pet's target and a secret; Immolation Trap's burn and the potion pendant; the fuse's head rides its fill and the Mark's reticle closes in; the gem and Healthstone are lit, cooling or empty from bag counts and item cooldowns; each spire stands alone once known and drains through duration bars; the soul wisps count Soul Shards up to five with a faint rim at five or more, fly in, burst and circle only at Full off rest, the first one too, and replace the shard jewels; Rapid Fire alone gusts; only your own school debuff lights its embers; cooldown rims stack the class's cooldowns, a pet's Bestial Wrath among them; moments hand the engine their flares and fires only at Full; secret auras build nothing until combat ends; each switch hides its seat alone; Frames stands the seats in the row; a mana update asks the bags nothing and every shot reuses one duration object; nothing loads for any other class; nothing runs OnUpdate; every crest part is an even number of pixels at four screen sizes and the spires stay under the cooldown row.
+-- test-actionbars-crest-ranged.lua: a hunter's, mage's and warlock's crest trackers (KstyleUI_ActionBars/SlabRanged.lua) through the one tracker lifecycle: no other class registers them; every seat has a choice for each build, pet state and level band (Raptor Strike and Arcane Shot before the Aspect and the pet, a melee hunter's strike for the Mark, Arcane Intellect before the mana gem, the mage's school debuff by talent, armor for a warlock with no demon); aura pieces light through Blizzard's aura slots and Lua reads no aura; the pet's light along the band is its health as a bar fed the engine's values, with a forged haunch only below Happy (amber light and halo at Content, red at Unhappy, gilt and no haunch at Happy, none for a secret value), moved by UNIT_HAPPINESS alone, landing, breathing, blinking for 3 s and fading green by the motion level, gone with the pet, and Mend Pet's motes; the pet's focus fed unchanged and repainted alone; the paw on the pet's perch while no pet is out, red and breathing at Full while it lies dead and never while hidden, none for a secret death; Trueshot Aura's sigil lit gilt while up and steel while down; Improved Tracking's mark gold when the tracked type is a hostile target's, steel when not, gone with no target or a friendly one, listening only while switched on and blind to a secret type or reaction; the range ring off while Auto Shot reaches, gilt only when melee surely reaches, red only when both surely fall short, none for an unknown or secret reading or a friendly target, from the game's range events, never polled, the crest's own range checks released when no ring needs them and a shared one left alone; the pet's family ability cooling by the pet's cooldown event through a dismissal and a pet swap, its debuff ring and Furious Howl from your pet alone; Growl's orders by autocast, group, the pet's target and a secret; your own Immolation Trap's burn and the potion pendant through its recharge; Tranquilizing Shot on the lower left foot; the fuse's head rides its fill and the Mark's reticle closes in; the gem and Healthstone are lit, cooling or empty from bag counts and item cooldowns; each spire stands alone once known and drains through duration bars; the soul wisps count Soul Shards up to five with a faint rim at five or more, fly in, burst and circle only at Full off rest, the first one too, and replace the shard jewels; Rapid Fire alone gusts; only your own school debuff lights its embers; cooldown rims stack the class's cooldowns, a pet's Bestial Wrath among them; moments hand the engine their flares and fires only at Full; secret auras build nothing until combat ends; each switch hides its seat alone; Frames stands the seats in the row; a mana update asks the bags nothing and every shot reuses one duration object; nothing loads for any other class; nothing runs OnUpdate; every crest part is an even number of pixels at four screen sizes and the spires stay under the cooldown row.
 local R = dofile("Tools/regression/ranged_env.lua")
 local AB, Slots, SIZES, New, Piece, Seated, Shown, Updating, Clean, Tint, Learn, Listening = R.AB, R.Slots, R.SIZES, R.New, R.Piece, R.Seated, R.Shown, R.Updating, R.Clean, R.Tint, R.Learn, R.Listening
 
@@ -115,7 +115,7 @@ end
 
 do
 	-- The crest homes plan (docs/crest-coverage.md, Hunter homes): the pet's perch shows a missing pet as a steel hound and a dead one in red.
-	local env, K, ns = New("HUNTER")
+	local env, K, ns = New("HUNTER", { hiding = true })
 	local pet = Piece(ns, "crestPet")
 	local lost = pet.lost
 	assert(lost.seat:IsShown() and not lost.halo:IsShown() and lost.hound:GetTexture() == (K.Tokens.Texture("glyphHound")) and Tint(lost.hound, K, "steel"), "no pet out: a steel hound waits on the pet's perch")
@@ -142,8 +142,16 @@ do
 	env._pet = nil
 	env.FireEvent("UNIT_PET", "player")
 	assert(lost.seat:IsShown() and not lost.halo:IsShown() and Tint(lost.hound, K, "steel"), "a dismissed pet leaves the steel hound")
+	env._pet = { max = 1800, missing = 1800, mood = 3, dead = true }
+	env.FireEvent("UNIT_PET", "player")
+	assert(lost.halo:IsShown() and lost.breath:IsPlaying(), "dead again at Full: the red halo breathes")
 	K.Options.Write("ActionBars", "crestPet", false)
-	assert(not lost.seat:IsVisible(), "Pet light off hides the hound with the band")
+	assert(not lost.seat:IsVisible() and not lost.breath:IsPlaying(), "Pet light off hides the hound with the band and stops the red halo")
+	K.Options.Write("Medallions", "motion", "calm")
+	K.Options.Write("Medallions", "motion", "full")
+	assert(not lost.breath:IsPlaying(), "a motion change while the hound is hidden never restarts its halo")
+	K.Options.Write("ActionBars", "crestPet", true)
+	assert(lost.seat:IsVisible() and lost.breath:IsPlaying(), "shown again, the dead hound's halo breathes")
 	Clean(env, K)
 end
 
@@ -218,7 +226,7 @@ end
 
 do
 	-- The crest homes plan (docs/crest-coverage.md, Hunter homes, row 43): range and the dead zone read from the engine's range checks, never polled.
-	local env, K, ns = New("HUNTER", { known = { 13165, 883, 1130, 1978, 75, 2973, 14260, 2974 } })
+	local env, K, ns = New("HUNTER", { known = { 13165, 883, 1130, 1978, 75, 2973, 14260, 2974 }, hiding = true })
 	local reach = Piece(ns, "crestRange")
 	assert(reach and reach:IsShown() and not reach.ring:IsShown(), "no target: no range ring")
 	env._range[75] = true
@@ -233,13 +241,47 @@ do
 	assert(reach.ring:IsShown() and Tint(reach.ring, K, "giltLit"), "only Raptor Strike reaches: a gilt ring")
 	env._range[14260] = env.Secret(true)
 	env.FireEvent("SPELL_RANGE_CHECK_UPDATE", 14260, true, true)
-	assert(reach.ring:IsShown() and Tint(reach.ring, K, "hostile"), "a secret range reading never claims melee reach")
+	assert(not reach.ring:IsShown(), "a secret melee reading with Auto Shot out of range is unknown: no ring, never red or gilt")
+	env._range[14260] = nil
+	env.FireEvent("SPELL_RANGE_CHECK_UPDATE", 14260, false, false)
+	assert(not reach.ring:IsShown(), "a melee range the engine cannot check is unknown: no ring")
+	env._range[75], env._range[14260] = env.Secret(false), false
+	env.FireEvent("SPELL_RANGE_CHECK_UPDATE", 75, false, true)
+	assert(not reach.ring:IsShown(), "a secret shot reading with melee out of range is unknown: no ring")
+	env._range[75], env._range[14260] = true, true
+	env.FireEvent("SPELL_RANGE_CHECK_UPDATE", 75, true, true)
+	assert(not reach.ring:IsShown(), "whenever Auto Shot reaches, no ring")
+	env._range[75], env._range[14260] = false, false
+	env.FireEvent("SPELL_RANGE_CHECK_UPDATE", 75, false, true)
 	env._attackable = false
 	env.FireEvent("UNIT_FACTION", "target")
 	assert(not reach.ring:IsShown(), "a friendly target shows no range ring")
 	assert(Updating(reach) == 0 and Listening(env, "SPELL_RANGE_CHECK_UPDATE"), "the ring follows the range event and runs no OnUpdate")
+	env._attackable = true
+	env._known[14260], env._known[14261] = nil, true
+	env.FireEvent("PLAYER_TARGET_CHANGED")
+	assert(env._rangeChecks[14260] == false and env._rangeChecks[14261] == true and env._rangeChecks[75] == true, "a new Raptor Strike rank releases the old rank's range check and turns on the new one's")
 	K.Options.Write("ActionBars", "crestRange", false)
 	assert(not Listening(env, "SPELL_RANGE_CHECK_UPDATE"), "Range ring off unregisters the range event")
+	assert(env._rangeChecks[75] == false and env._rangeChecks[14261] == false, "Range ring off releases the range checks the crest turned on")
+	K.Options.Write("ActionBars", "crestRange", true)
+	assert(env._rangeChecks[75] == true and env._rangeChecks[14261] == true, "Range ring on turns them on again")
+	Clean(env, K)
+end
+
+do
+	-- Review finding range-engine-stays-enabled: a range check something else already runs is shared, never released by the crest.
+	local env, K, ns = New("HUNTER", { known = { 13165, 883, 1130, 1978, 75, 2973 }, hiding = true })
+	local reach = Piece(ns, "crestRange")
+	env.FireEvent("SPELL_RANGE_CHECK_UPDATE", 2973, true, true)
+	env._range[75] = true
+	env.SetTarget(true)
+	assert(env._rangeChecks[75] == true and env._rangeChecks[2973] == nil, "a range check another owner already runs is read but never turned on by the crest")
+	K.Options.Write("HudStyle", "style", "frames")
+	local row = Piece(ns, "crestRange")
+	assert(not reach:IsVisible() and row ~= reach and row:IsVisible() and env._rangeChecks[75] == true, "a style change hands the range check from the crest's ring to the row's")
+	K.Options.Write("ActionBars", "crestRange", false)
+	assert(env._rangeChecks[75] == false and env._rangeChecks[2973] == nil, "with no ring left the crest releases its own range check and leaves the shared one alone")
 	Clean(env, K)
 end
 
@@ -256,11 +298,29 @@ do
 	local health = #AB.W.Calls(pet.health, "SetValue")
 	env.FireEvent("UNIT_POWER_UPDATE", "pet")
 	assert(env.Reveal(pet.focus:GetValue()) == 70 and #AB.W.Calls(pet.health, "SetValue") == health, "a focus tick repaints the focus alone")
-	Slots.Set(env, "target", { { id = 24579, icon = 132182, harmful = true, start = 0, duration = 30 } })
+	assert(family.ready:IsShown(), "Demoralizing Screech ready: the perch is lit")
+	env._spellCd[24579] = { 0, 10 }
+	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
+	assert(not family.ready:IsShown(), "the pet's cooldown event alone starts the perch cooling")
+	env._spellCd[24579] = nil
+	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
+	assert(family.ready:IsShown(), "the pet's cooldown event alone brings it ready again")
+	env._spellCd[24579] = { 0, 10 }
+	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
+	env._pet, env._spellCd[24579] = nil, nil
+	env.FireEvent("UNIT_PET", "player")
+	env._pet = { max = 1800, missing = 0, mood = 3, focus = 70 }
+	env.FireEvent("UNIT_PET", "player")
+	assert(family.ready:IsShown(), "a pet dismissed while cooling and called back after its cooldown ended shows ready")
 	local screech = family.lits[2]
-	assert(screech:IsShown() and screech._cooldown == screech.timer, "Demoralizing Screech on the target lights the perch with a timer arc on its ring")
-	Slots.Set(env, "player", { { id = 24604, icon = 132203, start = 0, duration = 10 } })
-	assert(family.lits[3]:IsShown(), "Furious Howl on you lights the perch gilt")
+	Slots.Set(env, "target", { { id = 24579, icon = 132182, harmful = true, mine = false, start = 0, duration = 30 } })
+	assert(not screech:IsShown(), "another hunter's pet's Demoralizing Screech never lights your perch's ring")
+	Slots.Set(env, "target", { { id = 24579, icon = 132182, harmful = true, mine = true, start = 0, duration = 30 } })
+	assert(screech:IsShown() and screech._cooldown == screech.timer, "your pet's Demoralizing Screech on the target lights the perch with a timer arc on its ring")
+	Slots.Set(env, "player", { { id = 24604, icon = 132203, mine = false, start = 0, duration = 10 } })
+	assert(not family.lits[3]:IsShown(), "another hunter's Furious Howl on you leaves the perch's gilt ring off")
+	Slots.Set(env, "player", { { id = 24604, icon = 132203, mine = true, start = 0, duration = 10 } })
+	assert(family.lits[3]:IsShown(), "your pet's Furious Howl on you lights the perch gilt")
 	assert(orders.rest:IsShown() and not orders.match:IsShown(), "solo with Growl on autocast: the orders rest in steel")
 	env._autocast[14916] = false
 	env.FireEvent("PET_BAR_UPDATE")
@@ -283,9 +343,37 @@ do
 	env._pet = nil
 	env.FireEvent("UNIT_PET", "player")
 	assert(not orders.rest:IsShown() and not orders.match:IsShown(), "no pet: no orders")
+	env._petSpells[24579], env._petSpells[24640] = nil, true
+	env._spellCd[24640] = { 0, 10 }
+	env.FireEvent("PET_BAR_UPDATE")
+	family = Piece(ns, "crestPetAbility")
+	assert(family.spec.spell == 24640 and not family.ready:IsShown(), "a scorpid swapped in takes the perch with its Scorpid Poison's own cooldown")
 	K.Options.Write("ActionBars", "crestPet", false)
 	K.Options.Write("ActionBars", "crestOrders", false)
 	assert(not Listening(env, "UNIT_POWER_UPDATE") and not Listening(env, "UNIT_TARGET"), "the pet light and orders off unregister the pet's power and target events")
+	assert(Listening(env, "PET_BAR_UPDATE_COOLDOWN"), "the pet ability perch listens for the pet's cooldown event")
+	K.Options.Write("ActionBars", "crestPetAbility", false)
+	assert(not Listening(env, "PET_BAR_UPDATE_COOLDOWN"), "Pet ability perch off unregisters the pet's cooldown event")
+	Clean(env, K)
+end
+
+do
+	-- First mate's correction on row 49 (docs/crest-coverage.md, Hunter homes): Tranquilizing Shot gets a home on the crest's lower left foot.
+	local env, K, ns = New("HUNTER", { known = { 13165, 883, 1130, 75 } })
+	assert(not Seated(ns, "crestTranq"), "no Tranquilizing Shot learned: no seat")
+	env._known[19801] = true
+	env.FireEvent("PLAYER_TALENT_UPDATE")
+	local tranq = Piece(ns, "crestTranq")
+	assert(tranq and tranq.spec.spell == 19801 and ns.SlabSeats.Name(tranq.spec.seat) == "footLeft", "Tranquilizing Shot learned: its glyph sits on the crest's lower left foot")
+	assert(tranq.ready:IsShown(), "ready: lit")
+	env._spellCd[19801] = { 0, 20 }
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(not tranq.ready:IsShown() and #R.Icons(tranq, {}) == 0, "shot: it cools under its ring, with no spell icon")
+	env._spellCd[19801] = nil
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(tranq.ready:IsShown(), "cooled: lit again")
+	K.Options.Write("ActionBars", "crestTranq", false)
+	assert(not Seated(ns, "crestTranq"), "Tranquilizing Shot off hides its seat")
 	Clean(env, K)
 end
 
@@ -293,13 +381,20 @@ do
 	-- The crest homes plan (docs/crest-coverage.md, Hunter homes, rows 29 and 61): Immolation Trap's burn on the fuse and the potion pendant.
 	local env, K, ns = New("HUNTER", { known = { 13165, 883, 1130, 13795, 75 }, bags = { [929] = 2 } })
 	local sting, potion = Piece(ns, "crestSting"), Piece(ns, "crestPotion")
-	Slots.Set(env, "target", { { id = 14298, icon = 135813, harmful = true, mine = false, start = 0, duration = 15 } })
 	local burn = sting.lits[#sting.lits]
-	assert(burn:IsShown() and burn.mark:GetTexture() == (K.Tokens.Texture("sigilFireTrap")), "Immolation Trap's burn, cast by the trap, burns down the fuse under the fire trap's mark")
+	Slots.Set(env, "target", { { id = 14298, icon = 135813, harmful = true, mine = false, start = 0, duration = 15 } })
+	assert(not burn:IsShown(), "another hunter's Immolation Trap burning your target leaves the fuse dark")
+	Slots.Set(env, "target", { { id = 14298, icon = 135813, harmful = true, mine = true, start = 0, duration = 15 } })
+	assert(burn:IsShown() and burn.mark:GetTexture() == (K.Tokens.Texture("sigilFireTrap")), "your own Immolation Trap's burn burns down the fuse under the fire trap's mark")
+	Slots.Set(env, "target", {})
+	assert(not burn:IsShown(), "the burn ended: the fuse goes dark")
 	assert(potion.lit:IsShown() and potion.ready:IsShown(), "a Healing Potion in the bags hangs ready on the pendant")
 	env._cooling[929] = { 0, 120 }
 	env.FireEvent("BAG_UPDATE_COOLDOWN")
 	assert(not potion.ready:IsShown(), "a potion drunk: the pendant cools")
+	env._cooling[929] = nil
+	env.FireEvent("BAG_UPDATE_COOLDOWN")
+	assert(potion.ready:IsShown(), "the potions recharged: the pendant hangs ready again")
 	env._bags[929] = 0
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(not potion.lit:IsShown(), "no potion left: the pendant is empty")

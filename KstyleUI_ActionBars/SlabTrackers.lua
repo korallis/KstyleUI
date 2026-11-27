@@ -14,6 +14,7 @@ local STRIP = "unitframes.castbar.player"
 local RELIQUARY, MAIN_HAND, OFF_HAND, TRINKET, ARMORY_TRINKET = 30, 16, 17, { 44, 0 }, { 33, -24 }
 local LUA = {
 	cooldown = { "SPELL_UPDATE_COOLDOWN" },
+	petCooldown = { "SPELL_UPDATE_COOLDOWN", "PET_BAR_UPDATE_COOLDOWN", { "UNIT_PET", "player" } },
 	usable = { "SPELL_UPDATE_USABLE", "SPELL_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" },
 	item = { "BAG_UPDATE_DELAYED", "BAG_UPDATE_COOLDOWN" },
 	threat = { "UNIT_THREAT_LIST_UPDATE", "UNIT_THREAT_SITUATION_UPDATE", "PLAYER_TARGET_CHANGED" },
@@ -365,7 +366,7 @@ local function Paint(event, ...)
 		FiveSecond(form, ...)
 	end
 	for _, piece in ipairs(form and form.lua or {}) do
-		local kind = piece.spec.feed
+		local kind = piece.spec.route or piece.spec.feed
 		if kind ~= "fiveSecond" and piece:IsShown() and (not event or ROUTE[kind][event]) then
 			Medals.Refresh(piece, event)
 		end
@@ -545,9 +546,9 @@ function Trackers.Update()
 			end
 			Medals.Size(piece)
 			prepared[key] = piece
-			if LUA[spec.feed] then
+			if LUA[spec.route or spec.feed] then
 				piece.spec = spec
-				local list = HOOKED[spec.feed] and form.hooked or form.lua
+				local list = HOOKED[spec.route or spec.feed] and form.hooked or form.lua
 				list[#list + 1] = piece
 			end
 		end
@@ -572,7 +573,7 @@ function Trackers.Update()
 	local kinds, seen = {}, {}
 	for _, list in ipairs({ form.lua, form.hooked }) do
 		for _, piece in ipairs(list) do
-			local kind = piece.spec.feed
+			local kind = piece.spec.route or piece.spec.feed
 			if not seen[kind] then
 				seen[kind] = true
 				kinds[#kinds + 1] = kind

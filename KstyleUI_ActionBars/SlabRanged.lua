@@ -506,7 +506,11 @@ local function Lost(m, level, k, x, y)
 	hound:SetDesaturated(true)
 	local a, low = LIGHT, LIGHT * Tokens.Flicker.low
 	halo:SetAlpha(a)
-	return { seat = seat, halo = halo, hound = hound, breath = Medals.Steps(halo, { { a, low, 0.9 }, { low, a, 0.9 } }, true) }
+	local l = { seat = seat, halo = halo, hound = hound, breath = Medals.Steps(halo, { { a, low, 0.9 }, { low, a, 0.9 } }, true) }
+	seat:HookScript("OnHide", function()
+		l.breath:Stop()
+	end)
+	return l
 end
 
 local function Pet(parent, spec, level, form)
@@ -912,7 +916,7 @@ end
 
 local function Mourn(m)
 	local l = m.lost
-	if l.gone == "dead" and Effects.Allows("pulse") and not m.still then
+	if l.gone == "dead" and Effects.Allows("pulse") and not m.still and l.seat:IsVisible() then
 		if not l.breath:IsPlaying() then
 			l.breath:Play()
 		end
@@ -1054,11 +1058,29 @@ local function Sign(parent, spec, level, form)
 	return p
 end
 
+local HELD, EVER, SHARED = {}, {}, {}
+
+local function Release(p, keep)
+	for id in pairs(p.checked) do
+		if not (keep and keep[id]) then
+			p.checked[id] = nil
+			HELD[id] = HELD[id] - 1
+			if HELD[id] == 0 then
+				HELD[id] = nil
+				C_Spell.EnableSpellRangeCheck(id, false)
+			end
+		end
+	end
+end
+
 local function Reach(parent, spec, level)
 	local p = Medals.Piece(parent, level, spec.size or SIZE)
 	p.ring = p.add(Medals.Texture(p, "OVERLAY", 0, "ringLine16", "white", p.units))
 	p.ring:Hide()
-	p.kind, p.checked = spec.feed, {}
+	p.kind, p.checked, p.wanted = spec.feed, {}, {}
+	p:HookScript("OnHide", function()
+		Release(p)
+	end)
 	return p
 end
 
@@ -1104,22 +1126,39 @@ local function PaintOrders(p)
 end
 
 local function Check(p, id)
-	if id and not p.checked[id] then
+	if id and not p.checked[id] and not SHARED[id] then
 		p.checked[id] = true
-		C_Spell.EnableSpellRangeCheck(id, true)
+		HELD[id], EVER[id] = (HELD[id] or 0) + 1, true
+		if HELD[id] == 1 then
+			C_Spell.EnableSpellRangeCheck(id, true)
+		end
+	end
+end
+
+local function Heard(spell)
+	if not IsSecret(spell) and type(spell) == "number" and not EVER[spell] then
+		SHARED[spell] = true
 	end
 end
 
 local function PaintReach(p)
 	local api, shot, melee = C_Spell, nil, nil
 	if Hostile() and api and type(api.IsSpellInRange) == "function" and type(api.EnableSpellRangeCheck) == "function" then
-		local close = Medals.Known(p.spec.melee)
+		local close, wanted = Medals.Known(p.spec.melee), p.wanted
+		for id in pairs(wanted) do
+			wanted[id] = nil
+		end
+		wanted[p.spec.spell] = true
+		if close then
+			wanted[close] = true
+		end
+		Release(p, wanted)
 		Check(p, p.spec.spell)
 		Check(p, close)
 		shot = Plain(api.IsSpellInRange(p.spec.spell, "target"))
 		melee = close and Plain(api.IsSpellInRange(close, "target"))
 	end
-	local color = melee == true and "giltLit" or shot == false and "hostile" or nil
+	local color = shot ~= true and (melee == true and "giltLit" or shot == false and melee == false and "hostile") or nil
 	p.ring:SetShown(color ~= nil)
 	if color then
 		p.ring:SetVertexColor(Tokens.Color(color))
@@ -1202,6 +1241,9 @@ local PAINT = { tracking = PaintTrack, orders = PaintOrders, range = PaintReach 
 
 local function Paint(form, event, ...)
 	local all = event == nil
+	if event == "SPELL_RANGE_CHECK_UPDATE" then
+		Heard((...))
+	end
 	for _, p in pairs(form.pieces) do
 		if p.swing then
 			if (all or ON.swing[event]) and p:IsShown() then
@@ -1276,7 +1318,7 @@ if CLASS == "HUNTER" then
 		{ spells = { 19386, 24132, 24133, 24131, 24134, 24135 }, color = "schoolFire", glyph = "glyphWyvern" },
 		{ spells = { 24118, 24119, 24120, 1299332 }, color = "hostile", glyph = "glyphLacerate" },
 		{ spells = { 3674, 14296 }, color = "schoolShadow", glyph = "glyphBlackArrow" },
-		{ spells = { 13797, 14298, 14299, 14300, 14301 }, color = "schoolFire", glyph = "sigilFireTrap", filter = "HARMFUL" },
+		{ spells = { 13797, 14298, 14299, 14300, 14301 }, color = "schoolFire", glyph = "sigilFireTrap" },
 	}
 	local RAPTOR = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 }
 	local MELEE = Trackers.Joined(RAPTOR, { 14268, 14267, 2974 })
@@ -1321,14 +1363,16 @@ if CLASS == "HUNTER" then
 		{ key = "crestTracking", seat = COMPASS_SEAT, size = PERCH, build = Sign, look = "glyph", glyph = "glyphCompass", feed = "tracking", color = "gilt",
 			known = { 24293 }, types = TRACKS },
 		{ key = "crestRange", seat = EMBLEM, overlay = true, size = REACH, build = Reach, feed = "range", known = { 75 }, melee = MELEE },
-		{ key = "crestPetAbility", seat = { 33, -24 }, size = PERCH, build = Effect, look = "glyph", glyph = "glyphFamily", feed = "cooldown", color = "giltLit",
-			known = PetKnown(FAMILY), feeds = {
+		{ key = "crestPetAbility", seat = { 33, -24 }, size = PERCH, build = Effect, look = "glyph", glyph = "glyphFamily", feed = "cooldown", route = "petCooldown",
+			color = "giltLit", known = PetKnown(FAMILY), feeds = {
 				{ feed = "cooldown" },
-				{ feed = "aura", unit = "target", filter = "HARMFUL", spells = Trackers.Joined(SCREECH, SCORPID, REND, DUST), color = "hostile", ring = true },
-				{ feed = "aura", filter = "HELPFUL", spells = HOWL, color = "gilt", ring = true },
+				{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = Trackers.Joined(SCREECH, SCORPID, REND, DUST), color = "hostile", ring = true },
+				{ feed = "aura", filter = "HELPFUL|PLAYER", spells = HOWL, color = "gilt", ring = true },
 			} },
 		{ key = "crestOrders", seat = { 0, -39 }, size = PERCH, build = Sign, look = "glyph", glyph = "glyphGrowl", feed = "orders", color = "hostile",
 			known = PetKnown(GROWL) },
+		{ key = "crestTranq", seat = "footLeft", size = Medals.FOOT, build = Effect, look = "glyph", glyph = "glyphTranq", feed = "cooldown", color = "giltLit",
+			known = { 19801 } },
 		{ key = "crestPotion", seat = { -33, -24 }, size = GEM, build = Gem, look = "gem", feed = "item", items = POTIONS, color = "friendly", known = { 75 } },
 		{ key = "crestAutoShot", seat = "rim", build = Swing, color = "steelLit", known = { 75 } },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHawk", families = { { spells = { 3045 }, sigil = "Volley", major = true }, { spells = { 19263 }, sigil = "Deflect", major = true },

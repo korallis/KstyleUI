@@ -1339,9 +1339,11 @@ function Medals.Rest()
 	end
 end
 
+local REREAD = { SPELL_UPDATE_COOLDOWN = true, PET_BAR_UPDATE_COOLDOWN = true, UNIT_PET = true }
+
 local function Cooling(m, id, event)
 	m.cooling = m.cooling or {}
-	if event == "SPELL_UPDATE_COOLDOWN" or event == nil and m.cooling[id] == nil then
+	if REREAD[event] or event == nil and m.cooling[id] == nil then
 		local get = C_Spell and C_Spell.GetSpellCooldown
 		local cd = type(get) == "function" and get(id)
 		m.cooling[id] = type(cd) == "table" and cd.isActive == true and cd.isOnGCD ~= true

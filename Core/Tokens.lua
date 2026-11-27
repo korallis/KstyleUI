@@ -533,13 +533,14 @@ for _, name in ipairs({
 }) do
 	TEXTURES["glyph" .. name] = { file = "Textures\\Glyphs\\" .. name .. ".png" }
 end
-for name, file in pairs({ Trueshot = "Sigils\\Aimed", Compass = "Glyphs\\MarkReticle", Hound = "Sigils\\Paw", Family = "Sigils\\Intimidate", Growl = "Figures\\Growl" }) do
+for name, file in pairs({ Trueshot = "Sigils\\Aimed", Compass = "Glyphs\\MarkReticle", Hound = "Sigils\\Paw", Family = "Sigils\\Intimidate", Growl = "Figures\\Growl",
+	Tranq = "Sigils\\Drop" }) do
 	TEXTURES["glyph" .. name] = { file = "Textures\\" .. file .. ".png" }
 end
 for _, name in ipairs({
 	"glyphBeast", "glyphBlackArrow", "glyphCheetah", "glyphCounter", "glyphHaunch", "glyphHawk", "glyphLacerate", "glyphMongoose",
 	"glyphMonkey", "glyphPack", "glyphRaptor", "glyphScorpid", "glyphSerpent", "glyphViper", "glyphViperSting", "glyphWild",
-	"glyphWyvern", "glyphTrueshot", "glyphHound", "glyphFamily", "sigilAimed", "sigilCharm", "sigilDeflect", "sigilFireTrap", "sigilIntimidate", "sigilPaw", "sigilSniper",
+	"glyphWyvern", "glyphTrueshot", "glyphHound", "glyphFamily", "glyphTranq", "sigilAimed", "sigilCharm", "sigilDeflect", "sigilFireTrap", "sigilIntimidate", "sigilPaw", "sigilSniper",
 	"sigilStrider", "sigilVolley"
 }) do
 	TEXTURES[name].forged = true
