@@ -246,6 +246,18 @@ do
 		local saves, bar = Change(change[1], change[2])
 		assert(saves == 1 and not near(bar, 100), string.format("%s %s re-places an unstamped viewer, as before this hotfix: %d saves, bar %s", change[1], change[2], saves, bar))
 	end
+	-- Over a manual 100%, Follow the game's UI scale at the game's default scale asks for the same size, so Scale applies
+	-- nothing and sends no scale change; the next arrangement change is still not a sizing change.
+	K.Options.Write("Appearance", "uiScaleAuto", false)
+	K.Options.Write("Appearance", "uiScale", 1)
+	env.RunTimers()
+	local changes = 0
+	K.Callbacks.Register("ScaleChanged", "follow-test", function() changes = changes + 1 end)
+	K.Options.Write("Appearance", "uiScaleGame", true)
+	env.RunTimers()
+	assert(K.Scale.IsGame() and changes == 0, "Follow at the game's default scale over a manual 100% sends no scale change, got " .. changes)
+	local saves, bar = Change("arrangement", "spread")
+	assert(changes == 1 and saves == 1 and not near(bar, 100), string.format("after that switch, Spread re-places an unstamped viewer, as before this hotfix: %d changes, %d saves, bar %s", changes, saves, bar))
 end
 
 print("scale game ok")
