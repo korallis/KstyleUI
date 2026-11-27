@@ -10,7 +10,8 @@
 -- cooling), imp, voidwalker or succubus (that demon out, chosen through the pet's spellbook as the felhunter's Spell Lock
 -- chooses it), curses (each of the five curses on the target in turn, one at a time as
 -- the game allows: RENDER_TRACKERS=moment at RENDER_TRACKERS_T 1.5, 3.5, 5.5, 7.5 and 9.5), sacrifice (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, each caster's sigils build (every
--- cooldown sigil of the class up at once: the mage's five, the warlock's four with the Voidwalker's Sacrifice), the hunter's bite (Mongoose Bite ready) or raptor
+-- cooldown sigil of the class up at once: the mage's Arcane Power, Presence of Mind, Combustion, Evocation and Ice Block, the warlock's
+-- Amplify Curse, Fel Domination, Shadow Ward and the Voidwalker's Sacrifice), the hunter's bite (Mongoose Bite ready) or raptor
 -- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
 -- breakout_fire), timed as the break-out design's clips: an aura's warn time puts it in its pandemic window, a usable
 -- spell's window and the pet's health steps and leaving time play out on the clock. RENDER_TRACKERS_OFF=1 turns the class's
