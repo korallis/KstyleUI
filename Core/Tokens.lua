@@ -540,7 +540,8 @@ for _, name in ipairs({
 	"glyphBeast", "glyphBlackArrow", "glyphCheetah", "glyphCompass", "glyphCounter", "glyphHaunch", "glyphHawk", "glyphHound", "glyphLacerate", "glyphMongoose",
 	"glyphMonkey", "glyphPack", "glyphRaptor", "glyphScorpid", "glyphSerpent", "glyphTrueshot", "glyphViper", "glyphViperSting", "glyphWild",
 	"glyphWyvern", "glyphFamily", "glyphTranq", "sigilAimed", "sigilCharm", "sigilDeflect", "sigilFireTrap", "sigilIntimidate", "sigilPaw", "sigilSniper",
-	"sigilStrider", "sigilVolley"
+	"sigilStrider", "sigilVolley", "sigilBlink", "sigilFrostNova", "sigilFireBlast", "sigilBlastWave", "sigilColdSnap",
+	"sigilIceBarrier", "sigilIceLance", "sigilEscape"
 }) do
 	TEXTURES[name].forged = true
 end

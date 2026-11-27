@@ -4256,7 +4256,7 @@ ns.Locale.Add({
 	["Standard: the slab in Medallions, bars under a cap in Frames. Plate: a panel."] = "Est\195\161ndar: la losa en Medallones, barras bajo un remate en Marcos. Placa: un panel.",
 	["Standing"] = "Nivel de reputaci\195\179n",
 	["Standing or reaction"] = "Nivel de reputaci\195\179n o reacci\195\179n",
-	["Stands your tree's cooldowns, trinket and a mage's racials over the crest; a hunter's buffs rise to the crown."] = "Coloca los tiempos de reutilizaci\195\179n de tu rama, tu abalorio y los raciales de un mago sobre el emblema; los beneficios de un cazador suben a la corona.",
+	["Stands your cooldowns, trinket and a mage's racials over the crest; hunter buffs rise to the crown."] = "Coloca tus tiempos de reutilizaci\195\179n, tu abalorio y los raciales de un mago sobre el emblema; los beneficios de cazador suben a la corona.",
 	["Start collapsed"] = "Empezar plegado",
 	["Start point"] = "Punto de partida",
 	["Start the combat log as you enter an instance and stop it as you leave."] = "Inicia el registro de combate al entrar en una instancia y lo detiene al salir.",

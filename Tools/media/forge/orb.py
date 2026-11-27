@@ -219,9 +219,10 @@ def story(t):
     return story_procs(t) if args.story == "procs" else story_race(t, args.proc)
 
 
+# the preview's 12 s timeline; a layer bake (--layer) renders its own fixed states and never reads it
 STATES = []
 phase = spin = turn = 0.0
-for f in range(NFR):
+for f in range(0 if args.layer else NFR):
     t = f / FPS
     s = story(t)
     phase += s["speed"] / FPS
@@ -550,7 +551,8 @@ hub_glow_amt = hg.value("amt", 0.3)
 hg.additive(hg.scalec(hg.rgb(MAGE), hg.m("MULTIPLY", hg.m("EXPONENT", hg.m("MULTIPLY", hg.m("MULTIPLY", rg, rg), -1.6)), hub_glow_amt)))
 hub_glow = plane("HubGlow", 4.4, hub_glow_mat, -3.0)
 no_shadow(hub_glow)
-if not args.noring:
+# the crest's ring, enamel and rune glyphs frame the preview only; a layer bake draws the orb alone
+if not (args.noring or args.layer):
     ring, _ = image_plane("Ring", "Media/Textures/Medallions/Ring256.png", 2 * HUB, -0.3, "over")
     enamel, _ = image_plane("Enamel", "Media/Textures/Medallions/Enamel256.png", 2 * HUB, -0.29, "over", MAGE, 0.35)
     glyphs, glyph_g = image_plane("RuneGlyphs", "Media/Textures/Medallions/RuneGlyphs.png", 2 * HUB, -0.28, "add", MAGE, 0.25)
