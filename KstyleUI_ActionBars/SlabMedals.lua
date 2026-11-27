@@ -1339,11 +1339,9 @@ function Medals.Rest()
 	end
 end
 
-local REREAD = { SPELL_UPDATE_COOLDOWN = true, PET_BAR_UPDATE_COOLDOWN = true, UNIT_PET = true }
-
 local function Cooling(m, id, event)
 	m.cooling = m.cooling or {}
-	if REREAD[event] or event == nil and m.cooling[id] == nil then
+	if event == "SPELL_UPDATE_COOLDOWN" or event == nil and m.cooling[id] == nil then
 		local get = C_Spell and C_Spell.GetSpellCooldown
 		local cd = type(get) == "function" and get(id)
 		m.cooling[id] = type(cd) == "table" and cd.isActive == true and cd.isOnGCD ~= true
@@ -1363,17 +1361,63 @@ local function Refill(bar, duration)
 	end
 end
 
+local function PetSlot(spell)
+	if type(GetPetActionInfo) ~= "function" then
+		return nil
+	end
+	for i = 1, NUM_PET_ACTION_SLOTS or 10 do
+		local id = select(7, GetPetActionInfo(i))
+		if not IsSecret(id) and id == spell then
+			return i
+		end
+	end
+end
+
+local function PetCooling(m, spell)
+	local slot, start, duration, enable = PetSlot(spell)
+	if slot and type(GetPetActionCooldown) == "function" then
+		start, duration, enable = GetPetActionCooldown(slot)
+	end
+	if IsSecret(start) or IsSecret(duration) or IsSecret(enable) then
+		m.timer:Clear()
+		return nil
+	end
+	local get = C_Spell and C_Spell.GetSpellCooldown
+	local cd = type(get) == "function" and get(spell)
+	local gcd = type(cd) == "table" and not IsSecret(cd.isOnGCD) and cd.isOnGCD == true
+	local cooling = type(start) == "number" and type(duration) == "number" and duration > 0 and enable ~= 0 and enable ~= false and not gcd
+	if not cooling then
+		m.timer:Clear()
+		return false
+	end
+	m.timer:SetCooldown(start, duration)
+	local make = C_DurationUtil and C_DurationUtil.CreateDuration
+	local object = type(make) == "function" and make()
+	if object then
+		object:SetTimeFromStart(start, duration)
+	end
+	return true, object or nil
+end
+
 function Medals.Refresh(m, event)
 	local spec = m.spec
 	if spec.feed == "cooldown" then
-		local api = C_Spell
-		local duration = api and type(api.GetSpellCooldownDuration) == "function" and api.GetSpellCooldownDuration(spec.spell, true)
-		if duration and m.timer.SetCooldownFromDurationObject then
-			m.timer:SetCooldownFromDurationObject(duration, true)
+		local cooling, duration
+		if spec.route == "petCooldown" then
+			cooling, duration = PetCooling(m, spec.spell)
+			if cooling == nil then
+				return
+			end
 		else
-			m.timer:Clear()
+			local api = C_Spell
+			duration = api and type(api.GetSpellCooldownDuration) == "function" and api.GetSpellCooldownDuration(spec.spell, true)
+			if duration and m.timer.SetCooldownFromDurationObject then
+				m.timer:SetCooldownFromDurationObject(duration, true)
+			else
+				m.timer:Clear()
+			end
+			cooling = (m.bar or m.ready) and duration and Cooling(m, spec.spell, event) or false
 		end
-		local cooling = (m.bar or m.ready) and duration and Cooling(m, spec.spell, event) or false
 		if cooling ~= m.cooled then
 			m.cooled = cooling
 			if m.bar then

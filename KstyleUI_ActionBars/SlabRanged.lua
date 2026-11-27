@@ -1063,7 +1063,7 @@ local function Sign(parent, spec, level, form)
 	return p
 end
 
-local HELD, EVER, SHARED = {}, {}, {}
+local HELD = {}
 
 local function Release(p, keep)
 	for id in pairs(p.checked) do
@@ -1131,18 +1131,12 @@ local function PaintOrders(p)
 end
 
 local function Check(p, id)
-	if id and not p.checked[id] and not SHARED[id] then
+	if id and not p.checked[id] then
 		p.checked[id] = true
-		HELD[id], EVER[id] = (HELD[id] or 0) + 1, true
+		HELD[id] = (HELD[id] or 0) + 1
 		if HELD[id] == 1 then
 			C_Spell.EnableSpellRangeCheck(id, true)
 		end
-	end
-end
-
-local function Heard(spell)
-	if not IsSecret(spell) and type(spell) == "number" and not EVER[spell] then
-		SHARED[spell] = true
 	end
 end
 
@@ -1163,7 +1157,7 @@ local function PaintReach(p)
 		shot = Plain(api.IsSpellInRange(p.spec.spell, "target"))
 		melee = close and Plain(api.IsSpellInRange(close, "target"))
 	end
-	local color = shot ~= true and (melee == true and "giltLit" or shot == false and melee == false and "hostile") or nil
+	local color = shot == false and (melee == true and "giltLit" or melee == false and "hostile") or nil
 	p.ring:SetShown(color ~= nil)
 	if color then
 		p.ring:SetVertexColor(Tokens.Color(color))
@@ -1246,9 +1240,6 @@ local PAINT = { tracking = PaintTrack, orders = PaintOrders, range = PaintReach 
 
 local function Paint(form, event, ...)
 	local all = event == nil
-	if event == "SPELL_RANGE_CHECK_UPDATE" then
-		Heard((...))
-	end
 	for _, p in pairs(form.pieces) do
 		if p.swing then
 			if (all or ON.swing[event]) and p:IsShown() then

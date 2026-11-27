@@ -252,6 +252,12 @@ do
 	env._range[75], env._range[14260] = env.Secret(false), false
 	env.FireEvent("SPELL_RANGE_CHECK_UPDATE", 75, false, true)
 	assert(not reach.ring:IsShown(), "a secret shot reading with melee out of range is unknown: no ring")
+	env._range[14260] = true
+	env.FireEvent("SPELL_RANGE_CHECK_UPDATE", 14260, true, true)
+	assert(not reach.ring:IsShown(), "a secret shot reading with melee in range is unknown: no ring, never gilt")
+	env._range[75] = nil
+	env.FireEvent("SPELL_RANGE_CHECK_UPDATE", 75, false, false)
+	assert(not reach.ring:IsShown(), "a shot range the engine cannot check with melee in range is unknown: no ring, never gilt")
 	env._range[75], env._range[14260] = true, true
 	env.FireEvent("SPELL_RANGE_CHECK_UPDATE", 75, true, true)
 	assert(not reach.ring:IsShown(), "whenever Auto Shot reaches, no ring")
@@ -274,18 +280,17 @@ do
 end
 
 do
-	-- Review finding range-engine-stays-enabled: a range check something else already runs is shared, never released by the crest.
+	-- Review finding range-engine-stays-enabled: the crest's rings share one enable per spell and send its one disable when the last ring lets go.
 	local env, K, ns = New("HUNTER", { known = { 13165, 883, 1130, 1978, 75, 2973 }, hiding = true })
 	local reach = Piece(ns, "crestRange")
-	env.FireEvent("SPELL_RANGE_CHECK_UPDATE", 2973, true, true)
 	env._range[75] = true
 	env.SetTarget(true)
-	assert(env._rangeChecks[75] == true and env._rangeChecks[2973] == nil, "a range check another owner already runs is read but never turned on by the crest")
+	assert(env._rangeChecks[75] == true and env._rangeChecks[2973] == true, "a target turns on the crest's range checks")
 	K.Options.Write("HudStyle", "style", "frames")
 	local row = Piece(ns, "crestRange")
 	assert(not reach:IsVisible() and row ~= reach and row:IsVisible() and env._rangeChecks[75] == true, "a style change hands the range check from the crest's ring to the row's")
 	K.Options.Write("ActionBars", "crestRange", false)
-	assert(env._rangeChecks[75] == false and env._rangeChecks[2973] == nil, "with no ring left the crest releases its own range check and leaves the shared one alone")
+	assert(env._rangeChecks[75] == false and env._rangeChecks[2973] == false, "with no ring left the crest releases every range check it turned on")
 	Clean(env, K)
 end
 
@@ -303,19 +308,35 @@ do
 	env.FireEvent("UNIT_POWER_UPDATE", "pet")
 	assert(env.Reveal(pet.focus:GetValue()) == 70 and #AB.W.Calls(pet.health, "SetValue") == health, "a focus tick repaints the focus alone")
 	assert(family.ready:IsShown(), "Demoralizing Screech ready: the perch is lit")
-	env._spellCd[24579] = { 0, 10 }
+	env._petCd[24579] = { 0, 10 }
 	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
-	assert(not family.ready:IsShown(), "the pet's cooldown event alone starts the perch cooling")
-	env._spellCd[24579] = nil
+	assert(not family.ready:IsShown(), "the pet slot's cooldown, read on the pet's cooldown event alone, starts the perch cooling")
+	env._petCd[24579] = nil
 	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
 	assert(family.ready:IsShown(), "the pet's cooldown event alone brings it ready again")
-	env._spellCd[24579] = { 0, 10 }
+	env._petCd[24579] = { 0, 10 }
 	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
-	env._pet, env._spellCd[24579] = nil, nil
+	env._pet, env._petCd[24579] = nil, nil
 	env.FireEvent("UNIT_PET", "player")
 	env._pet = { max = 1800, missing = 0, mood = 3, focus = 70 }
 	env.FireEvent("UNIT_PET", "player")
 	assert(family.ready:IsShown(), "a pet dismissed while cooling and called back after its cooldown ended shows ready")
+	env._petCd[24579] = { 0, 10 }
+	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
+	env._pet = nil
+	env.FireEvent("UNIT_PET", "player")
+	env._pet = { max = 1800, missing = 0, mood = 3, focus = 70 }
+	env.FireEvent("UNIT_PET", "player")
+	assert(not family.ready:IsShown(), "a pet called back while its ability still cools shows the perch cooling")
+	env._pet, env._petBarEmpty = nil, true
+	env.FireEvent("UNIT_PET", "player")
+	env._pet = { max = 1800, missing = 0, mood = 3, focus = 70 }
+	env.FireEvent("UNIT_PET", "player")
+	env._petBarEmpty = nil
+	env.FireEvent("PET_BAR_UPDATE")
+	assert(not family.ready:IsShown(), "a pet bar that fills after the pet arrives brings the cooling perch with it")
+	env._petCd[24579] = nil
+	env.FireEvent("PET_BAR_UPDATE_COOLDOWN")
 	local screech = family.lits[2]
 	Slots.Set(env, "target", { { id = 24579, icon = 132182, harmful = true, mine = false, start = 0, duration = 30 } })
 	assert(not screech:IsShown(), "another hunter's pet's Demoralizing Screech never lights your perch's ring")
@@ -348,7 +369,8 @@ do
 	env.FireEvent("UNIT_PET", "player")
 	assert(not orders.rest:IsShown() and not orders.match:IsShown(), "no pet: no orders")
 	env._petSpells[24579], env._petSpells[24640] = nil, true
-	env._spellCd[24640] = { 0, 10 }
+	env._pet, env._petCd[24640] = { max = 1800, missing = 0, mood = 3, focus = 70 }, { 0, 10 }
+	env.FireEvent("UNIT_PET", "player")
 	env.FireEvent("PET_BAR_UPDATE")
 	family = Piece(ns, "crestPetAbility")
 	assert(family.spec.spell == 24640 and not family.ready:IsShown(), "a scorpid swapped in takes the perch with its Scorpid Poison's own cooldown")
@@ -391,7 +413,7 @@ do
 	Slots.Set(env, "target", { { id = 14298, icon = 135813, harmful = true, mine = true, start = 0, duration = 15 } })
 	assert(burn:IsShown() and burn.mark:GetTexture() == (K.Tokens.Texture("sigilFireTrap")), "your own Immolation Trap's burn burns down the fuse under the fire trap's mark")
 	Slots.Set(env, "target", {})
-	assert(not burn:IsShown(), "the burn ended: the fuse goes dark")
+	assert(not burn:IsShown() and not burn.mark:IsVisible() and not burn.art:IsVisible(), "the burn ended: the fuse and its mark go dark")
 	assert(potion.lit:IsShown() and potion.ready:IsShown(), "a Healing Potion in the bags hangs ready on the pendant")
 	env._cooling[929] = { 0, 120 }
 	env.FireEvent("BAG_UPDATE_COOLDOWN")

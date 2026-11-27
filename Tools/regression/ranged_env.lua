@@ -1,4 +1,4 @@
--- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), a change to the addon before it is enabled (opts.before), pet, ammo, the minimap's tracking (opts.tracking, a Track spell; env._herbs adds Find Herbs) the target's creature type number (opts.creature) and whether it can be attacked (env._attackable), the pet's focus, spellbook (opts.petSpells) and autocast (env._autocast), the group (env._grouped), the pet's target (env._petTarget) and spell range (env._range), usable strikes, item and spell cooldowns (env._spellCd[id] = { start, duration }) and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error, and Listening says whether the tracker lifecycle holds an event.
+-- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), a change to the addon before it is enabled (opts.before), pet, ammo, the minimap's tracking (opts.tracking, a Track spell; env._herbs adds Find Herbs) the target's creature type number (opts.creature) and whether it can be attacked (env._attackable), the pet's focus, spellbook (opts.petSpells) and autocast (env._autocast), the group (env._grouped), the pet's target (env._petTarget) and spell range (env._range), usable strikes, item and spell cooldowns (env._spellCd[id] = { start, duration }), the pet bar (the pet's known spells from slot 4, while a pet is out and env._petBarEmpty is not set) and its cooldowns (env._petCd[id]) and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error, and Listening says whether the tracker lifecycle holds an event.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -83,6 +83,23 @@ local function New(class, opts)
 			e.C_SpellBook.IsSpellKnown = function(id, bank) if bank == 1 then return e._petSpells[id] == true end return e._known[id] == true end
 			e.Enum.SpellBookSpellBank = e.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
 			e._pet = opts.pet
+			e._petCd = {}
+			local function PetBar(i)
+				if not e._pet or e._petBarEmpty or i < 4 then return nil end
+				local list = {}
+				for id, on in pairs(e._petSpells) do if on then list[#list + 1] = id end end
+				table.sort(list)
+				return list[i - 3]
+			end
+			e.GetPetActionInfo = function(i)
+				local id = PetBar(i)
+				if id then return "Pet " .. id, 5000 + id, false, false, true, true, id end
+			end
+			e.GetPetActionCooldown = function(i)
+				local c = PetBar(i) and e._petCd[PetBar(i)]
+				if c then return c[1], c[2], 1 end
+				return 0, 0, 1
+			end
 			local exists = e.UnitExists
 			e.UnitExists = function(unit)
 				if unit == "pet" then return e._pet ~= nil end

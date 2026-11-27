@@ -22,8 +22,8 @@
 -- Content, Happy) in place of the story's own, so the haunch shows or goes; RENDER_PET_DEAD=1 lays the pet dead, so its perch shows the red
 -- hound. The hunter's story also carries Trueshot Aura from 3 s and Track Beasts from 0.2 s on a hostile beast target (creature type 1), for Improved Tracking's
 -- compass, a pet that knows Screech (its debuff on the target from 5.5 s) and Growl at 70 focus, and three Healing Potions, one drunk at 5 s.
--- RENDER_RANGE=far|melee|shot sets what reaches the target: nothing (the emblem rings red), only melee (gilt; Raptor Strike is then known) or the shot (no ring, the default
--- when unset reads no answer). RENDER_CAST_ON_FRAME=off gives the action bars the
+-- RENDER_RANGE=far|melee|shot sets what reaches the target: nothing (the emblem rings red), only melee (gilt) or the shot (no ring); each knows Raptor Strike, and the default
+-- when unset reads no answer. RENDER_CAST_ON_FRAME=off gives the action bars the
 -- centred cast bars' layout elements the unit frames register in the game, so the hunter's rail takes its own flat row.
 -- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it. The hunter's
 -- default story keeps the cooldown rail on, so Rapid Fire at 4 s feeds the rail and the crest's gust waits for Quick Shots at 5 s:
@@ -214,7 +214,7 @@ function Ranged.Install(env, class)
 	env._story = -1
 	local known = {}
 	for _, id in ipairs(s.known) do known[id] = true end
-	known[2973] = class == "HUNTER" and os.getenv("RENDER_RANGE") == "melee" or known[2973]
+	known[2973] = class == "HUNTER" and os.getenv("RENDER_RANGE") ~= nil or known[2973]
 	env.C_SpellBook = env.C_SpellBook or {}
 	env.Enum.SpellBookSpellBank = env.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
 	local before = env.C_SpellBook.IsSpellKnown
