@@ -1,4 +1,4 @@
--- test-actionbars-crest-ranged-effects.lua: a hunter's, mage's and warlock's crest pieces break out of the medal into the crest: on the crest and under Frames, at rest and with every piece lit, none is a spell or item icon or sits in a round socket frame (a medal disc, an orb or medal ring, a rune stone, a spire socket); each piece takes its feed and shows its states: your damage over time a fuse down the right band whose head rides what is left and blinks in the aura's pandemic window, the Mark's reticle closing in over the emblem, a mage's armor crystals thawing from the far end, Frost Nova's frost over the inner ring, a school's stacks as embers and a cooldown as an arc filling along the left band, a bag gem hanging from the band and charging when used, an interrupt's blade charging on the lower left, the demon's health and sigil on the left band and Demonic Sacrifice's fel flames; each sits on its break-out seat; with auras secret in combat no event or ended cooldown touches a region under an engine aura button.
+-- test-actionbars-crest-ranged-effects.lua: a hunter's, mage's and warlock's crest pieces break out of the medal into the crest: on the crest and under Frames, at rest and with every piece lit, none is a spell or item icon or sits in a round socket frame (a medal disc, an orb or medal ring, a rune stone, a spire socket), save the hunter's cooldown rail, whose forged medals the crest plan asks for; each piece takes its feed and shows its states: your damage over time a fuse down the right band whose head rides what is left and blinks in the aura's pandemic window, the Mark's reticle closing in over the emblem, a mage's armor crystals thawing from the far end, Frost Nova's frost over the inner ring, a school's stacks as embers and a cooldown as an arc filling along the left band, a bag gem hanging from the band and charging when used, an interrupt's blade charging on the lower left, the demon's health and sigil on the left band and Demonic Sacrifice's fel flames; each sits on its break-out seat; with auras secret in combat no event or ended cooldown touches a region under an engine aura button.
 local R = dofile("Tools/regression/ranged_env.lua")
 local Budget = dofile("Tools/regression/path_budget.lua")
 local Png = dofile("Tools/regression/png.lua")
@@ -7,7 +7,7 @@ local Png = dofile("Tools/regression/png.lua")
 local BUDGET_COOLDOWN, BUDGET_HEALTH = { 229200, 1700 }, { 46100, 2000 }
 local AB, Slots, New, Piece, Seated, Shown, Clean, Tint, Icons = R.AB, R.Slots, R.New, R.Piece, R.Seated, R.Shown, R.Clean, R.Tint, R.Icons
 
-local SHARED = { crestCooldowns = true }
+local SHARED = { crestCooldowns = true, crestRail = true }
 local LIGHT = {
 	HUNTER = { player = { 14318 }, target = { 1130, 1978 }, pet = { 136 }, usable = { 2643 } },
 	MAGE = { player = { 7302, 11426, 12536 }, target = { 116, 122, 22959 } },
@@ -30,7 +30,9 @@ for class, light in pairs(LIGHT) do
 		local files = {}
 		for _, token in ipairs({ "dot", "medRing", "medEnamel", "medSlotSocket", "medSlotChecked", "orbRing", "trackerStone" }) do files[(K.Tokens.Texture(token))] = token end
 		assert(next(ns.SlabTrackers.state.form.failed) == nil, class .. ": every seat builds")
-		assert(Seated(ns, "crestTrinkets") and Seated(ns, "crestShot") ~= false, class .. ": an on-use trinket in slot 13 joins the crest and the update runs to the end")
+		local rail = class == "HUNTER" and not frames and Seated(ns, "crestRail")
+		assert((rail and rail.made.trinket and rail.made.trinket:IsShown() and not Seated(ns, "crestTrinkets") or not rail and Seated(ns, "crestTrinkets")) and Seated(ns, "crestShot") ~= false,
+			class .. ": an on-use trinket in slot 13 joins the crest, on the hunter's rail when it shows, and the update runs to the end")
 		local function Check(state)
 			local found, sockets = {}, {}
 			for _, p in pairs(ns.SlabTrackers.state.form.pieces) do
@@ -273,6 +275,7 @@ end
 -- A forged cooldown sigil must read on its medal's face: a white solid body, never the medal's colour, under the lit pass at 0.6.
 do
 	local env, K, ns = New("HUNTER", { known = { 3045 } })
+	K.Options.Write("ActionBars", "crestRail", false)
 	local volley = Piece(ns, "crestCooldowns").sigils[1]
 	Same("Rapid Fire's forged sigil has a white body", { Drawn(volley, "Volley.png", false):GetVertexColor() }, 1, 1, 1)
 	assert(Drawn(volley, "Volley.png", true):GetAlpha() == 0.6, "its lit pass stays at 0.6")

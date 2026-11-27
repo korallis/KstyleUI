@@ -101,7 +101,7 @@ function Trackers.Register(class, rows, hooks)
 	local at = hooks and (hooks.armory or hooks.lowTrinkets) and ARMORY_TRINKET or TRINKET
 	for slot = 13, cooldowns and 14 or 0 do
 		table.insert(CLASSES[class], { key = "crestTrinkets", seat = { slot == 13 and -at[1] or at[1], at[2] }, slot = slot, feed = "item", known = Trinket, color = cooldowns.color,
-			build = hooks and (hooks.figures or hooks.armory) and Medals.Socket or nil })
+			build = hooks and (hooks.figures or hooks.armory) and Medals.Socket or nil, railed = hooks and hooks.rail })
 	end
 end
 
@@ -135,7 +135,7 @@ local function Form()
 end
 
 local function Resolve(p, row)
-	if row and p.crestOnly then
+	if row and p.crestOnly or not row and p.railed and ns.Config(p.railed) ~= false then
 		return nil
 	end
 	local spec = setmetatable({ burst = HOOKS[ns.class] and HOOKS[ns.class].burst }, { __index = p })

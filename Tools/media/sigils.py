@@ -307,6 +307,53 @@ def Paw(p):
         p.dot(x, y, 0.1)
 
 
+@glyph
+def Intimidate(p):
+    p.arc(0.5, 0.62, 0.38, 200, 340, width=0.13)
+    for x in (0.3, 0.7):
+        p.fill((x - 0.13, 0.36), (x + 0.13, 0.36), (x, 0.9))
+    p.dot(0.5, 0.2, 0.08)
+
+
+@glyph
+def FireTrap(p):
+    p.arc(0.5, 0.5, 0.4, 20, 160, width=0.11)
+    for k in range(5):
+        x = 0.18 + 0.16 * k
+        p.fill((x - 0.06, 0.78), (x + 0.06, 0.78), (x, 0.62))
+    p.fill((0.5, 0.04), (0.6, 0.2), (0.68, 0.36), (0.66, 0.5), (0.58, 0.6), (0.5, 0.62), (0.42, 0.6), (0.34, 0.5),
+           (0.33, 0.38), (0.4, 0.3), (0.42, 0.42), (0.5, 0.26))
+
+
+@glyph
+def Sniper(p):
+    p.ring(0.5, 0.5, 0.3, width=0.1)
+    for x0, y0, x1, y1 in ((0.5, 0.04, 0.5, 0.3), (0.5, 0.7, 0.5, 0.96), (0.04, 0.5, 0.3, 0.5), (0.7, 0.5, 0.96, 0.5)):
+        p.line((x0, y0), (x1, y1), width=0.1)
+    p.dot(0.5, 0.5, 0.08)
+
+
+@glyph
+def Aimed(p):
+    p.ring(0.64, 0.36, 0.26, width=0.1)
+    p.dot(0.64, 0.36, 0.07)
+    arrow(p, 0.08, 0.92, 0.4, 0.6, head=0.2, width=0.11)
+
+
+@glyph
+def Charm(p):
+    p.ring(0.5, 0.16, 0.1, width=0.08)
+    p.fill((0.5, 0.3), (0.8, 0.5), (0.5, 0.94), (0.2, 0.5))
+    p.line((0.2, 0.5), (0.8, 0.5), width=0.05)
+
+
+@glyph
+def Strider(p):
+    p.fill((0.36, 0.12), (0.62, 0.12), (0.62, 0.56), (0.92, 0.7), (0.92, 0.86), (0.36, 0.86))
+    for y in (0.36, 0.56, 0.76):
+        p.line((0.06, y), (0.22, y), width=0.08)
+
+
 # Mage
 @glyph
 def Arcane(p):
@@ -586,7 +633,7 @@ def sheet(images, path, cell=64):
 
 
 # Drawn here, written as Blender-forged metal by Tools/media/forge/marks.py.
-FORGED = {"Volley", "Deflect", "Paw"}
+FORGED = {"Volley", "Deflect", "Paw", "Intimidate", "FireTrap", "Sniper", "Aimed", "Strider", "Charm"}
 
 
 def main(argv=None):

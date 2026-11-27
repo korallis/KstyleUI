@@ -3,7 +3,8 @@
 -- bags), lit (the story at its LIT time, every piece up) or moment, the story RENDER_TRACKERS_T seconds in (6 when
 -- unset). Blizzard's aura slots (Tools/regression/aura_slots.lua) and the addon's own bag and pet handlers take every
 -- change at its own time, so a run of RENDER_TRACKERS_T frames is the story as a clip. RENDER_TRACKERS_BUILD picks
--- another build or level band, whose fields replace the class's: a hunter's melee or level 8 build, a mage's arcane,
+-- another build or level band, whose fields replace the class's: a hunter's rail (the five-seat cooldown rail: Intimidation
+-- cast at 1 s, a fire trap at 2 s and Rapid Fire at 4 s, each cooling from its cast), melee or level 8 build, a mage's arcane,
 -- fire (Fire Vulnerability at three stacks), frost or level 10 build, a warlock's felhunter (Spell Lock cooling), sacrifice
 -- (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, the hunter's bite (Mongoose Bite ready) or raptor
 -- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
@@ -36,6 +37,9 @@ local STORIES = {
 			{ unit = "pet", id = 19574, icon = 132127, at = 6.2, duration = 18 },
 		},
 		builds = {
+			rail = { known = { 13165, 883, 1130, 1978, 3045, 19574, 19577, 14305, 2643, 75 }, cooling = { [19577] = { 1, 60 }, [14305] = { 2, 15 }, [3045] = { 4, 300 } },
+				casts = { { 1, 19577 }, { 2, 14305 }, { 4, 3045 } },
+				auras = { { unit = "player", id = 13165, icon = 136076, at = 0.5 }, { unit = "player", id = 3045, icon = 132208, at = 4, duration = 15 } } },
 			melee = { known = { 13163, 883, 1130, 1978, 19306, 1495, 19263, 75 }, usable = { [19306] = 3 },
 				auras = { { unit = "player", id = 13163, icon = 132159, at = 0.5 }, { unit = "target", id = 1978, icon = 132204, at = 2, duration = 15, harmful = true },
 					{ unit = "player", id = 19263, icon = 132369, at = 4, duration = 10 } } },
@@ -252,6 +256,7 @@ function Ranged.Play(env, K, ns, notes)
 		times[#times + 1] = type(when) == "table" and when[2] or nil
 	end
 	for _, when in ipairs(s.swings or {}) do times[#times + 1] = when end
+	for _, cast in ipairs(s.casts or {}) do times[#times + 1] = cast[1] end
 	local ends = {}
 	for _, c in pairs(s.cooling or {}) do
 		times[#times + 1], ends[c[1] + c[2]] = c[1] + c[2], true
@@ -290,6 +295,9 @@ function Ranged.Play(env, K, ns, notes)
 			end
 			for _, swing in ipairs(s.swings or {}) do
 				if swing == when then env.FireEvent("PLAYER_SWING", 2.8, 2) end
+			end
+			for _, cast in ipairs(s.casts or {}) do
+				if cast[1] == when then env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "story", cast[2]) end
 			end
 		end
 	end

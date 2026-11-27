@@ -28,7 +28,7 @@ Twenty-four major cooldowns in the sets had no crest piece matched by spell ID w
 | Warrior | Intimidating Shout 5246 | 180 s | Row candidate | Crowd control aimed at enemies; it puts no buff on the player for a sigil to show |
 | Warrior | Disarm 676 | 60 s | Row candidate | As above |
 | Paladin | Repentance 20066 | 60 s | Row candidate | As above |
-| Hunter | Intimidation 19577 | 60 s | Row candidate | As above, cast through the pet |
+| Hunter | Intimidation 19577 | 60 s | Hunter rail | A Beast Mastery seat on the hunter's crest rail, its cooldown counted on the medal |
 | Rogue | Blind 2094 | 300 s | Row candidate | As above |
 | Priest | Chastise 1277331 | 120 s | Row candidate | As above |
 | Priest | Confounding Flash 1277455 | 120 s | Row candidate | As above |
@@ -110,7 +110,7 @@ Some racial spells sit in every class's set but only for the race that owns them
 
 ## Shorter cooldowns not classified here
 
-The ledger covers majors of 60 s or more and procs. Rotational spells under 60 s without a crest piece are not classified yet; the role-critical ones need the same review. One example is the hunter's Strider Kick 1317257 (8 s cooldown, a 3 s buff), which sits in the hunter's Essential set with no crest piece.
+The ledger covers majors of 60 s or more and procs. Rotational spells under 60 s without a crest piece are not classified yet; the role-critical ones need the same review. The hunter's Strider Kick 1317257 (8 s cooldown, a 3 s buff), Sniper Shot, Aimed Shot and the fire traps now have seats on the hunter's crest rail (`KstyleUI_ActionBars/SlabRail.lua`).
 
 ## Not yet proved
 

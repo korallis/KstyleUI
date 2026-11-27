@@ -46,6 +46,14 @@ local ON = {
 	usable = { SPELL_UPDATE_USABLE = true, SPELL_UPDATE_COOLDOWN = true, PLAYER_TARGET_CHANGED = true },
 }
 
+local function Railed(on, spells)
+	return function()
+		if (ns.Config("crestRail") ~= false) == on then
+			return Medals.Known(spells)
+		end
+	end
+end
+
 local function At(band)
 	return { band[2], band[3] }
 end
@@ -937,6 +945,10 @@ local function Paint(form, event, ...)
 			if (all or ON.wisps[event]) and p:IsShown() then
 				PaintWisps(p, not all and Effects.Allows("flare"))
 			end
+		elseif p.rail then
+			if p:IsShown() then
+				ns.SlabRail.Paint(p, event, ...)
+			end
 		elseif p.spires and event == "PLAYER_TARGET_CHANGED" and p:IsShown() then
 			p.container:UpdateAllAuras()
 		end
@@ -956,6 +968,8 @@ local function Motion(form, _, still)
 			if p.feed then
 				Breathe(p)
 			end
+		elseif p.rail and p:IsShown() then
+			ns.SlabRail.Paint(p)
 		end
 	end
 end
@@ -980,6 +994,7 @@ if CLASS == "HUNTER" then
 	}
 	local COUNTER, MONGOOSE, AIMED, MULTI = { 20910, 20909, 19306, 1242634 }, { 14271, 14270, 14269, 1495 }, { 20904, 20903, 20902, 20901, 20900, 19434 }, { 2643 }
 	local SHOTS, SHOWS = {}, {}
+	local CROWNED = { 3045, 19263, 19574 }
 	for _, shot in ipairs({ { COUNTER, { glyph = "glyphCounter", color = "hostile" } }, { MONGOOSE, { glyph = "glyphMongoose", color = "hostile" } },
 		{ AIMED, { arrows = { 90 }, color = "giltLit" } }, { MULTI, { arrows = { 105, 90, 75 }, color = "steelLit" } } }) do
 		SHOWS[#SHOWS + 1] = shot[2]
@@ -1005,11 +1020,14 @@ if CLASS == "HUNTER" then
 			filter = "HARMFUL|PLAYER", color = "schoolNature", known = { 1978, 3034, 3043, 24118, 3674 }, feeds = STINGS },
 		{ key = "crestAutoShot", seat = "rim", build = Swing, color = "steelLit", known = { 75 } },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHawk", families = { { spells = { 3045 }, sigil = "Volley", major = true }, { spells = { 19263 }, sigil = "Deflect", major = true },
-			{ spells = { 19574 }, unit = "pet", sigil = "Paw", major = true } } },
-		{ key = "crestGust", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 6150, 1299448, 469144, 3045 }, known = { 3045, 19552, 19553, 19554, 19555, 19556 },
-			color = "jewelHawk", ambient = "medAmbientHunter", gust = true },
-	}, { burst = "medBurstHunter", events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" } },
-		paint = Paint, motion = Motion, figures = true })
+			{ spells = { 19574 }, unit = "pet", sigil = "Paw", major = true } }, choices = { { known = Railed(false, CROWNED) }, { known = Railed(true, CROWNED), bare = true } } },
+		{ key = "crestGust", seat = "rim", build = Moment, place = Ring, feed = "aura", color = "jewelHawk", ambient = "medAmbientHunter", gust = true, choices = {
+			{ spells = { 6150, 1299448, 469144, 3045 }, known = Railed(false, { 3045, 19552, 19553, 19554, 19555, 19556 }) },
+			{ spells = { 6150, 1299448, 469144 }, known = Railed(true, { 19552, 19553, 19554, 19555, 19556 }) },
+		} },
+		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, crestOnly = true },
+	}, { burst = "medBurstHunter", rail = "crestRail", events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" },
+		"SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } }, paint = Paint, motion = Motion, figures = true })
 end
 
 if CLASS == "MAGE" then

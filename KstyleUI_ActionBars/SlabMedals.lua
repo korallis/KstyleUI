@@ -772,7 +772,7 @@ function Medals.CooldownRim(parent, spec, level, form)
 			r.add(Medals.Ember(r, lit, lit.timer, "RingLine16", base + 3, COOLDOWN_RING))
 			Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		end
-		for k, family in ipairs(each.families) do
+		for k, family in ipairs((row or not spec.bare) and each.families or NONE) do
 			Sigil(r, lit, "sigil" .. k, family, spec.color, size, spec.bloom)
 		end
 	end

@@ -306,6 +306,43 @@ Under Frames each seat stands in the tracker strip as the same object free-stand
 
 Switching every ranged tracker off restores today's crest except for the warlock's five shard jewels, which are gone. They read the `SoulShards` power, which a Forever warlock does not have: Forever's own UI leaves its shard bar out for this client (`Blizzard_UnitFrame.toc:77-78`, `[ExcludeLoadGameType camelot]`), so in the game `UnitPowerMax` gave no jewels, or five that never lit when it was secret. The render harness fakes a shard power, so the base render draws them; with the base's `crestJewels` off, the warlock's all-off crest matches the base at every size. Nothing runs OnUpdate. Tested by `test-actionbars-crest-ranged`, `test-actionbars-crest-ranged-effects` (with the two hot events' instruction budgets, the socketed crest's own costs), `test-actionbars-crest-ranged-reach` and `-reach-wide` (no drawn pixel of any break-out piece, at full alpha with its flare at its peak, grown by its scale animations and swept along its translations, on an action slot, the level badge, a unit frame or a cast bar, at the four screen sizes; `Tools/regression/ranged_reach.lua`) and `test-widgets-lazy` (a lit hunter, mage or warlock creates no more regions than staging's socketed crest); rendered with `RENDER_TRACKERS` and `RENDER_TRACKERS_BUILD` ([render README](../Tools/render/README.md)).
 
+## Hunter crest rail
+
+`KstyleUI_ActionBars/SlabRail.lua` stands a hunter's major abilities as forged medals on an arc above the crest (Action Bars > Slab and cooldowns > Cooldown rail, on by default, Medallions only). The talent tree whose own talents the hunter knows most of picks the seats, and only known spells get one; the on-use trinket in slot 13, else 14, takes the last seat (Trinkets on the crest still switches it):
+
+| Tree | Seats, left to right |
+| --- | --- |
+| Beast Mastery (Bestial Wrath, Intimidation) | Bestial Wrath (`Paw`), Rapid Fire (`Volley`), Intimidation (`Intimidate`), a fire trap (`FireTrap`: Immolation Trap or Explosive Trap, which share a cooldown) |
+| Marksmanship (Sniper Shot, Aimed Shot) | Rapid Fire, a fire trap, Sniper Shot (`Sniper`), Aimed Shot (`Aimed`) |
+| Survival (Deterrence, Strider Kick) | Rapid Fire, Deterrence (`Deflect`), a fire trap, Strider Kick (`Strider`) |
+
+Seats are 28 units across, 36 apart, bowing from 128 units above the hub's centre at the middle seat to 113 at the ends; the crown is 34 units across at 100 above the centre, between the ring and the middle seat. Each seat's sigil is forged in Blender (`Tools/media/forge/marks.py`, the trinket's `Charm` too), and only the seats shown are built.
+
+| State | What shows | Full | Calm | Off |
+| --- | --- | --- | --- | --- |
+| Ready | The sigil gold with a halo, a glow breathing 0.10 to 0.20 over 1.2 s each way | Breathes | Still | Still |
+| Pressed | The player's own cast (`UNIT_SPELLCAST_SUCCEEDED`): the seat dips to 0.86 and back in 0.12 s each way under the hunter burst (0.85 to 1.45 over 0.4 s); a buffed major takes the crown | Dip, burst and lift | Crown in place | Nothing |
+| Active | Rapid Fire, Deterrence or the pet's Bestial Wrath: the crown's aura slot shows the lifted medal, rising from its seat in 0.28 s with a 16 degree turn and a pop to 1.29 that settles to 1.21 in 0.16 s, its ring draining with the aura; the seat's own aura slot darkens it and drains its ring. The newest pressed major owns the crown; another still running drains on its seat. Unleashed keeps its corona and hot line round the ring | Lift | In place | No crown, no seat ring |
+| About to end | The seat ring's last fifth amber and last twelfth red (`Medals.Ember`) | Yes | Yes | No |
+| Ended | The crown's timer ending folds a steel medal home to its seat over 0.3 s after 0.35 s | Fold | Vanishes | Vanishes |
+| Cooling | A dark sweep over the face with its countdown, and a steel ring 5 units wider refilling (`SetReverse`) | Yes | Yes | Yes |
+| Ready again | The sweep's `OnCooldownDone`: the gold relights over 0.18 s, with a glow (64 units to 1.3) and a gilt ring (34 units to 1.35) fading from 0.9 over 0.3 s | Relight and flare | Relight | Lit at once |
+
+Feeds: `C_Spell.GetSpellCooldownDuration(spell, true)` into `SetCooldownFromDurationObject` (`Blizzard_APIDocumentationGenerated/SpellDocumentation.lua`), `C_Spell.GetSpellCooldown`'s `isActive` and `isOnGCD` for the steel state, read only when not secret, `GetInventoryItemCooldown` for the trinket, and the aura slots' `SetDurationCooldown` (`Blizzard_CustomAuraButton.lua`). The crown's gate and lift frame belong to the addon, so Lua sets which major owns the crown by alpha in combat and never reads an aura. While the rail shows, the cooldown rim keeps its slots for Unleashed but draws no small sigils, Rapid Fire brings no gust (Quick Shots still does), and the crest's own trinket socket stands down; switching the rail off gives all three back.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Ready: known seat built
+    Ready --> Pressed: your cast of the seat's spell
+    Pressed --> Active: a buffed major's aura lands (crown)
+    Pressed --> Cooling: no buff
+    Active --> AboutToEnd: last fifth of the aura
+    AboutToEnd --> Ended: the crown's timer ends
+    Ended --> Cooling: the medal folds home
+    Cooling --> ReadyAgain: the sweep's OnCooldownDone
+    ReadyAgain --> Ready
+```
+
 ## Hawk perch motion
 
 The hunter's hawk perches (`KstyleUI_ActionBars/SlabHawks.lua`, [ActionBars README](../KstyleUI_ActionBars/README.md#hawk-perches)) are the reference for a tracker that pops off the crest. Each perch keeps two anchors: the seat on the ring's shoulder, which holds the steel hawk, the timer ring, its ember and the ripple, and a lift layer that holds the gilt hawk and its flare. Only the lift layer travels, so the timer never moves while the player reads it.
@@ -395,7 +432,7 @@ Lee plays an undead (Forsaken) warlock, so that case is checked first: `hud_warl
 
 ## In-game checks
 
-The render harness cannot draw models or run the client, so fourteen things wait for Lee's single test. Each says what to look for and what happens when it fails; none of them can break the HUD, because every one already has its fallback in code.
+The render harness cannot draw models or run the client, so fifteen things wait for Lee's single test. Each says what to look for and what happens when it fails; none of them can break the HUD, because every one already has its fallback in code.
 
 1. **PNG filtering at 2:1.** Look at the hub's rune ring and a slot's ready flash at 1920x1080 and 5120x1440. Works: the 1 px edges stay crisp and the glow has no stair steps. Fails (soft or shimmering edges): the textures ship at the size they draw, and M3 redraws the affected ones procedurally (KSTY-87 5.3).
 2. **Model file IDs and their frame cost.** Turn Medallions motion to Full, level up or use a spell with a proc (`/run KstyleUI.Effects.Burst("hub", 2, KstyleUI.Effects.playerMedallion, "levelUp", 150, 1.2)` also works). Works: golden level-up rays at the hub and the class model behind the medallion, with `/run print(KstyleUI.Effects.LiveModels())` never above 3 and the frame rate steady. Fails (nothing shows, or a model is huge, tiny or off-centre): the 2D burst plays instead after 0.5 s; tell Capy which class, and the camera distance or the ID changes in one table.
@@ -411,3 +448,4 @@ The render harness cannot draw models or run the client, so fourteen things wait
 12. **Rising heat's sweep.** Build combo points or Sunder Armor stacks at Full. Works: each step's halo sweeps up from the foot of the ring in about 0.15 s. Fails (the ring squashes instead of cropping while it sweeps): the end state is right either way, because every step is a whole bar; binding the steps `Immediate` drops the sweep.
 13. **The hawk lift.** As a hunter at Full, summon a hawk, a second, a third, and let one expire, once out of combat and once in combat. Works: each new gilt hawk rises off its shoulder and settles while its timer ring stays still, the empty steel hawk never shows under a gilt one, the glow fades in for two hawks and stays lit through the third summon, and an expired hawk sinks back to steel. Fails (no lift in combat, or a steel hawk showing under a gilt one): the slot's secret boolean did not reach the gate; tell Capy, and Calm keeps the flare and timers with no lift.
 14. **The crest's motion rules.** At Full, let a buff with a crest timer run down out of combat and in combat, let two cooldowns come ready within half a second, and as a warrior cast Battle Shout and wait for its last fifth; then repeat at Calm. Works: every end warning blinks at the same two beats a second; no ring shows amber before its last fifth, and red replaces amber (never over it) in the last twelfth; only one ready flare shows at a time; the horn calls once on the cast and once near the end; at Calm a ready cue stands still for a moment and a warning dims its part without blinking. Fails (a ring capped in colour from the start, two flares at once out of combat, or a Lua error naming an aura button): say which; turning Expiring ember off removes the caps, and Off removes the cues. Then set the motion to Off before a fight and check that no flare, flicker or still mark shows in or out of combat. Then change the motion level during a fight, as a hunter with Hunter's Mark or a sting in its refresh window, as a mage with Scorch's or Winter's Chill's stacks in their refresh window, as a warlock with a torment spire in its last seconds, as a shaman with Lightning Shield up (the halo's clouds and the orbs' sparks), as a druid gaining Clearcasting (the leaves) and as a healer gaining a major cooldown (the sigil's flash), and as any class with an aura medal: Calm must stop the blinking and the moving flares at once and show still marks instead, Off must remove the cues at once while the pieces stay lit, and Full must bring the motion back, each without waiting for combat to end. Last, in combat, let a cooldown come ready just after a hunter's Aspect starts to grow, as a paladin put up a second Seal while the first Seal's flare still plays, and judge with a second Seal while the first Judgement's flare still plays on the target; and gain an aura at Off, then switch to Full within half a second while another flare shows (the aura's own flare must not appear half played beside it): the older effect must disappear as the newer one starts, the Aspect's sigil staying on screen. Fails (a cue that keeps its old level until combat ends, a piece that disappears or doubles in brightness when the level changes, a sigil that vanishes for half a second, or two flares showing together): say which piece and which level.
+15. **The hunter's crest rail.** As a hunter at Full, press Rapid Fire in combat, then Bestial Wrath while it runs, and let both end; press a trap; change talent tree. Works: Rapid Fire's medal rises and turns to the crown above the ring and its seat darkens with a draining ring, Bestial Wrath then takes the crown while Rapid Fire drains on its seat, each folds home in steel as it ends, the cooled seats count down and relight with a flare, and the seats follow the new tree. Fails (no lift in combat, the turn going the wrong way, the crown empty while a buff runs, or the seats of another tree): the game does not play an animation on an aura container's ancestor in combat, or the tree pick is wrong; tell Capy which, and Cooldown rail off restores the rim's sigils.
