@@ -1,4 +1,4 @@
--- Style.lua: the fonts, accent tints, glows (the proc glow lowered under the numbers on request), countdown formats (coloured below a threshold), text and keybind offsets, crafted-quality pips, tooltips and the "+N" overflow chip (one socket beyond a full row, on the side away from the combat cluster, listing the hidden buffs on hover) the Cooldowns icons and bars share.
+-- Style.lua: the fonts, accent tints, glows (the proc glow lowered under the numbers on request), countdown formats (coloured below a threshold), text and keybind offsets, crafted-quality pips, a hunter's spell's crest aura in place of its icon on a round Medallions medal, tooltips and the "+N" overflow chip (one socket beyond a full row, on the side away from the combat cluster, listing the hidden buffs on hover) the Cooldowns icons and bars share.
 local _, ns = ...
 
 local K = KstyleUI
@@ -192,10 +192,11 @@ local function AfterPaint(icon)
 	if usable and icon.onCooldown and (icon.opts.quietCooldown or icon.greyWhileCooling) then
 		local tint = icon.tint
 		local brightness = icon.opts.quietCooldown and 0.65 or 1
-		Widgets.ShadeIcon(icon.icon, brightness * tint[1], brightness * tint[2], brightness * tint[3], icon.greyWhileCooling)
+		Widgets.ShadeButton(icon, brightness * tint[1], brightness * tint[2], brightness * tint[3], icon.greyWhileCooling)
 	end
 	if not icon.usable and icon.inactiveShade == "colour" then
-		icon.icon:SetDesaturated(false)
+		local r, g, b = icon.icon:GetVertexColor()
+		Widgets.ShadeButton(icon, r, g, b, false)
 	end
 	if ns.Settings.current.accent == "quiet" then
 		icon.chrome:SetRim(Widgets.Rgba("slotRim"))
@@ -431,6 +432,25 @@ function Style.Decorate(icon, group)
 	icon.readyGlow = Widgets.Glow(icon, { kind = "selection" })
 	Style.Tooltips(icon)
 	return icon
+end
+
+local FACES = {}
+for _, families in pairs(K.SpellFamilies) do
+	for _, family in pairs(families) do
+		local aura = select(5, Tokens.Texture(family.glyph or "sigil" .. family.sigil))
+		for _, spell in ipairs(aura and family.spells or {}) do
+			FACES[spell] = aura
+		end
+	end
+end
+
+local function Faced(spell)
+	return spell ~= nil and not ns.IsSecret(spell) and FACES[spell] or nil
+end
+
+function Style.Face(icon, entry)
+	local token = entry and not (entry.categoryID or entry.equipSlot) and (Faced(entry.spell) or Faced(entry.spellID)) or nil
+	Widgets.MedallionsFace(icon, token, not icon.countOnly)
 end
 
 function Style.Dress(icon, group)

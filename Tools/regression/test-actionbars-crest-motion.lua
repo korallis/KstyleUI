@@ -411,24 +411,34 @@ for _, case in ipairs({ { "HUNTER", "crestMark" }, { "HUNTER", "crestSting" }, {
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- A ranged piece that blooms itself as it lands (a hunter's Aspect) keeps a still ready mark at Calm too: the engine holds the sigil at its bloom's size for one short pass
--- on each new aura, in place of the growth.
+-- A ranged piece that blooms itself as it lands (a hunter's Aspect) keeps a still ready mark at Calm too: the Aspect burns as an aura, so its bloom plays on the
+-- burning copy and Calm's still mark on the copy bound for Calm, holding the sigil at its bloom's size for one short pass on each new aura, in place of the growth.
 do
 	local env, K, ns = New("HUNTER")
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
 	local aspect = assert(Piece(ns, "crestAspect"), "the Aspect perch")
 	local lit = aspect.lits[1]
-	local bloom, still = assert(lit.flare.play, "an Aspect blooms"), assert(lit.flare.still, "and has a still mark")
-	assert(Has(lit._assignedAnimations, bloom) and not Has(lit._assignedAnimations, still), "at Full the engine plays the bloom")
-	Motion(env, K, "calm")
-	assert(Has(lit._assignedAnimations, still) and #lit._assignedAnimations == 1, "at Calm the engine gets the still mark instead")
+	local burning = lit.art:GetParent():GetParent()
+	local bloom = assert(burning.flare and burning.flare.play, "an Aspect blooms on its burning copy")
+	-- The seven Aspects share one cue layer, each with its own slot on it, so the Hawk's slot is the mirror of its own light bound for Calm.
+	local cue
+	for _, mirror in ipairs(lit.mirrors) do
+		cue = mirror.burns == "calm" and mirror or cue
+	end
+	local still = assert(lit.cues and cue and cue.flare, "and has a still mark on a copy bound for Calm").still
 	local hold, grow = still._anims[1], bloom._anims[1]
-	assert(#still._anims == 1 and hold._type == "Scale" and Set(hold, "ScaleFrom") == Set(hold, "ScaleTo") and Set(hold, "ScaleTo") == Set(grow, "ScaleFrom") and Set(still, "Looping") == nil,
+	assert(hold._type == "Scale" and Set(hold, "ScaleFrom") == Set(hold, "ScaleTo") and Set(hold, "ScaleTo") == Set(grow, "ScaleFrom") and Set(still, "Looping") == nil,
 		"the mark holds the sigil at the size its bloom starts from, for one pass, and never moves")
+	Motion(env, K, "calm")
 	Slots.Set(env, "player", { { id = lit.spec.spells[1], start = 0, duration = 600 } })
-	assert(lit:IsShown() and still:IsPlaying() and not bloom:IsPlaying(), "a new Aspect shows the still mark")
+	assert(cue:IsShown() and still:IsPlaying() and lit.cues:GetAlpha() == 1, "a new Aspect at Calm shows the still mark")
 	assert(K.Effects.Holder("crestFlare") == K.Effects.PRIORITY.ready, "and it takes the crest's flare place as any ready cue does")
+	env.RunTimers()
+	Slots.Set(env, "player", {})
 	Motion(env, K, "off")
-	assert(#lit._assignedAnimations == 0 and not still:IsPlaying(), "Off shows neither")
+	Slots.Set(env, "player", { { id = lit.spec.spells[1], start = 0, duration = 600 } })
+	assert(lit.cues:GetAlpha() == 0 and K.Effects.Holder("crestFlare") == nil, "Off shows no still mark and claims nothing")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -1041,8 +1051,8 @@ for _, side in ipairs({ "player", "target" }) do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- A ranged piece's bloom is a crest flare the engine plays too, on the sigil's own art. Newer, it shows at once and hides the older flare's layer. Older, it is hidden
--- when a newer flare shows: the piece swaps to the copy of its slots that has no cue for the rest of the bloom's time, so the sigil stays on screen and only its growth goes.
+-- A ranged piece's bloom is a crest flare the engine plays too, on the flame copy its aura burns on. Newer, it shows at once and hides the older flare's layer.
+-- Older, it is hidden when a newer flare shows: its flame copy goes dark for the rest of the bloom's time and the still copy keeps the steady aura on screen.
 do
 	local env, K, ns = New("HUNTER")
 	K.Options.Write("Medallions", "restingCrest", false)
@@ -1050,14 +1060,16 @@ do
 	local aspect = assert(Piece(ns, "crestAspect"), "the Aspect perch")
 	local lit, older = aspect.lits[1], nil
 	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-		local gate = piece:IsShown() and piece.lit and piece.lit.flareGate
+		local gate = piece ~= aspect and piece:IsShown() and piece.lit and piece.lit.flareGate
 		if gate and gate.lit and gate.lit.spec.unit == nil and not older then older = piece end
 	end
 	assert(older, "a hunter's crest has an aura medal with a flare")
-	local gate, slot, bloom = older.lit.flareGate, older.lit.flareGate.lit, lit.flare.play
-	local calm, off = aspect.twins[1].lits[1], aspect.twins[2].lits[1]
+	local gate, slot = older.lit.flareGate, older.lit.flareGate.lit
+	local burning = lit.art:GetParent():GetParent()
+	local bloom = assert(burning.flare, "the Aspect blooms on its flame copy").play
+	assert(burning.flare.gate == lit.flames, "and that bloom is gated by the flame copies")
 	local function Alphas()
-		return lit.hold:GetAlpha() .. "," .. calm.hold:GetAlpha() .. "," .. off.hold:GetAlpha()
+		return lit.flames:GetAlpha() .. "," .. lit.stills:GetAlpha()
 	end
 	local function Engine(fn)
 		env._engine = true
@@ -1078,17 +1090,63 @@ do
 	assert(Engine(function() return slot.flare.play:IsPlaying() end) and gate:GetAlpha() == 1, "hidden values: the medal's flare plays")
 	Auras(true, true)
 	assert(Engine(function() return bloom:IsPlaying() end) and gate:GetAlpha() == 0, "the Aspect's bloom shows at once and the older flare's layer hides")
-	assert(Alphas() == "1,0,0", "the bloom plays on the piece's own slot (" .. Alphas() .. ")")
+	assert(Alphas() == "1,0", "the bloom plays on the flame copy, which shows alone (" .. Alphas() .. ")")
 	armed = {}
 	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
 	other:Play()
 	assert(other:IsPlaying() and Engine(function() return bloom:IsPlaying() end), "a newer flare shows at once, and Lua may not stop the bloom")
-	assert(Alphas() == "0,0,1", "so the blooming slot is hidden and the copy with no cue shows the sigil in its place (" .. Alphas() .. ")")
-	assert(Engine(function() return off:IsShown() and #off._assignedAnimations == 0 end), "that copy is lit by the same aura and has no bloom")
+	assert(Alphas() == "0,1", "so the flame copy is hidden and the still copy shows the aura in its place (" .. Alphas() .. ")")
 	assert(#armed > 0, "a timer waits out the bloom")
 	for _, fn in ipairs(armed) do fn() end
 	env.C_Timer.After = after
-	assert(Alphas() == "1,0,0", "the piece's own slot shows again once the bloom's time is over (" .. Alphas() .. ")")
+	assert(Alphas() == "1,0", "the flame copy shows again once the bloom's time is over (" .. Alphas() .. ")")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A bloom already growing its socket when aura values turn secret: a newer flare hides the flame copy, and the socket that grows sits on it,
+-- so the still copy shows over a socket that never moved.
+do
+	local env, K, ns = New("HUNTER")
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	local lit = assert(Piece(ns, "crestAspect"), "the Aspect perch").lits[1]
+	local burning = lit.art:GetParent():GetParent()
+	local flare = burning.flare
+	assert(flare.socket ~= nil, "the Aspect's bloom carries a socket of its own")
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	Slots.Set(env, "player", { { id = lit.spec.spells[1], auraInstanceID = 31, start = 0, duration = 600 } })
+	flare.play:Stop()
+	flare.play:Play()
+	assert(flare.play:IsPlaying() and lit.flames:GetAlpha() == 1, "auras readable: the Aspect's bloom grows its socket on the flame copy")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	local after = env.C_Timer.After
+	env.C_Timer.After = function() end
+	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
+	other:Play()
+	env.C_Timer.After = after
+	assert(Engine(function() return flare.play:IsPlaying() end), "hidden values: Lua may not stop the growing bloom")
+	assert(lit.flames:GetAlpha() == 0 and lit.stills:GetAlpha() == 1, "so a newer flare hides the flame copy and the still copy shows")
+	assert(Engine(function() return flare.socket:GetEffectiveAlpha() == 0 end), "and the growing socket is hidden with the bloom's light")
+	local still = lit.stills
+	local function Socket(frame)
+		for _, region in ipairs(frame._regions or {}) do
+			if region ~= flare.socket and tostring((region._state.Texture or {})[1]):find("Socket.png", 1, true) then return region end
+		end
+		for _, kid in ipairs(frame._kids or {}) do
+			local found = kid ~= burning and Socket(kid)
+			if found then return found end
+		end
+	end
+	local shared = Socket(lit)
+	assert(shared and #(shared._parent._groups or {}) == 0 and shared._parent ~= flare.socket._parent and still:GetAlpha() == 1, "while the shared socket under the still holds its size")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

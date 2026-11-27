@@ -158,15 +158,17 @@ local function Resolve(p, row)
 	local spec = setmetatable({ burst = HOOKS[ns.class] and HOOKS[ns.class].burst }, { __index = p })
 	spec.size = row and Medals.SIZE or p.seat == "top" and RELIQUARY or p.size
 	spec.row = row
-	if p.feeds and ns.SlabArmory.LOOKS[p.look or ""] then
-		spec.feeds = {}
-		for _, feed in ipairs(p.feeds) do
+	if p.feeds and (p.learned or ns.SlabArmory.LOOKS[p.look or ""]) then
+		spec.feeds, spec.picked = {}, {}
+		for n, feed in ipairs(p.feeds) do
 			local need = rawget(feed, "known") or rawget(feed, "spells")
 			if not need or Medals.Known(need) then
 				spec.feeds[#spec.feeds + 1] = feed
+				spec.picked[#spec.picked + 1] = n
 			end
 		end
 		spec.feeds[1] = spec.feeds[1] or p.feeds[1]
+		spec.picked[1] = spec.picked[1] or 1
 	end
 	if p.groups then
 		spec.candidates = {}
@@ -523,7 +525,7 @@ function Trackers.Update()
 				local spec = Resolve(choice == p and p or setmetatable(choice, { __index = p }), name == "row")
 				if spec then
 					forms = forms or choice.forms ~= nil
-					local key = i .. ":" .. c .. (rawget(spec, "feeds") and "/" .. #spec.feeds or "")
+					local key = i .. ":" .. c .. (rawget(spec, "picked") and "/" .. table.concat(spec.picked, ",") or "")
 					specs[key] = spec
 					order[#order + 1] = key
 					row[#row + 1] = { key, choice }

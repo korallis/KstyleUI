@@ -312,9 +312,15 @@ do
 	-- the tracking mark's still glyphs (4 each), the range ring and the pet's focus bar, less the forged bodies the tracking mark gave up.
 	-- Tranquilizing Shot's glyph on the lower left foot is part of that total.
 	-- With the crest rail and its second rail on top of those auras and homes, the lit hunter comes to 5,377, the mage to 5,024 and the warlock, with Soulstone and Ritual of Doom on its second rail, to 5,254.
+	-- The hunter's marks then burn as auras through the same kit (KstyleUI_ActionBars/SlabMedals.lua's Medals.Mark): a fire and a still
+	-- on the kit's motion copies in place of each forged sheen, a sheet drawn only once its spell is known and its seat shown, and the
+	-- ready shot's faces built only when they first come up. That takes the hunter from 5,377 to the measured 5,181.
+	-- Each seated bloom (an Aspect, Trueshot or a Sting head) then draws a copy of its socket body on its flame copy, so the socket that grows
+	-- is hidden with the light when a newer flare masks it under hidden values: one texture per lit seat, built with the copy because the
+	-- engine's copies refuse new regions while auras are secret. The lit hunter's three take it to the measured 5,184.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5377, MAGE = 5024, WARLOCK = 5254 }) do
+	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5184, MAGE = 5024, WARLOCK = 5254 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")

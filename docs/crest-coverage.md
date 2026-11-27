@@ -127,7 +127,7 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 | 13 | Auto Shot and swing 75 | The Auto Shot ring round the crest |
 | 14 | Summon Hawk 1293241 | The two hawk perches |
 | 15 | Pet health | The light along the lower right band |
-| 16 | Pet dead or missing 982 | The paw sigil on the pet's perch, standing in for the hound until its animated aura lands: steel while no pet is out, red with a breathing halo while it lies dead; a death the game marks secret shows no paw rather than a guess |
+| 16 | Pet dead or missing 982 | The hound's mark on the pet's perch: steel while no pet is out, the red hound burning as an aura with a breathing halo while it lies dead; a death the game marks secret shows no hound rather than a guess |
 | 17 | Pet happiness 6991 | The forged haunch on the pet's perch |
 | 18 | Mend Pet 136 | Motes along the pet's band |
 | 19 | Pet Focus | A second, smaller light within the pet's health along the lower right band, fed the pet's focus and maximum unchanged (`UnitPower`, `UnitPowerMax` on `UNIT_POWER_UPDATE` and `UNIT_MAXPOWER`), so a secret value is never compared |
@@ -151,9 +151,9 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 | 37 | Proc roots and stuns 19184, 19407 | Deliberately quiet: passive control chances |
 | 38 | Active Aspect | The perched Aspect on the lower left |
 | 39 | No Aspect, or Cheetah or Pack in combat | The perch shows grey steel with no Aspect and the animal it names otherwise; no extra warning yet |
-| 40 | Trueshot Aura 19506, 20905, 20906, 1299346, 1299348 | The Aimed Shot sigil on the upper left, standing in for its own mark until the animated aura lands: gold while the aura is up, steel while it is down |
-| 41 | Track type matching the target 24293 | The reticle mark on the upper right with Improved Tracking, standing in for a compass until its animated aura lands: gold while the active tracking's creature type is a hostile target's (the type's number, `UnitCreatureType`'s second return), steel against a hostile target it does not match, hidden with no target or a friendly one (`UnitCanAttack`, repainted on `UNIT_FACTION`); a type the game marks secret stays steel |
-| 42 | Lone Wolf (no pet out) | The steel paw on the pet's perch |
+| 40 | Trueshot Aura 19506, 20905, 20906, 1299346, 1299348 | Trueshot Aura's own mark on the upper left, burning as an animated aura: gold while the aura is up, steel while it is down |
+| 41 | Track type matching the target 24293 | A compass on the upper right with Improved Tracking, burning as an animated aura: gold while the active tracking's creature type is a hostile target's (the type's number, `UnitCreatureType`'s second return), steel against a hostile target it does not match, hidden with no target or a friendly one (`UnitCanAttack`, repainted on `UNIT_FACTION`); a type the game marks secret stays steel |
+| 42 | Lone Wolf (no pet out) | The steel hound on the pet's perch |
 | 43 | Range and the dead zone | A ring round the emblem against a hostile target: none while Auto Shot reaches it, gilt while the game says Auto Shot does not reach and melee does (Raptor Strike or Wing Clip in range), red only while the game says neither does. The game's own range events drive it (`C_Spell.EnableSpellRangeCheck` and `SPELL_RANGE_CHECK_UPDATE`), so nothing polls; the crest turns each range check on once and off once when no ring needs it, as Blizzard's Cooldown Viewer pairs them; the game names no owner of a check, so whether another addon's check of the same spell survives that release is unproven. Unreadable remainder: inside Auto Shot's minimum range and outside melee, the dead zone, both spells read out of range, the same as too far, so the dead zone shows red and the crest cannot tell the two apart; a reading the game cannot check or marks secret is unclassified and shows no ring |
 | 44 | Mana and the five-second rule | The five-second ring round the level badge; mana itself on the player frame |
 | 45 | Rapid Recuperation 1223987 | Deliberately quiet: a passive mana return |

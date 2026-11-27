@@ -14,7 +14,7 @@
 -- the game allows: RENDER_TRACKERS=moment at RENDER_TRACKERS_T 1.5, 3.5, 5.5, 7.5 and 9.5), sacrifice (Demonic Sacrifice of the Imp, Death Coil cooling;
 -- every summon known, so RENDER_TRACKERS_SWAP=18789:18790, 18789:18791 or 18789:18792 sacrifices the Voidwalker, Succubus or Felhunter instead), nodemon or level 8 build, each caster's sigils build (every
 -- cooldown sigil of the class up at once: the mage's Arcane Power, Presence of Mind, Combustion, Evocation and Ice Block, the warlock's
--- Amplify Curse, Fel Domination, Shadow Ward and the Voidwalker's Sacrifice), the hunter's bite (Mongoose Bite ready) or raptor
+-- Amplify Curse, Fel Domination, Shadow Ward and the Voidwalker's Sacrifice), the hunter's bite (Mongoose Bite ready), aimed (Aimed Shot ready, no Multi-Shot) or raptor
 -- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
 -- breakout_fire), timed as the break-out design's clips: an aura's warn time puts it in its pandemic window, a usable
 -- spell's window and the pet's health steps and leaving time play out on the clock. RENDER_TRACKERS_OFF=1 turns the class's
@@ -76,6 +76,7 @@ local STORIES = {
 					{ unit = "target", id = 1978, icon = 132204, at = 3.5, duration = 6.1, warn = 8.1, harmful = true },
 					{ unit = "pet", id = 136, icon = 132179, at = 7.3, duration = 2.1 } } },
 			bite = { usable = { [1495] = 3 } },
+			aimed = { known = { 13165, 883, 1130, 1978, 19552, 3045, 19263, 19574, 19434, 1495, 75 }, usable = { [19434] = 3 } },
 			raptor = { known = { 1130, 1978, 2973, 75 }, pet = false, cooling = { [2973] = { 5, 1 } }, usable = {},
 				auras = { { unit = "target", id = 1130, icon = 132212, at = 1, duration = 120, harmful = true } } },
 			low = { known = { 13163, 1130, 1978, 2973, 3044, 75 }, pet = false, cooling = { [3044] = { 5, 6 } }, usable = {},

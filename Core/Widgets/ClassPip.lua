@@ -1,4 +1,4 @@
--- ClassPip.lua: one class-themed resource pip, an art set (lit, dormant, shape, glow) seen along an axis; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum, so the engine compares and Lua never reads a secret: a gain slides the art out along its axis under a flare, a spend holds, slashes and cools to the dormant art, and the maximum runs a glint up the axis. Widgets.FedCrown builds the crowns the game feeds instead: an aura's stacks through Blizzard's aura slots, each piece's glow and lit art an application bar (the art sweeping up from its base on a gain and draining on a loss), with a gate shown only at the maximum; STORM is a shaman's Lightning Shield charges as storm orbs, a kind no class maps to, so only the Frames row asks for it. While the crest's crown shows a class's points it hands SetClassCrown a seat just above its tips, so the unit frames hand the points over only then and seat the druid bar there.
+-- ClassPip.lua: one class-themed resource pip, an art set (lit, dormant, shape, glow) seen along an axis; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum, so the engine compares and Lua never reads a secret: a gain slides the art out along its axis under a flare, a spend holds, slashes and cools to the dormant art, and the maximum runs a glint up the axis. Widgets.FedCrown builds the crowns the game feeds instead: an aura's stacks through Blizzard's aura slots, each piece's glow and lit art an application bar (the art sweeping up from its base on a gain and draining on a loss), with a gate shown only at the maximum (a hunter's arrows instead burn the arrow figure's aura inside a frame clipped to that bar's fill); STORM is a shaman's Lightning Shield charges as storm orbs, a kind no class maps to, so only the Frames row asks for it. While the crest's crown shows a class's points it hands SetClassCrown a seat just above its tips, so the unit frames hand the points over only then and seat the druid bar there.
 local _, ns = ...
 
 local Widgets, Tokens = ns.Widgets, ns.Tokens
@@ -30,7 +30,7 @@ local CLASSES = {
 		art = "pipShard", glowColor = "pipMageGlow", count = 4, unit = "player", filter = "HELPFUL",
 		spells = { 400573, 1300176, 1300177, 400586 }, known = { 400574, 1239696, 1239697, 1239699, 1239700 },
 	},
-	HUNTER = { art = "pipArrow", glowColor = "jewelHawk", count = 3, unit = "player", filter = "HELPFUL", spells = { 1310687, 1310785, 1310786 } },
+	HUNTER = { art = "pipArrow", aura = "auraFigureArrow", glowColor = "jewelHawk", count = 3, unit = "player", filter = "HELPFUL", spells = ns.SpellFamilies.HUNTER.sniper.spells },
 	BEAR = { art = "pipTalon", glowColor = "pipBearGlow", count = 5, unit = "target", filter = "HARMFUL|PLAYER", spells = { 1328617, 1328616, 414644, 1235826, 1235827 } },
 	STORM = { art = "pipStorm", glowColor = "pipStormGlow", count = 3, unit = "player", filter = "HELPFUL", spells = { 10432, 10431, 8134, 945, 905, 325, 324 } },
 	PALADIN = {
@@ -262,8 +262,8 @@ local function Interpolation(moving)
 	return moving and (modes.ExponentialEaseOut or 1) or (modes.Immediate or 0)
 end
 
-local function Slot(fed, key, anchor, level, low, ease, texture, color, add)
-	local button = fed.container:AddAuraSlot(key, fed.c.filter, fed.options)
+local function Slot(fed, key, anchor, level, low, ease, texture, color, add, container)
+	local button = (container or fed.container):AddAuraSlot(key, fed.c.filter, fed.options)
 	pcall(button.EnableMouse, button, false)
 	button:SetFrameLevel(level)
 	button:SetAllPoints(anchor)
@@ -281,13 +281,108 @@ local function Slot(fed, key, anchor, level, low, ease, texture, color, add)
 	return bar
 end
 
+local function Gate(fed, level)
+	local gate = CreateFrame("Frame", nil, fed.holder)
+	gate:SetAllPoints(fed.holder)
+	gate:SetFrameLevel(level)
+	local container = CreateFrame("AuraContainer", nil, gate, "CustomAuraContainerTemplate")
+	Widgets.KeepOut(container)
+	container:SetFrameLevel(level)
+	container:SetUnit(fed.c.unit)
+	gate.container = container
+	fed.containers[#fed.containers + 1] = container
+	return gate
+end
+
+local function Ember(fed, p, token, level)
+	local rows, columns, frames, seconds, span = Tokens.Flipbook(token)
+	local gate = Gate(fed, level)
+	local bar = Slot(fed, "lit" .. p.i, p.frame, level + 1, p.i - 1, true, nil, nil, nil, gate.container)
+	bar:ClearAllPoints()
+	bar:SetPoint("CENTER", p.frame, "CENTER", 0, 0)
+	bar:SetStatusBarTexture((Tokens.Texture("barFlat")))
+	bar:SetOrientation("VERTICAL")
+	local fill = bar:GetStatusBarTexture()
+	fill:SetAlpha(0)
+	local function Copy(owner)
+		local clip = CreateFrame("Frame", nil, owner)
+		clip:SetClipsChildren(true)
+		clip:SetPoint("TOPLEFT", fill, "TOPLEFT", 0, 0)
+		clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", 0, 0)
+		local t = clip:CreateTexture(nil, "ARTWORK")
+		t:SetTexture((Tokens.Texture(token)))
+		t:SetBlendMode("ADD")
+		t:SetAllPoints(bar)
+		t:SetTexCoord(0, 1 / columns, 0, 1 / rows)
+		return t, clip
+	end
+	local a = { span = span or 1, bars = { bar }, gate = gate }
+	a.still = Copy(bar)
+	a.moving, a.lit = Copy(fed.burn)
+	a.lit:Hide()
+	a.loop = a.moving:CreateAnimationGroup()
+	a.loop:SetLooping("REPEAT")
+	local flip = a.loop:CreateAnimation("FlipBook")
+	flip:SetFlipBookRows(rows)
+	flip:SetFlipBookColumns(columns)
+	flip:SetFlipBookFrames(frames)
+	flip:SetDuration(seconds)
+	fed.auras[#fed.auras + 1] = a
+	p.aura = a
+end
+
 local function Bind(feeds, moving)
 	for _, f in ipairs(feeds) do
 		f.button:SetApplicationBar(f.bar, { minApplications = f.low, maxApplications = f.low + 1, interpolation = Interpolation(f.ease and moving) })
 	end
 end
 
-function Crown:SetMotion(moving)
+local function Stacks(c)
+	local read = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
+	if c.unit ~= "player" or type(read) ~= "function" or not Widgets.CrownOpen() then
+		return nil
+	end
+	for _, id in ipairs(c.spells) do
+		local ok, aura = pcall(read, id)
+		if not ok or IsSecret(aura) then
+			return nil
+		end
+		if aura then
+			local n = aura.applications
+			if IsSecret(n) or type(n) ~= "number" then
+				return nil
+			end
+			return n
+		end
+	end
+	return 0
+end
+
+function Crown:Pace()
+	if not self.burn then
+		return
+	end
+	local n = self.burning and self.holder:IsVisible() and Stacks(self.c) or 0
+	for i, a in ipairs(self.auras) do
+		local lit = i <= n
+		a.lit:SetShown(lit)
+		a.gate:SetAlpha(lit and 0 or 1)
+		if not lit then
+			a.loop:Stop()
+		elseif not a.loop:IsPlaying() then
+			a.loop:Play()
+		end
+	end
+end
+
+function Crown:SetBurning(burning)
+	self.burning = burning == true and self.auras[1] ~= nil
+	self:Pace()
+	return self.burning
+end
+
+function Crown:SetMotion(moving, burning)
+	self:SetBurning(burning)
 	if moving ~= self.moving and pcall(Bind, self.feeds, moving) then
 		self.moving = moving
 	end
@@ -302,7 +397,14 @@ function Crown:Listen(owner, on)
 	local Events = ns.Events
 	Events.UnregisterAll(owner)
 	if on and self.c.unit == "target" then
-		Events.Register(owner, "PLAYER_TARGET_CHANGED", function() self.container:UpdateAllAuras() end)
+		Events.Register(owner, "PLAYER_TARGET_CHANGED", function()
+			for _, container in ipairs(self.containers) do container:UpdateAllAuras() end
+		end)
+	end
+	if on and self.burn then
+		local function Pace() self:Pace() end
+		Events.RegisterUnit(owner, "UNIT_AURA", Pace, "player")
+		Events.Register(owner, "ADDON_RESTRICTION_STATE_CHANGED", Pace)
 	end
 end
 
@@ -310,6 +412,10 @@ function Crown:Layout(size)
 	for _, p in ipairs(self.pips) do
 		local px = Widgets.Snap(p.frame, size)
 		p.frame:SetSize(px, px)
+		if p.aura then
+			local side = Widgets.Snap(p.frame, px * p.aura.span)
+			for _, bar in ipairs(p.aura.bars) do bar:SetSize(side, side) end
+		end
 		local halo = Widgets.Snap(p.frame, px * HALO)
 		p.haloFrame:SetSize(halo, halo)
 	end
@@ -317,7 +423,8 @@ end
 
 function Crown:SetShown(on)
 	self.holder:SetShown(on)
-	self.container:SetEnabled(on)
+	for _, container in ipairs(self.containers) do container:SetEnabled(on) end
+	self:Pace()
 end
 
 function Widgets.FedCrown(parent, kind, angles, size, moving)
@@ -337,7 +444,15 @@ function Widgets.FedCrown(parent, kind, angles, size, moving)
 	for _, id in ipairs(c.spells) do
 		ids[id] = true
 	end
-	local fed = setmetatable({ c = c, holder = holder, container = container, options = { candidateFilters = { includeSpellIDs = ids } }, pips = {}, feeds = {} }, { __index = Crown })
+	local fed = setmetatable({ c = c, holder = holder, container = container, options = { candidateFilters = { includeSpellIDs = ids } }, pips = {}, feeds = {}, auras = {}, containers = { container } }, { __index = Crown })
+	if c.aura then
+		fed.burn = CreateFrame("Frame", nil, holder)
+		fed.burn:SetAllPoints(holder)
+		fed.burn:SetFrameLevel(level + 6)
+		local function Pace() fed:Pace() end
+		holder:SetScript("OnShow", Pace)
+		holder:SetScript("OnHide", Pace)
+	end
 	for i, angle in ipairs(angles) do
 		local set = Widgets.ClassPipSet(kind, angle)
 		local frame = CreateFrame("Frame", nil, holder)
@@ -349,7 +464,10 @@ function Widgets.FedCrown(parent, kind, angles, size, moving)
 		p.haloFrame = CreateFrame("Frame", nil, frame)
 		p.haloFrame:SetPoint("CENTER", frame, "CENTER", 0, 0)
 		p.halo = Slot(fed, "halo" .. i, p.haloFrame, level + 2, i - 1, false, set.glow, set.glowColor, true)
-		p.blade = Slot(fed, "lit" .. i, frame, level + 3, i - 1, true, set.lit, "white")
+		p.blade = Slot(fed, "lit" .. i, frame, level + 3, i - 1, true, set.lit, c.aura and "black" or "white")
+		if c.aura then
+			Ember(fed, p, c.aura .. angle, level + 4)
+		end
 		fed.pips[i] = p
 	end
 	fed.max = Slot(fed, "max", holder, level + 1, #angles)

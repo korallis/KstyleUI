@@ -461,6 +461,7 @@ end
 
 local function RefreshCooldownIcon(row, icon)
 	Texture(icon.icon, icon.entry)
+	Style.Face(icon, icon.entry)
 	Usable(row, icon)
 	Charges(icon)
 	Proc(row, icon)
@@ -1247,6 +1248,7 @@ end
 
 local function TextureIcon(_, icon)
 	Texture(icon.icon, icon.entry)
+	Style.Face(icon, icon.entry)
 end
 
 local function ItemIcon(row, icon)

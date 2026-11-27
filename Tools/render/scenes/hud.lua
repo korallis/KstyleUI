@@ -107,6 +107,22 @@ local function SetCrown(env, kind, n)
 	end
 	env._crownAura = aura
 	dofile("Tools/regression/aura_slots.lua").Set(env, unit, aura and { aura } or nil)
+	if unit == "player" then
+		-- A hunter's arrows burn only for the stacks the player's aura reads, so the scene answers that read too.
+		env.C_UnitAuras = env.C_UnitAuras or {}
+		if not env._crownRead then
+			local read = env.C_UnitAuras.GetPlayerAuraBySpellID
+			env._crownRead = true
+			env.C_UnitAuras.GetPlayerAuraBySpellID = function(id)
+				local held = env._crownAura
+				if held and held.id == id then
+					return { spellId = id, applications = held.count }
+				end
+				return read and read(id) or nil
+			end
+		end
+		env.FireEvent("UNIT_AURA", "player", {})
+	end
 end
 
 -- PlayPips(env, K, set) -> note: RENDER_PIPS=from,to moves the combo points from one count to the other RENDER_PIPS_T

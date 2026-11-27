@@ -87,6 +87,7 @@ local function Moving()
 end
 
 local function Burn(fire, moving)
+	moving = moving and not fire.settled
 	fire:SetAlpha((moving or fire.gated) and 1 or 0)
 	fire.still:SetAlpha((moving and not fire.calm) and 0 or 1)
 	if fire.fed then
@@ -131,6 +132,17 @@ end
 
 function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 	local _, _, _, _, span, tint = Tokens.Flipbook(token)
+	if host.stilled then
+		local still = piece.add(Cell(Medals.Texture(host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, AURA_STILL))
+		if tint then
+			if r then
+				still:SetVertexColor(r, g, b)
+			else
+				still:SetVertexColor(Tokens.Color(color))
+			end
+		end
+		return still, span > 1
+	end
 	local flame, calm = lights and lights.flame, lights and lights.calm
 	local fire = piece.add(Cell(Medals.Texture(flame or host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, 0))
 	fire.still = piece.add(Cell(Medals.Texture(calm or host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, AURA_STILL))
@@ -167,6 +179,13 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 	end
 	Burn(fire, Moving())
 	return fire, span > 1
+end
+
+function Medals.Settle(fire, settled)
+	if fire.loop then
+		fire.settled = settled or nil
+		Burn(fire, Moving())
+	end
 end
 
 function Medals.Dim(piece, host, art, size, color)
@@ -541,7 +560,7 @@ function Medals.Flare(piece, lit, level, token, size, lua, color)
 	for i = 1, fed and 2 or 1 do
 		local gate = fed and Mirror(piece, lit, level, false) or Medals.Layer(lit.container and piece or lit, level)
 		local flare = Medals.Layer(gate.lit or gate, level)
-		flare.gate = gate
+		flare.gate, flare.stilled = gate, true
 		Medals.Gate(gate, ns.Slab.Resting() and 0 or 1)
 		gates[#gates + 1] = gate
 		if color and select(4, Tokens.Texture(token)) then
@@ -913,6 +932,12 @@ local function Sigil(r, lit, key, family, color, size, bloom)
 		Medals.Mark(r, button, art, size * SIGIL, color, pale, pale, pale, nil, lights)
 	end
 	local need = lights and (family.art or (not family.known or family.known[1]) and (family.known or family.spells))
+	if need and type(need) == "table" then
+		local spells = need
+		need = function()
+			return Ready(spells) and not (r.spec.railed and r.spec.railed(family.spells))
+		end
+	end
 	if need then
 		Medals.Later(r, need, Draw)
 	else
@@ -942,7 +967,7 @@ function Medals.CooldownRim(parent, spec, level, form)
 		table.insert(units[unit].families, family)
 	end
 	table.sort(order, function(a, b) return a == "player" and b ~= "player" end)
-	r.sigils = {}
+	r.sigils, r.spec = {}, spec
 	local size = row and ROW_SIGIL or STACK
 	r.pitch, r.per = size + (row and 2 or STACK_GAP), row and 10 or 3
 	r.left, r.first, r.rise = row and 0 or -r.pitch, row and 0 or -STACK_DROP - size / 2, r.pitch
@@ -961,7 +986,6 @@ function Medals.CooldownRim(parent, spec, level, form)
 		end
 	end
 	r.timer = r.lit.timer
-	r.spec = spec
 	return r
 end
 

@@ -1,4 +1,4 @@
--- SlabRanged.lua: a hunter's, mage's and warlock's crest trackers, registered as rows with the one tracker lifecycle (SlabTrackers.lua; docs/medallions-effects.md#ranged-crest-trackers lists every seat): each seat's choices cover every build, pet state and level band, and each breaks out of the medal into the crest in additive light (a hunter's forged marks solid under a sheen, Medals.Mark), never a spell or item icon and never a round socket frame (a mage's or warlock's seated aura mark burns over its own small empty socket plate): your damage over time a fuse burning down the right band with its own mark at its head, the pet's or demon's health light along the band (a hunter's pet below Happy also lands a forged haunch on the lower right and tints its light amber or red), an Aspect, armor or demon sigil perched on the ring, a mage's armor as crystals that thaw along the upper left band and Frost Nova's frost over the inner ring, Hunter's Mark, the ready shots and the hunter's range ring over the emblem, the hunter pet's focus within its light, its family ability, Growl's orders and a potion on the hunter's trinket and lower band seats, a bag gem hanging from the lower right, an interrupt's blade through the lower left, a school's stacks as embers and a cooldown as an arc filling on the left band, the warlock's spires with their glyphs at their feet and its soul wisps, the Auto Shot ring and the class moments (Quick Shots, Clearcasting, Shadow Trance); the same effects free-standing in a row under Frames (Effect and its LOOKS, Well and Trinket); Blizzard's aura slots light every aura piece and blink it in its pandemic window, so Lua never reads or compares a secret.
+-- SlabRanged.lua: a hunter's, mage's and warlock's crest trackers, registered as rows with the one tracker lifecycle (SlabTrackers.lua; docs/medallions-effects.md#ranged-crest-trackers lists every seat): each seat's choices cover every build, pet state and level band, and each breaks out of the medal into the crest in additive light (a hunter's marks as looping spell-light auras in their sockets or over their dark figures, Medals.Mark), never a spell or item icon and never a round socket frame (a mage's or warlock's seated aura mark burns over its own small empty socket plate): your damage over time a fuse burning down the right band with its own mark at its head, the pet's or demon's health light along the band (a hunter's pet below Happy also lands a burning haunch on the lower right and tints its light amber or red), an Aspect, armor or demon sigil perched on the ring, a mage's armor as crystals that thaw along the upper left band and Frost Nova's frost over the inner ring, Hunter's Mark, the ready shots (each shot's layer drawn the first time it comes up) and the hunter's range ring over the emblem, the hunter pet's focus within its light, its family ability, Growl's orders and a potion on the hunter's trinket and lower band seats, a bag gem hanging from the lower right, an interrupt's blade through the lower left, a school's stacks as embers and a cooldown as an arc filling on the left band, the warlock's spires with their glyphs at their feet and its soul wisps, the Auto Shot ring and the class moments (Quick Shots, Clearcasting, Shadow Trance); the same effects free-standing in a row under Frames (Effect and its LOOKS, Well and Trinket); Blizzard's aura slots light every aura piece and blink it in its pandemic window, so Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -141,6 +141,16 @@ local function Bloom(texture, from)
 	return { play = group, still = still }
 end
 
+local function Swell(p, flare, seat, art, size, color, gold, r, g, b)
+	if select(5, Tokens.Flipbook(select(5, Tokens.Texture(art)))) ~= 1 then
+		return
+	end
+	flare.socket = p.add(Medals.Texture(seat, "ARTWORK", -1, "auraSocket", gold and "coinGold" or color, size))
+	if r and not gold then
+		flare.socket:SetVertexColor(r, g, b)
+	end
+end
+
 local function Light(p, each, level, look)
 	local art, size = each.glyph or look.art, p.units * look.k
 	local lit = Medals.Lit(p, each, level)
@@ -158,12 +168,14 @@ local function Light(p, each, level, look)
 		local r, g, b = Lift(each.color, look.white)
 		local aura
 		local lights = lit.container and select(5, Tokens.Texture(art)) and Medals.Lights(p, lit, level + 3, light) or nil
-		lit.art, cast, _, _, aura = Medals.Mark(p, light, art, size, each.color, r, g, b, level + 2, lights)
+		local gold
+		lit.art, cast, _, gold, aura = Medals.Mark(p, light, art, size, each.color, r, g, b, level + 2, lights)
 		lit.art:SetDesaturated(not aura)
 		if lights and lights.flame:GetParent().container then
 			local copy = lights.flame:GetParent()
 			copy.flare, copy.loops, gated = Bloom(lights.flame, 1.2), { look.loop and Medals.Steps(lights.flame, look.loop, true) or nil }, true
 			copy.flare.gate = lit.flames
+			Swell(p, copy.flare, lights.flame, art, size, each.color, gold, r, g, b)
 			Medals.Cue(p, lit, level + 3, light, art, lit.art, size, 1.2)
 		end
 	end
@@ -209,7 +221,15 @@ local function Effect(parent, spec, level, form)
 	p.rest = Medals.Layer(spec.feed == "item" and p.lit or p, level)
 	local art = look.steel or spec.glyph or look.art
 	p.rest:SetAlpha(look.rest or select(4, Tokens.Texture(art)) and REST_FORGED or STEEL)
-	Medals.Dim(p, p.rest, art, p.units * look.k, "steel"):SetDesaturated(true)
+	local learned = not (spec.learned and spec.feeds)
+	for _, each in ipairs(learned and NONE or spec.feeds) do
+		learned = learned or each.glyph == art and Medals.Known(rawget(each, "known") or each.spells) ~= nil
+	end
+	if learned then
+		Medals.Dim(p, p.rest, art, p.units * look.k, "steel"):SetDesaturated(true)
+	else
+		p.add(Medals.Texture(p.rest, "ARTWORK", 0, art, "steel", p.units * look.k)):SetDesaturated(true)
+	end
 	for i, each in ipairs(select(4, Tokens.Texture(art)) and spec.feeds or {}) do
 		if each.glyph ~= art then
 			p.add(Medals.Texture(Medals.Layer(p.lits[i], level + 1), "BACKGROUND", 0, art, "black", p.units * look.k))
@@ -222,6 +242,7 @@ local function Flash(parent, spec, level, form)
 	local p = Effect(parent, spec, level, form)
 	if form == "crest" then
 		p.ready:SetAlpha(0)
+		Medals.Settle(p.lit.art, true)
 		p.rest:Hide()
 		p.timer:SetDrawSwipe(false)
 	end
@@ -305,11 +326,13 @@ local function Fuse(parent, spec, level, form)
 			lit.flare = not lit.container and Bloom(host, 1.5) or nil
 			Medals.Later(p, each == spec and spec.known or rawget(each, "known") or each.spells, function()
 				local lights = lit.container and Medals.Lights(p, lit, above + 1, host) or nil
-				lit.mark = Medals.Mark(p, host, each.glyph, size, each.color, r, g, b, nil, lights)
+				local gold
+				lit.mark, _, _, gold = Medals.Mark(p, host, each.glyph, size, each.color, r, g, b, nil, lights)
 				if lights and lights.flame:GetParent().container then
 					local copy = lights.flame:GetParent()
 					copy.flare, copy.flicker = Bloom(lights.flame, 1.5), ns.Slab.Flicker(lights.flame)
 					copy.flare.gate = lit.flames
+					Swell(p, copy.flare, lights.flame, each.glyph, size, each.color, gold, r, g, b)
 					Medals.Cue(p, lit, above + 1, host, each.glyph, lit.mark, size, 1.5)
 				end
 			end)
@@ -429,6 +452,33 @@ local function Charge(parent, spec, level, form)
 	return p
 end
 
+local function Look(p, look, level)
+	local layer = Medals.Layer(p.lit, level + 2)
+	layer:Hide()
+	p.add(Medals.Texture(layer, "BACKGROUND", 0, "glow", look.color, p.units * 0.9, "ADD")):SetAlpha(FAINT)
+	for i, art in ipairs(look.arrows or { look.glyph }) do
+		if look.arrows then
+			p.add(Medals.Texture(layer, "ARTWORK", 2 * i - 4, "pipArrow" .. art, "black", p.units))
+			local fire = Medals.Aura(p, layer, "auraFigureArrow" .. art, p.units)
+			for _, t in ipairs({ fire, fire.still }) do
+				t:SetDrawLayer("ARTWORK", 2 * i - 3)
+			end
+		else
+			Medals.Mark(p, layer, art, p.units * (select(4, Tokens.Texture(art)) and SHOT_FORGED or SHOT_FLAT), look.color, Lift(look.color, 0.2))
+		end
+	end
+	layer.play = Medals.Steps(layer, look.arrows and { { 0, 1, 0.15 } } or OPENING)
+	if look.arrows then
+		local jump, move = layer.play:CreateAnimation("Translation"), layer.play:CreateAnimation("Translation")
+		jump:SetOffset(0, -p.units * 0.15)
+		jump:SetDuration(0)
+		move:SetOffset(0, p.units * 0.15)
+		move:SetDuration(0.35)
+		move:SetSmoothing("OUT")
+	end
+	p.shots[look] = layer
+end
+
 local function Shot(parent, spec, level, form)
 	local p = Medals.Piece(parent, level, spec.size or SIZE)
 	if form ~= "crest" then
@@ -436,29 +486,7 @@ local function Shot(parent, spec, level, form)
 	end
 	Medals.Lit(p, spec, level + 1)
 	p.lit:Hide()
-	p.shots = {}
-	for _, look in ipairs(spec.looks) do
-		local layer = Medals.Layer(p.lit, level + 2)
-		layer:Hide()
-		p.add(Medals.Texture(layer, "BACKGROUND", 0, "glow", look.color, p.units * 0.9, "ADD")):SetAlpha(FAINT)
-		for _, art in ipairs(look.arrows or { look.glyph }) do
-			if look.arrows then
-				p.add(Medals.Texture(layer, "ARTWORK", 0, "pipArrow" .. art, "white", p.units))
-			else
-				Medals.Mark(p, layer, art, p.units * (select(4, Tokens.Texture(art)) and SHOT_FORGED or SHOT_FLAT), look.color, Lift(look.color, 0.2))
-			end
-		end
-		layer.play = Medals.Steps(layer, look.arrows and { { 0, 1, 0.15 } } or OPENING)
-		if look.arrows then
-			local jump, move = layer.play:CreateAnimation("Translation"), layer.play:CreateAnimation("Translation")
-			jump:SetOffset(0, -p.units * 0.15)
-			jump:SetDuration(0)
-			move:SetOffset(0, p.units * 0.15)
-			move:SetDuration(0.35)
-			move:SetSmoothing("OUT")
-		end
-		p.shots[look] = layer
-	end
+	p.shots, p.looks = {}, level
 	return p
 end
 
@@ -468,12 +496,12 @@ local function Haunch(m, level, k, x, y)
 	seat:ClearAllPoints()
 	seat:SetPoint("CENTER", m, "CENTER", x, y)
 	seat:Hide()
-	local sheen, _, tint, gold = Medals.Mark(m, seat, "glyphHaunch", size, "neutral", Lift("coinGold", 0.2))
+	local sheen, _, tint, gold, aura = Medals.Mark(m, seat, "glyphHaunch", size, "neutral", Lift("coinGold", 0.2))
 	if gold then
 		tint.units = size * HAUNCH_HALO
 	end
 	local a, f = tint:GetAlpha(), Tokens.Flicker
-	local feed = { seat = seat, sheen = sheen, tint = tint, gold = gold }
+	local feed = { seat = seat, sheen = sheen, tint = tint, gold = gold, aura = aura }
 	feed.land = Medals.Steps(seat, { { 0, 1, HAUNCH_HOLD } })
 	ns.Slab.Grow(feed.land, 1.35, 1, 0.35)
 	feed.appear = Medals.Steps(seat, { { 0, 1, HAUNCH_HOLD } })
@@ -506,9 +534,10 @@ local function Lost(m, level, k, x, y)
 	local halo = m.add(Medals.Texture(seat, "BACKGROUND", 1, "glow", "hostile", size * HAUNCH_HALO, "ADD"))
 	local hound = m.add(Medals.Texture(seat, "ARTWORK", 0, "glyphHound", "steel", size))
 	hound:SetDesaturated(true)
+	hound:SetAlpha(REST_FORGED)
 	local a, low = LIGHT, LIGHT * Tokens.Flicker.low
 	halo:SetAlpha(a)
-	local l = { seat = seat, halo = halo, hound = hound, breath = Medals.Steps(halo, { { a, low, 0.9 }, { low, a, 0.9 } }, true) }
+	local l = { seat = seat, size = size, halo = halo, hound = hound, breath = Medals.Steps(halo, { { a, low, 0.9 }, { low, a, 0.9 } }, true) }
 	seat:HookScript("OnHide", function()
 		l.breath:Stop()
 	end)
@@ -930,6 +959,20 @@ function Mourn(m)
 	end
 end
 
+local function Burn(m, l)
+	local first = #m.parts + 1
+	l.burn = m.add(Medals.Layer(l.seat, l.seat:GetFrameLevel() + 1), l.size)
+	l.burn:ClearAllPoints()
+	l.burn:SetPoint("CENTER", l.seat, "CENTER", 0, 0)
+	l.burn:Hide()
+	l.fire = Medals.Mark(m, l.burn, "glyphHound", l.size, "hostile")
+	if m.sized then
+		for i = first, #m.parts do
+			Medals.Even(m.parts[i])
+		end
+	end
+end
+
 local function Gone(m, gone)
 	local l = m.lost
 	if gone == l.gone then
@@ -938,12 +981,12 @@ local function Gone(m, gone)
 	l.gone = gone
 	l.seat:SetShown(gone ~= nil)
 	l.halo:SetShown(gone == "dead")
-	if gone == "dead" then
-		l.hound:SetVertexColor(Lift("hostile", 0.2))
-		l.hound:SetAlpha(1)
-	else
-		l.hound:SetVertexColor(Tokens.Color("steel"))
-		l.hound:SetAlpha(REST_FORGED)
+	if gone == "dead" and not l.burn then
+		Burn(m, l)
+	end
+	l.hound:SetShown(gone ~= "dead")
+	if l.burn then
+		l.burn:SetShown(gone == "dead")
 	end
 	Mourn(m)
 end
@@ -953,7 +996,9 @@ local function Tint(f, color)
 		f.tint:SetVertexColor(Tokens.Color(color))
 	else
 		local r, g, b = Lift(color, 0.2)
-		f.sheen:SetVertexColor(r, g, b)
+		if not f.aura then
+			f.sheen:SetVertexColor(r, g, b)
+		end
 		f.tint:SetVertexColor(r, g, b)
 	end
 end
@@ -1166,6 +1211,13 @@ end
 
 local function PaintShot(m)
 	local shot = m.spec.shots[m.usable]
+	if shot and not m.shots[shot] then
+		local first = #m.parts + 1
+		Look(m, shot, m.looks)
+		for i = first, #m.parts do
+			Medals.Even(m.parts[i])
+		end
+	end
 	if shot ~= m.shot then
 		if m.shot then
 			m.shots[m.shot]:Hide()
@@ -1298,25 +1350,16 @@ local function Motion(form, _, still)
 end
 
 if CLASS == "HUNTER" then
-	local ASPECTS = {
-		{ spells = { 13165, 14318, 14319, 14320, 14321, 14322, 25296, 469145 }, color = "gilt", glyph = "glyphHawk" },
-		{ spells = { 13163 }, color = "neutral", glyph = "glyphMonkey" },
-		{ spells = { 5118 }, color = "steelLit", glyph = "glyphCheetah" },
-		{ spells = { 13159 }, color = "steelLit", glyph = "glyphPack" },
-		{ spells = { 20043, 20190 }, color = "schoolNature", glyph = "glyphWild" },
-		{ spells = { 13161, 1299445, 1299446, 1299447 }, color = "hostile", glyph = "glyphBeast" },
-		{ spells = { 415423 }, color = "magic", glyph = "glyphViper" },
-	}
-	local STINGS = {
-		{ spells = { 1978, 13549, 13550, 13551, 13552, 13553, 13554, 13555, 25295 }, color = "schoolNature", glyph = "glyphSerpent" },
-		{ spells = { 3034, 14279, 14280 }, color = "magic", glyph = "glyphViperSting" },
-		{ spells = { 3043, 14275, 14276, 14277 }, color = "neutral", glyph = "glyphScorpid" },
-		{ spells = { 19386, 24132, 24133, 24131, 24134, 24135 }, color = "schoolFire", glyph = "glyphWyvern" },
-		{ spells = { 24118, 24119, 24120, 1299332 }, color = "hostile", glyph = "glyphLacerate" },
-		{ spells = { 3674, 14296 }, color = "schoolShadow", glyph = "glyphBlackArrow" },
-		{ spells = { 13797, 14298, 14299, 14300, 14301 }, color = "schoolFire", glyph = "sigilFireTrap" },
-	}
-	local RAPTOR = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 }
+	local FAMILIES = K.SpellFamilies.HUNTER
+	local function Family(key, color)
+		return { spells = FAMILIES[key].spells, glyph = FAMILIES[key].glyph, color = color }
+	end
+	local ASPECTS = { Family("hawk", "gilt"), Family("monkey", "neutral"), Family("cheetah", "steelLit"), Family("pack", "steelLit"), Family("wild", "schoolNature"),
+		Family("beast", "hostile"), Family("viper", "magic") }
+	local STINGS = { Family("serpent", "schoolNature"), Family("viperSting", "magic"), Family("scorpid", "neutral"), Family("wyvern", "schoolFire"),
+		Family("lacerate", "hostile"), Family("blackArrow", "schoolShadow"),
+		{ spells = { 13797, 14298, 14299, 14300, 14301 }, known = { 13795, 14302, 14303, 14304, 14305 }, color = "schoolFire", glyph = "sigilFireTrapFuse" } }
+	local RAPTOR = FAMILIES.raptor.spells
 	local MELEE = Trackers.Joined(RAPTOR, { 14268, 14267, 2974 })
 	local GROWL = { 14921, 14920, 14919, 14918, 14917, 14916, 2649 }
 	local SCREECH, SCORPID = { 24579, 24578, 24577, 24423 }, { 24640, 24587, 24586, 24583 }
@@ -1329,10 +1372,10 @@ if CLASS == "HUNTER" then
 	local POTIONS = { 13446, 13444, 3928, 13443, 1710, 6149, 929, 3827, 858, 3385, 118, 2455 }
 	local TRUESHOT, TRUESHOT_SEAT, COMPASS_SEAT = { 19506, 20905, 20906, 1299346, 1299348 }, { Polar(74, 140) }, { Polar(74, 40) }
 	local TRACKS = { [1494] = 1, [19879] = 2, [19878] = 3, [19880] = 4, [19882] = 5, [19884] = 6, [19883] = 7 }
-	local COUNTER, MONGOOSE, AIMED, MULTI = { 20910, 20909, 19306, 1242634 }, { 14271, 14270, 14269, 1495 }, { 20904, 20903, 20902, 20901, 20900, 19434 }, { 2643 }
+	local COUNTER, MONGOOSE, AIMED, MULTI = FAMILIES.counter.spells, FAMILIES.mongoose.spells, FAMILIES.aimed.spells, { 2643 }
 	local SHOTS, SHOWS = {}, {}
-	for _, shot in ipairs({ { COUNTER, { glyph = "glyphCounter", color = "hostile" } }, { MONGOOSE, { glyph = "glyphMongoose", color = "hostile" } },
-		{ AIMED, { arrows = { 90 }, color = "giltLit" } }, { MULTI, { arrows = { 105, 90, 75 }, color = "steelLit" } } }) do
+	for _, shot in ipairs({ { COUNTER, { glyph = FAMILIES.counter.glyph, color = "hostile" } }, { MONGOOSE, { glyph = FAMILIES.mongoose.glyph, color = "hostile" } },
+		{ AIMED, { arrows = { 90 }, color = "giltLit" } }, { MULTI, { arrows = { 105, 75, 90 }, color = "steelLit" } } }) do
 		SHOWS[#SHOWS + 1] = shot[2]
 		for _, id in ipairs(shot[1]) do SHOTS[id] = shot[2] end
 	end
@@ -1364,18 +1407,18 @@ if CLASS == "HUNTER" then
 			groups = { COUNTER, MONGOOSE, AIMED, MULTI } },
 		{ key = "crestAspect", seat = PERCH_LEFT, size = PERCH, build = Effect, choices = {
 			{ feed = "aura", look = "glyph", glyph = "glyphHawk", spells = Trackers.Joined(ASPECTS[1].spells, ASPECTS[2].spells, ASPECTS[3].spells, ASPECTS[4].spells,
-				ASPECTS[5].spells, ASPECTS[6].spells, ASPECTS[7].spells), feeds = ASPECTS },
-			{ build = Flash, seat = EMBLEM, overlay = true, size = FLASH, feed = "cooldown", look = "orb", glyph = "glyphRaptor", color = "gilt", known = RAPTOR },
+				ASPECTS[5].spells, ASPECTS[6].spells, ASPECTS[7].spells), feeds = ASPECTS, learned = true },
+			{ build = Flash, seat = EMBLEM, overlay = true, size = FLASH, feed = "cooldown", look = "orb", glyph = FAMILIES.raptor.glyph, color = "gilt", known = RAPTOR },
 		} },
 		{ key = "crestPet", seat = At(BAND.pet), choices = {
 			{ build = Pet, band = "pet", feed = "pet", light = "giltLit", focus = "steelLit", known = { 883 }, mood = true, lost = true,
-				mend = { 136, 3111, 3661, 3662, 13542, 13543, 13544 } },
+				mend = FAMILIES.mend.spells },
 			{ build = Flash, seat = EMBLEM, overlay = true, size = FLASH, feed = "cooldown", look = "orb", color = "schoolArcane", known = { 14287, 14286, 14285, 14284, 14283, 14282, 14281, 3044 } },
 		} },
 		{ key = "crestMark", seat = At(BAND.mark), build = Mark, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile",
 			spells = { 1130, 14323, 14324, 14325 } },
 		{ key = "crestSting", seat = At(BAND.right), build = Fuse, glyph = "glyphSerpent", feed = "aura", unit = "target",
-			filter = "HARMFUL|PLAYER", color = "schoolNature", known = { 1978, 3034, 3043, 24118, 3674, 13795 }, feeds = STINGS },
+			filter = "HARMFUL|PLAYER", color = "schoolNature", known = { 1978, 3034, 3043, 24118, 3674, 13795 }, feeds = STINGS, learned = true },
 		{ key = "crestTrueshot", seat = TRUESHOT_SEAT, size = PERCH, build = Effect, look = "glyph", glyph = "glyphTrueshot", feed = "aura", color = "gilt",
 			spells = TRUESHOT },
 		{ key = "crestTracking", seat = COMPASS_SEAT, size = PERCH, build = Sign, look = "glyph", glyph = "glyphCompass", feed = "tracking", color = "gilt",

@@ -50,4 +50,88 @@ local row = ns.Row.New(env.UIParent, "utility", ns.Settings.current.utility)
 local utility = row:Icon(1)
 assert(C.W.LastCall(utility.cooldown, "SetCountdownFormatter")[1]:Format(4) == "4s", "off restores the previous seconds suffix")
 assert(#env._errors == 0, tostring(env._errors[1]))
+
+do
+	-- A hunter's rail medal shows the spell's Blender aura in place of its icon (the aura plan: the round game icons on
+	-- the rails are replaced by auras class by class); a spell with no aura keeps its icon.
+	local sample = C.Sample()
+	sample[101].spellID = 19263
+	local henv, HK, hns = C.New({ setup = C.Game, cooldowns = sample })
+	C.Enable(henv, HK)
+	henv.RunTimers()
+	local deter, plain = hns.Mirror.Row("essential").icons[1], hns.Mirror.Row("essential").icons[2]
+	local face = deter.medFace
+	assert(face and face.moving:GetTexture() == HK.Tokens.Texture("auraSigilDeflect") and face.cover:IsShown(), "Deterrence's medal covers its icon with the Deflect aura")
+	assert(face.moving:IsShown() and face.loop:IsPlaying() and not face.still:IsShown(), "at full motion the aura loops")
+	local flip = face.loop._anims[1]
+	assert(flip._type == "FlipBook" and flip:GetFlipBookRows() == 4 and flip:GetFlipBookColumns() == 4 and flip:GetFlipBookFrames() == 16 and flip:GetDuration() == 1.44, "playing the sheet's 4x4 grid of 16 frames over 1.44 s")
+	assert(not plain.medFace, "a spell with no aura keeps its icon and makes nothing")
+	HK.Motion.SetLevel("reduced")
+	assert(not face.loop:IsPlaying() and face.still:IsShown() and not face.moving:IsShown(), "calm motion holds the aura still")
+	HK.Motion.SetLevel("full")
+	assert(face.loop:IsPlaying(), "and full motion plays it again")
+	HK.Options.Write("Cooldowns", "medallionsIcons", false)
+	assert(not face.cover:IsShown() and not face.still:IsShown() and not face.moving:IsShown() and not face.loop:IsPlaying(), "off brings the square icon back with no aura")
+	HK.Options.Write("Cooldowns", "medallionsIcons", true)
+	assert(face.loop:IsPlaying() and face.cover:IsShown(), "on again burns it again")
+	-- The face carries the icon's cues: the range colour and the grey of a cooling spell reach both of its cells (review of the hunter auras).
+	local function Write(key, value) HK.Options.Write("Cooldowns", key, value); henv.RunTimers() end
+	henv._range = {}
+	henv.C_Spell.IsSpellInRange = function(spell) return henv._range[spell] end
+	Write("rules.range", "19263")
+	henv._range[19263] = false
+	henv.FireEvent("SPELL_RANGE_CHECK_UPDATE", 19263, false, true)
+	local r, g, b = HK.Tokens.Color("hostile")
+	for _, cell in ipairs({ face.still, face.moving }) do
+		local cr, cg, cb = cell:GetVertexColor()
+		assert(deter.outOfRange and math.abs(cr - r) + math.abs(cg - g) + math.abs(cb - b) < 1e-3, "out of range, the aura takes the range colour as the icon does")
+	end
+	henv._range[19263] = true
+	henv.FireEvent("SPELL_RANGE_CHECK_UPDATE", 19263, true, true)
+	assert(select(2, face.moving:GetVertexColor()) == 1, "back in range the aura is white light again")
+	Write("essential.desaturate", true)
+	henv._cdm.cooldown[19263] = { active = true, gcd = false }
+	henv.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(C.W.LastCall(face.still, "SetDesaturated")[1] == true and C.W.LastCall(face.moving, "SetDesaturated")[1] == true, "Grey while cooling greys the aura with the icon")
+	henv._cdm.cooldown[19263] = nil
+	henv.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(C.W.LastCall(face.moving, "SetDesaturated")[1] == false, "and ready, it burns in colour again")
+	-- A resized medal refits the aura's overhang to its new size.
+	local narrow = select(4, face.still:GetPoint(1))
+	deter.opts.size = deter.opts.size * 2
+	deter:Restyle()
+	local wide = select(4, face.still:GetPoint(1))
+	assert(narrow < 0 and math.abs(wide - 2 * narrow) <= 1, "a medal twice the size holds an aura overhang twice as wide")
+	-- Numbers only shows the countdown alone, with neither icon nor aura.
+	Write("essential.numbersOnly", true)
+	assert(not face.cover:IsShown() and not face.still:IsShown() and not face.moving:IsShown(), "numbers only hides the aura")
+	Write("essential.numbersOnly", false)
+	assert(face.cover:IsShown(), "and turning it off brings the aura back")
+	assert(#henv._errors == 0, tostring(henv._errors[1]))
+end
+
+do
+	-- A face loads its sheet only for a round medal someone can see: square icons, numbers-only rows and a hidden medal load nothing,
+	-- and tracked buff icons, which stay square, never get a face (review of the hunter auras).
+	local sample = C.Sample()
+	sample[101].spellID, sample[301].spellID = 19263, 13165
+	local henv, HK, hns = C.New({ setup = C.Game, cooldowns = sample })
+	henv._cdm.auras[13165] = { auraInstanceID = 71 }
+	HK.Options.Write("Cooldowns", "path", "mirror")
+	HK.Options.Write("Cooldowns", "medallionsIcons", false)
+	C.Enable(henv, HK)
+	henv.RunTimers()
+	local deter, buffs = hns.Mirror.Row("essential").icons[1], hns.Mirror.Row("buffs")
+	assert(not deter.medFace, "a square icon makes no aura face")
+	henv.UIParent:Hide()
+	HK.Options.Write("Cooldowns", "medallionsIcons", true)
+	henv.RunTimers()
+	assert(buffs.count == 1 and buffs.icons[1].entry.spellID == 13165 and not buffs.icons[1].medFace, "Aspect of the Hawk's tracked buff icon stays square and makes no aura face")
+	local face = deter.medFace
+	assert(not deter:IsVisible() and (not face or face.moving:GetTexture() == nil), "with the interface hidden a round medal loads no sheet")
+	henv.UIParent:Show()
+	face = deter.medFace
+	assert(face and face.moving:GetTexture() == HK.Tokens.Texture("auraSigilDeflect") and face.cover:IsShown(), "shown, it loads the sheet and covers the icon")
+	assert(#henv._errors == 0, tostring(henv._errors[1]))
+end
 print("ok cooldown Medallions sockets: mirror, native tracked buffs and previous choices")

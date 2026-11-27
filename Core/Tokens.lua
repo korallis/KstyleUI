@@ -526,21 +526,20 @@ for _, name in ipairs({
 end
 for _, name in ipairs({
 	"ArcLeft", "ArcPet", "ArcRight", "ArmorArcane", "ArmorFrost", "Bail", "Beast", "BlackArrow", "Burst", "Cheetah",
-	"ChillShard", "Counter", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Frost", "Haunch", "Hawk", "Horns", "Hourglass",
+	"ChillShard", "Compass", "Counter", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Frost", "Haunch", "Hawk", "Horns", "Hound", "Hourglass",
 	"Imp", "Intellect", "Lacerate", "MarkReticle", "Mongoose", "Monkey", "Pack", "PolyCurl", "Raptor", "RimLeft",
-	"Scorpid", "Serpent", "Siphon", "Succubus", "Swirl", "Tongue", "Viper", "ViperSting", "Voidwalker", "Weakness",
+	"Scorpid", "Serpent", "Siphon", "Succubus", "Swirl", "Tongue", "Trueshot", "Viper", "ViperSting", "Voidwalker", "Weakness",
 	"Wild", "Wyvern"
 }) do
 	TEXTURES["glyph" .. name] = { file = "Textures\\Glyphs\\" .. name .. ".png" }
 end
-for name, file in pairs({ Trueshot = "Sigils\\Aimed", Compass = "Glyphs\\MarkReticle", Hound = "Sigils\\Paw", Family = "Sigils\\Intimidate", Growl = "Figures\\Growl",
-	Tranq = "Sigils\\Drop" }) do
+for name, file in pairs({ Family = "Sigils\\Intimidate", Growl = "Figures\\Growl", Tranq = "Sigils\\Drop" }) do
 	TEXTURES["glyph" .. name] = { file = "Textures\\" .. file .. ".png" }
 end
 for _, name in ipairs({
-	"glyphBeast", "glyphBlackArrow", "glyphCheetah", "glyphCounter", "glyphHaunch", "glyphHawk", "glyphLacerate", "glyphMongoose",
-	"glyphMonkey", "glyphPack", "glyphRaptor", "glyphScorpid", "glyphSerpent", "glyphViper", "glyphViperSting", "glyphWild",
-	"glyphWyvern", "glyphTrueshot", "glyphHound", "glyphFamily", "glyphTranq", "sigilAimed", "sigilCharm", "sigilDeflect", "sigilFireTrap", "sigilIntimidate", "sigilPaw", "sigilSniper",
+	"glyphBeast", "glyphBlackArrow", "glyphCheetah", "glyphCompass", "glyphCounter", "glyphHaunch", "glyphHawk", "glyphHound", "glyphLacerate", "glyphMongoose",
+	"glyphMonkey", "glyphPack", "glyphRaptor", "glyphScorpid", "glyphSerpent", "glyphTrueshot", "glyphViper", "glyphViperSting", "glyphWild",
+	"glyphWyvern", "glyphFamily", "glyphTranq", "sigilAimed", "sigilCharm", "sigilDeflect", "sigilFireTrap", "sigilIntimidate", "sigilPaw", "sigilSniper",
 	"sigilStrider", "sigilVolley"
 }) do
 	TEXTURES[name].forged = true
@@ -569,15 +568,6 @@ for _, name in ipairs({ "auraGlyphFacet", "auraGlyphHealthstone", "auraSigilArca
 end
 TEXTURES.auraTrackerGust = { file = "Textures\\Auras\\Trackers\\Gust.png", rows = 8, columns = 2, frames = 16, seconds = 1.44 }
 TEXTURES.auraSocket = { file = "Textures\\Auras\\Socket.png" }
-TEXTURES.railAuraAimed = { file = "Textures\\Medallions\\Rail\\AuraAimed.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraCharm = { file = "Textures\\Medallions\\Rail\\AuraCharm.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraDeflect = { file = "Textures\\Medallions\\Rail\\AuraDeflect.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraFireTrap = { file = "Textures\\Medallions\\Rail\\AuraFireTrap.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraIntimidate = { file = "Textures\\Medallions\\Rail\\AuraIntimidate.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraPaw = { file = "Textures\\Medallions\\Rail\\AuraPaw.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraSniper = { file = "Textures\\Medallions\\Rail\\AuraSniper.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraStrider = { file = "Textures\\Medallions\\Rail\\AuraStrider.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraVolley = { file = "Textures\\Medallions\\Rail\\AuraVolley.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 for _, set in ipairs({
 	{ kind = "Sigil", names = { "Crossed", "Skull", "Wall", "Heart", "Sweep", "Thorns", "Bubble", "Aegis", "Sun", "Hand", "Wing", "Bulwark", "Voice",
 		"Flurry", "Rush", "Evade", "Drop", "Smoke", "Ghost" } },
@@ -594,6 +584,24 @@ for _, set in ipairs({
 		end
 	end
 end
+local BARE_AURAS = { Counter = true, Mongoose = true, Raptor = true }
+for kind, names in pairs({
+	Glyph = { "Beast", "BlackArrow", "Cheetah", "Compass", "Counter", "Haunch", "Hawk", "Hound", "Lacerate", "Mongoose", "Monkey", "Pack",
+		"Raptor", "Scorpid", "Serpent", "Trueshot", "Viper", "ViperSting", "Wild", "Wyvern" },
+	Sigil = { "Aimed", "Charm", "Deflect", "FireTrap", "Intimidate", "Paw", "Sniper", "Strider", "Volley" },
+	Figure = { "Arrow75", "Arrow90", "Arrow105", "HawkPerch", "HawkPerchMirror" },
+}) do
+	for _, name in ipairs(names) do
+		local token = "aura" .. kind .. name
+		TEXTURES[token] = { file = "Textures\\Auras\\" .. kind .. "s\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44,
+			span = (kind ~= "Glyph" or BARE_AURAS[name]) and 1.25 or nil }
+		if kind ~= "Figure" then
+			TEXTURES[kind:lower() .. name].aura = token
+		end
+	end
+end
+TEXTURES.auraSigilFireTrapFuse = { file = "Textures\\Auras\\Sigils\\FireTrapFuse.png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25 }
+TEXTURES.sigilFireTrapFuse = { file = TEXTURES.sigilFireTrap.file, forged = true, aura = "auraSigilFireTrapFuse" }
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do

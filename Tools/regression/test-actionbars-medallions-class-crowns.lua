@@ -83,7 +83,22 @@ for _, class in ipairs(ORDER) do
 		p.env = env
 		local angle = spec.angles[i]
 		assert(tostring(Last(p.steel, "SetTexture")[1]):find(spec.art .. "Steel" .. angle .. ".png", 1, true), class .. " piece " .. i .. " is dormant art at " .. angle)
-		assert(tostring(Last(p.blade, "SetStatusBarTexture")[1]):find(spec.art .. angle .. ".png", 1, true), class .. " piece " .. i .. " lights its own art")
+		if class == "HUNTER" then
+			-- The aura plan: a hunter's arrows burn as Blender auras, each the shot's arrow figure at its angle over its body drawn black.
+			local a = p.aura
+			local bar = a.bars[1]
+			local fill, low, high = bar:GetStatusBarTexture(), bar:GetMinMaxValues()
+			for _, t in ipairs({ a.moving, a.still }) do
+				local clip = t:GetParent()
+				assert(select(2, clip:GetPoint(1)) == fill and select(2, clip:GetPoint(2)) == fill and Last(clip, "SetClipsChildren")[1] == true and low == i - 1 and high == i,
+					"arrow " .. i .. " shows only inside its own stack's application bar fill")
+				assert(tostring(Last(t, "SetTexture")[1]):find("Auras\\Figures\\Arrow" .. angle .. ".png", 1, true) and Last(t, "SetBlendMode")[1] == "ADD", "arrow " .. i .. " burns the arrow figure's aura at " .. angle)
+			end
+			assert(a.still:GetParent():GetParent() == bar and a.moving:GetParent():GetParent() == crown.burn, "the still copy sits on the arrow's aura slot and the burning copy on the crown's own layer")
+			assert(tostring(Last(p.blade, "SetStatusBarTexture")[1]):find(spec.art .. angle .. ".png", 1, true) and Last(p.blade, "SetStatusBarColor")[1] + Last(p.blade, "SetStatusBarColor")[2] + Last(p.blade, "SetStatusBarColor")[3] == 0, "over the arrow's body swept up in black")
+		else
+			assert(tostring(Last(p.blade, "SetStatusBarTexture")[1]):find(spec.art .. angle .. ".png", 1, true), class .. " piece " .. i .. " lights its own art")
+		end
 		local _, _, _, x, y = p.frame:GetPoint(1)
 		assert(math.abs(math.deg(math.atan2(y, x)) - angle) < 1, class .. " piece " .. i .. " fans out at " .. angle)
 		local low, high = p.blade:GetMinMaxValues()
@@ -280,6 +295,87 @@ do
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 0)
 	assert(slot._applicationBar[2].interpolation == 0, "and Off takes once the restriction ends")
 	Clean(env, K, "secret auras")
+end
+
+-- The hunter's arrow auras loop only for the Sniper stacks the player holds, only at Full with the crest awake, and never while
+-- auras are secret; otherwise each arrow holds its first frame (review of the hunter auras: hidden arrows kept looping, and the
+-- loops stayed bound while auras were secret).
+do
+	local reads = 0
+	local env, K, ns = New("HUNTER", { setup = function(e)
+		e.C_Secrets = { ShouldAurasBeSecret = function() return e._aurasSecret == true end }
+		e.C_UnitAuras = e.C_UnitAuras or {}
+		e.C_UnitAuras.GetPlayerAuraBySpellID = function(id)
+			if e._aurasSecret then reads = reads + 1 return nil end
+			for _, a in ipairs(e._slotAuras.player or {}) do
+				if a.id == id then return { spellId = id, applications = a.count } end
+			end
+		end
+	end })
+	local crown = ns.SlabCrown.state.crown
+	local function Burning()
+		local lit = {}
+		for i, p in ipairs(crown.pips) do
+			local a = p.aura
+			assert(a.loop:IsPlaying() == a.lit:IsShown(), "arrow " .. i .. " loops exactly while it shows")
+			assert(a.gate:GetAlpha() == (a.lit:IsShown() and 0 or 1), "arrow " .. i .. "'s still copy shows exactly while it does not burn")
+			lit[i] = a.loop:IsPlaying() and "1" or "0"
+		end
+		return table.concat(lit)
+	end
+	local sniper = { id = 1310687, count = 1 }
+	local function Stack(n)
+		sniper.count = n
+		Slots.Set(env, "player", n > 0 and { sniper } or nil)
+		env.FireEvent("UNIT_AURA", "player", {})
+	end
+	env.SetTarget(true)
+	env.RunTimers()
+	assert(Burning() == "000", "at Full with the crest awake and no stack, nothing loops")
+	Stack(1)
+	assert(Burning() == "100", "one stack burns the first arrow alone")
+	Stack(2)
+	assert(Burning() == "110", "two stacks burn two arrows")
+	Stack(3)
+	assert(Burning() == "111", "three stacks burn all three")
+	Stack(1)
+	assert(Burning() == "100", "losing two stacks stops the second and third arrows' loops")
+	local third = crown.pips[3].aura
+	assert(third.still:GetParent():GetParent() == third.bars[1] and third.gate:GetAlpha() == 1, "and hands each back to its still copy on the stack's fill, which drains")
+	AB.Hiding(env)
+	ns.Slab.hub:Hide()
+	assert(Burning() == "000", "the crest hidden by an ancestor: every loop stops")
+	Stack(2)
+	assert(Burning() == "000", "and a stack gained while hidden starts none")
+	ns.Slab.hub:Show()
+	assert(Burning() == "110", "shown again, the two held stacks burn")
+	Stack(2)
+	env.SetTarget(false)
+	env.RunTimers()
+	assert(ns.Slab.Resting() and Burning() == "000", "the crest resting: every loop stops and the still copies show")
+	env.SetTarget(true)
+	env.RunTimers()
+	assert(Burning() == "110", "woken with two stacks still up, their two loops play again")
+	K.Options.Write("Medallions", "motion", "calm")
+	assert(Burning() == "000", "Calm shows the still copies")
+	K.Options.Write("Medallions", "motion", "full")
+	assert(Burning() == "110", "back to Full the held stacks burn")
+	env._aurasSecret = true
+	env.FireEvent("UNIT_AURA", "player", {})
+	assert(Burning() == "000", "auras going secret stop every loop and the engine-fed still copies show")
+	Stack(3)
+	assert(Burning() == "000", "a stack gained while auras are secret still burns nothing")
+	for _, motion in ipairs({ "calm", "off", "full" }) do
+		K.Options.Write("Medallions", "motion", motion)
+		assert(Burning() == "000", "while auras are secret, " .. motion .. " plays nothing")
+	end
+	assert(reads == 0, "and the crown never reads an aura while auras are secret")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 0)
+	assert(Burning() == "111", "once the restriction ends the three held stacks burn")
+	Stack(0)
+	assert(Burning() == "000", "the aura gone, nothing loops")
+	Clean(env, K, "hunter arrow auras")
 end
 
 -- The hunter's arrows stay clear of the hawk perches.

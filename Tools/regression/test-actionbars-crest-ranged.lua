@@ -1,6 +1,7 @@
 -- test-actionbars-crest-ranged.lua: a hunter's, mage's and warlock's crest trackers (KstyleUI_ActionBars/SlabRanged.lua) through the one tracker lifecycle: no other class registers them; every seat has a choice for each build, pet state and level band (Raptor Strike and Arcane Shot before the Aspect and the pet, a melee hunter's strike for the Mark, Arcane Intellect before the mana gem, the mage's school debuff by talent, armor for a warlock with no demon); aura pieces light through Blizzard's aura slots and Lua reads no aura; the pet's light along the band is its health as a bar fed the engine's values, with a forged haunch only below Happy (amber light and halo at Content, red at Unhappy, gilt and no haunch at Happy, none for a secret value), moved by UNIT_HAPPINESS alone, landing, breathing, blinking for 3 s and fading green by the motion level, gone with the pet, and Mend Pet's motes; the pet's focus fed unchanged and repainted alone; the paw on the pet's perch while no pet is out, red and breathing at Full while it lies dead and never while hidden, none for a secret death; Trueshot Aura's sigil lit gilt while up and steel while down; Improved Tracking's mark gold when the tracked type is a hostile target's, steel when not, gone with no target or a friendly one, listening only while switched on and blind to a secret type or reaction; the range ring off while Auto Shot reaches, gilt only when melee surely reaches, red only when both surely fall short, none for an unknown or secret reading or a friendly target, from the game's range events, never polled, the crest's own range checks released when no ring needs them and a shared one left alone; the pet's family ability cooling by the pet's cooldown event through a dismissal and a pet swap, its debuff ring and Furious Howl from your pet alone; Growl's orders by autocast, group, the pet's target and a secret; your own Immolation Trap's burn and the potion pendant through its recharge; Tranquilizing Shot on the lower left foot; the fuse's head rides its fill and the Mark's reticle closes in; the gem and Healthstone are lit, cooling or empty from bag counts and item cooldowns; each spire stands alone once known and drains through duration bars; the soul wisps count Soul Shards up to five with a faint rim at five or more, fly in, burst and circle only at Full off rest, the first one too, and replace the shard jewels; Rapid Fire alone gusts; only your own school debuff lights its embers; cooldown rims stack the class's cooldowns, a pet's Bestial Wrath among them; moments hand the engine their flares and fires only at Full; secret auras build nothing until combat ends; each switch hides its seat alone; Frames stands the seats in the row; a mana update asks the bags nothing and every shot reuses one duration object; nothing loads for any other class; nothing runs OnUpdate; every crest part is an even number of pixels at four screen sizes and the spires stay under the cooldown row.
 local R = dofile("Tools/regression/ranged_env.lua")
 local AB, Slots, SIZES, New, Piece, Seated, Shown, Updating, Clean, Tint, Learn, Listening = R.AB, R.Slots, R.SIZES, R.New, R.Piece, R.Seated, R.Shown, R.Updating, R.Clean, R.Tint, R.Learn, R.Listening
+local Aura, Halo = R.Aura, R.Halo
 
 for _, class in ipairs({ "WARRIOR", "SHAMAN", "ROGUE", "PRIEST", "PALADIN", "DRUID" }) do
 	local env, K, ns = New(class, { known = { 13165, 168, 172, 688 }, bags = { [6265] = 3 } })
@@ -16,6 +17,8 @@ do
 	local env, K, ns = New("HUNTER", { known = { 2973 } })
 	local raptor, shows = Piece(ns, "crestAspect", 2)
 	assert(raptor and shows and raptor.spec.feed == "cooldown", "a hunter with only Raptor Strike sees its cooldown flash over the emblem")
+	local foot = raptor.lit.art
+	assert(foot.loop and not foot.loop:IsPlaying() and foot:GetAlpha() == 0, "the talon under the flash, never seen at alpha zero, plays no aura loop between flashes")
 	assert(Piece(ns, "crestPet") == nil and Piece(ns, "crestPet", 2) == nil, "nothing for the pet's band before Arcane Shot")
 	Learn(env, 13163, 3044)
 	local aspect, lit = Piece(ns, "crestAspect", 1)
@@ -25,14 +28,69 @@ do
 	Clean(env, K)
 end
 
+-- The Aspect and Sting pieces build only the feeds the hunter has learned, so no unlearned Aspect's or Sting's aura sheet loads, and
+-- learning one rebuilds the piece with it (review of the hunter auras: unneeded sheets).
+do
+	local function Sheets(frame, found)
+		for _, region in ipairs(frame._regions or {}) do
+			local file = tostring(((region._state or {}).Texture or {})[1])
+			local name = file:match("Auras\\Glyphs\\(%a+)%.png")
+			if name then found[name] = true end
+		end
+		for _, kid in ipairs(frame._kids or {}) do Sheets(kid, found) end
+		return found
+	end
+	local env, K, ns = New("HUNTER")
+	local aspect, sting = Piece(ns, "crestAspect"), Piece(ns, "crestSting")
+	local aspects, stings = Sheets(aspect, {}), Sheets(sting, {})
+	assert(#aspect.lits == 1 and aspects.Hawk and not (aspects.Monkey or aspects.Viper), "knowing only Aspect of the Hawk, the perch loads the hawk's sheet alone")
+	assert(#sting.lits == 1 and stings.Serpent and not (stings.ViperSting or stings.Wyvern), "knowing only Serpent Sting, the fuse loads the serpent's sheet alone")
+	Learn(env, 13163)
+	aspect = Piece(ns, "crestAspect")
+	assert(#aspect.lits == 2 and Sheets(aspect, {}).Monkey, "learning Aspect of the Monkey rebuilds the perch with its sheet")
+	Slots.Set(env, "player", { { id = 13163, icon = 136074, start = 0 } })
+	assert(aspect:IsShown() and aspect.lits[2]:IsShown() and Aura(aspect.lits[2].art, "Glyphs\\Monkey"), "and the new Aspect lights its own sigil")
+	Clean(env, K)
+end
+
+-- Swapping one learned Aspect for another keeps the count but still rebuilds the perch with the new sheet alone (review of the
+-- hunter auras: the piece was keyed by its count, so a same-count swap kept the old art).
 do
 	local env, K, ns = New("HUNTER")
+	env._known[13165] = nil
+	Learn(env, 13163)
+	local aspect = Piece(ns, "crestAspect")
+	local found = {}
+	for _, lit in ipairs(aspect.lits) do
+		local file = tostring(((lit.art._state or {}).Texture or {})[1])
+		found[#found + 1] = file:match("Auras\\Glyphs\\(%a+)%.png")
+	end
+	assert(#aspect.lits == 1 and found[1] == "Monkey", "unlearning the Hawk while learning the Monkey rebuilds the perch with the Monkey's sheet alone: " .. table.concat(found, ","))
+	local sheets = {}
+	local function Walk(frame)
+		for _, region in ipairs(frame._regions or {}) do
+			local name = tostring(((region._state or {}).Texture or {})[1]):match("Auras\\Glyphs\\(%a+)%.png")
+			if name then sheets[name] = true end
+		end
+		for _, kid in ipairs(frame._kids or {}) do Walk(kid) end
+	end
+	Walk(aspect)
+	assert(sheets.Monkey and not sheets.Hawk, "and its resting mark, the unlearned Hawk, stays the forged steel sigil with no sheet")
+	Slots.Set(env, "player", { { id = 13163, icon = 136074, start = 0 } })
+	assert(aspect:IsShown() and aspect.lits[1]:IsShown(), "and Aspect of the Monkey lights it")
+	Clean(env, K)
+end
+
+do
+	local known = { 13163, 5118, 13159, 20043, 13161, 415423, 3034, 3043, 19386, 24118, 3674 }
+	for _, id in ipairs(R.KNOWN.HUNTER) do known[#known + 1] = id end
+	local env, K, ns = New("HUNTER", { known = known })
 	local aspect, mark, sting, pet = Piece(ns, "crestAspect"), Piece(ns, "crestMark"), Piece(ns, "crestSting"), Piece(ns, "crestPet")
 	assert(aspect:IsShown() and aspect.rest:IsShown() and not aspect.lit:IsShown(), "no Aspect up: a dark steel hawk perched on the ring")
 	Slots.Set(env, "player", { { id = 14318, icon = 136076, start = 0 } })
-	assert(aspect.lits[1]:IsShown() and not aspect.lits[7]:IsShown() and Tint(aspect.lits[1].art, K, "gilt", 0.1), "Aspect of the Hawk lights the perched hawk gilt")
+	assert(aspect.lits[1]:IsShown() and not aspect.lits[7]:IsShown() and Aura(aspect.lits[1].art, "Glyphs\\Hawk") and Tint(Halo(aspect.lits[1]), K, "gilt"), "Aspect of the Hawk lights the perched hawk as its aura in a gilt halo")
 	Slots.Set(env, "player", { { id = 415423, icon = 132160, start = 0 } })
-	assert(aspect.lits[7]:IsShown() and not aspect.lits[1]:IsShown() and Tint(aspect.lits[7].art, K, "magic", 0.1), "Aspect of the Viper lights its coil mana blue")
+	assert(aspect.lits[7]:IsShown() and not aspect.lits[1]:IsShown() and Aura(aspect.lits[7].art, "Glyphs\\Viper") and Tint(Halo(aspect.lits[7]), K, "magic"), "Aspect of the Viper lights its coil as its aura in a mana blue halo")
 	assert(Shown(aspect.lits[7], aspect.lits[7].loop), "at Full the glyph breathes as the engine's shown animation")
 	Slots.Set(env, "target", { { id = 1130, icon = 132212, harmful = true, start = 0, duration = 120 }, { id = 24131, icon = 135125, harmful = true, mine = true, start = 2, duration = 12 } })
 	assert(mark.lit:IsShown() and Shown(mark.lit, mark.lit.loops[2]) and Shown(mark.lit, mark.lit.loops[1]), "the Mark's reticle closes in on the left band and gleams")
@@ -63,16 +121,15 @@ do
 	env.FireEvent("UNIT_HAPPINESS", "pet")
 	local feed = pet.feed
 	assert(feed and feed.seat:IsShown() and feed.gold and Tint(feed.tint, K, "neutral") and Light("neutral"), "Content: the haunch lands, its halo and the pet's light amber")
-	local body = feed.seat._regions[2]
-	assert(body:GetTexture():find("Haunch", 1, true) and Tint(body, K, "coinGold"), "the haunch's body is the forged gold Haunch")
-	local sheen = table.concat({ feed.sheen:GetVertexColor() }, ",")
+	local body = feed.seat._regions[3]
+	assert(Aura(feed.sheen, "Glyphs\\Haunch") and body:GetTexture():find("Socket", 1, true) and Tint(body, K, "coinGold"), "the haunch burns as its aura in the forged gold socket")
 	assert(feed.land:IsPlaying() and not feed.breath:IsPlaying() and not feed.blink:IsPlaying(), "at Full the drop lands with one flare; the crest at rest holds Content's halo still")
 	env.SetTarget(true)
 	assert(feed.breath:IsPlaying(), "awake, Content's halo breathes")
 	env._pet.mood = 1
 	env.FireEvent("UNIT_HAPPINESS", "pet")
 	assert(feed.seat:IsShown() and Tint(feed.tint, K, "hostile") and Light("hostile"), "Unhappy: the haunch and the pet's light turn red")
-	assert(Tint(body, K, "coinGold") and table.concat({ feed.sheen:GetVertexColor() }, ",") == sheen, "the mood colours only the halo: the haunch itself stays gold")
+	assert(Tint(body, K, "coinGold") and Aura(feed.sheen, "Glyphs\\Haunch"), "the mood colours only the halo: the haunch's socket stays gold and its aura keeps its own light")
 	assert(feed.blink:IsPlaying() and not feed.breath:IsPlaying(), "reaching Unhappy blinks the halo and stops the breath")
 	local steps = 0
 	for _, a in ipairs(feed.blink._anims) do steps = steps + a._state.Duration[1] end
@@ -115,23 +172,26 @@ end
 
 do
 	-- The crest homes plan (docs/crest-coverage.md, Hunter homes): the pet's perch shows a missing pet as a steel hound and a dead one in red.
+	-- The hound review (settled): a dead pet burns the red Hound aura, drawn only once a death is known; a missing pet keeps the still steel hound.
 	local env, K, ns = New("HUNTER", { hiding = true })
 	local pet = Piece(ns, "crestPet")
 	local lost = pet.lost
 	assert(lost.seat:IsShown() and not lost.halo:IsShown() and lost.hound:GetTexture() == (K.Tokens.Texture("glyphHound")) and Tint(lost.hound, K, "steel"), "no pet out: a steel hound waits on the pet's perch")
+	assert(lost.burn == nil, "and no burning hound sheet loads before the pet is first seen dead")
 	env._pet = { max = 1800, missing = 0, mood = 3 }
 	env.FireEvent("UNIT_PET", "player")
 	assert(not lost.seat:IsShown() and pet.pet:IsShown(), "a pet out takes the hound away")
 	env._pet.missing, env._pet.dead = 1800, true
 	env.FireEvent("UNIT_HEALTH", "pet")
-	assert(lost.seat:IsShown() and lost.halo:IsShown() and Tint(lost.hound, K, "hostile", 0.2) and not pet.pet:IsShown(), "a dead pet: the hound turns red with a red halo and the light goes out")
-	assert(not lost.breath:IsPlaying(), "the crest at rest holds the red halo still")
+	assert(lost.seat:IsShown() and lost.halo:IsShown() and lost.burn ~= nil and lost.burn:IsShown() and not lost.hound:IsShown() and not pet.pet:IsShown(), "a dead pet: the hound burns red with a red halo and the light goes out")
+	assert(tostring(((lost.fire._state or {}).Texture or {})[1]):match("Auras\\Glyphs\\Hound%.png$"), "the dead hound is the red Hound aura sheet")
+	assert(not lost.breath:IsPlaying() and not lost.fire.loop:IsPlaying(), "the crest at rest holds the red halo and the burning hound still")
 	env.SetTarget(true)
-	assert(lost.breath:IsPlaying(), "awake at Full, the red halo breathes")
+	assert(lost.breath:IsPlaying() and lost.fire.loop:IsPlaying(), "awake at Full, the red halo breathes and the hound burns")
 	K.Options.Write("Medallions", "motion", "calm")
-	assert(not lost.breath:IsPlaying() and lost.halo:IsShown() and Tint(lost.hound, K, "hostile", 0.2), "Calm holds the red halo still and keeps the state")
+	assert(not lost.breath:IsPlaying() and not lost.fire.loop:IsPlaying() and lost.halo:IsShown() and lost.burn:IsShown(), "Calm holds the red halo and the hound still and keeps the state")
 	K.Options.Write("Medallions", "motion", "off")
-	assert(not lost.breath:IsPlaying() and lost.seat:IsShown() and lost.halo:IsShown(), "Off still shows the dead hound, unmoving")
+	assert(not lost.breath:IsPlaying() and not lost.fire.loop:IsPlaying() and lost.seat:IsShown() and lost.halo:IsShown(), "Off still shows the dead hound, unmoving")
 	K.Options.Write("Medallions", "motion", "full")
 	env._pet.dead = env.Secret(true)
 	env.FireEvent("UNIT_HEALTH", "pet")
@@ -141,12 +201,12 @@ do
 	assert(not lost.seat:IsShown() and pet.pet:IsShown(), "a revived pet clears the hound")
 	env._pet = nil
 	env.FireEvent("UNIT_PET", "player")
-	assert(lost.seat:IsShown() and not lost.halo:IsShown() and Tint(lost.hound, K, "steel"), "a dismissed pet leaves the steel hound")
+	assert(lost.seat:IsShown() and not lost.halo:IsShown() and Tint(lost.hound, K, "steel") and lost.hound:IsShown() and not lost.burn:IsShown(), "a dismissed pet leaves the steel hound, not the burning one")
 	env._pet = { max = 1800, missing = 1800, mood = 3, dead = true }
 	env.FireEvent("UNIT_PET", "player")
 	assert(lost.halo:IsShown() and lost.breath:IsPlaying(), "dead again at Full: the red halo breathes")
 	pet:GetParent():Hide()
-	assert(not lost.breath:IsPlaying(), "the crest hiding stops the dead hound's halo with no repaint")
+	assert(not lost.breath:IsPlaying() and not lost.fire.loop:IsPlaying(), "the crest hiding stops the dead hound's halo and burn with no repaint")
 	pet:GetParent():Show()
 	assert(lost.seat:IsVisible() and lost.breath:IsPlaying(), "the crest shown again starts the dead hound's halo again")
 	K.Options.Write("ActionBars", "crestPet", false)
@@ -170,9 +230,10 @@ do
 	local env, K, ns = New("HUNTER", { tracking = 1494 })
 	local aura = Piece(ns, "crestTrueshot")
 	assert(aura:IsShown() and aura.rest:IsShown() and not aura.lit:IsShown(), "Trueshot Aura down: a steel mark on the upper left")
-	assert(aura.rest:GetRegions():GetTexture() == (K.Tokens.Texture("glyphTrueshot")), "the steel mark is the face the Trueshot token names")
+	assert(select(2, aura.rest:GetRegions()):GetTexture() == (K.Tokens.Texture("auraGlyphTrueshot")) and Tint(select(2, aura.rest:GetRegions()), K, "steel"),
+		"the steel mark is the Trueshot aura's still frame in steel over its socket")
 	Slots.Set(env, "player", { { id = 20906, icon = 132329, start = 0 } })
-	assert(aura.lit:IsShown() and Tint(aura.lit.art, K, "gilt", 0.1), "Trueshot Aura up lights the mark gilt")
+	assert(aura.lit:IsShown() and Aura(aura.lit.art, "Glyphs\\Trueshot") and Tint(Halo(aura.lit), K, "gilt"), "Trueshot Aura up burns its arrow as its aura in a gilt halo")
 	Slots.Set(env, "player", {})
 	assert(not aura.lit:IsShown() and not aura.lit.art:IsVisible() and aura.rest:IsShown(), "the aura gone puts the gilt mark out and leaves the steel one")
 	K.Options.Write("ActionBars", "crestTrueshot", false)
@@ -446,7 +507,9 @@ do
 	Slots.Set(env, "target", { { id = 14298, icon = 135813, harmful = true, mine = false, start = 0, duration = 15 } })
 	assert(not burn:IsShown(), "another hunter's Immolation Trap burning your target leaves the fuse dark")
 	Slots.Set(env, "target", { { id = 14298, icon = 135813, harmful = true, mine = true, start = 0, duration = 15 } })
-	assert(burn:IsShown() and burn.mark:GetTexture() == (K.Tokens.Texture("sigilFireTrap")), "your own Immolation Trap's burn burns down the fuse under the fire trap's mark")
+	assert(burn:IsShown() and burn.mark:GetTexture() == (K.Tokens.Texture("auraSigilFireTrapFuse")), "your own Immolation Trap's burn burns down the fuse under the fire trap's burning mark")
+	-- The fuse review (settled): the fuse head burns the trap in fire's colour; the rail keeps its green trap sheet.
+	assert((K.Tokens.Texture("auraSigilFireTrapFuse")) ~= (K.Tokens.Texture("auraSigilFireTrap")) and select(5, K.Tokens.Texture("sigilFireTrap")) == "auraSigilFireTrap", "the fuse's fire sheet is its own, and the rail's trap sigil keeps the green one")
 	Slots.Set(env, "target", {})
 	assert(not burn:IsShown() and not burn.mark:IsVisible() and not burn.art:IsVisible(), "the burn ended: the fuse and its mark go dark")
 	assert(potion.lit:IsShown() and potion.ready:IsShown(), "a Healing Potion in the bags hangs ready on the pendant")

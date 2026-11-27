@@ -174,7 +174,9 @@ function Crown.Update(event)
 			local on = c == fed
 			c:SetShown(on)
 			c:Listen(OWNER .. ":" .. name, on)
-			pending = not (open and c:SetMotion(moving)) or pending
+			local burning = Effects.Allows("ambient") and not ns.Slab.Resting()
+			c:SetBurning(burning)
+			pending = not (open and c:SetMotion(moving, burning)) or pending
 			if open then
 				local r, g, b = K.Theme.ClassColor(name == "BEAR" and "DRUID" or name)
 				for _, t in ipairs(c.ring) do
@@ -218,3 +220,13 @@ function Crown.SetEnabled(on)
 	end
 	Crown.Update()
 end
+
+ns.SlabMedals.OnRest(function(still)
+	local c = state.crown
+	if c then
+		c:SetBurning(not still)
+	end
+	if c and state.enabled and not (Widgets.CrownOpen() and c:SetMotion(Effects.Allows("flare"), not still)) then
+		Listen(state.class, state.shown, true)
+	end
+end)

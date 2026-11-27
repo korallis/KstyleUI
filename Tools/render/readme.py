@@ -14,7 +14,7 @@ The pictures:
   hud_frames_1080  the same in the Frames look
   frame_raid       the raid frames with their heading, from the group frames gallery scene at twice the density
   frames_medals    a warrior's Frames HUD with every crest piece lit as medals above the stance bar, at twice the size
-  hunter_marks     a hunter's Medallions crest with its forged marks lit, at twice the size (KstyleUI_ActionBars/README.md)
+  hunter_marks     a hunter's Medallions crest with its marks lit, at twice the size (KstyleUI_ActionBars/README.md)
 
 --no-render reuses the renders a previous run left in DIR. --only redoes the named pictures. Pillow is needed; the script
 runs itself again with the wow-dev virtual environment's Python when this one has none.

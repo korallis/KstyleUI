@@ -6,6 +6,7 @@
 	<Script file="Events.lua"/>
 	<Script file="Tokens.lua"/>
 	<Script file="MedallionAssets.lua"/>
+	<Script file="SpellFamilies.lua"/>
 	<Script file="Theme.lua"/>
 	<Script file="Scale.lua"/>
 	<Script file="Motion.lua"/>

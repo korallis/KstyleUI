@@ -9,37 +9,6 @@ local KNOWN = {
 	WARLOCK = { 172, 980, 348, 688, 6201, 1120, 18094, 18288, 706, 702, 17962, 2362, 6789 },
 }
 
--- The shared stub's Hide runs no OnHide. With opts.hiding a shown frame that hides, by Hide or SetShown(false), runs OnHide on
--- itself and every shown descendant, as the client does, so a test reaches a hide handler only through the code that hides it.
-local function Hidden(frame)
-	local fn = frame._scripts and frame._scripts.OnHide
-	if fn then fn(frame) end
-	for _, kid in ipairs(frame._kids or {}) do
-		if kid._shown then Hidden(kid) end
-	end
-end
-
-local function Hiding(env)
-	local meta = getmetatable(env.UIParent)
-	if not meta.hiding then
-		local index = meta.__index
-		local wrapped = {}
-		for _, key in ipairs({ "Hide", "SetShown" }) do
-			wrapped[key] = function(self, shown, ...)
-				local visible = self:IsVisible()
-				index(self, key)(self, shown, ...)
-				if visible and not self:IsVisible() then Hidden(self) end
-			end
-		end
-		meta.__index = function(object, key)
-			local owner = rawget(object, "_env")
-			return owner and owner._hiding and wrapped[key] or index(object, key)
-		end
-		meta.hiding = true
-	end
-	env._hiding = true
-end
-
 local function New(class, opts)
 	opts = opts or {}
 	local size = opts.size or SIZES[1]
@@ -146,7 +115,7 @@ local function New(class, opts)
 		end,
 	})
 	if opts.hiding then
-		Hiding(env)
+		AB.Hiding(env)
 	end
 	env._owned = {}
 	local events = K.Events
@@ -175,12 +144,17 @@ local function New(class, opts)
 end
 
 -- Piece(ns, key, choice) -> the piece built for the switch's row and choice (1 when unset), and whether it shows.
+-- A choice whose feeds are pared to the learned ones is keyed with their places in its list ("1:1/1,3"), so learning or
+-- swapping one builds a new piece.
 local function Piece(ns, key, choice)
 	local state = ns.SlabTrackers.state
 	local form = state.form
 	for i, row in ipairs(ns.SlabTrackers.CLASSES[ns.class] or {}) do
-		local p = row.key == key and form and form.pieces[i .. ":" .. (choice or 1)]
-		if p then return p, p:IsShown() end
+		local id = i .. ":" .. (choice or 1)
+		for spec in pairs(row.key == key and form and state.specs or {}) do
+			local p = (spec == id or spec:sub(1, #id + 1) == id .. "/") and form.pieces[spec]
+			if p then return p, p:IsShown() end
+		end
 	end
 end
 
@@ -223,6 +197,26 @@ local function Tint(region, K, token, white)
 	return math.abs(vr - r) + math.abs(vg - g) + math.abs(vb - b) < 1e-3
 end
 
+-- Aura(region, sheet) -> whether the region draws that mark's looping aura sheet ("Glyphs\\Hawk" under Media/Textures/Auras) as untinted light: the KSTY-51 plan bakes each aura's colour from its spell's.
+local function Aura(region, sheet)
+	local state = region._state or {}
+	local r, g, b = region:GetVertexColor()
+	return tostring((state.Texture or {})[1]):find("Auras\\" .. sheet .. ".png", 1, true) ~= nil and (state.BlendMode or {})[1] == "ADD" and r == 1 and g == 1 and b == 1
+end
+
+-- Halo(frame) -> the additive glow under a lit mark, which carries the spell's colour; it sits on the mark's layer, not beside
+-- the burning copy the aura draws on, so the search walks the lit frame's tree.
+local function Halo(frame)
+	for _, each in ipairs(frame._regions or {}) do
+		local state = each._state or {}
+		if tostring((state.Texture or {})[1]):find("Glow.png", 1, true) and (state.BlendMode or {})[1] == "ADD" then return each end
+	end
+	for _, kid in ipairs(frame._kids or {}) do
+		local found = Halo(kid)
+		if found then return found end
+	end
+end
+
 -- Icons(frame, found) -> found, listing every region under frame that shows a spell or item icon: a texture given a
 -- file ID, or a region an aura slot paints its aura's icon into.
 local function Icons(frame, found)
@@ -246,5 +240,5 @@ local function Listening(env, event)
 	return owned ~= nil and owned[event] == true
 end
 
-return { AB = AB, Slots = Slots, SIZES = SIZES, KNOWN = KNOWN, New = New, Piece = Piece, Seated = Seated, Shown = Shown, Updating = Updating, Clean = Clean, Tint = Tint, Icons = Icons, Learn = Learn,
+return { AB = AB, Slots = Slots, SIZES = SIZES, KNOWN = KNOWN, New = New, Piece = Piece, Seated = Seated, Shown = Shown, Updating = Updating, Clean = Clean, Tint = Tint, Aura = Aura, Halo = Halo, Icons = Icons, Learn = Learn,
 	Listening = Listening }
