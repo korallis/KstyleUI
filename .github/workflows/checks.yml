@@ -173,7 +173,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # lua --affected origin/staging needs the target branch and the history back to it.
+          # The comparisons need the history back to the base.
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -189,14 +189,17 @@ jobs:
       - name: The gate command and its exit code
         env:
           PART: ${{ matrix.part }}
+        # AGENTS.md names origin/staging; the commands compare with the event's base instead, which on a pull request is the
+        # target branch the change merges into and on a push is where the push started, so the codes describe this change.
         run: |
+          echo "base $BASE is $(git rev-parse "$BASE"); origin/staging is $(git rev-parse origin/staging)"
           case $PART in
           lint) set -- lint ;;
-          *) set -- lua --affected origin/staging --shard "${PART#lua }" ;;
+          *) set -- lua --affected "$BASE" --shard "${PART#lua }" ;;
           esac
           code=0
-          bash scripts/gate.sh "$@" || code=$?
-          echo "native Windows exit code of bash scripts/gate.sh $*: $code"
+          GATE_BASE="$BASE" bash scripts/gate.sh "$@" || code=$?
+          echo "native Windows exit code of bash scripts/gate.sh $* (GATE_BASE=$BASE): $code"
           exit "$code"
 
   checks:

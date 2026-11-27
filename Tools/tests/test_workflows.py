@@ -234,6 +234,26 @@ class WorkflowsTest(unittest.TestCase):
                       "'0000000000000000000000000000000000000000' && github.event.before || 'HEAD^1' }}\n", text)
         for job in ("scope", "lua", "lint-python-package"):
             self.assertIn("fetch-depth: ${{ github.event_name == 'push' && '0' || '2' }}", jobs_of(text)[job], job)
+        script = textwrap.dedent(jobs_of(text)["scope"].split("        run: |\n", 1)[1])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.com", GIT_COMMITTER_NAME="t",
+                       GIT_COMMITTER_EMAIL="t@example.com", GIT_CONFIG_GLOBAL=os.devnull)
+            (root / "Tools" / "hooks").mkdir(parents=True)
+            (root / "Tools" / "hooks" / "needs-lua.sh").write_bytes((REPO / "Tools" / "hooks" / "needs-lua.sh").read_bytes())
+            subprocess.run(["git", "init", "-q"], cwd=root, env=env, check=True)
+            for path, message in (("README.md", "former tip"), ("Core/A.lua", "code"), ("docs/A.md", "docs")):
+                (root / path).parent.mkdir(parents=True, exist_ok=True)
+                (root / path).write_text(message + "\n", encoding="utf-8")
+                subprocess.run(["git", "add", "-A"], cwd=root, env=env, check=True)
+                subprocess.run(["git", "commit", "-q", "-m", message], cwd=root, env=env, check=True)
+            for base, lua in (("HEAD~2", "lua=true"), ("HEAD^1", "lua=false")):
+                with self.subTest(base=base):
+                    out = root / ("out-" + base.replace("~", "-").replace("^", "-"))
+                    done = subprocess.run(["bash", "-e", "-c", script], cwd=root, capture_output=True, text=True,
+                                          env=dict(env, BASE=base, GITHUB_OUTPUT=str(out)))
+                    self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+                    self.assertEqual(out.read_text(encoding="utf-8").split()[0], lua)
 
     def scope(self, needs, changed):
         """Run the scope job's script in a repository whose last commit changes the file changed."""
@@ -269,8 +289,9 @@ class WorkflowsTest(unittest.TestCase):
         job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["windows"]
         self.assertIn("    needs: [scope]\n    if: needs.scope.outputs.windows == 'true'\n", job)
         self.assertIn("lint) set -- lint ;;", job)
-        self.assertIn('*) set -- lua --affected origin/staging --shard "${PART#lua }" ;;', job)
-        self.assertIn('echo "native Windows exit code of bash scripts/gate.sh $*: $code"', job)
+        self.assertIn('*) set -- lua --affected "$BASE" --shard "${PART#lua }" ;;', job)
+        self.assertIn('GATE_BASE="$BASE" bash scripts/gate.sh "$@" || code=$?', job)
+        self.assertIn('echo "native Windows exit code of bash scripts/gate.sh $* (GATE_BASE=$BASE): $code"', job)
 
     def test_the_python_tests_have_the_image_libraries_they_need(self):
         # Review finding: without Pillow and NumPy the image, crest and Medallions tests skip and read as a pass.

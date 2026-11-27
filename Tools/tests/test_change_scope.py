@@ -51,18 +51,30 @@ class NeedsLuaTest(unittest.TestCase):
             git(root, "commit", "-q", "-m", "change")
             return subprocess.run(["bash", str(HOOKS / "needs-lua.sh"), "HEAD^1"], cwd=root, capture_output=True).returncode
 
-    def test_docs_workflows_and_python_tools_need_no_lua_tests(self):
-        # The captain's ruling: a docs-only change runs no Lua tests.
-        for path in ("docs/DEVELOPING.md", "AGENTS.md", ".github/workflows/checks.yml", "Tools/tests/test_x.py", "Tools/render/x.py"):
+    def test_files_no_lua_test_reads_need_no_lua_tests(self):
+        # The captain's ruling (d:d-qp9lxr): a docs-only change runs no Lua tests.
+        for path in ("docs/DEVELOPING.md", "AGENTS.md", "Tools/regression/README.md", "KstyleUI_Chat/docs/notes.md",
+                     ".github/workflows/checks.yml", "Tools/tests/test_x.py", "scripts/gate.sh", "research_notes/api.md"):
             with self.subTest(path=path):
                 self.assertEqual(self.changed(path), 1)
 
-    def test_addon_code_and_what_the_tests_load_need_them(self):
-        for path in ("Core/Core.lua", "KstyleUI_Chat/KstyleUI_Chat.toc", "KstyleUI_Bags/Bags.xml", ".luacheckrc",
+    def test_code_data_and_the_documents_the_lua_tests_read_need_them(self):
+        # The captain's ruling: a code or data change runs the Lua tests it reaches. The documents here are ones
+        # test-options-notes, test-scaffold, test-actionbars-keybind-review and test-setup-layouts read.
+        for path in ("Core/Core.lua", "KstyleUI_Chat/KstyleUI_Chat.toc", "KstyleUI_Bags/Bags.xml", ".luacheckrc", ".pkgmeta",
                      "Tools/regression/stubs/frames.lua", "Tools/regression/run_all.py", "Tools/data/api.json",
-                     "Media/Textures/Bar.tga"):
+                     "Tools/locale/enUS.json", "Tools/media/medallions_kit.py", "Tools/render/guard_allow.tsv",
+                     "Media/Textures/Bar.tga", "CHANGELOG.md", "KstyleUI_Chat/README.md", "docs/feature-map.md",
+                     "docs/superpowers/plans/element-keys.md"):
             with self.subTest(path=path):
                 self.assertEqual(self.changed(path), 0)
+
+    def test_an_unknown_base_is_an_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            git(tmp, "init", "-q")
+            git(tmp, "commit", "-q", "--allow-empty", "-m", "base")
+            done = subprocess.run(["bash", str(HOOKS / "needs-lua.sh"), "no-such-ref"], cwd=tmp, capture_output=True)
+            self.assertEqual(done.returncode, 2)
 
 
 if __name__ == "__main__":
