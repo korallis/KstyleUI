@@ -27,7 +27,9 @@ awk '
     line++
     text = substr($0, 2)
     scan = text
-    gsub(/data:image\/[a-zA-Z0-9.+-]+;base64,[a-zA-Z0-9+\/=]+/, "", scan)
+    if (file == "docs/renders/index.html" || file == "docs/renders/phone.html") {
+      gsub(/<img src="data:image\/png;base64,[a-zA-Z0-9+\/=]+"/, "<img src=\"[image]\"", scan)
+    }
     if (tolower(scan " ") ~ pat && scan !~ tk) { printf "%s:%d: %s\n", file, line, scan; bad++ }
     next
   }
