@@ -1091,18 +1091,62 @@ do
 	Auras(true, true)
 	assert(Engine(function() return bloom:IsPlaying() end) and gate:GetAlpha() == 0, "the Aspect's bloom shows at once and the older flare's layer hides")
 	assert(Alphas() == "1,0", "the bloom plays on the flame copy, which shows alone (" .. Alphas() .. ")")
-	local swell = assert(burning.flare.swell, "the bloom grows the Aspect's socket")
-	assert(not Engine(function() return swell:IsPlaying() end), "under hidden values the bloom leaves its socket still, as Lua could not stop that growth once a newer flare hides the bloom")
 	armed = {}
 	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
 	other:Play()
 	assert(other:IsPlaying() and Engine(function() return bloom:IsPlaying() end), "a newer flare shows at once, and Lua may not stop the bloom")
 	assert(Alphas() == "0,1", "so the flame copy is hidden and the still copy shows the aura in its place (" .. Alphas() .. ")")
-	assert(not Engine(function() return swell:IsPlaying() end), "and the socket holds still under the still copy instead of growing with the hidden bloom")
 	assert(#armed > 0, "a timer waits out the bloom")
 	for _, fn in ipairs(armed) do fn() end
 	env.C_Timer.After = after
 	assert(Alphas() == "1,0", "the flame copy shows again once the bloom's time is over (" .. Alphas() .. ")")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A bloom already growing its socket when aura values turn secret: a newer flare hides the flame copy, and the socket that grows sits on it,
+-- so the still copy shows over a socket that never moved.
+do
+	local env, K, ns = New("HUNTER")
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	local lit = assert(Piece(ns, "crestAspect"), "the Aspect perch").lits[1]
+	local burning = lit.art:GetParent():GetParent()
+	local flare = burning.flare
+	assert(flare.socket ~= nil, "the Aspect's bloom carries a socket of its own")
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	Slots.Set(env, "player", { { id = lit.spec.spells[1], auraInstanceID = 31, start = 0, duration = 600 } })
+	flare.play:Stop()
+	flare.play:Play()
+	assert(flare.play:IsPlaying() and lit.flames:GetAlpha() == 1, "auras readable: the Aspect's bloom grows its socket on the flame copy")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	local after = env.C_Timer.After
+	env.C_Timer.After = function() end
+	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
+	other:Play()
+	env.C_Timer.After = after
+	assert(Engine(function() return flare.play:IsPlaying() end), "hidden values: Lua may not stop the growing bloom")
+	assert(lit.flames:GetAlpha() == 0 and lit.stills:GetAlpha() == 1, "so a newer flare hides the flame copy and the still copy shows")
+	assert(Engine(function() return flare.socket:GetEffectiveAlpha() == 0 end), "and the growing socket is hidden with the bloom's light")
+	local still = lit.stills
+	local function Socket(frame)
+		for _, region in ipairs(frame._regions or {}) do
+			if region ~= flare.socket and tostring((region._state.Texture or {})[1]):find("Socket.png", 1, true) then return region end
+		end
+		for _, kid in ipairs(frame._kids or {}) do
+			local found = kid ~= burning and Socket(kid)
+			if found then return found end
+		end
+	end
+	local shared = Socket(lit)
+	assert(shared and #(shared._parent._groups or {}) == 0 and shared._parent ~= flare.socket._parent and still:GetAlpha() == 1, "while the shared socket under the still holds its size")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

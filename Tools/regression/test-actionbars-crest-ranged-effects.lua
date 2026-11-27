@@ -160,15 +160,16 @@ do
 	local function Peak(group)
 		return group._anims[1]._type == "Scale" and group._anims[1]._state.ScaleFrom[1]
 	end
-	copy.flare.play:Play()
-	assert(copy.flare.swell ~= nil and not copy.flare.swell:IsPlaying(), "while the crest rests the ignition is hidden, so its socket holds still")
-	K.Options.Write("Medallions", "restingCrest", false)
-	env.RunTimers()
-	copy.flare.play:Stop()
-	copy.flare.play:Play()
-	assert(copy.flare.swell ~= nil and copy.flare.swell:IsPlaying() and copy.flare.swell:GetParent() == whole and Peak(copy.flare.swell) == 1.5 and Peak(copy.flare.play) == 1.5, "the ignition grows the Sting's socket with its light from the same 1.5 peak")
-	copy.flare.play:Stop()
-	assert(not copy.flare.swell:IsPlaying(), "and stopping the ignition stops the socket's growth with it")
+	-- The socket that grows is a copy of the body on the flame copy's own seat, under its fire, so the bloom grows it and its gate hides it with
+	-- the light; the shared socket never animates, so a bloom masked under hidden values leaves no socket growing under the still.
+	local function Grows(flare, under, peak)
+		local socket = flare.socket
+		return socket ~= nil and socket:GetParent() == flare.play:GetParent() and socket._state.DrawLayer[1] == "ARTWORK" and socket._state.DrawLayer[2] == -1
+			and tostring(socket._state.Texture[1]):find("Socket.png", 1, true) and socket.units == under.units and Peak(flare.play) == peak
+			and select(1, socket:GetVertexColor()) == select(1, under:GetVertexColor()) and select(3, socket:GetVertexColor()) == select(3, under:GetVertexColor())
+			and #(under:GetParent()._groups or {}) == 0
+	end
+	assert(Grows(copy.flare, body, 1.5), "the ignition grows a copy of the Sting's gold socket with its light from the same 1.5 peak, and the shared socket holds still")
 	Same("Wyvern Sting's halo is schoolFire ff8a3d, apart from Black Arrow's violet", { Drawn(Host(sting.lits[4].head, "Socket.png"), "Glow.png", true):GetVertexColor() }, 0xff / 255, 0x8a / 255, 0x3d / 255)
 	Same("Black Arrow's halo is schoolShadow 9d7bff", { Drawn(Host(sting.lits[6].head, "Socket.png"), "Glow.png", true):GetVertexColor() }, 0x9d / 255, 0x7b / 255, 0xff / 255)
 	assert(aspect.rest:GetAlpha() == 0.85, "an unlit forged Aspect rests at 0.85 so its outline shows on the ring")
@@ -194,9 +195,7 @@ do
 	Same("Aspect of the Viper's socket is gold, coinGold f0c75e", { Drawn(cast, "Socket.png", false):GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
 	Same("its halo is the spell's colour, magic 5aa9ff", { Drawn(cast, "Glow.png", true):GetVertexColor() }, 0x5a / 255, 0xa9 / 255, 0xff / 255)
 	assert(viper:IsShown() and Aura(viper.art, "Glyphs\\Viper") and burning.flare.play:GetParent() == viper.art:GetParent(), "the lit pass is the coil's aura in its socket and the landing grows the whole burning mark")
-	burning.flare.play:Play()
-	assert(burning.flare.swell ~= nil and burning.flare.swell:IsPlaying() and burning.flare.swell:GetParent() == cast and Peak(burning.flare.swell) == 1.2 and Peak(burning.flare.play) == 1.2, "the landing grows the Aspect's socket with its light from the same 1.2 peak")
-	burning.flare.play:Stop()
+	assert(Grows(burning.flare, Drawn(cast, "Socket.png", false), 1.2), "the landing grows a copy of the Aspect's gold socket with its light from the same 1.2 peak, and the shared socket holds still")
 	Slots.Set(env, "player", nil)
 	assert(lit._pandemicAnimations[1] == lit.flicker and not lit.flicker:IsPlaying(), "the ending blink waits for the pandemic window")
 	Pandemic(env, "target", serpent)

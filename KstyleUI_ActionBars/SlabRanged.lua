@@ -141,12 +141,14 @@ local function Bloom(texture, from)
 	return { play = group, still = still }
 end
 
-local function Swell(flare, host, from)
-	local grow = host:CreateAnimationGroup()
-	ns.Slab.Grow(grow, from, 1, 0.5)
-	Medals.Arbitrate(flare.play, true, flare.gate)
-	flare.play:HookScript("OnStop", function() grow:Stop() end)
-	flare.swell, flare.play.follow = grow, grow
+local function Swell(p, flare, seat, art, size, color, gold, r, g, b)
+	if select(5, Tokens.Flipbook(select(5, Tokens.Texture(art)))) ~= 1 then
+		return
+	end
+	flare.socket = p.add(Medals.Texture(seat, "ARTWORK", -1, "auraSocket", gold and "coinGold" or color, size))
+	if r and not gold then
+		flare.socket:SetVertexColor(r, g, b)
+	end
 end
 
 local function Light(p, each, level, look)
@@ -166,13 +168,14 @@ local function Light(p, each, level, look)
 		local r, g, b = Lift(each.color, look.white)
 		local aura
 		local lights = lit.container and select(5, Tokens.Texture(art)) and Medals.Lights(p, lit, level + 3, light) or nil
-		lit.art, cast, _, _, aura = Medals.Mark(p, light, art, size, each.color, r, g, b, level + 2, lights)
+		local gold
+		lit.art, cast, _, gold, aura = Medals.Mark(p, light, art, size, each.color, r, g, b, level + 2, lights)
 		lit.art:SetDesaturated(not aura)
 		if lights and lights.flame:GetParent().container then
 			local copy = lights.flame:GetParent()
 			copy.flare, copy.loops, gated = Bloom(lights.flame, 1.2), { look.loop and Medals.Steps(lights.flame, look.loop, true) or nil }, true
 			copy.flare.gate = lit.flames
-			Swell(copy.flare, cast, 1.2)
+			Swell(p, copy.flare, lights.flame, art, size, each.color, gold, r, g, b)
 			Medals.Cue(p, lit, level + 3, light, art, lit.art, size, 1.2)
 		end
 	end
@@ -323,12 +326,13 @@ local function Fuse(parent, spec, level, form)
 			lit.flare = not lit.container and Bloom(host, 1.5) or nil
 			Medals.Later(p, each == spec and spec.known or rawget(each, "known") or each.spells, function()
 				local lights = lit.container and Medals.Lights(p, lit, above + 1, host) or nil
-				lit.mark = Medals.Mark(p, host, each.glyph, size, each.color, r, g, b, nil, lights)
+				local gold
+				lit.mark, _, _, gold = Medals.Mark(p, host, each.glyph, size, each.color, r, g, b, nil, lights)
 				if lights and lights.flame:GetParent().container then
 					local copy = lights.flame:GetParent()
 					copy.flare, copy.flicker = Bloom(lights.flame, 1.5), ns.Slab.Flicker(lights.flame)
 					copy.flare.gate = lit.flames
-					Swell(copy.flare, host, 1.5)
+					Swell(p, copy.flare, lights.flame, each.glyph, size, each.color, gold, r, g, b)
 					Medals.Cue(p, lit, above + 1, host, each.glyph, lit.mark, size, 1.5)
 				end
 			end)

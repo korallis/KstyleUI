@@ -1182,9 +1182,6 @@ function Medals.Arbitrate(group, engine, gate)
 			end
 			Hush(own, nil, group)
 		end
-		if group.follow and not (group.engine and Medals.Restricted()) then
-			group.follow:Play()
-		end
 		claiming = true
 		Medals.Claim(stop, group.held)
 		claiming = false
