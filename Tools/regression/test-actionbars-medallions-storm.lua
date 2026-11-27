@@ -481,44 +481,81 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- Each orb is the storm orb's animated aura (the shaman's crest marks take the aura kit): its sheet burns over the orb's
--- fill turned black, clipped to the fill so a spent charge drains both, and its loop is the orb slot's shown animation
--- only while the crest is awake at Full, the shared rule for the crest's engine-fed loops: a resting crest, Calm and Off
--- take it away and stop it, so the engine never plays a loop nobody sees, and waking or Full on a shield already up
--- plays it at once rather than at the next shield.
+-- Each orb is the storm orb's animated aura (the shaman's crest marks take the aura kit, the KSTY-51 plan): its sheet burns
+-- over the orb's fill turned black, the fire on the orb slot's own moving copy and the still on its still copy, each
+-- clipped to the orb's fill under a bar the engine feeds that orb's own charge, so a spent charge hides its light and
+-- its loop with it while the shield holds the others (review of 3aee7bda, charge-owner-stays-shown). A motion level
+-- chosen in combat under hidden values shows the moving fire or the still at once, with no write to the aura buttons'
+-- animations (review of 69906ab1, healer-instant-motion; the rule in test-actionbars-crest-motion.lua).
 do
 	local env, K, ns = New("SHAMAN", { [RANK7] = true })
 	local state = ns.SlabStorm.state
-	local function Bound(s)
-		for _, group in ipairs(s.slot._shownAnimations) do
-			if group == s.fire.loop then return true end
-		end
-		return false
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
 	end
-	local function Burning(want, why)
-		for i, s in ipairs(state.seats) do
-			assert(Bound(s) == want and s.fire.loop:IsPlaying() == want, why .. " (orb " .. i .. ")")
-		end
+	local function Shows(region)
+		return Engine(function() return region:IsVisible() and region:GetEffectiveAlpha() > 0 end)
 	end
-	for _, s in ipairs(state.seats) do
+	local writes = 0
+	for i, s in ipairs(state.seats) do
 		local file = s.fire._state.Texture[1]
 		assert(file == K.Tokens.Texture("auraStormOrb") and s.fire.still._state.Texture[1] == file, "each orb draws the storm orb's aura sheet")
-		assert(s.fire.clip:GetParent() == s.orb and s.orb:GetStatusBarTexture()._state.BlendMode[1] == "BLEND", "over the orb's fill, its black body, clipped to it")
+		assert(s.orb:GetStatusBarTexture()._state.BlendMode[1] == "BLEND", "over the orb's fill, its black body")
+		local lights = assert(s.slot.lights, "orb " .. i .. " has a moving and a still copy of its slot")
+		for _, part in ipairs({ { s.fire, lights.flame, "fire" }, { s.fire.still, lights.calm, "still" } }) do
+			local clip = part[1]:GetParent()
+			local under = clip:GetParent()
+			assert(under:GetParent() == part[2], "orb " .. i .. "'s " .. part[3] .. " burns on its own copy of the orb slot")
+			local bound = assert(rawget(part[2], "_applicationBar"), "orb " .. i .. "'s " .. part[3] .. " copy feeds a charge bar")
+			assert(bound[1] == under and bound[2].minApplications == i and bound[2].maxApplications == i,
+				"orb " .. i .. "'s " .. part[3] .. " sits under a bar the engine shows only while charge " .. i .. " holds")
+			for k = 1, clip:GetNumPoints() do
+				local _, to = clip:GetPoint(k)
+				assert(to == s.orb:GetStatusBarTexture(), "orb " .. i .. "'s " .. part[3] .. " is clipped to the orb's fill")
+			end
+		end
+		for _, verb in ipairs({ "AddAuraShownAnimation", "RemoveAuraShownAnimation" }) do
+			local real = lights.flame[verb]
+			lights.flame[verb] = function(...) writes = writes + 1 return real(...) end
+		end
+	end
+	-- Lit(n, burning, why): orbs 1 to n show the moving fire (burning) or the still, and the spent ones show neither.
+	local function Lit(n, burning, why)
+		for i, s in ipairs(state.seats) do
+			local on = i <= n
+			assert(Shows(s.fire) == (on and burning) and Shows(s.fire.still) == (on and not burning), why .. " (orb " .. i .. ")")
+			assert(not on or Engine(function() return s.fire.loop:IsPlaying() end), why .. ": a lit orb's loop plays (orb " .. i .. ")")
+		end
 	end
 	K.Options.Write("Medallions", "motion", "full")
 	Shield(env, 3)
 	Cast(env, RANK7)
-	Burning(false, "a resting crest leaves the lit orbs' loops off")
 	env.SetTarget(true)
-	Burning(true, "waking the crest plays each lit orb's loop at once")
-	for _, level in ipairs({ "calm", "off" }) do
+	Lit(3, true, "three charges at Full burn three moving orbs")
+	Shield(env, 2)
+	Lit(2, true, "a struck charge hides its orb's light")
+	Shield(env, 1)
+	Lit(1, true, "one charge left burns one orb")
+	env._aurasSecret = true
+	env.SetCombat(true)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	writes = 0
+	for _, level in ipairs({ "calm", "full", "off", "full" }) do
 		K.Options.Write("Medallions", "motion", level)
-		Burning(false, level .. " takes each orb's loop away and stops it")
-		K.Options.Write("Medallions", "motion", "full")
-		Burning(true, "Full on a shield already up plays each loop again")
+		env.RunTimers()
+		Lit(1, level == "full", level .. " chosen under hidden values shows at once")
 	end
-	env.SetTarget(false)
-	Burning(false, "the crest coming to rest stops them")
+	assert(writes == 0, "no level choice under hidden values writes to the orbs' aura buttons, got " .. writes)
+	env._aurasSecret = false
+	env.SetCombat(false)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+	Shield(env, nil)
+	for i, s in ipairs(state.seats) do
+		assert(not Shows(s.fire) and not Shows(s.fire.still) and not s.fire.loop:IsPlaying(), "the shield gone: orb " .. i .. "'s light and loop stop")
+	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

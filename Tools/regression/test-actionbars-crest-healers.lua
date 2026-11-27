@@ -1149,12 +1149,85 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- A priest's fed figures and Inner Fire's flames burn their auras on their slots' own moving and still copies, so a
+-- motion level chosen in combat under hidden values shows the moving fire or the still at once, with no write to the
+-- aura buttons' animations (review of 69906ab1, healer-instant-motion; the rule in test-actionbars-crest-motion.lua).
+-- Each flame's light sits under a bar the engine shows only while that flame holds a charge, so a spent flame hides its
+-- light and its loop while Inner Fire lasts (review of 3aee7bda, charge-owner-stays-shown).
+do
+	local env, K, ns = New("PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 })
+	local b = Tracker(ns, "PRIEST").built
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	local function Shows(region)
+		return Engine(function() return region:IsVisible() and region:GetEffectiveAlpha() > 0 end)
+	end
+	local flames, renew = {}, b.renew.lits[1].aura
+	local writes = 0
+	for k = 1, 4 do
+		local lit = b.innerFire.lits[k + 1]
+		flames[k] = assert(lit.aura, "flame " .. k .. " burns an aura")
+		assert(flames[k]:GetParent():GetParent():GetParent() == lit.lights.flame and flames[k].still:GetParent():GetParent():GetParent() == lit.lights.calm,
+			"flame " .. k .. "'s fire and still burn on their own copies of its slot")
+		local o = rawget(lit.lights.flame, "_applicationBar")[2]
+		assert(o.minApplications == (k - 1) * 5 + 1 and o.maxApplications == k * 5, "flame " .. k .. "'s light shows only while it holds a charge")
+	end
+	for _, each in ipairs({ flames[1], flames[2], flames[3], flames[4], renew }) do
+		local copy = each:GetParent():GetParent():GetParent()
+		for _, verb in ipairs({ "AddAuraShownAnimation", "RemoveAuraShownAnimation" }) do
+			local real = copy[verb]
+			copy[verb] = function(...) writes = writes + 1 return real(...) end
+		end
+	end
+	-- Lit(n, burning, why): flames 1 to n and Renew show the moving fire (burning) or the still; spent flames show neither.
+	local function Lit(n, burning, why)
+		for k, fire in ipairs(flames) do
+			local on = k <= n
+			assert(Shows(fire) == (on and burning) and Shows(fire.still) == (on and not burning), why .. " (flame " .. k .. ")")
+			assert(not on or Engine(function() return fire.loop:IsPlaying() end), why .. ": a lit flame's loop plays (flame " .. k .. ")")
+		end
+		assert(Shows(renew) == burning and Shows(renew.still) == not burning, why .. " (Renew)")
+	end
+	local inner = { id = 10952, count = 20, start = 0, duration = 600 }
+	Slots.Set(env, "player", { inner })
+	Slots.Set(env, "target", { { id = 25315, count = 0, start = 0, duration = 15 } })
+	env.SetCombat(true)
+	env.RunTimers()
+	Lit(4, true, "twenty charges at Full burn four moving flames")
+	inner.count = 11
+	Slots.Set(env, "player", { inner })
+	Lit(3, true, "eleven charges: three flames burn, the spent one is dark")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	writes = 0
+	for _, level in ipairs({ "calm", "full", "off", "full" }) do
+		K.Options.Write("Medallions", "motion", level)
+		env.RunTimers()
+		Lit(3, level == "full", level .. " chosen under hidden values shows at once")
+	end
+	inner.count = 10
+	Slots.Set(env, "player", { inner })
+	Lit(2, true, "a charge spent under hidden values darkens its flame")
+	assert(writes == 0, "no level choice under hidden values writes to the aura buttons, got " .. writes)
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+	Slots.Set(env, "player", nil)
+	for k, fire in ipairs(flames) do
+		assert(not Shows(fire) and not Shows(fire.still) and not fire.loop:IsPlaying(), "Inner Fire gone: flame " .. k .. "'s light and loop stop")
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- Every mark a priest's, druid's or shaman's crest draws in light is an animated aura from the shared kit (the crest
 -- marks become animated spell-effect auras, never static icons), and a sheet loads only once its spell is known (a
 -- picture loads only when it is needed). For each character below, in both HUD styles, the shown pieces hold exactly
 -- these sheets, each owned by something that plays its loop: an engine aura button that has it among its shown
 -- loops, or the frame whose show and hide start and stop it. No mark of these classes' own is left a flat additive
--- drawing; the sigils every class shares (race spells, potions and Dash) are another change's.
+-- drawing; the sigils every class shares (race spells, potions and Dash) belong to the melee auras' test.
 do
 	local COMMON = { Axe = true, Eye = true, Gear = true, Grave = true, Potion = true, Regen = true, Shatter = true, Star = true, Stone = true, Tusks = true, Dash = true }
 	local HOLY = "Figures\\Dome Figures\\Fiend Figures\\Lance Figures\\Mending Figures\\Renew Sigils\\Infusion Trackers\\Flame"
@@ -1195,7 +1268,7 @@ do
 						if sheet and t.loop then
 							assert(Owned(t), at .. key .. "'s " .. sheet .. " loop has no owner")
 							assert(t.still._state.Texture[1] == file, at .. key .. "'s " .. sheet .. " still is its own sheet")
-							seen[sheet] = true
+							seen[sheet] = not COMMON[sheet:match("^Sigils\\(%a+)$") or ""] or nil
 						elseif not sheet and (t._state.BlendMode or {})[1] == "ADD" then
 							local kind, name = file:match("\\(%a+)\\(%a+)%.png$")
 							if (kind == "Figures" or kind == "Sigils" and not COMMON[name] or file:find("Trackers\\[FLRS][a-z]+%.png$") and not file:find("Swing"))

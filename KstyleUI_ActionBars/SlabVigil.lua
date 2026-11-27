@@ -50,8 +50,8 @@ local function Fire(parent, spec, level, form)
 		bar:SetStatusBarTexture((K.Tokens.Texture("trackerFlame")))
 		bar:GetStatusBarTexture():SetBlendMode("ADD")
 		bar:SetOrientation("VERTICAL")
-		Medals.Fill(r, bar, select(5, K.Tokens.Texture("trackerFlame")), FLAME)
-		lit:SetApplicationBar(bar, { minApplications = (k - 1) * PER, maxApplications = k * PER, interpolation = modes.Immediate or 0 })
+		lit.aura = Medals.Fill(r, bar, select(5, K.Tokens.Texture("trackerFlame")), FLAME)
+		Medals.Charges(lit, bar, { minApplications = (k - 1) * PER, maxApplications = k * PER, interpolation = modes.Immediate or 0 })
 		r.lits[#r.lits + 1] = lit
 		r.ring[k] = seat
 	end

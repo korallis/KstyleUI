@@ -148,10 +148,10 @@ local function Hiding(host)
 	end
 end
 
-function Medals.Aura(piece, host, token, size, color, r, g, b, lights, owner)
+function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 	local _, _, _, _, span, tint = Tokens.Flipbook(token)
 	local lazy = piece.lazy
-	owner = owner or piece.quiet
+	local quiet = piece.quiet
 	local file = not lazy and token
 	local flame, calm = lights and lights.flame, lights and lights.calm
 	local fire = piece.add(Cell(Medals.Texture(flame or host, "ARTWORK", 0, file, "white", size * span, "ADD"), token, 0))
@@ -178,8 +178,8 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights, owner)
 	end
 	auras[#auras + 1] = fire
 	local fed = Fed(host)
-	if owner then
-		fire.fed, fire.quiet = owner, owner == piece.quiet
+	if quiet then
+		fire.fed, fire.quiet = quiet, true
 	elseif fed then
 		fire.fed = fed
 		fed.auraLoops = fed.auraLoops or {}
@@ -782,7 +782,7 @@ function Medals.Medal(parent, spec, level)
 	return m
 end
 
-function Medals.Fill(piece, bar, aura, size, color, owner)
+function Medals.Fill(piece, bar, aura, size, color)
 	if not aura then
 		return nil
 	end
@@ -790,18 +790,48 @@ function Medals.Fill(piece, bar, aura, size, color, owner)
 	fill:SetBlendMode("BLEND")
 	bar:SetStatusBarColor(Tokens.Color("black"))
 	local pad = size * (select(5, Tokens.Flipbook(aura)) - 1) / 2
-	local clip = CreateFrame("Frame", nil, bar)
-	clip:SetClipsChildren(true)
-	clip:SetPoint("TOPLEFT", fill, "TOPLEFT", -pad, 0)
-	clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", pad, -pad)
-	local fire = Medals.Aura(piece, clip, aura, size, color, nil, nil, nil, nil, owner)
+	local function Clip(parent)
+		local clip = CreateFrame("Frame", nil, parent)
+		clip:SetClipsChildren(true)
+		clip:SetPoint("TOPLEFT", fill, "TOPLEFT", -pad, 0)
+		clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", pad, -pad)
+		return clip
+	end
+	local lit, lights = Fed(bar)
+	if lit and lit.spec then
+		bar.copies = {}
+		lights = {}
+		local flame, calm = Medals.Gates(piece, lit, bar:GetFrameLevel() + 1, true)
+		for name, copy in pairs({ flame = flame, calm = calm }) do
+			local under = CreateFrame("StatusBar", nil, copy)
+			under:SetAllPoints(bar)
+			under:SetStatusBarTexture(fill:GetTexture())
+			under:GetStatusBarTexture():SetAlpha(0)
+			bar.copies[#bar.copies + 1] = { button = copy, bar = under }
+			lights[name] = Clip(under)
+		end
+	end
+	local clip = lights and lights.calm or Clip(bar)
+	local fire = Medals.Aura(piece, clip, aura, size, color, nil, nil, nil, lights)
 	for _, t in ipairs({ fire, fire.still }) do
 		t:ClearAllPoints()
 		t:SetPoint("CENTER", bar, "CENTER", 0, 0)
 		t:SetVertexColor(Tokens.Color(color or "white"))
 	end
-	fire.clip = clip
+	fire.clip = lights and lights.flame or clip
 	return fire
+end
+
+function Medals.Charges(lit, bar, options)
+	lit:SetApplicationBar(bar, options)
+	local spent = {}
+	for k, v in pairs(options) do
+		spent[k] = v
+	end
+	spent.minApplications = options.minApplications + 1
+	for _, copy in ipairs(bar.copies or NONE) do
+		copy.button:SetApplicationBar(copy.bar, spent)
+	end
 end
 
 function Medals.Figure(parent, spec, level)
@@ -840,7 +870,7 @@ function Medals.Figure(parent, spec, level)
 		spark:ClearAllPoints()
 		spark:SetPoint("CENTER", bar:GetStatusBarTexture(), "TOP", 0, 0)
 		if each.charges and lit.container then
-			lit:SetApplicationBar(bar, { minApplications = 0, maxApplications = each.charges })
+			Medals.Charges(lit, bar, { minApplications = 0, maxApplications = each.charges })
 		elseif lit.container and not each.steady then
 			local timer = Enum and Enum.StatusBarTimerDirection
 			lit:SetDurationBar(bar, { direction = timer and timer.RemainingTime or 1 })
