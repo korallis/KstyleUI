@@ -204,11 +204,16 @@ local function Aura(region, sheet)
 	return tostring((state.Texture or {})[1]):find("Auras\\" .. sheet .. ".png", 1, true) ~= nil and (state.BlendMode or {})[1] == "ADD" and r == 1 and g == 1 and b == 1
 end
 
--- Halo(region) -> the additive glow beside a mark, which carries the spell's colour.
-local function Halo(region)
-	for _, each in ipairs(region:GetParent()._regions) do
+-- Halo(frame) -> the additive glow under a lit mark, which carries the spell's colour; it sits on the mark's layer, not beside
+-- the burning copy the aura draws on, so the search walks the lit frame's tree.
+local function Halo(frame)
+	for _, each in ipairs(frame._regions or {}) do
 		local state = each._state or {}
 		if tostring((state.Texture or {})[1]):find("Glow.png", 1, true) and (state.BlendMode or {})[1] == "ADD" then return each end
+	end
+	for _, kid in ipairs(frame._kids or {}) do
+		local found = Halo(kid)
+		if found then return found end
 	end
 end
 

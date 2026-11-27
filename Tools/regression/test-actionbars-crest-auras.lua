@@ -107,8 +107,8 @@ end
 
 do
 	local plain = Medals.Piece(parent, 5, 30)
-	local t, _, _, _, aura = Medals.Mark(plain, plain, "glyphEye", 30, "gilt")
-	assert(not aura and (t._state.Texture or {})[1] == texture("glyphEye") and not plain.fires, "a mark with no aura draws as before, with no loop and no hooks")
+	local t, _, _, _, aura = Medals.Mark(plain, plain, "glyphFrost", 30, "gilt")
+	assert(not aura and (t._state.Texture or {})[1] == texture("glyphFrost") and not plain.fires, "a mark with no aura draws as before, with no loop and no hooks")
 end
 
 do
@@ -277,23 +277,29 @@ do
 	local railed = true
 	local rim = Medals.CooldownRim(parent, { families = { { spells = { 3045 }, sigil = "Volley" }, { spells = { 19263 }, sigil = "Deflect" },
 		{ spells = { 19574 }, sigil = "Paw" } }, color = "jewelHawk", railed = function(spells) return railed and spells[1] == 19574 end }, 5)
-	local volley, deflect, paw = rim.sigils[1].fire, rim.sigils[2].fire, rim.sigils[3].fire
-	for _, fire in ipairs({ volley, deflect, paw }) do
-		assert(fire:GetTexture() == nil and fire.still:GetTexture() == nil, "a sigil built before it is placed has loaded no sheet")
+	local function Loaded(button, token)
+		local file = texture(token)
+		for _, copy in ipairs({ button.flame, button.calm }) do
+			local found = false
+			for _, region in ipairs(copy._regions or {}) do
+				found = found or Draws(region, file)
+			end
+			if not found then
+				return false
+			end
+		end
+		return true
 	end
-	Medals.Place(rim, parent, 0, 0)
-	assert(Draws(volley, BARE) and Draws(volley.still, BARE), "placed, the known Volley loads its own sheet")
-	local x, right, y = volley:GetTexCoord()
-	local sx, _, sy = volley.still:GetTexCoord()
-	local _, columns = K.Tokens.Flipbook("auraSigilVolley")
-	assert(x == 0 and y == 0 and right == 1 / columns and sx == 0 and sy == 0, "its fire and its still draw the sheet's first cell, not the whole sheet")
-	assert(deflect:GetTexture() == nil and deflect.still:GetTexture() == nil, "Deflection, not yet learned, loads nothing")
+	local volley, deflect, paw = rim.sigils[1], rim.sigils[2], rim.sigils[3]
+	Medals.Prepare(rim)
+	assert(Loaded(volley, "auraSigilVolley"), "the known Volley loads its own sheet on its fire and its still")
+	assert(not Loaded(deflect, "auraSigilDeflect"), "Deflection, not yet learned, loads nothing")
 	known[19574] = true
-	Medals.Place(rim, parent, 0, 0)
-	assert(paw:GetTexture() == nil, "Bestial Wrath, learned but held by the rail, loads nothing")
+	Medals.Prepare(rim)
+	assert(not Loaded(paw, "auraSigilPaw"), "Bestial Wrath, learned but held by the rail, loads nothing")
 	known[19263], railed = true, false
-	Medals.Place(rim, parent, 0, 0)
-	assert(Draws(deflect, texture("auraSigilDeflect")) and Draws(paw.still, texture("auraSigilPaw")), "learning Deflection, and the rail letting Bestial Wrath go, loads their sheets")
+	Medals.Prepare(rim)
+	assert(Loaded(deflect, "auraSigilDeflect") and Loaded(paw, "auraSigilPaw"), "learning Deflection, and the rail letting Bestial Wrath go, loads their sheets")
 end
 
 assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))

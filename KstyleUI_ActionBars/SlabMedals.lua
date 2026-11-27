@@ -932,6 +932,12 @@ local function Sigil(r, lit, key, family, color, size, bloom)
 		Medals.Mark(r, button, art, size * SIGIL, color, pale, pale, pale, nil, lights)
 	end
 	local need = lights and (family.art or (not family.known or family.known[1]) and (family.known or family.spells))
+	if need and type(need) == "table" then
+		local spells = need
+		need = function()
+			return Ready(spells) and not (r.spec.railed and r.spec.railed(family.spells))
+		end
+	end
 	if need then
 		Medals.Later(r, need, Draw)
 	else
@@ -961,7 +967,7 @@ function Medals.CooldownRim(parent, spec, level, form)
 		table.insert(units[unit].families, family)
 	end
 	table.sort(order, function(a, b) return a == "player" and b ~= "player" end)
-	r.sigils = {}
+	r.sigils, r.spec = {}, spec
 	local size = row and ROW_SIGIL or STACK
 	r.pitch, r.per = size + (row and 2 or STACK_GAP), row and 10 or 3
 	r.left, r.first, r.rise = row and 0 or -r.pitch, row and 0 or -STACK_DROP - size / 2, r.pitch
@@ -980,7 +986,6 @@ function Medals.CooldownRim(parent, spec, level, form)
 		end
 	end
 	r.timer = r.lit.timer
-	r.spec = spec
 	return r
 end
 
