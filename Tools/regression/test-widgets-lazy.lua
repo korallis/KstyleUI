@@ -311,11 +311,11 @@ do
 	-- on the target and Furious Howl), each aura feed with its two motion copies (114 regions), the potion pendant (12), Growl's orders and
 	-- the tracking mark's still glyphs (4 each), the range ring and the pet's focus bar, less the forged bodies the tracking mark gave up.
 	-- Tranquilizing Shot's glyph on the lower left foot is part of that total.
-	-- Each signature pop-off the lit story knows (SlabPopoffs.lua) adds 22: its mark, timer ring and ember twice for the
-	-- motion copy, two flare slots and the fold. The hunter and warlock know two, the mage and priest one.
+	-- Each signature pop-off the lit story knows (SlabPopoffs.lua) adds 10, its Blender sheet once in each motion face among
+	-- them, and Power Infusion's target and focus slots 6 more. The hunter and warlock know two, the mage and priest one.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4964, DRUID = 5280, SHAMAN = 4919, HUNTER = 5394, MAGE = 4955, WARLOCK = 5271 }) do
+	for class, limit in pairs({ PRIEST = 4958, DRUID = 5280, SHAMAN = 4919, HUNTER = 5350, MAGE = 4963, WARLOCK = 5247 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")

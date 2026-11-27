@@ -208,6 +208,16 @@ function Medals.Dim(piece, host, art, size, color)
 	return piece.add(Cell(Medals.Texture(host, "ARTWORK", 0, aura, color, size * span, "ADD"), aura, AURA_STILL)), socket
 end
 
+function Medals.Sheet(piece, host, art, size)
+	local token = select(5, Tokens.Texture(art))
+	local fire = piece.add(Cell(Medals.Texture(host, "ARTWORK", 0, token, "white", size * select(5, Tokens.Flipbook(token)), "ADD"), token, AURA_STILL))
+	local fed = Fed(host)
+	fed.auraLoops = fed.auraLoops or {}
+	fed.auraLoops[#fed.auraLoops + 1] = Medals.Flip(fire, token, 1)
+	feds[#feds + 1] = fed
+	return fire
+end
+
 function Medals.Mark(piece, parent, art, size, color, r, g, b, level, lights)
 	local _, _, _, forged, aura = Tokens.Texture(art)
 	aura = lights ~= false and aura or nil

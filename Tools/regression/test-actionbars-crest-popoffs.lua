@@ -1,5 +1,6 @@
--- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment): every class has one or two, each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each claims its own seat on the crest's shoulders; its aura lights it from the engine's own slot, which at Full plays the rising flare, at Calm the still flare and at Off no flare; the aura's end folds it at Full only; the switch hides them; while auras are secret nothing touches the slot and the fold still plays.
+-- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment and its review): every class has one or two, the mage's listed first and the hunter's second, each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each class's pop-offs take seats of their own or the overlay seat they were chosen for; each lights from its own aura on its own unit and no other, and goes when the aura goes; at Full the flare rises, at Calm it is still and at Off it is dark; the aura's end folds it at Full only, and Calm, Off or the crest coming to rest stop a fold already running; Ice Block covers the emblem, Evocation's ticks loop into the mana gem at Full only, Divine Shield's fold shrinks into the Forbearance ring that lights from the debuff, Power Infusion also lights when the priest casts it on a target or focus, Bestial Wrath rises from the pet band, and either rank of Nightfall builds Shadow Trance; the switch hides them; while auras are secret, from before combat until the restriction lifts, nothing touches the slots and an aura's end still folds.
 local F = dofile("Tools/regression/crest_armory_fixture.lua")
+local W = dofile("Tools/regression/widget_env.lua")
 local AB, Slots, New, Clean = F.AB, F.Slots, F.New, F.Clean
 
 local function Load(path)
@@ -18,14 +19,26 @@ assert(OWNERS[11958] == "MAGE" and OWNERS[19574] == "HUNTER", "abilities.json re
 
 -- The four plan candidates the crest needs ledger found no Forever source for: Avenging Wrath, Readiness, Shadowfiend, Metamorphosis.
 local UNCONFIRMED = { [407788] = "Avenging Wrath", [23989] = "Readiness", [401977] = "Shadowfiend", [403789] = "Metamorphosis" }
-local ORDER = { "MAGE", "HUNTER", "PALADIN", "PRIEST", "WARLOCK", "DRUID", "SHAMAN", "WARRIOR", "ROGUE" }
+
+-- Each class's signature moments as the plan and its amendment name them, typed from Wowhead Forever: the spell a character knows,
+-- the aura that lights the pop-off and the unit that carries it.
+local SIGNATURES = {
+	MAGE = { { art = "Crystal", known = 11958, aura = 11958 }, { art = "Vortex", known = 12051, aura = 12051 } },
+	HUNTER = { { art = "Beast", known = 19574, aura = 19574, unit = "pet" }, { art = "Deflect", known = 19263, aura = 19263 } },
+	PALADIN = { { art = "Bubble", known = 642, aura = 642 }, { art = "Sun", known = 20216, aura = 20216 } },
+	PRIEST = { { art = "Infusion", known = 10060, aura = 10060 }, { art = "Focus", known = 14751, aura = 14751 } },
+	WARLOCK = { { art = "Void", known = 18094, aura = 17941 }, { art = "Curse", known = 18288, aura = 18288 } },
+	DRUID = { { art = "Innervate", known = 29166, aura = 29166 }, { art = "Swift", known = 17116, aura = 17116 } },
+	SHAMAN = { { art = "Bolt", known = 16164, aura = 16246 }, { art = "Swift", known = 16188, aura = 16188 } },
+	WARRIOR = { { art = "Sweep", known = 12292, aura = 12292 } },
+	ROGUE = { { art = "Veil", known = 1784, aura = 1784 } },
+}
 
 local function Pops(ns)
 	local list = {}
 	for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
 		if p.spec.key == "crestPopoffs" then list[#list + 1] = p end
 	end
-	table.sort(list, function(a, b) return a.spec.art < b.spec.art end)
 	return list
 end
 
@@ -35,11 +48,14 @@ local function Pop(ns, art)
 	end
 end
 
--- The game runs a slot's shown groups' OnStop when it hides the slot; the stub does not, so the tests run it, then the frame after.
-local function Gone(env, p, unit)
-	Slots.Set(env, unit or "player", nil)
-	p.watch._scripts.OnStop(p.watch)
-	env.RunTimers()
+-- The lit of a piece whose aura container reads this unit.
+local function On(p, unit, n)
+	for _, lit in ipairs(p.lits) do
+		if lit.container._unit == unit then
+			n = (n or 1) - 1
+			if n == 0 then return lit end
+		end
+	end
 end
 
 local function Motion(env, K, level)
@@ -47,32 +63,89 @@ local function Motion(env, K, level)
 	env.RunTimers()
 end
 
--- Each class's rows, in the goal's order: the mage first, then the hunter, then the rest.
+local function Gain(env, unit, id, fields)
+	local aura = { id = id, start = env._now, duration = 10 }
+	for k, v in pairs(fields or {}) do aura[k] = v end
+	Slots.Set(env, unit, { aura })
+end
+
+-- An aura's end: the engine hides its slot and stops the shown groups on it, and the fold waits a frame.
+local function Gone(env, unit)
+	Slots.Set(env, unit or "player", nil)
+	env.RunTimers()
+end
+
+local function Finish(env)
+	while W.FinishGroups(env) do end
+end
+
+-- The rows: the mage first, then the hunter, one or two each, known spells of their own class, seats of their own.
 do
 	local _, _, ns = New("MAGE", {})
 	local classes = ns.SlabPopoffs.CLASSES
-	assert(#classes == 9, "all nine classes have pop-offs")
-	for i, entry in ipairs(classes) do
+	assert(#classes == 9 and classes[1][1] == "MAGE" and classes[2][1] == "HUNTER", "all nine classes have pop-offs, the mage's first and the hunter's next")
+	local seen = {}
+	for _, entry in ipairs(classes) do
 		local class, rows = entry[1], entry[2]
-		assert(class == ORDER[i], "pop-offs are listed mage first, then hunter, then the rest")
-		assert(#rows == 1 or #rows == 2, class .. " has one or two pop-offs")
+		assert(SIGNATURES[class] and not seen[class], class .. " is listed once")
+		seen[class] = true
+		assert(#rows == #SIGNATURES[class] and (#rows == 1 or #rows == 2), class .. " has one or two pop-offs")
 		local seats = {}
-		for _, row in ipairs(rows) do
+		for i, row in ipairs(rows) do
 			assert(row.crestOnly and row.feed == "aura" and row.key == "crestPopoffs", class .. ": a pop-off is a crest-only aura row behind its switch")
+			assert(row.art == SIGNATURES[class][i].art, class .. ": pop-off " .. i .. " is " .. SIGNATURES[class][i].art)
 			local seat = ns.SlabSeats.Name(row.seat)
-			assert(seat and seat:find("^pop") and not seats[seat], class .. ": each pop-off has a pop seat of its own")
+			assert(seat and not seats[seat], class .. ": each pop-off has a named seat of its own")
 			seats[seat] = true
+			local owned = false
 			for _, id in ipairs(row.known or row.spells) do
-				assert(OWNERS[id] == class, class .. ": pop-off spell " .. id .. " is the class's own spell in abilities.json")
+				owned = owned or OWNERS[id] == class
 			end
+			assert(owned, class .. ": " .. row.art .. " is known from a spell abilities.json gives the class")
 			for _, id in ipairs(row.spells) do
 				assert(not UNCONFIRMED[id], class .. " uses " .. tostring(UNCONFIRMED[id]) .. ", which no Forever source confirms")
 			end
 		end
 	end
+	assert(ns.SlabSeats.Name(classes[1][2][1].seat) == "emblem" and ns.SlabSeats.Name(classes[1][2][2].seat) == "perchRight", "Ice Block's shell sits over the emblem and Evocation over the mana gem's seat")
 end
 
--- A mage: nothing known, no pop-offs; Ice Block and Evocation known, both seated over the crest, unlit until their auras.
+-- Every class: each pop-off lights from its own aura on its own unit and goes when it goes; another unit, another class's aura or another
+-- pop-off's aura lights nothing.
+for class, signatures in pairs(SIGNATURES) do
+	local known = {}
+	for _, s in ipairs(signatures) do known[#known + 1] = s.known end
+	local cenv, cK, cns = New(class, known)
+	cenv.SetTarget(true)
+	cenv.RunTimers()
+	assert(#Pops(cns) == #signatures, class .. ": every known pop-off is built")
+	for _, line in ipairs(cns.SlabTrackers.state.forms.crest.refused) do
+		assert(not line:find("crestPopoffs", 1, true), class .. ": " .. line)
+	end
+	for i, s in ipairs(signatures) do
+		local p = assert(Pop(cns, s.art), class .. ": " .. s.art .. " is built")
+		local unit, wrong = s.unit or "player", s.unit and "player" or "pet"
+		Gain(cenv, wrong, s.aura)
+		assert(not p.lits[1]:IsShown(), class .. ": " .. s.art .. "'s aura on the " .. wrong .. " lights nothing")
+		Gone(cenv, wrong)
+		Gain(cenv, unit, class == "ROGUE" and 11958 or 1784)
+		assert(not p.lits[1]:IsShown(), class .. ": another class's aura lights nothing")
+		local other = signatures[3 - i]
+		if other then
+			Gain(cenv, other.unit or "player", other.aura)
+			assert(not p.lits[1]:IsShown(), class .. ": " .. other.art .. "'s aura does not light " .. s.art)
+			Gone(cenv, other.unit or "player")
+		end
+		Gain(cenv, unit, s.aura)
+		assert(p:IsVisible() and p.lits[1]:IsShown(), class .. ": " .. s.art .. " lights from its aura on the " .. unit)
+		Gone(cenv, unit)
+		assert(not p.lits[1]:IsShown(), class .. ": " .. s.art .. " goes when its aura goes")
+		Finish(cenv)
+	end
+	Clean(cenv, cK, class)
+end
+
+-- A mage: nothing known, no pop-offs; Ice Block and Evocation known, both overlays, unlit until their auras.
 local env, K, ns = New("MAGE", {})
 env.SetTarget(true)
 env.RunTimers()
@@ -82,124 +155,222 @@ env.FireEvent("SPELLS_CHANGED")
 env.RunTimers()
 local block, evocation = Pop(ns, "Crystal"), Pop(ns, "Vortex")
 assert(block and evocation and #Pops(ns) == 2, "Ice Block and Evocation each build a pop-off once known")
-local form = ns.SlabTrackers.state.forms.crest
-local claimed = {}
-for seat, key in pairs(form.claims) do
-	if key == "crestPopoffs" then claimed[#claimed + 1] = seat end
-end
-table.sort(claimed)
-assert(#claimed == 2 and claimed[1] == "popLeft" and claimed[2] == "popRight" and #form.refused == 0, "they claim the pop seats beside each other, and no piece is refused")
+assert(#ns.SlabTrackers.state.forms.crest.refused == 0, "the overlays claim no seat, so no piece is refused")
 local lit = block.lits[1]
-assert(not lit:IsShown(), "with no aura the pop-off shows nothing")
+assert(not lit:IsShown() and not block.fold:IsShown(), "with no aura the pop-off and its fold draw nothing")
+local w = block:GetWidth()
+assert(w >= 2 * evocation:GetWidth(), "the Ice Block shell is drawn round the emblem, wider than a seated pop-off")
 
--- Full: the aura lights it, the rising flare plays from below the seat, the ring drains, and the end folds it.
+-- Full: the aura lights it, the flare plays in place over the emblem, the ring drains, and the end folds it.
 local full = lit.flareGate.lit
 local rise = full.flare.play
-local moves = {}
 for _, a in ipairs(rise._anims) do
-	if a._type == "Translation" then moves[#moves + 1] = select(2, a:GetOffset()) end
+	assert(a._type ~= "Translation", "the Ice Block flare grows in place over the emblem, it does not travel")
 end
-assert(#moves == 2 and moves[1] == -moves[2] and moves[2] > 0, "the Full flare drops below the seat and rises back into it")
-Slots.Set(env, "player", { { id = 11958, start = 0, duration = 10 } })
-assert(lit:IsShown() and rise:IsPlaying(), "at Full the aura lights the pop-off and its flare rises off the crest")
+Gain(env, "player", 11958)
+assert(lit:IsShown() and rise:IsPlaying(), "at Full the aura lights the pop-off and its flare plays")
 assert(AB.W.LastCall(lit._cooldown, "SetCooldownFromDurationObject"), "its ring drains with the aura")
+local sheet = lit.auraLoops and lit.auraLoops[1]
+assert(sheet and sheet:IsPlaying() and sheet:GetParent():GetTexture():find("Auras\\Popoffs\\Crystal.png", 1, true), "at Full its Blender sheet loops in the lit slot")
 assert(block.up and not block.fold.play:IsPlaying(), "it is up and not folding")
-Gone(env, block)
-assert(not lit:IsShown() and block.fold.play:IsPlaying(), "at Full the aura's end folds it")
+Gone(env)
+assert(not lit:IsShown() and block.fold:IsShown() and block.fold.play:IsPlaying(), "at Full the aura's end folds it")
+Finish(env)
+assert(not block.fold:IsShown(), "the fold hides its layer once it ends")
 Clean(env, K, "full")
 
--- Calm: the still flare and no rise or fold.
+-- A fold already running stops when the player picks Calm or Off, and when the crest comes to rest.
+for _, level in ipairs({ "calm", "off" }) do
+	Gain(env, "player", 11958)
+	Gone(env)
+	assert(block.fold.play:IsPlaying(), level .. ": the fold runs at Full")
+	Motion(env, K, level)
+	assert(not block.fold.play:IsPlaying() and not block.fold:IsShown(), "picking " .. level .. " stops the running fold")
+	Motion(env, K, "full")
+	Finish(env)
+end
+Gain(env, "player", 11958)
+Gone(env)
+assert(block.fold.play:IsPlaying(), "the fold runs while the crest is awake")
+env.SetTarget(false)
+env.FireEvent("PLAYER_TARGET_CHANGED")
+env.RunTimers()
+assert(ns.Slab.Resting() and not block.fold.play:IsPlaying(), "the crest coming to rest stops the running fold")
+Gain(env, "player", 11958)
+Gone(env)
+assert(not block.fold.play:IsPlaying(), "a resting crest does not fold")
+env.SetTarget(true)
+env.FireEvent("PLAYER_TARGET_CHANGED")
+env.RunTimers()
+Finish(env)
+Clean(env, K, "fold stops")
+
+-- Evocation's ticks run into the mana gem from the crest at Full only.
+local vlit = evocation.lits[1]
+local ticks
+for _, loop in ipairs(vlit.loops or {}) do
+	ticks = loop:GetLooping() == "REPEAT" and loop or ticks
+end
+assert(ticks, "Evocation has a repeating tick")
+local into = {}
+for _, a in ipairs(ticks._anims) do
+	if a._type == "Translation" then into[#into + 1] = { a:GetOffset() } end
+end
+local seat = evocation.spec.seat
+assert(#into == 2 and into[1][1] == -into[2][1] and into[2][1] * seat[1] > 0 and into[2][2] * seat[2] > 0, "each tick starts toward the crest's middle and runs out into the gem's seat")
+Gain(env, "player", 12051)
+assert(vlit:IsShown() and Slots.Engine(env, function() return F.Lit(evocation) end), "Evocation lights")
+assert(ticks:IsPlaying(), "at Full the ticks loop")
+Gone(env)
+Finish(env)
 Motion(env, K, "calm")
-block.fold.play:Stop()
-assert(full.full == "calm", "at Calm the flare's first slot holds its still")
-Slots.Set(env, "player", { { id = 11958, start = 0, duration = 10 } })
-assert(full.flare.still and full.flare.still:IsPlaying() and not rise:IsPlaying(), "at Calm the pop-off shows the still flare, no rise")
-assert(lit:IsShown(), "and lights")
-Gone(env, block)
+Gain(env, "player", 12051)
+-- Calm and Off show the twin faces whose hold layer the engine lights; the Full face keeps its loop but stays dark.
+local looping = false
+for _, face in ipairs({ evocation, unpack(evocation.twins or {}) }) do
+	local loop, alpha, node = face.lits[1].loops and face.lits[1].loops[#face.lits[1].loops], 1, face.lits[1].hold
+	while node do
+		alpha, node = alpha * node:GetAlpha(), node:GetParent()
+	end
+	looping = looping or loop ~= nil and loop:IsPlaying() and alpha > 0
+end
+assert(not looping, "at Calm no shown face loops its ticks")
+Gone(env)
+Motion(env, K, "full")
+Finish(env)
+Clean(env, K, "evocation")
+
+-- Calm: the still flare and no fold.
+Motion(env, K, "calm")
+Gain(env, "player", 11958)
+assert(full.full == "calm" and full.flare.still and full.flare.still:IsPlaying() and not rise:IsPlaying(), "at Calm the pop-off shows the still flare")
+assert(lit:IsShown() and not sheet:IsPlaying(), "and lights, its Blender sheet held on its first frame")
+Gone(env)
 assert(not block.fold.play:IsPlaying(), "at Calm the end does not fold")
 Clean(env, K, "calm")
 
 -- Off: the end state only.
 Motion(env, K, "off")
 full.flare.still:Stop()
-Slots.Set(env, "player", { { id = 11958, start = 0, duration = 10 } })
--- The engine keeps both flare slots bound at every level, so a level change in combat needs no Lua; at Off their layers are dark.
+Gain(env, "player", 11958)
 assert(lit:IsShown() and lit.flareGate:GetAlpha() == 0 and lit.flareGate.other:GetAlpha() == 0, "at Off the pop-off lights and both flare layers stay dark")
-Gone(env, block)
+Gone(env)
 assert(not block.fold.play:IsPlaying(), "at Off the end does not fold")
+Motion(env, K, "full")
+Finish(env)
 Clean(env, K, "off")
 
--- Secret auras: a boss pull turns auras secret before combat; the engine still lights the slot, Lua touches nothing under it, and the fold still plays.
-Motion(env, K, "full")
+-- Secret auras: a boss pull turns auras secret before combat starts. An aura gained before stays lit by the engine, its end while still
+-- secret folds the pop-off's own frame without touching the slot, and once combat ends and the restriction lifts it rises again.
+Gain(env, "player", 11958)
+assert(lit:IsShown() and rise:IsPlaying(), "lit before the restriction")
 env._aurasSecret = true
+env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+env.RunTimers()
+assert(Slots.Engine(env, function() return lit:IsShown() end), "secret before combat, the engine keeps the pop-off lit")
 env.SetCombat(true)
-Slots.Set(env, "player", { { id = 11958, start = 0, duration = 10 } })
 K.Options.Write("Medallions", "motion", "calm")
 K.Options.Write("Medallions", "motion", "full")
 ns.SlabMedals.Rest()
-assert(Slots.Engine(env, function() return lit:IsShown() end), "secret, the engine lights the pop-off")
-Gone(env, block)
+Gone(env)
+assert(Slots.Engine(env, function() return not lit:IsShown() end), "secret, the engine hides the pop-off when its aura ends")
 assert(block.fold.play:IsPlaying(), "secret, the aura's end still folds the pop-off's own frame")
+Finish(env)
 Clean(env, K, "secret")
-env._aurasSecret = false
 env.SetCombat(false)
+env._aurasSecret = false
 env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
 env.RunTimers()
-block.fold.play:Stop()
-Slots.Set(env, "player", { { id = 11958, start = 0, duration = 10 } })
+Gain(env, "player", 11958)
 assert(lit:IsShown() and rise:IsPlaying(), "when the restriction ends the pop-off rises again")
-Gone(env, block)
+Gone(env)
+Finish(env)
 Clean(env, K, "after the restriction")
 
--- The switch hides every pop-off.
+-- The switch hides every pop-off, and a hidden one never folds.
 K.Options.Write("ActionBars", "crestPopoffs", false)
 env.RunTimers()
 assert(not block:IsShown() and not evocation:IsShown(), "the switch hides the pop-offs")
-block.fold.play:Stop()
-Slots.Set(env, "player", { { id = 11958, start = 0, duration = 10 } })
-Gone(env, block)
+Gain(env, "player", 11958)
+Gone(env)
 assert(not block.fold.play:IsPlaying(), "a hidden pop-off never folds")
 K.Options.Write("ActionBars", "crestPopoffs", true)
 env.RunTimers()
 assert(block:IsShown() and evocation:IsShown(), "and turning it back on shows them again")
 Clean(env, K, "switch")
 
--- The hunter's Bestial Wrath burns on the pet.
+-- The hunter's Bestial Wrath rises off the pet band into its seat, at the pet band's offset below it.
 do
 	local henv, hK, hns = New("HUNTER", { 19574, 19263 })
 	henv.SetTarget(true)
 	henv.RunTimers()
-	local wrath = Pop(hns, "Paw")
-	assert(wrath and Pop(hns, "Deflect"), "Bestial Wrath and Deterrence build once known")
-	Slots.Set(henv, "player", { { id = 19574, start = 0, duration = 18 } })
-	assert(not wrath.lits[1]:IsShown(), "Bestial Wrath on the hunter lights nothing")
-	Slots.Set(henv, "pet", { { id = 19574, start = 0, duration = 18 } })
+	local wrath = assert(Pop(hns, "Beast"), "Bestial Wrath builds once known")
+	local moves = {}
+	for _, a in ipairs(wrath.lits[1].flareGate.lit.flare.play._anims) do
+		if a._type == "Translation" then moves[#moves + 1] = { a:GetOffset() } end
+	end
+	local pet, at = hns.SlabSeats.AT.pet, wrath.spec.seat
+	assert(#moves == 2 and moves[1][1] == pet[1] - at[1] and moves[1][2] == pet[2] - at[2] and moves[2][1] == -moves[1][1], "the flare starts on the pet band and rises into the seat")
+	Gain(henv, "pet", 19574)
 	assert(wrath.lits[1]:IsShown(), "Bestial Wrath lights from the pet")
 	Clean(henv, hK, "hunter")
 end
 
--- Every class with every pop-off known: each is built, seated without a refusal, and lights from its own aura.
-for _, entry in ipairs(ns.SlabPopoffs.CLASSES) do
-	local class, rows = entry[1], entry[2]
-	local known = {}
-	for _, row in ipairs(rows) do
-		for _, id in ipairs(row.known or row.spells) do known[#known + 1] = id end
+-- The paladin's Divine Shield folds into the Forbearance ring, which lights from the debuff on the paladin and not on the target.
+do
+	local penv, pK, pns = New("PALADIN", { 642 })
+	penv.SetTarget(true)
+	penv.RunTimers()
+	local shield = assert(Pop(pns, "Bubble"), "Divine Shield builds once known")
+	local forbearance = assert(On(shield, "player", 2), "Divine Shield carries a second slot on the paladin")
+	local grow
+	for _, a in ipairs(shield.fold.play._anims) do
+		if a._type == "Scale" then grow = select(1, a:GetScaleTo()) end
 	end
-	local cenv, cK, cns = New(class, known)
-	cenv.SetTarget(true)
-	cenv.RunTimers()
-	local pops = Pops(cns)
-	assert(#pops == #rows, class .. ": every known pop-off is built")
-	for _, line in ipairs(cns.SlabTrackers.state.forms.crest.refused) do
-		assert(not line:find("crestPopoffs", 1, true) and not line:find(" pop", 1, true), class .. ": " .. line)
+	assert(grow and grow < 1, "the shield's fold shrinks")
+	Gain(penv, "target", 25771, { harmful = true })
+	assert(not forbearance:IsShown(), "Forbearance on the target lights nothing")
+	Slots.Set(penv, "target", nil)
+	Slots.Set(penv, "player", { { id = 642, start = penv._now, duration = 12 }, { id = 25771, start = penv._now, duration = 60, harmful = true } })
+	assert(shield.lits[1]:IsShown() and forbearance:IsShown(), "the shield and the Forbearance ring light together")
+	Slots.Set(penv, "player", { { id = 25771, start = penv._now, duration = 60, harmful = true } })
+	penv.RunTimers()
+	assert(not shield.lits[1]:IsShown() and forbearance:IsShown() and shield.fold.play:IsPlaying(), "the shield folds into the ring, which stays while Forbearance lasts")
+	assert(AB.W.LastCall(forbearance._cooldown, "SetCooldownFromDurationObject"), "the ring drains with Forbearance")
+	Gone(penv)
+	assert(not forbearance:IsShown(), "and goes when Forbearance does")
+	Clean(penv, pK, "paladin")
+end
+
+-- The priest's Power Infusion also lights when cast on the target or focus, only from the priest's own cast.
+do
+	local renv, rK, rns = New("PRIEST", { 10060 })
+	renv.SetTarget(true)
+	renv.RunTimers()
+	local infusion = assert(Pop(rns, "Infusion"), "Power Infusion builds once known")
+	for _, unit in ipairs({ "target", "focus" }) do
+		local ally = assert(On(infusion, unit), "Power Infusion has a slot on the " .. unit)
+		Gain(renv, unit, 10060, { mine = false })
+		assert(not ally:IsShown(), "another priest's Power Infusion on the " .. unit .. " lights nothing")
+		Gain(renv, unit, 10060, { mine = true })
+		assert(ally:IsShown() and not infusion.lits[1]:IsShown(), "the priest's own Power Infusion on the " .. unit .. " lights its slot")
+		Slots.Set(renv, unit, nil)
+		assert(not ally:IsShown(), "and goes when it goes")
 	end
-	for _, row in ipairs(rows) do
-		local p = Pop(cns, row.art)
-		Slots.Set(cenv, row.unit or "player", { { id = row.spells[1], start = 0, duration = 10 } })
-		assert(p:IsVisible() and p.lits[1]:IsShown(), class .. ": " .. row.art .. " lights from its aura")
-		Slots.Set(cenv, row.unit or "player", nil)
-	end
-	Clean(cenv, cK, class)
+	Gain(renv, "player", 10060)
+	assert(infusion.lits[1]:IsShown(), "Power Infusion on the priest lights the pop-off")
+	Clean(renv, rK, "priest")
+end
+
+-- A warlock who knows only the second rank of Nightfall still builds Shadow Trance's pop-off.
+do
+	local lenv, lK, lns = New("WARLOCK", { 18095 })
+	lenv.SetTarget(true)
+	lenv.RunTimers()
+	local void = assert(Pop(lns, "Void"), "Nightfall rank 2 alone builds Shadow Trance's pop-off")
+	Gain(lenv, "player", 17941)
+	assert(void.lits[1]:IsShown(), "Shadow Trance lights it")
+	Clean(lenv, lK, "warlock")
 end
 
 print("test-actionbars-crest-popoffs: ok")

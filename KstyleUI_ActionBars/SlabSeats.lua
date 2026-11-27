@@ -12,7 +12,7 @@ local AT = {
 	emblem = { 0, 0 }, upper = { 0, 80 }, armLeft = { -48, 6 }, armRight = { 48, 6 }, bandLeft = { -64, 0 }, bandRight = { 64, 0 },
 	armor = { -37, 51 }, lowerBand = { 0, -39 }, pet = { 42, -46 }, trinketLeft = { -33, -24 }, trinketRight = { 33, -24 },
 	perchLeft = { -48.8, -54.2 }, perchRight = { 49.5, -55 }, crownLeft = { -56.7, 47.6 }, crownRight = { 56.7, 47.6 },
-	popLeft = { -40, 84 }, popRight = { 40, 84 },
+	popLeft = { -40, 84 }, popRight = { 40, 84 }, popRogue = { 62, 34 }, popHunter = { -60, 0 },
 }
 for _, name in ipairs({ "left", "right", "top", "topGem", "lowerLeft", "lowerRight", "footLeft", "footRight" }) do
 	AT[name] = { Medals.Seat(name) }

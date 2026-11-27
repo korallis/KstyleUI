@@ -6,6 +6,8 @@ local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
 local cos, sin, rad, min, max = math.cos, math.sin, math.rad, math.min, math.max
 local IsSecret = Widgets.IsSecret
 local Medals, Trackers = ns.SlabMedals, ns.SlabTrackers
+local NIGHTFALL = { 18094, 18095 }
+ns.SlabRanged = { NIGHTFALL = NIGHTFALL, PENDANT = { 80 * cos(rad(312)), 80 * sin(rad(312)) }, PET = { 42, -46 } }
 local CLASS = UnitClass and select(2, UnitClass("player"))
 if IsSecret(CLASS) or CLASS ~= "HUNTER" and CLASS ~= "MAGE" and CLASS ~= "WARLOCK" then
 	return
@@ -29,10 +31,10 @@ local DEMON, DEMON_SIZE = "glyphHornsPet", 24
 local OPENING = { { 0, 1, 0.06 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.08 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.1 } }
 local GROW = { { 0, 1, 0.6 } }
 local BAND = {
-	right = { "glyphArcRight", 64, 0, 58 }, left = { "glyphArcLeft", -64, 0, 58 }, pet = { "glyphArcPet", 42, -46, 42 },
+	right = { "glyphArcRight", 64, 0, 58 }, left = { "glyphArcLeft", -64, 0, 58 }, pet = { "glyphArcPet", ns.SlabRanged.PET[1], ns.SlabRanged.PET[2], 42 },
 	rim = { "glyphRimLeft", -72, 0, 62 }, armor = { "glyphArmorFrost", -37, 51, 64 }, frost = { "glyphFrost", 0, -39, 108 }, mark = { "glyphMarkReticle", -56, 0, 36 },
 }
-local EMBLEM, PERCH_LEFT, PERCH_RIGHT, PENDANT, SIGIL = { 0, 0 }, { Polar(73, 228) }, { Polar(74, 312) }, { Polar(80, 312) }, { Polar(56, 184) }
+local EMBLEM, PERCH_LEFT, PERCH_RIGHT, PENDANT, SIGIL = { 0, 0 }, { Polar(73, 228) }, { Polar(74, 312) }, ns.SlabRanged.PENDANT, { Polar(56, 184) }
 local LOOKS = {
 	glyph = { k = 1.25, loop = BREATH, white = 0.1 },
 	orb = { art = "stormOrb", k = 1.15 },
@@ -1644,7 +1646,7 @@ if CLASS == "WARLOCK" then
 				if id then return id end
 			end
 		end },
-		{ key = "crestTrance", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 17941 }, known = { 18094, 18095 },
+		{ key = "crestTrance", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 17941 }, known = NIGHTFALL,
 			color = "jewelShard", proc = "jewelShard" },
 		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
 	}, {

@@ -26,9 +26,13 @@ local HAWKS = {
 	{ at = 44.5, slot = 3 },
 }
 
--- The pop-off story RENDER_FX=popoffs plays, as aura slot changes: each of the class's signature auras gained at 1 s
--- for POP_LIFE seconds, so 1.2 s catches the rise, 6 s the aura running, 10.5 s its amber last fifth and 13.2 s the fold.
-local POP_START, POP_LIFE, POP_HELD = 1, 12, 0.7
+-- The pop-off story RENDER_FX=popoffs plays, as aura slot changes: the class's first signature aura is gained at
+-- 1 s and its second at 4 s, each for POP_LIFE seconds, so neither rise shares the crest's one flare place. For the
+-- first: 1.2 s catches the rise, 6 s the aura running, 11.4 s its amber last fifth (from 10.6 s), 12.5 s its red last
+-- twelfth (from 12 s) and 13.2 s the fold; the second's beats are 3 s later. Stealth is gained with no duration, as
+-- the game gives it, and a pop-off with an aftermath (Divine Shield's Forbearance) gains that debuff with it.
+local POP_START, POP_GAP, POP_LIFE, POP_HELD, POP_AFTER = 1, 3, 12, 0.7, 60
+local UNTIMED = { [1784] = true, [1785] = true, [1786] = true, [1787] = true }
 
 -- The Lightning Shield story RENDER_FX=storm plays, as the shield's charges and the player's casts in order: a cast at
 -- 1 s, then three strikes at least the shield's 3.5 s proc recovery apart, the last ending the shield.
@@ -255,37 +259,48 @@ function Effects.Apply(env, module, ns, notes)
 			ns.SlabTrackers.Update()
 			local clock = env.GetTime
 			env.GetTime = function() return env._now end
-			local units = {}
-			for _, row in ipairs(rows or {}) do
-				local unit = row.unit or "player"
-				units[unit] = units[unit] or {}
-				local list = units[unit]
-				list[#list + 1] = { id = row.spells[1], duration = POP_LIFE }
+			local beats = {}
+			for i, row in ipairs(rows or {}) do
+				local start = POP_START + (i - 1) * POP_GAP
+				local auras = { { unit = row.unit or "player", id = row.spells[1], duration = not UNTIMED[row.spells[1]] and POP_LIFE or nil } }
+				if row.after then
+					auras[2] = { unit = "player", id = row.after.spell, duration = POP_AFTER, harmful = true, after = true }
+				end
+				beats[#beats + 1] = { start, auras, true }
+				beats[#beats + 1] = { start + POP_LIFE, auras, false }
 			end
-			for _, beat in ipairs({ { POP_START, true }, { POP_START + POP_LIFE, false } }) do
+			table.sort(beats, function(a, b) return a[1] < b[1] end)
+			local live, last = {}, nil
+			for _, beat in ipairs(beats) do
 				if beat[1] <= at then
-					env._now = env._time - (at - beat[1])
-					for unit, list in pairs(units) do
-						for _, aura in ipairs(list) do
-							aura.start = beat[2] and env._now or aura.start
-						end
-						Slots.Set(env, unit, beat[2] and list or nil)
-					end
-					-- The stub hides a slot without running its shown groups' OnStop, which the game runs when the aura
-					-- goes, so the story runs each pop-off's by hand.
-					if not beat[2] then
-						for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-							local stop = p.watch and p.watch._scripts.OnStop
-							if stop then
-								stop(p.watch)
-							end
-						end
+					if last and beat[1] - last > POP_HELD then
 						env.RunTimers()
 					end
+					env._now = env._time - (at - beat[1])
+					for _, aura in ipairs(beat[2]) do
+						if beat[3] then
+							aura.start = env._now
+							live[aura] = true
+						elseif not aura.after then
+							live[aura] = nil
+						end
+					end
+					local units = {}
+					for aura in pairs(live) do
+						units[aura.unit] = units[aura.unit] or {}
+						table.insert(units[aura.unit], aura)
+					end
+					for _, unit in ipairs({ "player", "pet" }) do
+						Slots.Set(env, unit, units[unit])
+					end
+					if not beat[3] then
+						env.RunTimers()
+					end
+					last = beat[1]
 				end
 			end
 			-- The stub runs every pending timer at once, so the crest's flare claims end only once a flare is over.
-			if at - POP_START > POP_HELD then
+			if last and at - last > POP_HELD then
 				env.RunTimers()
 			end
 			env.GetTime = clock

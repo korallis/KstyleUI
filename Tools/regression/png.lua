@@ -1,4 +1,4 @@
--- png.lua: Png.Coverage(path) decodes an 8-bit RGBA or RGB, non-interlaced PNG (zlib inflate and row filters in plain Lua 5.1) and returns rows, width, height, where rows[y] (from 0) holds one coverage byte per pixel; Png.Alpha(path) returns alpha(x, y), width, height over the same rows. An RGB file has no alpha: the addon's only RGB files are the aura sheets under Media/Textures/Auras, drawn with the ADD blend, where black adds nothing, so its coverage is its brightest channel. Each file keeps only its coverage rows, and the reader keeps one inflate buffer that every file reuses, so the reach check can hold every crest texture it reads at once under the test runner's 4096 MB limit. Each reach test file has to read every crest texture inside its CPU budget on the hosted runner, so the reader is built for speed: a Huffman code of up to nine bits is read through one table lookup instead of a bit at a time, bits are shifted with a table of powers of two, not the ^ operator, the shared inflate buffer saves growing a new table per file for the collector to sweep, and each row filter has its own loop with no function call in it.
+-- png.lua: Png.Alpha(path) decodes an 8-bit RGBA or RGB, non-interlaced PNG (zlib inflate and row filters in plain Lua 5.1) and returns alpha(x, y), width, height; an RGB file is additive art on black, so its alpha is the brightest channel.
 local Png = {}
 local byte, char, unpack = string.byte, string.char, unpack
 
@@ -180,66 +180,32 @@ function Png.Coverage(path)
 	local s = file:read("*a")
 	file:close()
 	assert(s:sub(1, 8) == "\137PNG\r\n\26\n", path .. " is no PNG")
-	local pos, idat, w, h, depth = 9, {}, nil, nil, nil
+	local pos, idat, w, h, channels = 9, {}, nil, nil, 4
 	while pos < #s do
 		local len, kind = U32(s, pos), s:sub(pos + 4, pos + 7)
 		if kind == "IHDR" then
 			w, h = U32(s, pos + 8), U32(s, pos + 12)
 			local color = s:byte(pos + 17)
 			assert(s:byte(pos + 16) == 8 and (color == 6 or color == 2) and s:byte(pos + 20) == 0, path .. ": png.lua reads 8-bit RGBA or RGB, non-interlaced PNGs only")
-			depth = color == 6 and 4 or 3
+			channels = color == 2 and 3 or 4
 		elseif kind == "IDAT" then
 			idat[#idat + 1] = s:sub(pos + 8, pos + 7 + len)
 		end
 		pos = pos + 12 + len
 	end
-	local stride = w * depth
-	local raw, n = Inflate(table.concat(idat))
-	-- The reused buffer holds another file's bytes past n, so a short stream must stop here rather than be read past.
-	assert(n == h * (stride + 1), path .. ": png.lua inflated " .. n .. " bytes, not the " .. h * (stride + 1) .. " its size needs")
-	local rows, prev, cur, cover = {}, {}, {}, {}
-	for i = 1, stride do prev[i] = 0 end
+	local raw, stride, rows, prev = Inflate(table.concat(idat)), w * channels, {}, {}
 	for y = 0, h - 1 do
 		local base = y * (stride + 1) + 1
 		local filter = raw[base]
-		-- The filters add modulo 256 by subtracting 256 from a sum over 255; a byte to the left of the row is 0.
-		if filter == 0 then
-			for i = 1, stride do cur[i] = raw[base + i] end
-		elseif filter == 1 then
-			for i = 1, depth do cur[i] = raw[base + i] end
-			for i = depth + 1, stride do
-				local v = raw[base + i] + cur[i - depth]
-				cur[i] = v > 255 and v - 256 or v
-			end
-		elseif filter == 2 then
-			for i = 1, stride do
-				local v = raw[base + i] + prev[i]
-				cur[i] = v > 255 and v - 256 or v
-			end
-		elseif filter == 3 then
-			for i = 1, depth do
-				local v = raw[base + i] + HALF[prev[i]]
-				cur[i] = v > 255 and v - 256 or v
-			end
-			for i = depth + 1, stride do
-				local v = raw[base + i] + HALF[cur[i - depth] + prev[i]]
-				cur[i] = v > 255 and v - 256 or v
-			end
-		else
-			assert(filter == 4, "png.lua: bad row filter")
-			-- Paeth with the left and upper-left bytes 0 predicts the byte above.
-			for i = 1, depth do
-				local v = raw[base + i] + prev[i]
-				cur[i] = v > 255 and v - 256 or v
-			end
-			for i = depth + 1, stride do
-				local a, b, c = cur[i - depth], prev[i], prev[i - depth]
-				local pa, pb, pc = b - c, a - c, a + b - c - c
-				if pa < 0 then pa = -pa end
-				if pb < 0 then pb = -pb end
-				if pc < 0 then pc = -pc end
-				local v = raw[base + i] + ((pa <= pb and pa <= pc) and a or pb <= pc and b or c)
-				cur[i] = v > 255 and v - 256 or v
+		for i = 1, stride do
+			local x, a, b, c = raw[base + i], cur[i - channels] or 0, prev[i] or 0, prev[i - channels] or 0
+			if filter == 1 then x = x + a
+			elseif filter == 2 then x = x + b
+			elseif filter == 3 then x = x + floor((a + b) / 2)
+			elseif filter == 4 then
+				local p = a + b - c
+				local pa, pb, pc = math.abs(p - a), math.abs(p - b), math.abs(p - c)
+				x = x + ((pa <= pb and pa <= pc) and a or pb <= pc and b or c)
 			end
 		end
 		if depth == 4 then
@@ -253,12 +219,13 @@ function Png.Coverage(path)
 		end
 		rows[y], prev, cur = char(unpack(cover, 1, w)), cur, prev
 	end
-	return rows, w, h
-end
-
-function Png.Alpha(path)
-	local rows, w, h = Png.Coverage(path)
-	return function(x, y) return byte(rows[y], x + 1) end, w, h
+	if channels == 3 then
+		return function(x, y)
+			local row, i = rows[y], x * 3
+			return math.max(row[i + 1], row[i + 2], row[i + 3])
+		end, w, h
+	end
+	return function(x, y) return rows[y][x * 4 + 4] end, w, h
 end
 
 return Png

@@ -130,7 +130,7 @@ BANDS = {"Gust": 4}  # mark: its strip's length over its height
 # the signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua), each sigil in its spell's school. A "popoffs" mark (named
 # Pop/<Art>) draws the sigil of its name as a "sigils" mark does and bakes it into Popoffs/, apart from the crest marks'
 # sheets of the same sigils in their seats' colours.
-for name, colour in (("Crystal", "schoolFrost"), ("Vortex", "schoolArcane"), ("Paw", "schoolFire"), ("Deflect", "schoolPhysical"),
+for name, colour in (("Crystal", "schoolFrost"), ("Vortex", "schoolArcane"), ("Beast", "schoolFire"), ("Deflect", "schoolPhysical"),
                      ("Bubble", "schoolHoly"), ("Sun", "jewelHoly"), ("Infusion", "schoolHoly"), ("Focus", "schoolArcane"),
                      ("Void", "schoolShadow"), ("Curse", "jewelShard"), ("Sweep", "schoolPhysical"), ("Veil", "schoolShadow"),
                      ("Innervate", "schoolNature"), ("Swift", "schoolNature"), ("Bolt", "schoolFrost")):

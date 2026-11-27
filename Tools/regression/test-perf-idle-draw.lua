@@ -1,7 +1,8 @@
--- test-perf-idle-draw.lua: what the idle suite asks the renderer to draw stays bounded: Widgets.HOLLOW lists exactly the sliced textures whose centre texels are transparent, no such centre is shown, nothing runs every frame or writes to a widget once the login fades end (OnUpdate scripts and tickers at their intervals), no animation plays on a hidden owner, and shown regions stay at the counts measured after the hollow-centre cut.
+-- test-perf-idle-draw.lua: what the idle suite asks the renderer to draw stays bounded: Widgets.HOLLOW lists exactly the sliced textures whose centre texels are transparent, no such centre is shown, nothing runs every frame or writes to a widget once the login fades end (OnUpdate scripts and tickers at their intervals), no animation plays on a hidden owner, and shown regions stay at the counts measured after the hollow-centre cut, also with the rogue's signature pop-off up.
 local Suite = dofile("Tools/regression/suite_env.lua")
 local Png = dofile("Tools/regression/png.lua")
 local W = dofile("Tools/regression/widget_env.lua")
+local Slots = dofile("Tools/regression/aura_slots.lua")
 -- Medallions adds 22 drawn regions to its 1710: the suite's combo points light all ten crest jewels and the full ring, so each jewel's rim and glint and the ring's glyphs and halo draw.
 local CEILING = { medallions = 1732 }
 local SETTLE, WINDOW = 600, 120
@@ -102,6 +103,30 @@ for _, style in ipairs({ "medallions" }) do
 		end
 	end
 	assert(shown <= CEILING[style], string.format("%s: %d shown regions at idle, ceiling %d; build art on first use and hide what draws nothing, or raise the ceiling to the measured count when the new regions are drawn", style, shown, CEILING[style]))
+	-- The crest plan keeps the crest under the same ceiling with a signature pop-off up (KstyleUI_ActionBars/SlabPopoffs.lua): the rogue learns Stealth and enters it, its Veil rises and settles, and the suite counts again.
+	Slots.Install(env)
+	local known = env.C_SpellBook and env.C_SpellBook.IsSpellKnown
+	env.C_SpellBook = env.C_SpellBook or {}
+	env.C_SpellBook.IsSpellKnown = function(id, bank) return id == 1784 or known ~= nil and known(id, bank) end
+	env.FireEvent("SPELLS_CHANGED")
+	Slots.Set(env, "player", { { id = 1784, start = env._now } })
+	local rising = true
+	for _ = 1, SETTLE do
+		rising = rising and (Frame(env) or W.FinishGroups(env))
+	end
+	assert(not rising, style .. ": the Veil pop-off still animates after " .. SETTLE .. " frames")
+	local veil
+	for _, p in pairs(env._addons.KstyleUI_ActionBars.SlabTrackers.state.forms.crest.pieces) do
+		veil = p.spec.key == "crestPopoffs" and p or veil
+	end
+	assert(veil and veil.lits[1]:IsShown(), style .. ": the rogue's Veil pop-off lights from Stealth")
+	local active = 0
+	for _, f in ipairs(env._frames) do
+		for _, r in ipairs(f:IsVisible() and f._regions or {}) do
+			if r._shown ~= false and r._type ~= "MaskTexture" then active = active + 1 end
+		end
+	end
+	assert(active <= CEILING[style], string.format("%s: %d shown regions with the Veil pop-off up, ceiling %d; a pop-off draws its art only while its aura or its fold shows", style, active, CEILING[style]))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, style .. ": the idle suite raised " .. tostring(env._errors[1]))
-	print(string.format("idle draw ok: %s settles in %d frames, writes nothing for %d more, with %d shown regions (ceiling %d)", style, frames, WINDOW, shown, CEILING[style]))
+	print(string.format("idle draw ok: %s settles in %d frames, writes nothing for %d more, with %d shown regions, %d with a pop-off up (ceiling %d)", style, frames, WINDOW, shown, active, CEILING[style]))
 end
