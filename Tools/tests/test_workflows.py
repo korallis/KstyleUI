@@ -30,6 +30,16 @@ def steps_after(text, start):
     return "\n".join(block)
 
 
+def step_guard_runs(expression, cancelled, checkout, commit):
+    """Evaluate a step's if: built only from !cancelled(), the checkout and commit steps' outcomes, ==, != and &&."""
+    inner = expression.strip()
+    if not (inner.startswith("${{") and inner.endswith("}}")):
+        raise ValueError("not a ${{ }} expression: " + expression)
+    python = inner[3:-2].replace("!cancelled()", "(not cancelled)").replace("&&", " and ")
+    python = python.replace("steps.checkout.outcome", "checkout").replace("steps.commit.outcome", "commit")
+    return eval(python, {"__builtins__": {}}, {"cancelled": cancelled, "checkout": checkout, "commit": commit})
+
+
 def jobs_of(text):
     """Return {job id: job text} for a workflow's jobs."""
     parts = re.split(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
@@ -309,7 +319,8 @@ class WorkflowsTest(unittest.TestCase):
         jobs = jobs_of(text)
         self.assertNotIn("--skip", text)
         self.assertIn("run: bash scripts/gate.sh lint\n", jobs["lint-python-package"])
-        self.assertIn("""run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py'\n""", jobs["lint-python-package"])
+        self.assertIn('      KSTYLEUI_RELEASE: "1"\n', jobs["lint-python-package"])
+        self.assertIn("run: bash scripts/gate.sh python\n", jobs["lint-python-package"])
         self.assertIn('--shard "$SHARD/$SHARD_TOTAL" --affected 4b825dc642cb6eb9a060e54bf8d69288fbee4904\n', jobs["lua"])
         self.assertIn("key: lua-deps-${{ github.run_id }}", jobs["lua-deps"])
 
@@ -319,7 +330,63 @@ class WorkflowsTest(unittest.TestCase):
         guard = "    if: github.event_name != 'pull_request' || github.event.label.name == 'full suite'\n"
         for job in ("lua", "lint-python-package"):
             self.assertTrue(jobs[job].startswith("\n" + guard), job)
-        self.assertIn("    if: github.ref == 'refs/heads/staging'\n", jobs["lua-deps"], "only staging saves the record")
+        self.assertIn("    if: github.ref == 'refs/heads/staging' && inputs.commit == ''\n", jobs["lua-deps"],
+                      "only a run of staging's own commit saves the record")
+
+    def test_a_run_started_with_a_commit_tests_exactly_that_commit(self):
+        # The release rule: before a tag, nightly passes on main's exact newest commit, which may not carry nightly.yml.
+        jobs = jobs_of((WORKFLOWS / "nightly.yml").read_text(encoding="utf-8"))
+        scripts = []
+        for job in ("lua", "lint-python-package"):
+            body = jobs[job]
+            self.assertIn("          ref: ${{ inputs.commit }}\n", body, job)
+            step = body[body.index("      - name: Check the commit under test\n"):]
+            self.assertTrue(step.split("        run: |\n", 1)[0].endswith(
+                "        if: inputs.commit != ''\n        env:\n          COMMIT: ${{ inputs.commit }}\n"), job)
+            lines = step.split("        run: |\n", 1)[1].splitlines()
+            block = []
+            for line in lines:
+                if line and not line.startswith("          "):
+                    break
+                block.append(line)
+            scripts.append(textwrap.dedent("\n".join(block)))
+            # Review finding: a later step that runs after a failure must still never run without a checkout or on a
+            # refused commit. A step with no if: gets GitHub's implicit success(), which already stops it.
+            for later in re.split(r"(?m)^      - ", step)[2:]:
+                guard = re.search(r"(?m)^        if: (.*)$", later)
+                if not guard:
+                    continue
+                for cancelled, checkout, commit, runs in (
+                        (False, "success", "skipped", True),
+                        (False, "success", "success", True),
+                        (False, "success", "failure", False),
+                        (False, "failure", "skipped", False),
+                        (True, "success", "success", False)):
+                    with self.subTest(job=job, step=later.splitlines()[0], checkout=checkout, commit=commit, cancelled=cancelled):
+                        self.assertEqual(step_guard_runs(guard.group(1), cancelled, checkout, commit), runs)
+        self.assertEqual(scripts[0], scripts[1], "both jobs check the commit the same way")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.com", GIT_COMMITTER_NAME="t",
+                       GIT_COMMITTER_EMAIL="t@example.com", GIT_CONFIG_GLOBAL=os.devnull)
+            subprocess.run(["git", "init", "-q", "-b", "main"], cwd=root, env=env, check=True)
+            for message in ("older", "newest"):
+                subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", message], cwd=root, env=env, check=True)
+            head, older = (subprocess.run(["git", "rev-parse", ref], cwd=root, env=env, capture_output=True, text=True,
+                                          check=True).stdout.strip() for ref in ("HEAD", "HEAD^"))
+            cases = (
+                (head, 0, "testing " + head),
+                (head[:9], 1, "commit must be a full 40-character commit id, not '{0}'".format(head[:9])),
+                ("main", 1, "commit must be a full 40-character commit id, not 'main'"),
+                (head.upper(), 1, "commit must be a full 40-character commit id, not '{0}'".format(head.upper())),
+                (older, 1, "checked out {0}, not {1}".format(head, older)),
+            )
+            for commit, code, said in cases:
+                with self.subTest(commit=commit):
+                    done = subprocess.run(["bash", "-e", "-c", scripts[0]], cwd=root, env=dict(env, COMMIT=commit),
+                                          capture_output=True, text=True)
+                    self.assertEqual(done.returncode, code, done.stdout + done.stderr)
+                    self.assertEqual(done.stdout.strip(), said)
 
     def test_the_checks_job_passes_only_when_every_job_the_change_needs_passed(self):
         # The checks job is the one status a merge waits on: a failed, cancelled or wrongly skipped job must turn it red.

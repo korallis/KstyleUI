@@ -1,12 +1,19 @@
 # nightly.yml: the full suite on staging each night, by hand on a release commit, and on a pull request when it gets the
 # "full suite" label, to see the whole suite pass on that change before it merges: lint on every file, every Lua test file with
 # their budgets, every Python test file with the renders, and on staging a fresh record of what each Lua test loads for checks.yml.
+# Started by hand with a commit, it tests that commit with the commit's own gate, so main's newest can be checked before a tag
+# although main may not carry this file yet.
 name: nightly
+run-name: "${{ inputs.commit && format('nightly on {0}', inputs.commit) || github.event.pull_request.title || 'nightly' }}"
 
 on:
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
+    inputs:
+      commit:
+        description: Full 40-character commit to test instead of this branch, such as main's newest before a release tag
+        type: string
   pull_request:
     types: [labeled]
 
@@ -14,7 +21,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: nightly-${{ github.ref }}
+  # A commit run gets its own group: in a shared group GitHub cancels a waiting run when a later one queues.
+  group: nightly-${{ inputs.commit || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -32,8 +40,24 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.commit }}
           fetch-depth: 2
           persist-credentials: false
+      - name: Check the commit under test
+        if: inputs.commit != ''
+        env:
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          if ! [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "commit must be a full 40-character commit id, not '$COMMIT'"
+            exit 1
+          fi
+          head=$(git rev-parse HEAD)
+          if [ "$head" != "$COMMIT" ]; then
+            echo "checked out $head, not $COMMIT"
+            exit 1
+          fi
+          echo "testing $COMMIT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/lua51/*.deb
@@ -60,7 +84,8 @@ jobs:
   lua-deps:
     name: record what each Lua test loads
     needs: [lua]
-    if: github.ref == 'refs/heads/staging'
+    # Only a run that tested staging's own commit may stand as staging's record.
+    if: github.ref == 'refs/heads/staging' && inputs.commit == ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -100,9 +125,27 @@ jobs:
       KSTYLEUI_RELEASE: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        id: checkout
         with:
+          ref: ${{ inputs.commit }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Check the commit under test
+        id: commit
+        if: inputs.commit != ''
+        env:
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          if ! [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "commit must be a full 40-character commit id, not '$COMMIT'"
+            exit 1
+          fi
+          head=$(git rev-parse HEAD)
+          if [ "$head" != "$COMMIT" ]; then
+            echo "checked out $head, not $COMMIT"
+            exit 1
+          fi
+          echo "testing $COMMIT"
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         id: python
         with:
@@ -133,22 +176,24 @@ jobs:
           # The image, crest and Medallions tests skip without these, which would read as a pass.
           "$KSTYLEUI_PYTHON" -c 'import PIL, numpy; print(PIL.__version__, numpy.__version__)' | grep -x '13\.0\.0 2\.5\.5'
       - name: Lint every file
-        if: ${{ !cancelled() }}
+        # These steps run even after an earlier one fails, to report every failure, but never without a checkout or on a refused commit.
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && steps.commit.outcome != 'failure' }}
         env:
           GATE_BASE: HEAD^1
         run: bash scripts/gate.sh lint
       - name: Every Python test file, the renders included
-        if: ${{ !cancelled() }}
-        run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py'
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && steps.commit.outcome != 'failure' }}
+        # The commit's own gate: main's older tree has no Tools/tests/run_suite.py. KSTYLEUI_RELEASE makes it run every file.
+        run: bash scripts/gate.sh python
       - name: Remove tags from the check build
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && steps.commit.outcome != 'failure' }}
         run: git for-each-ref --format='delete %(refname)' refs/tags | git update-ref --stdin
       - name: Package without uploading or localisation
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && steps.commit.outcome != 'failure' }}
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
         with:
           args: -d -l
           pandoc: false
       - name: Check the zip
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && steps.commit.outcome != 'failure' }}
         run: bash Tools/hooks/check-package.sh
