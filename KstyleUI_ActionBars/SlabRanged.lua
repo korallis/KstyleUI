@@ -1171,8 +1171,11 @@ end
 local function PaintShot(m)
 	local shot = m.spec.shots[m.usable]
 	if shot and not m.shots[shot] then
+		local first = #m.parts + 1
 		Look(m, shot, m.looks)
-		Medals.Size(m)
+		for i = first, #m.parts do
+			Medals.Even(m.parts[i])
+		end
 	end
 	if shot ~= m.shot then
 		if m.shot then
