@@ -17,6 +17,11 @@ local FOLD, FOLD_RUN = 1.4, 0.4
 local MOTE, TICK, TICK_RUN, TICK_OUT, TICK_FROM = 12, 2, 0.6, 0.2, 0.2
 local FORBEARANCE = 25771
 local OWNER = "ActionBars.SlabPopoffs"
+local UPPER, PET = ns.SlabSeats.AT.upper, Ranged.PET
+local OUT = math.sqrt(PET[1] * PET[1] + PET[2] * PET[2])
+local EDGE, LIFT = 10 / OUT, 8 / OUT
+local BEAST_AT = { PET[1] * (1 + EDGE) - UPPER[1], PET[2] * (1 + EDGE) - UPPER[2] }
+local BEAST_TO = { PET[1] * LIFT, PET[2] * LIFT }
 local pieces, watching = {}, false
 local seen, present, live = { target = {}, focus = {}, roster = {} }, {}, {}
 local PARTY, RAID, kind = {}, {}, nil
@@ -40,12 +45,13 @@ local function Move(group, dx, dy, duration, order, smoothing)
 	return t
 end
 
-local function Travel(flare, from)
+local function Travel(flare, from, to)
 	local play = ns.Slab.Group(flare)
 	local dx, dy = from[1], from[2]
-	if dx ~= 0 or dy ~= 0 then
+	local ex, ey = to and to[1] or 0, to and to[2] or 0
+	if dx ~= 0 or dy ~= 0 or to then
 		Move(play, dx, dy, 0.01, 1, "NONE")
-		Move(play, -dx, -dy, RISE_RUN, 2, "OUT")
+		Move(play, ex - dx, ey - dy, RISE_RUN, 2, "OUT")
 	end
 	ns.Slab.Grow(play, RISE_FROM, 1, RISE_RUN, 2, "OUT")
 	ns.Slab.Fade(play, 0, 1, FLASH, 2)
@@ -53,6 +59,15 @@ local function Travel(flare, from)
 	ns.Slab.Fade(play, 1, 0, POP_RUN, 3)
 	play.held = RISE_RUN + POP_RUN
 	flare.play = play
+end
+
+local function Idle(flare)
+	flare:Hide()
+	for _, group in ipairs({ Medals.Arbitrate(flare.play, true, flare.gate), Medals.Arbitrate(Medals.Hold(flare), true, flare.gate) }) do
+		group:HookScript("OnPlay", function() flare:SetShown(flare.gate.base ~= 0) end)
+		group:HookScript("OnFinished", function() flare:Hide() end)
+		group:HookScript("OnStop", function() flare:Hide() end)
+	end
 end
 
 local function Ticks(piece, lit, spec, level)
@@ -118,6 +133,7 @@ local function OnRoster()
 		Present(layer)
 	end
 	Fresh(seen.roster)
+	if ns.SlabRings then ns.SlabRings.Update() end
 end
 
 local function Unseen(parent, unit, other, level)
@@ -229,7 +245,15 @@ local function Life(piece, lit, spec, size, level)
 	local gate, seat = lit.flareGate, spec.seat
 	local reach = math.sqrt(seat[1] * seat[1] + seat[2] * seat[2])
 	for _, each in ipairs(gate and { gate, gate.other } or {}) do
-		Travel(each.lit.flare, spec.from or { -seat[1] * RISE / reach, -seat[2] * RISE / reach })
+		local flare, at = each.lit.flare, spec.anchor
+		if at then
+			local host = flare:GetParent()
+			flare:ClearAllPoints()
+			flare:SetPoint("TOPLEFT", host, "TOPLEFT", at[1], at[2])
+			flare:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", at[1], at[2])
+		end
+		Travel(each.lit.flare, spec.from or { -seat[1] * RISE / reach, -seat[2] * RISE / reach }, spec.to)
+		Idle(each.lit.flare)
 	end
 	return lit
 end
@@ -245,7 +269,7 @@ local function Ally(piece, spec, unit, others, size, level)
 	for _, other in ipairs(others) do
 		host = Unseen(host, unit, other, level)
 	end
-	host.root, host.add, host.parts, host.lits, host.units = true, piece.add, piece.parts, piece.lits, piece.units
+	host.root, host.top, host.add, host.parts, host.lits, host.units = true, piece, piece.add, piece.parts, piece.lits, piece.units
 	local ally = setmetatable({ unit = unit, filter = "HELPFUL|PLAYER" }, { __index = spec })
 	return Life(host, Medals.Lit(host, ally, level), ally, size, level)
 end
@@ -300,7 +324,7 @@ Popoffs.CLASSES = {
 		Row(Ranged.PENDANT, "Vortex", "schoolArcane", { 12051 }, { overlay = true, ticks = true, from = { 0, 0 } }),
 	} },
 	{ "HUNTER", {
-		Row("upper", "Beast", "schoolFire", { 19574 }, { unit = "pet" }),
+		Row("upper", "Beast", "schoolFire", { 19574 }, { unit = "pet", anchor = BEAST_AT, from = { 0, 0 }, to = BEAST_TO, origin = PET }),
 		Row("popHunter", "Deflect", "schoolPhysical", { 19263 }, { from = { 0, -RISE } }),
 	} },
 	{ "PALADIN", {

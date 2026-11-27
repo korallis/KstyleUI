@@ -1,4 +1,4 @@
--- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment and its review): every class has one or two, the mage's listed first and the hunter's second, each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each class's pop-offs take seats of their own or the overlay seat they were chosen for; each lights from its own aura on its own unit and no other, and goes when the aura goes; at Full the flare rises, at Calm it is still and at Off it is dark; the aura's end folds it at Full only, and Calm, Off, the crest coming to rest or the piece hiding stop a fold already running or waiting for its frame; Ice Block covers the emblem, Evocation's ticks loop into the mana gem at Full only, Divine Shield's fold shrinks into the Forbearance ring that lights from the debuff, Power Infusion also lights when the priest casts it on a target, focus or, in a party or raid, a member they have not selected, with the same flare, ring, late warning and shared fold, keeps lighting through target and focus changes, draws once for one ally reached through two names, keeps a missing member's slot hidden and listens only while it shows, Bestial Wrath lights from the pet on the upper seat, and either rank of Nightfall builds Shadow Trance; the switch hides them; while auras are secret, from before combat until the restriction lifts, nothing touches the slots and an aura's end still folds.
+-- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment and its review): every class has one or two, the mage's listed first and the hunter's second, each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each class's pop-offs take seats of their own or the overlay seat they were chosen for; each lights from its own aura on its own unit and no other, and goes when the aura goes; at Full the flare rises, at Calm it is still and at Off it is dark; the aura's end folds it at Full only, and Calm, Off, the crest coming to rest or the piece hiding stop a fold already running or waiting for its frame; Ice Block covers the emblem, Evocation's ticks loop into the mana gem at Full only, Divine Shield's fold shrinks into the Forbearance ring that lights from the debuff, Power Infusion also lights when the priest casts it on a target, focus or, in a party or raid, a member they have not selected, with the same flare, ring, late warning and shared fold, keeps lighting through target and focus changes, draws once for one ally reached through two names, keeps a missing member's slot hidden and listens only while it shows, arms its late warning from the aura events of the player, the target and every party or raid member, a late joiner included, hears no member after the group is gone, and, joined in combat or turned into a raid while auras are secret, keeps the variant built before, builds nothing protected and lights the new member once when the restriction lifts, Bestial Wrath lights from the pet on the upper seat with its flare rising a short way out of the pet band, and either rank of Nightfall builds Shadow Trance; the switch hides them; while auras are secret, from before combat until the restriction lifts, nothing touches the slots and an aura's end still folds.
 local F = dofile("Tools/regression/crest_armory_fixture.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local AB, Slots, New, Clean = F.AB, F.Slots, F.New, F.Clean
@@ -375,7 +375,9 @@ end
 Clean(env, K, "switch")
 
 -- The hunter's Bestial Wrath takes the upper seat, which no hunter piece holds, so the Serpent Sting fuse on the right band never turns it away;
--- a rise from the pet band would cross the Hunter's Mark reticle and the Auto Shot emblem (test-actionbars-crest-popoffs-reach).
+-- a traverse from the pet band would cross the Hunter's Mark reticle and the Auto Shot emblem (test-actionbars-crest-popoffs-reach), so the
+-- review's choice was a short rise out of the pet band: the flare appears 10 units outside the band's centre (42, -46, SlabRanged.PET) along
+-- the crest's radius and lifts 8 units further out, while the sigil and ring stay on the upper seat (0, 80).
 do
 	local henv, hK, hns = New("HUNTER", { 19574, 19263, 1978 })
 	henv.SetTarget(true)
@@ -383,6 +385,20 @@ do
 	local wrath = assert(Pop(hns, "Beast"), "Bestial Wrath builds once known")
 	local crest = hns.SlabTrackers.state.forms.crest
 	assert(hns.SlabSeats.Name(wrath.spec.seat) == "upper" and #crest.refused == 0 and crest.claims.bandRight == "crestSting", "Bestial Wrath holds the upper seat beside Serpent Sting's band: " .. table.concat(crest.refused, "; "))
+	local out = math.sqrt(42 * 42 + 46 * 46)
+	for _, gate in ipairs({ wrath.lits[1].flareGate, wrath.lits[1].flareGate.other }) do
+		local flare = gate.lit.flare
+		local _, _, _, x, y = flare:GetPoint(1)
+		assert(math.abs(x - 42 * (1 + 10 / out)) < 0.01 and math.abs(y + 80 + 46 * (1 + 10 / out)) < 0.01, string.format("Bestial Wrath's flare appears just outside the pet band, not at %.1f, %.1f from the upper seat", x, y))
+		local ex, ey = 0, 0
+		for _, anim in ipairs(flare.play._anims) do
+			if anim._type == "Translation" then
+				local dx, dy = anim:GetOffset()
+				ex, ey = ex + dx, ey + dy
+			end
+		end
+		assert(math.abs(ex - 42 * 8 / out) < 0.01 and math.abs(ey + 46 * 8 / out) < 0.01, string.format("Bestial Wrath's flare lifts 8 units out of the pet band, not %.1f, %.1f", ex, ey))
+	end
 	Gain(henv, "pet", 19574)
 	assert(wrath.lits[1]:IsShown(), "Bestial Wrath lights from the pet")
 	Clean(henv, hK, "hunter")
@@ -504,6 +520,49 @@ local function Listeners(at, event)
 	return n
 end
 
+-- C_UnitAuras.GetUnitAuraBySpellID answered from the auras Slots.Set gave each unit, one instance id per aura table,
+-- so a UNIT_AURA reaches the late warning the way the client's reads would.
+local function Readings(at)
+	local ids, n = setmetatable({}, { __mode = "k" }), 0
+	at.C_UnitAuras = at.C_UnitAuras or {}
+	at.C_UnitAuras.GetUnitAuraBySpellID = function(unit, id)
+		for _, a in ipairs(at._slotAuras[unit] or {}) do
+			if a.id == id and not a.harmful then
+				if not ids[a] then n = n + 1 ids[a] = n end
+				return { auraInstanceID = ids[a], spellId = id, sourceUnit = a.mine == false and "party9" or "player", expirationTime = a.start + a.duration, duration = a.duration }
+			end
+		end
+	end
+end
+
+-- An aura gain as the client delivers it: the slots update and UNIT_AURA fires for that unit only.
+local function Aura(at, unit, id, fields)
+	Gain(at, unit, id, fields)
+	local a = at.C_UnitAuras.GetUnitAuraBySpellID(unit, id)
+	at.FireEvent("UNIT_AURA", unit, { isFullUpdate = false, addedAuras = { { spellId = id, auraInstanceID = a.auraInstanceID } } })
+end
+
+-- Whether some frame hears UNIT_AURA for this unit.
+local function Hears(at, unit)
+	for _, f in ipairs(at._frames) do
+		local units = f._events.UNIT_AURA
+		for _, each in ipairs(type(units) == "table" and units or {}) do
+			if each == unit then return true end
+		end
+	end
+	return false
+end
+
+-- Whether the late warning of this pop-off's slot for unit is armed on the aura that started now.
+local function Warned(at, own, variant, unit)
+	for _, e in ipairs(own.SlabRings.state.watched) do
+		if e.unit == unit and (e.piece.top or e.piece) == variant and e.late then
+			return e.late.start == at._now and e.late.show:IsPlaying()
+		end
+	end
+	return false
+end
+
 do
 	local genv, gK, gns = New("PRIEST", { 10060 })
 	local same, members, raid = {}, {}, false
@@ -512,10 +571,14 @@ do
 	genv.IsInRaid = function() return raid end
 	local exists = genv.UnitExists
 	genv.UnitExists = function(unit) return members[unit] == true or exists(unit) end
+	Readings(genv)
 	genv.SetTarget(true)
 	genv.RunTimers()
 	local solo = assert(Shown(gns, "Infusion"), "Power Infusion builds once known")
 	assert(not On(solo, "party1") and not On(solo, "raid1"), "a priest on their own watches no party or raid member")
+	Aura(genv, "player", 10060)
+	Aura(genv, "target", 10060, { mine = true })
+	assert(Warned(genv, gns, solo, "player") and Warned(genv, gns, solo, "target"), "on their own the priest's and the target's Power Infusion arm their late warnings")
 	members.party1, members.party2 = true, true
 	genv.FireEvent("GROUP_ROSTER_UPDATE")
 	genv.RunTimers()
@@ -531,6 +594,20 @@ do
 	members.party3 = nil
 	genv.FireEvent("GROUP_ROSTER_UPDATE")
 	assert(not host:IsShown(), "and leaving hides it again")
+	members.party4 = true
+	genv.FireEvent("GROUP_ROSTER_UPDATE")
+	Aura(genv, "party4", 10060, { mine = true })
+	assert(On(party, "party4"):IsVisible() and Warned(genv, gns, party, "party4"), "the last party member, joining after the party formed, lights and arms its late warning")
+	Aura(genv, "player", 10060)
+	Aura(genv, "target", 10060, { mine = true })
+	assert(Warned(genv, gns, party, "player") and Warned(genv, gns, party, "target"), "in a party the priest's and the target's late warnings still arm")
+	members.party4 = nil
+	Slots.Set(genv, "party4", nil)
+	Slots.Set(genv, "player", nil)
+	Slots.Set(genv, "target", nil)
+	genv.FireEvent("GROUP_ROSTER_UPDATE")
+	genv.RunTimers()
+	Finish(genv)
 	Gain(genv, "party2", 10060, { mine = false })
 	assert(not p2:IsShown(), "another priest's Power Infusion on a party member lights nothing")
 	Gain(genv, "party2", 10060, { mine = true })
@@ -560,11 +637,18 @@ do
 	local band = assert(Shown(gns, "Infusion"), "in a raid the pop-off shows")
 	assert(band ~= party and On(band, "raid40") and not On(band, "party1"), "in a raid it watches the forty raid members")
 	local r1, r5 = On(band, "raid1"), On(band, "raid5")
-	Gain(genv, "raid5", 10060, { mine = true })
+	Aura(genv, "raid5", 10060, { mine = true })
 	assert(r5:IsVisible() and Seen(r5, band) == 1, "the priest's Power Infusion on a raid member lights")
-	Gain(genv, "player", 10060)
+	Aura(genv, "player", 10060)
 	Gain(genv, "raid1", 10060, { mine = true })
 	assert(band.lits[1]:IsVisible() and r1:IsShown() and not r1:IsVisible(), "the raid member who is the priest draws once")
+	assert(Warned(genv, gns, band, "player") and Warned(genv, gns, band, "raid5"), "in a raid the priest's and a raid member's late warnings arm")
+	members.raid37 = true
+	genv.FireEvent("GROUP_ROSTER_UPDATE")
+	Aura(genv, "raid37", 10060, { mine = true })
+	assert(On(band, "raid37"):IsVisible() and Warned(genv, gns, band, "raid37"), "a raid member late in the raid's order, joining after it formed, lights and arms its late warning")
+	Aura(genv, "target", 10060, { mine = true })
+	assert(Warned(genv, gns, band, "target"), "and the target's late warning still arms")
 	local on = Listeners(genv, "GROUP_ROSTER_UPDATE")
 	assert(on > 0 and Listeners(genv, "PLAYER_FOCUS_CHANGED") > 0, "a shown Power Infusion pop-off listens for roster and identity changes")
 	gK.Options.Write("ActionBars", "crestPopoffs", false)
@@ -579,7 +663,68 @@ do
 	gK.Options.Write("ActionBars", "crestPopoffs", true)
 	genv.RunTimers()
 	assert(Listeners(genv, "GROUP_ROSTER_UPDATE") == on and r1:IsVisible(), "shown again it listens and reads the raid afresh")
+	raid, members = false, {}
+	for _, unit in ipairs({ "player", "target", "raid1", "raid5", "raid37" }) do Slots.Set(genv, unit, nil) end
+	genv.FireEvent("GROUP_ROSTER_UPDATE")
+	genv.RunTimers()
+	Finish(genv)
+	assert(Shown(gns, "Infusion") == solo, "leaving the raid brings back the priest's own pop-off")
+	Aura(genv, "player", 10060)
+	Aura(genv, "target", 10060, { mine = true })
+	assert(Warned(genv, gns, solo, "player") and Warned(genv, gns, solo, "target"), "after leaving the priest's and the target's late warnings arm again")
+	assert(not Hears(genv, "raid37") and not Hears(genv, "party4"), "and no raid or party member's auras are heard while the priest's own pop-off shows")
 	Clean(genv, gK, "group priest")
+end
+
+-- Joining a group in combat, or turning a party into a raid while auras are secret, builds nothing then: the pop-off already built
+-- keeps watching who it watched (on their own the priest, the target and the focus; in a party the party), each ally draws once, and
+-- once the lock lifts the group's own pop-off builds and an unselected member lights with its late warning.
+do
+	local lenv, lK, lns = New("PRIEST", { 10060 })
+	local members, raid = {}, false
+	lenv.UnitIsUnit = function(a, b) return a == b end
+	lenv.IsInGroup = function() return next(members) ~= nil end
+	lenv.IsInRaid = function() return raid end
+	local exists = lenv.UnitExists
+	lenv.UnitExists = function(unit) return members[unit] == true or exists(unit) end
+	Readings(lenv)
+	lenv.SetTarget(true)
+	lenv.RunTimers()
+	local solo = assert(Shown(lns, "Infusion"), "Power Infusion builds once known")
+	local built = #Pops(lns)
+	lenv.SetCombat(true)
+	members.party1 = true
+	lenv.FireEvent("GROUP_ROSTER_UPDATE")
+	lenv.RunTimers()
+	assert(#Pops(lns) == built and Shown(lns, "Infusion") == solo, "joining a party in combat builds nothing and keeps the priest's own pop-off")
+	Aura(lenv, "target", 10060, { mine = true })
+	assert(On(solo, "target"):IsVisible() and Seen(On(solo, "target"), solo) == 1, "meanwhile the target's Power Infusion draws once")
+	Slots.Set(lenv, "target", nil)
+	lenv.SetCombat(false)
+	lenv.RunTimers()
+	Finish(lenv)
+	local party = assert(Shown(lns, "Infusion"), "out of combat the pop-off shows")
+	assert(party ~= solo and On(party, "party1"), "and the party's own pop-off builds")
+	Aura(lenv, "party1", 10060, { mine = true })
+	assert(On(party, "party1"):IsVisible() and Seen(On(party, "party1"), party) == 1 and Warned(lenv, lns, party, "party1"), "a party member not selected lights once with its warning")
+	Slots.Set(lenv, "party1", nil)
+	lenv.RunTimers()
+	Finish(lenv)
+	built = #Pops(lns)
+	lenv._aurasSecret = true
+	lenv.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	raid, members.raid12 = true, true
+	lenv.FireEvent("GROUP_ROSTER_UPDATE")
+	lenv.RunTimers()
+	assert(#Pops(lns) == built and Shown(lns, "Infusion") == party, "turning into a raid while auras are secret builds nothing and keeps the party's pop-off")
+	lenv._aurasSecret = false
+	lenv.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	lenv.RunTimers()
+	local band = assert(Shown(lns, "Infusion"), "once the restriction lifts the pop-off shows")
+	assert(band ~= party and On(band, "raid40"), "and the raid's own pop-off builds")
+	Aura(lenv, "raid12", 10060, { mine = true })
+	assert(On(band, "raid12"):IsVisible() and Seen(On(band, "raid12"), band) == 1 and Warned(lenv, lns, band, "raid12"), "a raid member not selected lights once with its warning")
+	Clean(lenv, lK, "locked roster")
 end
 
 -- A warlock who knows only the second rank of Nightfall still builds Shadow Trance's pop-off.

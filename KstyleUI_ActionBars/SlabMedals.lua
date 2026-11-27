@@ -1156,6 +1156,8 @@ local function Hold(flare)
 	return flare.still
 end
 
+Medals.Hold = Hold
+
 function Medals.Claim(stop, seconds)
 	return Effects.ClaimFor("crestFlare", Effects.PRIORITY.ready, seconds or HELD, stop)
 end

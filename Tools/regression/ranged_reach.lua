@@ -232,15 +232,16 @@ local function Covers(region, poses, peer, meant)
 end
 
 -- Meant(popoff) -> whether the pop-off draws a pixel over another piece on purpose: an overlay (Ice Block's shell, Divine Shield's bubble,
--- Evocation over the mana gem) and Evocation's ticks cover only the piece on their own seat. Seats compare in crest units.
+-- Evocation over the mana gem) and Evocation's ticks cover only the piece on their own seat, and Bestial Wrath's flare only the pet band
+-- at its row's origin, which it rises out of. Seats compare in crest units.
 local function Near(a, b)
 	return a and b and math.abs(a[1] - b[1]) < 4 and math.abs(a[2] - b[2]) < 4
 end
 
 local function Meant(popoff)
-	local seat, own = popoff.at, popoff.overlay or popoff.frame.spec.ticks
+	local seat, own, origin = popoff.at, popoff.overlay or popoff.frame.spec.ticks, popoff.frame.spec.origin
 	return function(_, _, _, peer)
-		return own and Near(peer.piece.at, seat) or false
+		return own and Near(peer.piece.at, seat) or Near(peer.piece.at, origin) or false
 	end
 end
 

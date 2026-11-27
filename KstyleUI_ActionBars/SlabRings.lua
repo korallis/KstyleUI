@@ -47,7 +47,13 @@ Rings.Head = Head
 
 local function Track(piece, spec, ghost)
 	local e = { piece = piece, spec = spec, unit = spec.unit or "player", ids = {}, fade = ghost and Pop(ghost, FADE), flicker = ghost and ns.Slab.Flicker(piece) }
-	if ghost then ghost:SetAlpha(0) end
+	if ghost then
+		ghost:SetAlpha(0)
+		ghost:Hide()
+		e.fade:SetScript("OnPlay", function() ghost:Show() end)
+		e.fade:SetScript("OnFinished", function() ghost:Hide() end)
+		e.fade:SetScript("OnStop", function() ghost:Hide() end)
+	end
 	for _, id in ipairs(spec.spells or NONE) do
 		e.ids[id] = true
 	end
@@ -499,9 +505,27 @@ local function Gcd(_, id, _, _, recovery)
 	end
 end
 
+local function Member(unit)
+	return unit:find("^party%d") ~= nil or unit:find("^raid%d") ~= nil
+end
+
 local function Listen(cast, spark)
 	local ember, swing = state.enabled and (EmberOn() or Calls()) and next(state.units) ~= nil, state.enabled and MELEE_FORMS and ns.Config("crestSwing") ~= false
-	local key = table.concat({ tostring(state.enabled), tostring(cast), tostring(spark), tostring(ember), tostring(swing) }, ",")
+	local units, members, picked = {}, {}, {}
+	for unit in pairs(ember and state.units or NONE) do
+		if not Member(unit) then
+			units[#units + 1] = unit
+		end
+	end
+	for _, e in ipairs(ember and state.watched or NONE) do
+		if Member(e.unit) and not picked[e.unit] and (e.piece.top or e.piece):IsVisible() then
+			picked[e.unit] = true
+			members[#members + 1] = e.unit
+		end
+	end
+	table.sort(units)
+	table.sort(members)
+	local key = table.concat({ tostring(state.enabled), tostring(cast), tostring(spark), tostring(ember), tostring(swing), table.concat(members, " ") }, ",")
 	if state.listening == key then
 		return
 	end
@@ -509,20 +533,25 @@ local function Listen(cast, spark)
 	local Events = K.Events
 	Events.UnregisterAll(OWNER)
 	Events.UnregisterAll(OWNER .. ".Aura")
+	for k = 1, state.pairs or 0 do
+		Events.UnregisterAll(OWNER .. ".Group" .. k)
+	end
+	state.pairs = 0
 	if not state.enabled then
 		return
 	end
 	Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Rings.Update)
 	Events.Register(OWNER, "ADDON_RESTRICTION_STATE_CHANGED", Rings.Update)
 	if ember then
-		local units = {}
-		for unit in pairs(state.units) do
-			units[#units + 1] = unit
+		if units[1] then
+			Events.RegisterUnit(OWNER, "UNIT_AURA", Readable, units[1], units[2])
 		end
-		table.sort(units)
-		Events.RegisterUnit(OWNER, "UNIT_AURA", Readable, units[1], units[2])
 		if units[3] then
 			Events.RegisterUnit(OWNER .. ".Aura", "UNIT_AURA", Readable, units[3], units[4])
+		end
+		for i = 1, #members, 2 do
+			state.pairs = state.pairs + 1
+			Events.RegisterUnit(OWNER .. ".Group" .. state.pairs, "UNIT_AURA", Readable, members[i], members[i + 1])
 		end
 		Events.Register(OWNER, "PLAYER_TARGET_CHANGED", Readable)
 		Events.Register(OWNER, "PLAYER_REGEN_DISABLED", Readable)
