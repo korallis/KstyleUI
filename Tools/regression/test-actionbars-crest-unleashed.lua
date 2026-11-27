@@ -406,4 +406,21 @@ do
 	Clean(env, K, "frames")
 end
 
+-- KSTY-60 part 4: the blaze fires only for a family flagged major; a minor buff or a potion still drains on the cooldown rim but never sets the crest ablaze.
+do
+	local env, K, ns = New({ class = "WARRIOR" })
+	local rim, set = Rim(ns), ns.SlabUnleashed.sets[1]
+	local blaze = set.awake.lit.container._slots.lit.candidates.includeSpellIDs
+	local drain = rim.lit.container._slots.lit.candidates.includeSpellIDs
+	assert(blaze[1719] and blaze[20572], "Recklessness and Blood Fury, both major, feed the blaze")
+	assert(drain[12292] and drain[17528], "Sweeping Strikes and a potion still drain on the cooldown rim")
+	assert(not blaze[12292] and not blaze[17528], "Sweeping Strikes and a potion, not major, never feed the blaze")
+	env.SetCombat(true)
+	Gain(env, { { id = 12292, auraInstanceID = 9, count = 0, icon = 132306, start = 0, duration = 10 } })
+	assert(rim.lit:IsVisible() and not set.awake.lit:IsShown() and not set.still.lit:IsShown(), "Sweeping Strikes lights the rim's drain and no blaze")
+	Gain(env, Reck())
+	assert(set.awake.lit:IsVisible(), "Recklessness still sets the crest ablaze")
+	Clean(env, K, "major only")
+end
+
 print("actionbars crest unleashed ok")

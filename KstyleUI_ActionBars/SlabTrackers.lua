@@ -28,7 +28,7 @@ for kind, events in pairs(LUA) do
 	end
 end
 local SHARED = {
-	{ spells = { 20572 }, sigil = "Axe" }, { spells = { 20554 }, sigil = "Tusks" }, { spells = { 20594 }, sigil = "Stone" },
+	{ spells = { 20572 }, sigil = "Axe", major = true }, { spells = { 20554 }, sigil = "Tusks", major = true }, { spells = { 20594 }, sigil = "Stone", major = true },
 	{ spells = { 20600 }, sigil = "Eye" }, { spells = { 7744 }, sigil = "Grave" }, { spells = { 1299026 }, sigil = "Shatter" },
 	{ spells = { 1259799 }, sigil = "Star" }, { spells = { 1259812, 1259813, 1259817, 1259821, 1259823 }, sigil = "Gear" }, { spells = { 1260270 }, sigil = "Regen" },
 	{ spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {}, sigil = "Potion" },
@@ -593,9 +593,9 @@ if CLASS == "WARRIOR" then
 		} },
 		{ key = "crestEnrage", seat = "rim", feed = "aura", spells = { 12880, 29131, 18499 }, known = { 2687, 18499, 12317, 13045, 13046, 13047, 13048 },
 			color = "pipWarriorGlow", ambient = "medAmbientWarrior", ring = ns.SlabArmory.ART .. "Cracks.png", ringSize = 150, look = "flame" },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 1719 }, sigil = "Crossed" }, { spells = { 12328 }, sigil = "Skull" },
-			{ spells = { 871 }, sigil = "Wall" }, { spells = { 12976 }, known = { 12975 }, sigil = "Heart" }, { spells = { 12292 }, sigil = "Sweep" },
-			{ spells = { 20230 }, sigil = "Thorns" } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 1719 }, sigil = "Crossed", major = true }, { spells = { 12328 }, sigil = "Skull", major = true },
+			{ spells = { 871 }, sigil = "Wall", major = true }, { spells = { 12976 }, known = { 12975 }, sigil = "Heart", major = true }, { spells = { 12292 }, sigil = "Sweep" },
+			{ spells = { 20230 }, sigil = "Thorns", major = true } } },
 		{ key = "crestThreat", seat = "topGem", feed = "threat", known = SHOUTS, choices = { { forms = DEFENSIVE, color = "gilt" }, { color = "plateHostile" } } },
 		{ key = "crestHipLeft", seat = LL, size = 50, feed = "cooldown", look = "grooveLL", color = "pipWarriorGlow", choices = {
 			{ forms = DEFENSIVE, feed = "aura", unit = "target", filter = "HARMFUL", spells = THUNDER, color = "pipStormGlow", loop = "crackle" },
@@ -646,9 +646,9 @@ if CLASS == "PALADIN" then
 		{ key = "crestJudgement", seat = ARM_L, size = 36, feed = "cooldown", known = JUDGEMENT, look = "hammer", color = "jewelHoly", flash = "left" },
 		{ key = "crestJudged", seat = ARM_R, size = 30, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", known = JUDGEMENT,
 			color = "jewelHoly", look = "brand", flash = "right", feeds = JUDGED_SCHOOLS },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "white", families = { { spells = { 642, 1020 }, sigil = "Bubble" },
-				{ spells = { 498, 5573 }, sigil = "Aegis" }, { spells = { 20216 }, sigil = "Sun" }, { spells = { 1022, 5599, 10278 }, sigil = "Hand" },
-				{ spells = { 1044 }, sigil = "Wing" }, { spells = { 1311015 }, sigil = "Bulwark" }, { spells = { 1310897 }, sigil = "Voice" } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "white", families = { { spells = { 642, 1020 }, sigil = "Bubble", major = true },
+				{ spells = { 498, 5573 }, sigil = "Aegis", major = true }, { spells = { 20216 }, sigil = "Sun", major = true }, { spells = { 1022, 5599, 10278 }, sigil = "Hand", major = true },
+				{ spells = { 1044 }, sigil = "Wing" }, { spells = { 1311015 }, sigil = "Bulwark", major = true }, { spells = { 1310897 }, sigil = "Voice", major = true } } },
 		{ key = "crestHipLeft", seat = LL, size = 50, feed = "cooldown", look = "grooveLL", color = "schoolHoly", choices = {
 			{ known = Talent(PROT, Trackers.Joined({ 407632 }, HOLY_STRIKE)) },
 			{ known = Talent(HOLY, Trackers.Joined({ 20930, 20929, 20473, 1311606, 20216 }, HOLY_STRIKE)) },
@@ -702,9 +702,9 @@ if CLASS == "ROGUE" then
 			color = "schoolNature", look = "vial" },
 		{ key = "crestPoisons", seat = { 47, -32 }, size = 23, perch = true, feed = "enchant", slot = "OffHand", known = Weapon, spells = POISONS, reject = NOT_POISON,
 			color = "schoolNature", look = "vial" },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = { { spells = { 13877 }, sigil = "Flurry" },
-				{ spells = { 13750 }, sigil = "Rush" }, { spells = { 5277 }, sigil = "Evade" }, { spells = { 2983, 8696, 11305 }, sigil = "Dash" },
-				{ spells = { 14177 }, sigil = "Drop" }, { spells = { 11327, 11329 }, known = VANISH, sigil = "Smoke" }, { spells = { 14278 }, sigil = "Ghost" } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = { { spells = { 13877 }, sigil = "Flurry", major = true },
+				{ spells = { 13750 }, sigil = "Rush", major = true }, { spells = { 5277 }, sigil = "Evade", major = true }, { spells = { 2983, 8696, 11305 }, sigil = "Dash" },
+				{ spells = { 14177 }, sigil = "Drop", major = true }, { spells = { 11327, 11329 }, known = VANISH, sigil = "Smoke", major = true }, { spells = { 14278 }, sigil = "Ghost" } } },
 		{ key = "crestFootLeft", seat = BL, size = 27, feed = "cooldown", known = { 1769, 1768, 1767, 1766, 11286, 11285, 8629, 1777, 1776 },
 			look = "grooveBL", color = "schoolFrost" },
 		{ key = "crestFootRight", seat = BR, size = 27, look = "grooveBR", choices = {
