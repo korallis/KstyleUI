@@ -107,7 +107,7 @@ end
 local function Named(seats)
 	local keys = {}
 	for i, at in ipairs(seats) do
-		keys[i] = at.key
+		keys[i] = at.key .. (at.slot or "")
 	end
 	return table.concat(keys, ",")
 end

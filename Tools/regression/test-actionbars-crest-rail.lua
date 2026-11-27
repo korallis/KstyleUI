@@ -389,6 +389,52 @@ do
 end
 
 do
+	local function Refuse(_, _, ns)
+		for _, row in ipairs(ns.SlabTrackers.CLASSES.HUNTER) do
+			if row.key == "crestRail" then row.build = function() error("the rail's forge is refused") end end
+		end
+	end
+	local env, K, ns = New("HUNTER", { known = BM, trinket = true, before = Refuse })
+	local gust = Seated(ns, "crestGust")
+	local rapid = false
+	for _, id in ipairs(gust and gust.spec.spells or {}) do rapid = rapid or id == 3045 end
+	assert(not Rail(ns) and Seated(ns, "crestTrinkets") and Hunter(Seated(ns, "crestCooldowns")) == "Volley,Paw" and rapid,
+		"a rail whose build fails from the start leaves the cooldown rim's sigils, Rapid Fire's gust and the crest trinket in place")
+	Clean(env, K)
+end
+
+-- The crest's own trinket sockets that show, by slot.
+local function Sockets(ns)
+	local form, shown = ns.SlabTrackers.state.form, {}
+	for i, row in ipairs(ns.SlabTrackers.CLASSES[ns.class]) do
+		local p = row.key == "crestTrinkets" and form and form.pieces[i .. ":1"]
+		if p and p:IsShown() then shown[#shown + 1] = row.slot end
+	end
+	return table.concat(shown, ",")
+end
+
+local function Railed(rail)
+	for _, at in ipairs(rail.seated) do
+		if at.key == "trinket" then return at.slot end
+	end
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = BM, trinket = true })
+	local worn = { [13] = 5002, [14] = 5002 }
+	env.GetInventoryItemID = function(_, slot) return worn[slot] end
+	env.FireEvent("PLAYER_EQUIPMENT_CHANGED", 14, true)
+	assert(Railed(Rail(ns)) == 13 and Sockets(ns) == "14", "with two trinkets the rail takes the first and the crest keeps the second: " .. Sockets(ns))
+	worn[13] = nil
+	env.FireEvent("PLAYER_EQUIPMENT_CHANGED", 13, true)
+	assert(Railed(Rail(ns)) == 14 and Sockets(ns) == "", "the rail moves to the trinket left, and the crest shows no second socket for it: " .. Sockets(ns))
+	worn[13] = 5002
+	env.FireEvent("PLAYER_EQUIPMENT_CHANGED", 13, true)
+	assert(Railed(Rail(ns)) == 13 and Sockets(ns) == "14", "the rail moves back to slot 13 and the crest takes slot 14 back: " .. Sockets(ns))
+	Clean(env, K)
+end
+
+do
 	local env, K, ns = New("HUNTER", { known = BM, trinket = true, secret = true })
 	assert(not ns.SlabRail.Holds({ 3045 }) and not ns.SlabRail.Holds(nil, 13), "loading while restricted, before the rail can be built, takes no ability or trinket from the other trackers")
 	env._aurasSecret = false

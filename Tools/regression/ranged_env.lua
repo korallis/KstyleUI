@@ -1,4 +1,4 @@
--- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), pet, ammo, usable strikes, item and spell cooldowns and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error.
+-- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), a change to the addon before it is enabled (opts.before), pet, ammo, usable strikes, item and spell cooldowns and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -100,6 +100,9 @@ local function New(class, opts)
 	end
 	if opts.frames then
 		K.Options.Write("HudStyle", "style", "frames")
+	end
+	if opts.before then
+		opts.before(env, K, ns)
 	end
 	AB.Enable(env, K)
 	env.RunTimers()
