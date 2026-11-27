@@ -7,7 +7,7 @@ local Slots = dofile("Tools/regression/aura_slots.lua")
 local SHOUT = 25289
 local CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
 
-local function New(class, unknown)
+local function New(class, unknown, before)
 	local env, K, ns = AB.New({ class = class, setup = function(e)
 		e._trackOrigin = true
 		e.C_SpellBook = e.C_SpellBook or {}
@@ -35,6 +35,7 @@ local function New(class, unknown)
 		Slots.Install(e)
 		e.AuraContainerSortMethod, e.AuraContainerSortDirection = { Default = 0, AuraInstanceIDOnly = 8 }, { Normal = 0, Reverse = 1 }
 	end })
+	if before then before(env, K) end
 	AB.Enable(env, K)
 	env.RunTimers()
 	assert(#env._errors == 0 and K.ErrorCount() == 0, class .. ": " .. AB.Errors(env))
@@ -835,6 +836,21 @@ do
 	bloom:Stop()
 	Slots.Set(env, "target", {})
 
+	-- Calm keeps one still arrival cue, on the still copy, which takes the flare place like any flare while the unseen bloom claims nothing; Off has no cue.
+	local still = assert(lit.mark.still:GetParent():GetParent().flare, "the head's still copy holds a still arrival cue").still
+	Motion(env, K, "calm")
+	Cast(118)
+	assert(still:IsPlaying() and Effects.Holder("crestFlare") ~= nil, "at Calm a new Polymorph holds the head still for one pass in the flare place")
+	assert(flames:GetAlpha() == 0 and flames.late, "the moving bloom plays only on the dark flame copy and takes no place")
+	ready(cool.timer)
+	assert(cool.flare.still:IsPlaying() and not still:IsPlaying(), "a cooldown's still mark stops it: one cue at a time")
+	env.RunTimers()
+	Slots.Set(env, "target", {})
+	Motion(env, K, "off")
+	Cast(118)
+	assert(not still:IsPlaying() and Effects.Holder("crestFlare") == nil and flames:GetAlpha() == 0, "Off shows no arrival cue and claims nothing")
+	Slots.Set(env, "target", {})
+
 	Motion(env, K, "calm")
 	env._aurasSecret = true
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
@@ -851,6 +867,19 @@ do
 	env.C_Timer.After = after
 	env._aurasSecret = nil
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A fuse built at Calm with Polymorph already on the target binds its copies with the aura present: its flame copy is dark from the start, so the bloom the
+-- engine plays there claims nothing.
+do
+	local env, K, ns = New("MAGE", Unknown({ 11119, 11120, 12846, 12847, 12848 }, { 11180, 28592, 28593, 28594, 28595 }), function(e, K)
+		K.Options.Write("Medallions", "restingCrest", false)
+		K.Options.Write("Medallions", "motion", "calm")
+		Slots.Set(e, "target", { { id = 118, harmful = true, start = 0, duration = 50, mine = true } })
+	end)
+	local lit = assert(Piece(ns, "crestYourSpell"), "Polymorph's fuse").lit
+	assert(lit:IsShown() and lit.flames.base == 0 and lit.flames.late, "the first binding's bloom began on a dark flame copy and claims nothing")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

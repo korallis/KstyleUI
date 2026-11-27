@@ -393,7 +393,7 @@ local function Gate(piece, lit, level, key, calm)
 	gate.lit.burns = not calm
 	if not shared then
 		gate.burning, gate.calm = not calm, calm
-		gate:SetAlpha(Moving() == not calm and 1 or 0)
+		Medals.Gate(gate, Moving() == not calm and 1 or 0)
 		gates[#gates + 1] = gate
 	end
 	lit[key] = gate
@@ -1163,7 +1163,7 @@ local function Wanted(button, mode, awake)
 	local gate = flare and (flare.gate or button.hold and button.hold.face and button.hold)
 	return {
 		AuraShown = mode == true and Shown(button, awake) or NONE,
-		AuraAssigned = { flare and (mode == true and Medals.Arbitrate(flare.play, true, gate) or mode == "calm" and Hold(flare) and Medals.Arbitrate(flare.still, true, gate)) or nil },
+		AuraAssigned = { flare and (mode == true and flare.play and Medals.Arbitrate(flare.play, true, gate) or mode == "calm" and Hold(flare) and Medals.Arbitrate(flare.still, true, gate)) or nil },
 		PandemicActive = { flicker and (mode == true and flicker or mode == "calm" and ns.Slab.Still(flicker)) or nil },
 	}
 end

@@ -134,6 +134,8 @@ local function Light(p, each, level, look)
 			local copy = lights.flame:GetParent()
 			copy.flare, copy.loops, gated = Bloom(lights.flame, 1.2), { look.loop and Medals.Steps(lights.flame, look.loop, true) or nil }, true
 			copy.flare.gate = lit.flames
+			local still = lights.calm:GetParent()
+			still.flare = { still = Bloom(lights.calm, 1.2).still, gate = lit.stills }
 		end
 	end
 	if lit.container then
@@ -275,6 +277,8 @@ local function Fuse(parent, spec, level, form)
 					local copy = lights.flame:GetParent()
 					copy.flare, copy.flicker = Bloom(lights.flame, 1.5), ns.Slab.Flicker(lights.flame)
 					copy.flare.gate = lit.flames
+					local still = lights.calm:GetParent()
+					still.flare = { still = Bloom(lights.calm, 1.5).still, gate = lit.stills }
 				end
 			end)
 		else
