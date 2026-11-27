@@ -111,7 +111,6 @@ local function Proc(p, each, level)
 	return lit
 end
 
--- Paint(p): the race's vessel and the tree's light, core and meniscus; only these files load, and only once the hub shows
 local function Paint(p)
 	local school = Orb.School()
 	if p.school == school then
