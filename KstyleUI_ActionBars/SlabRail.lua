@@ -13,6 +13,7 @@ ns.SlabRail = Rail
 
 local SEAT, SPARE, CROWN, PITCH, SPARE_PITCH, PEAK, BOW, CROWN_Y = 28, 22, 34, 31, 25, 126, 10, 90
 local LOW_Y, LOW_CROWN, SPARE_Y, SPARE_GAP, SPARES, SEATS, GCD = 227, 6, 127, 8, 6, 4, 1.5
+local SPARK, LEGS, LANE, LOW_LANE = 4, 3, 8, -22
 local SPAN = 2 * PITCH
 local SIGIL, ICON, SHADE, PAD, REFILL, AURA = 0.86, 0.74, 1.9, 5, 0.6, 0.86 / 0.62
 local BREATH, BREATH_RUN, GLOW, READY_GLOW, READY_RING, READY_RUN, RELIGHT = { 0.1, 0.2 }, 1.2, 1.6, 44 / 28, 34 / 28, 0.3, 0.18
@@ -23,6 +24,10 @@ local LIFT_RUN, TURN, POP, POP_RUN, SETTLE_RUN, FOLD_RUN, HOME_RUN = 0.28, 16, 1
 local CASTS = { "unitframes.castbar.player", "unitframes.castbar.target" }
 local OWNER, NONE = "ActionBars.SlabRail", {}
 local RACIALS = ns.SlabTrackers.RACIALS
+local RACIAL = {}
+for _, racial in ipairs(RACIALS) do
+	RACIAL[racial.key] = true
+end
 Rail.picked, Rail.held, Rail.spared, Rail.kept = NONE, NONE, NONE, NONE
 
 function Rail.Register(_, data)
@@ -30,6 +35,10 @@ function Rail.Register(_, data)
 		data.abilities[racial.key] = data.abilities[racial.key] or racial
 	end
 	data.abilities.trinket = data.abilities.trinket or { sigil = "Charm" }
+	data.second = {}
+	for _, key in ipairs(data.overflow or NONE) do
+		data.second[key] = true
+	end
 	Rail.data = data
 end
 
@@ -100,7 +109,7 @@ local function Picked(data)
 	local picks, used = {}, {}
 	for i = 1, SEATS do
 		local key = ns.Config("crestRailSeat" .. i)
-		if type(key) == "string" and key ~= "" and not used[key] and data.abilities[key] and key ~= "trinket" and Learned(key) then
+		if type(key) == "string" and key ~= "" and not used[key] and data.abilities[key] and key ~= "trinket" and not data.second[key] and Learned(key) then
 			picks[i], used[key] = key, true
 		end
 	end
@@ -109,7 +118,7 @@ end
 
 local function Order(data)
 	local tree = data.trees[Rail.Tree()] or NONE
-	local seats, spare, used, places = {}, {}, {}, nil
+	local seats, spare, held, used, places = {}, {}, {}, {}, nil
 	local function take(key, list)
 		if not used[key] and Learned(key) then
 			used[key] = true
@@ -128,7 +137,7 @@ local function Order(data)
 		take(key, #seats < SEATS and seats or spare)
 	end
 	for _, key in ipairs(data.overflow or NONE) do
-		take(key, spare)
+		take(key, held)
 	end
 	for _, racial in ipairs(RACIALS) do
 		take(racial.key, spare)
@@ -168,6 +177,15 @@ local function Order(data)
 				spare[#spare + 1] = key
 			end
 		end
+	end
+	local at = #spare + 1
+	for i = #spare, 1, -1 do
+		if RACIAL[spare[i]] then
+			at = i
+		end
+	end
+	for i, key in ipairs(held) do
+		table.insert(spare, at + i - 1, key)
 	end
 	for i = #spare, SPARES + 1, -1 do
 		spare[i] = nil
@@ -218,9 +236,6 @@ function Rail.Choices()
 		for _, key in ipairs(tree.fill or NONE) do
 			add(key)
 		end
-	end
-	for _, key in ipairs(data and data.overflow or NONE) do
-		add(key)
 	end
 	for _, racial in ipairs(data and RACIALS or NONE) do
 		add(racial.key)
@@ -614,15 +629,23 @@ local function Major(r, seat, ability)
 	Mark(crown, seat.ghost, "ARTWORK", 0, seat, "steel", CROWN * (ability.sigil and SIGIL or ICON))
 	seat.ghost:SetAlpha(0)
 	seat.rise = ns.Slab.Group(seat.lift)
-	local from = size * DIP / CROWN
+	local from, spark, legs = size * DIP / CROWN, SPARK / CROWN, seat.small and LEGS or 1
+	local run, first = LIFT_RUN / legs, seat.small and 3 or 2
+	local last = first + legs - 1
 	seat.out = Move(seat.rise, 0, 0, 0.001, 1, "NONE")
 	Grow(seat.rise, from, from, 0.001, 1)
-	seat.back = Move(seat.rise, 0, 0, LIFT_RUN, 2, "OUT")
-	seat.down = Move(seat.rise, 0, 0, LIFT_RUN, 2, "OUT")
-	seat.pop = Grow(seat.rise, from, POP, POP_RUN, 2)
-	seat.turns = { Turn(seat.rise, TURN, LIFT_RUN, 2, "OUT") }
-	seat.settle = Grow(seat.rise, POP, 1, SETTLE_RUN, 3)
-	seat.turns[2] = Turn(seat.rise, -TURN, SETTLE_RUN, 3, "IN_OUT")
+	if seat.small then
+		Grow(seat.rise, from, spark, run, 2)
+	end
+	seat.legs = {}
+	for i = 1, legs do
+		seat.legs[i] = Move(seat.rise, 0, 0, run, first + i - 1, i == legs and "OUT" or "IN_OUT")
+	end
+	local land = seat.small and last + 1 or last
+	seat.pop = Grow(seat.rise, seat.small and spark or from, POP, POP_RUN, land)
+	seat.turns = { Turn(seat.rise, TURN, seat.small and POP_RUN or run, land, "OUT") }
+	seat.settle = Grow(seat.rise, POP, 1, SETTLE_RUN, land + 1)
+	seat.turns[2] = Turn(seat.rise, -TURN, SETTLE_RUN, land + 1, "IN_OUT")
 	seat.rise:SetScript("OnFinished", function()
 		if r.rising == seat then
 			r.rising = nil
@@ -631,10 +654,16 @@ local function Major(r, seat, ability)
 	end)
 	seat.home = ns.Slab.Group(seat.ghost)
 	ns.Slab.Fade(seat.home, 1, 1, FOLD_RUN, 1)
-	seat.away = Move(seat.home, 0, 0, HOME_RUN, 2, "IN_OUT")
-	seat.across = Move(seat.home, 0, 0, HOME_RUN, 2, "IN_OUT")
-	Grow(seat.home, 1, size / CROWN, HOME_RUN, 2)
-	ns.Slab.Fade(seat.home, 1, 0, HOME_RUN, 2)
+	run = HOME_RUN / legs
+	if seat.small then
+		Grow(seat.home, 1, spark, run, 2)
+	end
+	seat.trail = {}
+	for i = 1, legs do
+		seat.trail[i] = Move(seat.home, 0, 0, run, first + i - 1, "IN_OUT")
+	end
+	Grow(seat.home, seat.small and spark or 1, size / CROWN, run, land)
+	ns.Slab.Fade(seat.home, 1, 0, run, land)
 	r.majors[#r.majors + 1] = seat
 end
 
@@ -642,23 +671,23 @@ local function Aim(r, seat)
 	local _, _, _, sx, sy = seat:GetPoint(1)
 	local _, _, _, cx, cy = r.crown:GetPoint(1)
 	local dx, dy = (sx or 0) - (cx or 0), (sy or 0) - (cy or 0)
-	local corner = seat.small and not r.low
-	if seat.aim and seat.aim[1] == dx and seat.aim[2] == dy and seat.aim[3] == r.low and seat.aim[4] == corner then
+	if seat.aim and seat.aim[1] == dx and seat.aim[2] == dy and seat.aim[3] == r.low then
 		return
 	end
-	seat.aim = { dx, dy, r.low, corner }
-	local half = corner and 0.5 or 1
+	seat.aim = { dx, dy, r.low }
 	seat.out:SetOffset(dx, dy)
-	seat.back:SetOffset(-dx, corner and 0 or -dy)
-	seat.back:SetDuration(LIFT_RUN * half)
-	seat.down:SetOffset(0, corner and -dy or 0)
-	seat.down:SetDuration(LIFT_RUN * half)
-	seat.down:SetStartDelay(corner and LIFT_RUN * half or 0)
-	seat.away:SetOffset(corner and 0 or dx, dy)
-	seat.away:SetDuration(HOME_RUN * half)
-	seat.across:SetOffset(corner and dx or 0, 0)
-	seat.across:SetDuration(HOME_RUN * half)
-	seat.across:SetStartDelay(corner and HOME_RUN * half or 0)
+	if seat.small then
+		local lane = r.low and LOW_LANE or LANE
+		seat.legs[1]:SetOffset(0, lane - dy)
+		seat.legs[2]:SetOffset(-dx, 0)
+		seat.legs[3]:SetOffset(0, -lane)
+		seat.trail[1]:SetOffset(0, lane)
+		seat.trail[2]:SetOffset(dx, 0)
+		seat.trail[3]:SetOffset(0, dy - lane)
+	else
+		seat.legs[1]:SetOffset(-dx, -dy)
+		seat.trail[1]:SetOffset(dx, dy)
+	end
 	local pop, turn = r.low and 1 or POP, r.low and 0 or TURN
 	seat.pop:SetScaleTo(pop, pop)
 	seat.settle:SetScaleFrom(pop, pop)
@@ -754,8 +783,10 @@ local function Cool(seat, flare, full, calm)
 	local cooling
 	if seat.item then
 		local start, length, enable, gcd = Stored(seat)
-		cooling = not (IsSecret(start) or IsSecret(length) or IsSecret(enable) or IsSecret(gcd)) and type(length) == "number" and length > 0
-			and enable ~= 0 and enable ~= false and gcd ~= true
+		if IsSecret(start) or IsSecret(length) or IsSecret(enable) or IsSecret(gcd) then
+			return
+		end
+		cooling = type(length) == "number" and length > 0 and enable ~= 0 and enable ~= false and gcd ~= true
 		for _, t in ipairs(seat.timers) do
 			if cooling then
 				t:SetCooldown(start, length)
@@ -904,11 +935,9 @@ local function Pressed(seat, spell)
 	if seat.press == spell then
 		return true
 	end
-	for _, list in ipairs({ seat.ability.spells or NONE, seat.ability.casts or NONE }) do
-		for _, id in ipairs(list) do
-			if id == spell then
-				return true
-			end
+	for _, id in ipairs(seat.ability.casts or seat.ability.spells or NONE) do
+		if id == spell then
+			return true
 		end
 	end
 	return false

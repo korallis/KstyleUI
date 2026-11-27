@@ -535,6 +535,7 @@ for _, case in ipairs({
 	{ "WARLOCK", { 603, 18288, 6789, 6353, 1122, 17877 }, 1, "coil,inferno,amplify,soulfire", "" },
 	{ "WARLOCK", { 603, 18288, 6789, 18708, 6353, 1122, 17877, 20757, 18540 }, 2, "coil,inferno,domination,soulfire", "amplify,soulstone,ritual" },
 	{ "WARLOCK", { 603, 18288, 6789, 1122, 17877, 20757, 18540 }, 1, "coil,inferno,amplify", "soulstone,ritual" },
+	{ "WARLOCK", { 603, 18288, 6789, 18708, 6353, 1122, 17877, 20757, 18540 }, 3, "coil,inferno,amplify,domination", "soulfire,soulstone,ritual" },
 }) do
 	local env, K, ns = New(case[1], { known = case[2], tree = case[3], trinket = true })
 	local rail = assert(Rail(ns), case[1] .. ": a caster who knows a rail ability sees the rail")
@@ -626,13 +627,17 @@ do
 end
 
 -- Soulstone's 30-minute cooldown belongs to the stone, not to Create Soulstone: its medal on the second rail counts the cooldown
--- every soulstone shares (Minor to Major), a use of the stone (20765) presses it, and the global cooldown alone
--- does not turn it steel.
+-- every soulstone shares (Minor to Major), a use of the stone (20765) presses it and conjuring one (20757) does not, the global
+-- cooldown alone does not turn it steel, and a cooldown the game hides keeps the medal as it stood. Ritual of Doom beside it
+-- counts its own one-hour spell cooldown.
 do
-	local env, K, ns = New("WARLOCK", { known = { 603, 6789, 1122, 20757 }, tree = 1 })
+	local env, K, ns = New("WARLOCK", { known = { 603, 6789, 1122, 20757, 18540 }, tree = 1 })
 	Awake(env)
-	local stone = Rail(ns).spare[1]
+	local rail = Rail(ns)
+	local stone, ritual = rail.spare[1], rail.spare[2]
 	assert(stone and stone.key == "soulstone" and stone.small and stone.lit:GetAlpha() == 1, "Soulstone stands ready on the second rail")
+	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-20757", 20757)
+	assert(not stone.dip:IsPlaying(), "conjuring a Major Soulstone does not press its medal")
 	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-20765", 20765)
 	assert(stone.dip:IsPlaying(), "using a Major Soulstone presses its medal")
 	local function Stones(length)
@@ -643,8 +648,41 @@ do
 	assert(stone.lit:GetAlpha() == 1, "the global cooldown alone leaves it lit")
 	Stones(1800)
 	assert(stone.lit:GetAlpha() == 0 and stone.cold:GetAlpha() == 1, "the stone's 30-minute cooldown turns the medal steel")
+	local get = env.C_Item.GetItemCooldown
+	env.C_Item.GetItemCooldown = function(id) local start, length, enable = get(id) return env.Secret(start), env.Secret(length), enable end
+	env.FireEvent("BAG_UPDATE_COOLDOWN")
+	assert(stone.lit:GetAlpha() == 0 and stone.cold:GetAlpha() == 1 and not stone.relight:IsPlaying(), "a hidden cooldown keeps the cooling stone steel")
+	env.C_Item.GetItemCooldown = get
 	Stones(nil)
-	assert(stone.lit:GetAlpha() == 1, "the stone ready again relights it")
+	assert(stone.lit:GetAlpha() == 1, "the stone ready again, readable once more, relights it")
+	env.C_Item.GetItemCooldown = function(id) local start, length, enable = get(id) return env.Secret(start), env.Secret(length), enable end
+	env.FireEvent("BAG_UPDATE_COOLDOWN")
+	assert(stone.lit:GetAlpha() == 1, "and a hidden cooldown keeps the ready stone lit")
+	env.C_Item.GetItemCooldown = get
+	assert(ritual and ritual.key == "ritual" and ritual.lit:GetAlpha() == 1, "Ritual of Doom stands ready beside it")
+	Cooling(env, 18540, true)
+	assert(ritual.lit:GetAlpha() == 0 and ritual.cold:GetAlpha() == 1, "the ritual's one-hour cooldown turns its medal steel")
+	Cooled(env, ritual)
+	assert(ritual.lit:GetAlpha() == 1, "and it relights when the ritual is ready again")
+	Clean(env, K)
+end
+
+-- Soulstone and Ritual of Doom keep to the second rail: the settings list does not offer them, a stale pick of one falls back,
+-- and a regular pick on a sparse rail leaves them where they stood rather than pulling them into an empty seat.
+do
+	local env, K, ns = New("WARLOCK", { known = { 603, 6789, 1122, 20757, 18540 }, tree = 1 })
+	env.C_Spell.GetSpellName = function(id) return "spell " .. id end
+	local values = {}
+	for _, option in ipairs(ns.SlabRail.Choices()) do values[#values + 1] = option.value end
+	assert(table.concat(values, ","):find("soulstone") == nil and table.concat(values, ","):find("ritual") == nil,
+		"the list offers neither: " .. table.concat(values, ","))
+	K.Options.Write("ActionBars", "crestRailSeat1", "inferno")
+	env.RunTimers()
+	local rail = Rail(ns)
+	assert(Keys(rail) == "inferno,coil" and Spares(rail) == "soulstone,ritual", "a regular pick moves only the main seats: " .. Keys(rail) .. " | " .. Spares(rail))
+	K.Options.Write("ActionBars", "crestRailSeat2", "soulstone")
+	env.RunTimers()
+	assert(Keys(rail) == "inferno,coil" and Spares(rail) == "soulstone,ritual", "a pick of the stone falls back: " .. Keys(rail) .. " | " .. Spares(rail))
 	Clean(env, K)
 end
 
@@ -662,9 +700,11 @@ do
 	Clean(env, K)
 end
 
--- A second-rail medal whose cooldown buffs lifts to the crown when pressed, like a seat. Its straight line would cross the top
--- corner of the unit frame beside it, so it flies across above the main rail first and then down to the crown, and folds home
--- the same way back.
+-- A second-rail medal whose cooldown buffs lifts to the crown when pressed, like a seat. Any straight or cornered line from it
+-- crosses the main seats, the other small medals or the unit frame beside it, so it shrinks to a 4-unit spark where it stands, drops to the lane
+-- 8 units above the crown (between the unit frame's top and the end seat's foot), runs along it and drops into the crown, where it
+-- pops to full size once landed; the fold home runs the same three legs backwards. On the flat row the lane is 22 units under
+-- the row, between the seats and the rows below them.
 do
 	local env, K, ns = New("MAGE", { known = { 12042, 12043, 2136, 11129, 11958 }, tree = 1 })
 	Awake(env)
@@ -678,15 +718,35 @@ do
 	local dx, dy = sx - cx, sy - cy
 	assert(dx < -60 and dy > 20, "the medal stands left of and above the crown (" .. dx .. ", " .. dy .. ")")
 	local function at(anim) local x, y = anim:GetOffset() return x .. "," .. y end
+	local function Scales(group)
+		local out = {}
+		for _, anim in ipairs(group._anims or {}) do
+			if anim._type == "Scale" then out[#out + 1] = anim:GetOrder() .. ":" .. string.format("%.3f", (anim._state.ScaleTo or {})[1]) end
+		end
+		return table.concat(out, " ")
+	end
 	assert(at(block.out) == dx .. "," .. dy, "the lift starts at the small medal")
-	assert(at(block.back) == -dx .. ",0" and at(block.down) == "0," .. -dy, "it flies across at the medal's height, then down to the crown")
-	assert(block.down:GetStartDelay() == block.back:GetDuration(), "the drop starts as the flight across ends")
-	assert(at(block.away) == "0," .. dy and at(block.across) == dx .. ",0" and block.across:GetStartDelay() == block.away:GetDuration(),
-		"the fold rises from the crown first, then flies across home")
+	assert(#block.legs == 3 and at(block.legs[1]) == "0," .. (8 - dy) and at(block.legs[2]) == -dx .. ",0" and at(block.legs[3]) == "0,-8",
+		"it drops to the lane under the end seat, runs along it and drops into the crown")
+	assert(block.legs[1]:GetOrder() == 3 and block.legs[2]:GetOrder() == 4 and block.legs[3]:GetOrder() == 5, "one leg after another, after the shrink")
+	assert(Scales(block.rise) == "1:" .. string.format("%.3f", 22 * 0.86 / 34) .. " 2:" .. string.format("%.3f", 4 / 34) .. " 6:"
+		.. string.format("%.3f", 1.29 / 1.21) .. " 7:1.000", "it shrinks to a 4-unit spark where it stands and pops only once it has landed (" .. Scales(block.rise) .. ")")
+	assert(at(block.trail[1]) == "0,8" and at(block.trail[2]) == dx .. ",0" and at(block.trail[3]) == "0," .. (dy - 8),
+		"the fold home runs the same lane backwards")
 	local seat = rail.order[1]
 	local _, _, _, ax, ay = seat:GetPoint(1)
-	assert(at(seat.back) == (cx - ax) .. "," .. (cy - ay) and at(seat.down) == "0,0" and at(seat.across) == "0,0",
+	assert(#seat.legs == 1 and at(seat.legs[1]) == (cx - ax) .. "," .. (cy - ay) and at(seat.trail[1]) == (ax - cx) .. "," .. (ay - cy),
 		"a seat on the main rail still flies straight to the crown and back")
+	K.Layout.Register(env.CreateFrame("Frame"), "unitframes.castbar.player", { anchor = "CENTER", x = 0, y = 0 })
+	K.Layout.SetLive("unitframes.castbar.player", false)
+	K.Layout.SetLive("unitframes.castbar.player", true)
+	assert(rail.low, "the centred cast bar moves the rail to its flat row")
+	_, _, _, sx, sy = block:GetPoint(1)
+	_, _, _, cx, cy = rail.crown:GetPoint(1)
+	dx, dy = sx - cx, sy - cy
+	assert(dx < -20, "on the flat row the first small medal stands left of the crown (" .. dx .. ")")
+	assert(at(block.legs[1]) == "0," .. (-22 - dy) and at(block.legs[2]) == -dx .. ",0" and at(block.legs[3]) == "0,22"
+		and at(block.trail[1]) == "0,-22" and at(block.trail[3]) == "0," .. (dy + 22), "and runs the lane 22 units under the row both ways")
 	Auras(env, { { 27619, 10 } })
 	assert(block.crowned:IsShown() and rail.owner == block, "active: its buff, by the aura's own id, owns the crown")
 	Clean(env, K)
