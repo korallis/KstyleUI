@@ -80,7 +80,11 @@ local function New(class, opts)
 			e.Enum.SpellBookSpellBank = e.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
 			e._pet = opts.pet
 			local exists = e.UnitExists
-			e.UnitExists = function(unit) if unit == "pet" then return e._pet ~= nil end return exists(unit) end
+			e.UnitExists = function(unit)
+				if unit == "pet" then return e._pet ~= nil end
+				if unit == "pettarget" then return e._petTarget ~= nil end
+				return exists(unit)
+			end
 			e.UnitIsDead = function(unit) return unit == "pet" and e._pet ~= nil and e._pet.dead or false end
 			e.UnitHealthMax = function() return e.Secret(e._pet and e._pet.max or 0) end
 			e.UnitHealth = function() return e.Secret(e._pet and e._pet.max - e._pet.missing or 0) end
@@ -109,8 +113,6 @@ local function New(class, opts)
 			e.C_Spell.EnableSpellRangeCheck = function(id, on) e._rangeChecks[id] = on end
 			e.C_Spell.IsSpellInRange = function(id, unit) if unit == "target" and e._target then return e._range[id] end end
 			e.IsInGroup = function() return e._grouped end
-			local exists = e.UnitExists
-			e.UnitExists = function(unit) if unit == "pettarget" then return e._petTarget ~= nil end return exists(unit) end
 			e.UnitIsUnit = function(a, b) if a == "pettarget" and b == "target" then return e._petTarget == "yours" end return a == b end
 			e.GetInventoryItemID = function(_, slot) return opts.trinket and slot == 13 and 5002 or nil end
 			e.GetInventoryItemCooldown = function() return 0, 0, 1, false end
