@@ -43,6 +43,7 @@ local function Head(c, scale)
 	c:SetUseCircularEdge(true)
 	c:SetDrawEdge(true)
 end
+Rings.Head = Head
 
 local function Track(piece, spec, ghost)
 	local e = { piece = piece, spec = spec, unit = spec.unit or "player", ids = {}, fade = ghost and Pop(ghost, FADE), flicker = ghost and ns.Slab.Flicker(piece) }

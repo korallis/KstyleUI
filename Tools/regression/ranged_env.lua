@@ -1,4 +1,4 @@
--- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), pet, ammo, usable strikes, item and spell cooldowns and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error.
+-- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), a change to the addon before it is enabled (opts.before), pet, ammo, usable strikes, item and spell cooldowns and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -8,6 +8,37 @@ local KNOWN = {
 	MAGE = { 168, 759, 11426, 12574, 116, 118, 12042, 11958, 2139, 122 },
 	WARLOCK = { 172, 980, 348, 688, 6201, 1120, 18094, 18288, 706, 702, 17962, 2362, 6789 },
 }
+
+-- The shared stub's Hide runs no OnHide. With opts.hiding a shown frame that hides, by Hide or SetShown(false), runs OnHide on
+-- itself and every shown descendant, as the client does, so a test reaches a hide handler only through the code that hides it.
+local function Hidden(frame)
+	local fn = frame._scripts and frame._scripts.OnHide
+	if fn then fn(frame) end
+	for _, kid in ipairs(frame._kids or {}) do
+		if kid._shown then Hidden(kid) end
+	end
+end
+
+local function Hiding(env)
+	local meta = getmetatable(env.UIParent)
+	if not meta.hiding then
+		local index = meta.__index
+		local wrapped = {}
+		for _, key in ipairs({ "Hide", "SetShown" }) do
+			wrapped[key] = function(self, shown, ...)
+				local visible = self:IsVisible()
+				index(self, key)(self, shown, ...)
+				if visible and not self:IsVisible() then Hidden(self) end
+			end
+		end
+		meta.__index = function(object, key)
+			local owner = rawget(object, "_env")
+			return owner and owner._hiding and wrapped[key] or index(object, key)
+		end
+		meta.hiding = true
+	end
+	env._hiding = true
+end
 
 local function New(class, opts)
 	opts = opts or {}
@@ -57,14 +88,21 @@ local function New(class, opts)
 			e.GetInventoryItemID = function(_, slot) return opts.trinket and slot == 13 and 5002 or nil end
 			e.GetInventoryItemCooldown = function() return 0, 0, 1, false end
 			e.C_Item.GetItemSpell = function(id) if id == 5002 then return "Use", 9002 end end
+			e.C_SpecializationInfo = opts.tree and { GetSpecialization = function() return opts.tree end }
 			e._slotGroups = true
 			e.AuraContainerSortMethod = { Default = 0, AuraInstanceIDOnly = 8 }
 			e.AuraContainerSortDirection = { Normal = 0, Reverse = 1 }
 			Slots.Install(e)
 		end,
 	})
+	if opts.hiding then
+		Hiding(env)
+	end
 	if opts.frames then
 		K.Options.Write("HudStyle", "style", "frames")
+	end
+	if opts.before then
+		opts.before(env, K, ns)
 	end
 	AB.Enable(env, K)
 	env.RunTimers()
@@ -83,7 +121,7 @@ end
 
 -- Seated(ns, key) -> the piece showing in the switch's seat, whichever choice it is.
 local function Seated(ns, key)
-	for c = 1, 4 do
+	for c = 1, 8 do
 		local p, shows = Piece(ns, key, c)
 		if shows then return p end
 	end

@@ -510,11 +510,11 @@ for _, element in ipairs({ "Earth", "Fire", "Water", "Air" }) do
 	TEXTURES["totemRune" .. element] = { file = "Textures\\Totems\\Rune" .. element .. ".png" }
 end
 for _, name in ipairs({
-	"Aegis", "Arcane", "Axe", "Bark", "Bolt", "Brave", "Bubble", "Bulwark", "Crossed", "Crystal", "Curse", "Dash", "Deflect",
-	"Drop", "Evade", "Eye", "Fang", "Farseer", "Feedback", "Flame", "Flurry", "Focus", "Gear", "Ghost", "Grave", "Hand", "Heart",
-	"Horns", "Hourglass", "Infusion", "Innervate", "Lifeline", "Mend", "Moon", "Paw", "Potion", "Regen", "Roots", "Rush",
-	"Sacrifice", "Shade", "Shatter", "Skull", "Smoke", "Star", "Stone", "Sun", "Sweep", "Swift", "Thorns", "Tusks", "Veil", "Voice",
-	"Void", "Volley", "Vortex", "Wall", "Wing"
+	"Aegis", "Aimed", "Arcane", "Axe", "Bark", "Bolt", "Brave", "Bubble", "Bulwark", "Charm", "Crossed", "Crystal", "Curse", "Dash",
+	"Deflect", "Drop", "Evade", "Eye", "Fang", "Farseer", "Feedback", "FireTrap", "Flame", "Flurry", "Focus", "Gear", "Ghost",
+	"Grave", "Hand", "Heart", "Horns", "Hourglass", "Infusion", "Innervate", "Intimidate", "Lifeline", "Mend", "Moon", "Paw",
+	"Potion", "Regen", "Roots", "Rush", "Sacrifice", "Shade", "Shatter", "Skull", "Smoke", "Sniper", "Star", "Stone", "Strider",
+	"Sun", "Sweep", "Swift", "Thorns", "Tusks", "Veil", "Voice", "Void", "Volley", "Vortex", "Wall", "Wing"
 }) do
 	TEXTURES["sigil" .. name] = { file = "Textures\\Sigils\\" .. name .. ".png" }
 end
@@ -536,11 +536,21 @@ end
 for _, name in ipairs({
 	"glyphBeast", "glyphBlackArrow", "glyphCheetah", "glyphCounter", "glyphHaunch", "glyphHawk", "glyphLacerate", "glyphMongoose",
 	"glyphMonkey", "glyphPack", "glyphRaptor", "glyphScorpid", "glyphSerpent", "glyphViper", "glyphViperSting", "glyphWild",
-	"glyphWyvern", "sigilDeflect", "sigilPaw", "sigilVolley"
+	"glyphWyvern", "sigilAimed", "sigilCharm", "sigilDeflect", "sigilFireTrap", "sigilIntimidate", "sigilPaw", "sigilSniper",
+	"sigilStrider", "sigilVolley"
 }) do
 	TEXTURES[name].forged = true
 end
 TEXTURES.auraSocket = { file = "Textures\\Auras\\Socket.png" }
+TEXTURES.railAuraAimed = { file = "Textures\\Medallions\\Rail\\AuraAimed.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraCharm = { file = "Textures\\Medallions\\Rail\\AuraCharm.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraDeflect = { file = "Textures\\Medallions\\Rail\\AuraDeflect.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraFireTrap = { file = "Textures\\Medallions\\Rail\\AuraFireTrap.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraIntimidate = { file = "Textures\\Medallions\\Rail\\AuraIntimidate.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraPaw = { file = "Textures\\Medallions\\Rail\\AuraPaw.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraSniper = { file = "Textures\\Medallions\\Rail\\AuraSniper.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraStrider = { file = "Textures\\Medallions\\Rail\\AuraStrider.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraVolley = { file = "Textures\\Medallions\\Rail\\AuraVolley.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do

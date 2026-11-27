@@ -890,7 +890,7 @@ local function Arrange(r)
 	local n = 0
 	for _, b in ipairs(r.sigils) do
 		local f = b.family
-		local on = f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
+		local on = (f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil) and not (r.spec.railed and r.spec.railed(f.spells))
 		b.container:SetAuraSlotEnabled(b.key, on)
 		if b.flashed then
 			b.flashed.container:SetAuraSlotEnabled(b.key, on)

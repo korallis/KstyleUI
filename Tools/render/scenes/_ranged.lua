@@ -3,7 +3,9 @@
 -- bags), lit (the story at its LIT time, every piece up) or moment, the story RENDER_TRACKERS_T seconds in (6 when
 -- unset). Blizzard's aura slots (Tools/regression/aura_slots.lua) and the addon's own bag and pet handlers take every
 -- change at its own time, so a run of RENDER_TRACKERS_T frames is the story as a clip. RENDER_TRACKERS_BUILD picks
--- another build or level band, whose fields replace the class's: a hunter's melee or level 8 build, a mage's arcane,
+-- another build or level band, whose fields replace the class's: a hunter's rail (the five-seat cooldown rail: Intimidation
+-- cast at 1 s, a fire trap at 2 s (ready again at 17 s), Rapid Fire at 4 s (its buff to 19 s), the trinket used at 7 s and Bestial Wrath at
+-- 9 s (the pet's buff to 27 s), each cooling only from its cast), melee or level 8 build, a mage's arcane,
 -- fire (Fire Vulnerability at three stacks), frost or level 10 build, a warlock's felhunter (Spell Lock cooling), sacrifice
 -- (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, the hunter's bite (Mongoose Bite ready) or raptor
 -- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
@@ -12,7 +14,9 @@
 -- tracker switches off first, for a pixel diff against a build without them. RENDER_TRACKERS_SWAP=from:to[,from:to] plays the
 -- story with other aura spell IDs, so one seat shows each of its choices: 13165:13163 perches Aspect of the Monkey for
 -- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
--- Content, Happy) in place of the story's own, so the haunch shows or goes.
+-- Content, Happy) in place of the story's own, so the haunch shows or goes. RENDER_CAST_ON_FRAME=off gives the action bars the
+-- centred cast bars' layout elements the unit frames register in the game, so the hunter's rail takes its own flat row.
+-- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it.
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
 local Ranged = {}
@@ -36,6 +40,10 @@ local STORIES = {
 			{ unit = "pet", id = 19574, icon = 132127, at = 6.2, duration = 18 },
 		},
 		builds = {
+			rail = { known = { 13165, 883, 1130, 1978, 3045, 19574, 19577, 14305, 2643, 75 }, cooling = { [19577] = { 1, 60 }, [14305] = { 2, 15 }, [3045] = { 4, 300 }, [19574] = { 9, 120 } },
+				casts = { { 1, 19577 }, { 2, 14305 }, { 4, 3045 }, { 7, 9002 }, { 9, 19574 } }, trinket = { item = 5002, spell = 9002, used = 7, cooldown = 120 },
+				auras = { { unit = "player", id = 13165, icon = 136076, at = 0.5 }, { unit = "player", id = 3045, icon = 132208, at = 4, duration = 15 },
+					{ unit = "pet", id = 19574, icon = 132127, at = 9, duration = 18 } } },
 			melee = { known = { 13163, 883, 1130, 1978, 19306, 1495, 19263, 75 }, usable = { [19306] = 3 },
 				auras = { { unit = "player", id = 13163, icon = 132159, at = 0.5 }, { unit = "target", id = 1978, icon = 132204, at = 2, duration = 15, harmful = true },
 					{ unit = "player", id = 19263, icon = 132369, at = 4, duration = 10 } } },
@@ -192,8 +200,20 @@ function Ranged.Install(env, class)
 	end
 	spell.GetSpellCooldownDuration = function(id)
 		local c = (s.cooling or {})[id]
-		local start = c and (env._now or 0) - (env._story - c[1])
-		return c and { start = start, finish = start + c[2] } or { start = 0, finish = 0 }
+		local start = c and env._story >= c[1] and env._story < c[1] + c[2] and (env._now or 0) - (env._story - c[1])
+		return start and { start = start, finish = start + c[2] } or { start = 0, finish = 0 }
+	end
+	local trinket = s.trinket
+	if trinket then
+		env.GetInventoryItemID = function(_, slot) return slot == 13 and trinket.item or nil end
+		env.C_Item = env.C_Item or {}
+		env.C_Item.GetItemSpell = function(id) if id == trinket.item then return "Use", trinket.spell end end
+		env.GetInventoryItemCooldown = function(_, slot)
+			if slot == 13 and env._story >= trinket.used and env._story < trinket.used + trinket.cooldown then
+				return env._now - (env._story - trinket.used), trinket.cooldown, 1, false
+			end
+			return 0, 0, 1, false
+		end
 	end
 	local items = s.items or {}
 	env.C_Item = env.C_Item or {}
@@ -238,6 +258,16 @@ function Ranged.Play(env, K, ns, notes)
 	if os.getenv("RENDER_TRACKERS_OFF") == "1" then
 		for _, row in ipairs(ns.SlabTrackers.CLASSES[ns.class] or {}) do K.Options.Write("ActionBars", row.key, false) end
 	end
+	if (rawget(_G, "RENDER_CAST_ON_FRAME") or os.getenv("RENDER_CAST_ON_FRAME")) == "off" and not K.Layout.Live("unitframes.castbar.player") then
+		for _, key in ipairs({ "unitframes.castbar.player", "unitframes.castbar.target" }) do
+			K.Layout.Register(env.CreateFrame("Frame"), key, K.Setup.Layouts.Default(key))
+		end
+		ns.SlabTrackers.Update()
+	end
+	local motion = os.getenv("RENDER_TRACKERS_MOTION")
+	if motion and motion ~= "" then
+		K.Options.Write("Medallions", "motion", motion)
+	end
 	local s = Of(ns.class)
 	local times = { -1, at }
 	for _, a in ipairs(s.auras) do times[#times + 1], times[#times + 2], times[#times + 3] = a.at, a.at + (a.duration or at), a.warn end
@@ -252,6 +282,8 @@ function Ranged.Play(env, K, ns, notes)
 		times[#times + 1] = type(when) == "table" and when[2] or nil
 	end
 	for _, when in ipairs(s.swings or {}) do times[#times + 1] = when end
+	for _, cast in ipairs(s.casts or {}) do times[#times + 1] = cast[1] end
+	times[#times + 1] = s.trinket and s.trinket.used + s.trinket.cooldown or nil
 	local ends = {}
 	for _, c in pairs(s.cooling or {}) do
 		times[#times + 1], ends[c[1] + c[2]] = c[1] + c[2], true
@@ -260,8 +292,20 @@ function Ranged.Play(env, K, ns, notes)
 		Slots.Enchant(env, 1, { start = env._time - at - 600, duration = s.enchant })
 	end
 	table.sort(times)
+	for i = #times, 2, -1 do
+		if times[i] == times[i - 1] then table.remove(times, i) end
+	end
 	local clock, now = env.GetTime, env._now
 	env.GetTime = function() return env._now end
+	-- The ring-edge ember arms from the aura's own times, which the game answers out of combat.
+	env.C_UnitAuras = env.C_UnitAuras or {}
+	env.C_UnitAuras.GetUnitAuraBySpellID = function(unit, id)
+		for _, a in ipairs(env._slotAuras[unit] or {}) do
+			if a.id == id and a.duration then
+				return { auraInstanceID = a.id, expirationTime = a.start + a.duration, duration = a.duration, sourceUnit = "player" }
+			end
+		end
+	end
 	for _, when in ipairs(times) do
 		if when <= at and when > (env._clip and env._clipFrom or -math.huge) then
 			env._story, env._now = when, env._time - (at - when)
@@ -273,23 +317,32 @@ function Ranged.Play(env, K, ns, notes)
 					table.insert(units[a.unit], a)
 				end
 			end
-			for unit, list in pairs(units) do Slots.Set(env, unit, list) end
+			for unit, list in pairs(units) do
+				Slots.Set(env, unit, list)
+				env.FireEvent("UNIT_AURA", unit)
+			end
 			env.FireEvent("UNIT_PET", "player")
 			env.FireEvent("UNIT_HEALTH", "pet")
 			env.FireEvent("BAG_UPDATE_DELAYED")
 			env.FireEvent("BAG_UPDATE_COOLDOWN")
 			env.FireEvent("SPELL_UPDATE_USABLE")
 			env.FireEvent("SPELL_UPDATE_COOLDOWN")
-			-- A clip's engine ends each cooldown itself (Tools/render/clip.lua); a still ends here only the shown timer whose own duration object runs out at this moment.
+			-- A clip's engine ends each cooldown itself (Tools/render/clip.lua); a still ends here only the shown timers, nested ones included, whose own
+			-- duration object runs out at this moment.
 			local form = ends[when] and not env._clip and ns.SlabTrackers.state.form
 			ends[when] = nil
-			for _, p in pairs(form and form.pieces or {}) do
-				local fed = p.timer and p:IsVisible() and (p.timer._state.CooldownFromDurationObject or {})[1]
-				local done = type(fed) == "table" and fed.finish and math.abs(fed.finish - env._now) < 1e-6 and p.timer:GetScript("OnCooldownDone")
-				if done then done(p.timer) end
+			local function Expire(frame)
+				local fed = frame._type == "Cooldown" and frame:IsVisible() and (frame._state.CooldownFromDurationObject or {})[1]
+				local done = type(fed) == "table" and fed.finish and math.abs(fed.finish - env._now) < 1e-6 and frame:GetScript("OnCooldownDone")
+				if done then done(frame) end
+				for _, kid in ipairs(frame._kids or {}) do Expire(kid) end
 			end
+			for _, p in pairs(form and form.pieces or {}) do Expire(p) end
 			for _, swing in ipairs(s.swings or {}) do
 				if swing == when then env.FireEvent("PLAYER_SWING", 2.8, 2) end
+			end
+			for _, cast in ipairs(s.casts or {}) do
+				if cast[1] == when then env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "story", cast[2]) end
 			end
 		end
 	end

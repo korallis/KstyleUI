@@ -27,7 +27,7 @@ local OPENING = { { 0, 1, 0.06 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.08 }, { 1, 0.3, 0
 local GROW = { { 0, 1, 0.6 } }
 local BAND = {
 	right = { "glyphArcRight", 64, 0, 58 }, left = { "glyphArcLeft", -64, 0, 58 }, pet = { "glyphArcPet", 42, -46, 42 },
-	rim = { "glyphRimLeft", -72, 0, 62 }, armor = { "glyphArmorFrost", -37, 51, 64 }, frost = { "glyphFrost", 0, -39, 108 }, mark = { "glyphMarkReticle", 0, 0, 108 },
+	rim = { "glyphRimLeft", -72, 0, 62 }, armor = { "glyphArmorFrost", -37, 51, 64 }, frost = { "glyphFrost", 0, -39, 108 }, mark = { "glyphMarkReticle", -56, 0, 36 },
 }
 local EMBLEM, PERCH_LEFT, PERCH_RIGHT, PENDANT, SIGIL = { 0, 0 }, { Polar(73, 228) }, { Polar(74, 312) }, { Polar(80, 312) }, { Polar(56, 184) }
 local LOOKS = {
@@ -44,7 +44,16 @@ local ON = {
 	pet = { UNIT_PET = true, UNIT_HEALTH = true, UNIT_MAXHEALTH = true, UNIT_HAPPINESS = true },
 	wisps = { BAG_UPDATE_DELAYED = true },
 	usable = { SPELL_UPDATE_USABLE = true, SPELL_UPDATE_COOLDOWN = true, PLAYER_TARGET_CHANGED = true },
+	rail = { SPELL_UPDATE_COOLDOWN = true, BAG_UPDATE_COOLDOWN = true, UNIT_SPELLCAST_SUCCEEDED = true },
 }
+
+local function Railed(on, spells, seated)
+	return function()
+		if ns.SlabRail.Holds(seated) == on then
+			return Medals.Known(spells)
+		end
+	end
+end
 
 local function At(band)
 	return { band[2], band[3] }
@@ -937,6 +946,10 @@ local function Paint(form, event, ...)
 			if (all or ON.wisps[event]) and p:IsShown() then
 				PaintWisps(p, not all and Effects.Allows("flare"))
 			end
+		elseif p.rail then
+			if (all or ON.rail[event]) and p:IsShown() then
+				ns.SlabRail.Paint(p, event, ...)
+			end
 		elseif p.spires and event == "PLAYER_TARGET_CHANGED" and p:IsShown() then
 			p.container:UpdateAllAuras()
 		end
@@ -956,6 +969,8 @@ local function Motion(form, _, still)
 			if p.feed then
 				Breathe(p)
 			end
+		elseif p.rail and p:IsShown() then
+			ns.SlabRail.Paint(p)
 		end
 	end
 end
@@ -999,17 +1014,20 @@ if CLASS == "HUNTER" then
 			{ build = Pet, band = "pet", light = "giltLit", known = { 883 }, mood = true, mend = { 136, 3111, 3661, 3662, 13542, 13543, 13544 } },
 			{ build = Flash, seat = EMBLEM, overlay = true, size = FLASH, feed = "cooldown", look = "orb", color = "schoolArcane", known = { 14287, 14286, 14285, 14284, 14283, 14282, 14281, 3044 } },
 		} },
-		{ key = "crestMark", seat = EMBLEM, overlay = true, build = Mark, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile",
+		{ key = "crestMark", seat = At(BAND.mark), build = Mark, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile",
 			spells = { 1130, 14323, 14324, 14325 } },
 		{ key = "crestSting", seat = At(BAND.right), build = Fuse, glyph = "glyphSerpent", feed = "aura", unit = "target",
 			filter = "HARMFUL|PLAYER", color = "schoolNature", known = { 1978, 3034, 3043, 24118, 3674 }, feeds = STINGS },
 		{ key = "crestAutoShot", seat = "rim", build = Swing, color = "steelLit", known = { 75 } },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHawk", families = { { spells = { 3045 }, sigil = "Volley", major = true }, { spells = { 19263 }, sigil = "Deflect", major = true },
-			{ spells = { 19574 }, unit = "pet", sigil = "Paw", major = true } } },
-		{ key = "crestGust", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 6150, 1299448, 469144, 3045 }, known = { 3045, 19552, 19553, 19554, 19555, 19556 },
-			color = "jewelHawk", ambient = "medAmbientHunter", gust = true },
-	}, { burst = "medBurstHunter", events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" } },
-		paint = Paint, motion = Motion, figures = true })
+			{ spells = { 19574 }, unit = "pet", sigil = "Paw", major = true } }, railed = ns.SlabRail.Holds },
+		{ key = "crestGust", seat = "rim", build = Moment, place = Ring, feed = "aura", color = "jewelHawk", ambient = "medAmbientHunter", gust = true, choices = {
+			{ spells = { 6150, 1299448, 469144, 3045 }, known = Railed(false, { 3045, 19552, 19553, 19554, 19555, 19556 }, { 3045 }) },
+			{ spells = { 6150, 1299448, 469144 }, known = Railed(true, { 19552, 19553, 19554, 19555, 19556 }, { 3045 }) },
+		} },
+		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
+	}, { burst = "medBurstHunter", pick = ns.SlabRail.Pick, commit = ns.SlabRail.Commit, rail = ns.SlabRail.Holds, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" }, events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" },
+		"SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } }, paint = Paint, motion = Motion, figures = true })
 end
 
 if CLASS == "MAGE" then
