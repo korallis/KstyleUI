@@ -36,7 +36,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 sys.path[:0] = [str(HERE)]
 
-from finish import to_lin, to_srgb  # noqa: E402
+from finish import to_lin, to_srgb
 
 RACES = ("human", "gnome", "orc", "scourge", "troll", "skyborne")
 SCHOOLS = ("arcane", "fire", "frost")
