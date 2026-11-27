@@ -89,6 +89,7 @@ local function Moving(fire)
 end
 
 local function Burn(fire, moving)
+	moving = moving and not fire.quiet
 	fire:SetAlpha((moving or fire.gated) and 1 or 0)
 	fire.still:SetAlpha((moving and not fire.calm) and 0 or 1)
 	if fire.fed then

@@ -341,9 +341,21 @@ do
 			end
 		end
 	end
+	-- The still copy shows only Leaf's still frame, whatever the level: its fire stays dark.
+	local function Still(at)
+		for k, leaf in ipairs(bloom.ring) do
+			for _, region in ipairs(leaf.twin._regions) do
+				if region.loop then
+					assert(region._state.Alpha[1] == 0 and region.still._state.Alpha[1] == 1, at .. ": still leaf " .. k .. " shows its still frame, not its fire")
+				end
+			end
+		end
+	end
+	Still("Full")
 	Slots.Set(env, "player", nil)
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "Calm shows the still copy")
+	Still("Calm")
 	K.Options.Write("Medallions", "motion", "full")
 	env._aurasSecret = true
 	env.SetCombat(true)
@@ -359,6 +371,7 @@ do
 	env._engine = nil
 	K.Options.Write("Medallions", "motion", "full")
 	assert(bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "Off to Full inside the unfurl: the still leaves stay and the half-grown copy stays dark")
+	Still("Off to Full inside the unfurl")
 	env._now = env._now + 1
 	for _, fn in ipairs(armed) do fn() end
 	assert(bloom.moving:GetAlpha() == 1 and bloom.calm:GetAlpha() == 0, "and the moving copy takes over once the unfurl is over")
