@@ -1292,9 +1292,24 @@ end
 
 local PAINT = { tracking = PaintTrack, orders = PaintOrders, range = PaintReach }
 
+local function Painters(form)
+	if not form.painters or form.paintersFor ~= form.lua then
+		local list = {}
+		for _, p in pairs(form.pieces) do
+			if p.swing or p.health or p.curve or p.kind or p.shots or p.seats or p.rail or p.spires then
+				list[#list + 1] = p
+			end
+		end
+		form.painters, form.paintersFor = list, form.lua
+	end
+	return form.painters
+end
+
 local function Paint(form, event, ...)
 	local all = event == nil
-	for _, p in pairs(form.pieces) do
+	local painters = Painters(form)
+	for i = 1, #painters do
+		local p = painters[i]
 		if p.swing then
 			if (all or ON.swing[event]) and p:IsShown() then
 				PaintSwing(p, event, ...)
