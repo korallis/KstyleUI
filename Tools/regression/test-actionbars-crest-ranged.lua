@@ -17,6 +17,8 @@ do
 	local env, K, ns = New("HUNTER", { known = { 2973 } })
 	local raptor, shows = Piece(ns, "crestAspect", 2)
 	assert(raptor and shows and raptor.spec.feed == "cooldown", "a hunter with only Raptor Strike sees its cooldown flash over the emblem")
+	local foot = raptor.lit.art
+	assert(foot.loop and not foot.loop:IsPlaying() and foot:GetAlpha() == 0, "the talon under the flash, never seen at alpha zero, plays no aura loop between flashes")
 	assert(Piece(ns, "crestPet") == nil and Piece(ns, "crestPet", 2) == nil, "nothing for the pet's band before Arcane Shot")
 	Learn(env, 13163, 3044)
 	local aspect, lit = Piece(ns, "crestAspect", 1)

@@ -87,6 +87,7 @@ local function Moving()
 end
 
 local function Burn(fire, moving)
+	moving = moving and not fire.settled
 	fire:SetAlpha((moving or fire.gated) and 1 or 0)
 	fire.still:SetAlpha((moving and not fire.calm) and 0 or 1)
 	if fire.fed then
@@ -131,6 +132,17 @@ end
 
 function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 	local _, _, _, _, span, tint = Tokens.Flipbook(token)
+	if host.stilled then
+		local still = piece.add(Cell(Medals.Texture(host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, AURA_STILL))
+		if tint then
+			if r then
+				still:SetVertexColor(r, g, b)
+			else
+				still:SetVertexColor(Tokens.Color(color))
+			end
+		end
+		return still, span > 1
+	end
 	local flame, calm = lights and lights.flame, lights and lights.calm
 	local fire = piece.add(Cell(Medals.Texture(flame or host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, 0))
 	fire.still = piece.add(Cell(Medals.Texture(calm or host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, AURA_STILL))
@@ -167,6 +179,13 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 	end
 	Burn(fire, Moving())
 	return fire, span > 1
+end
+
+function Medals.Settle(fire, settled)
+	if fire.loop then
+		fire.settled = settled or nil
+		Burn(fire, Moving())
+	end
 end
 
 function Medals.Dim(piece, host, art, size, color)
@@ -541,7 +560,7 @@ function Medals.Flare(piece, lit, level, token, size, lua, color)
 	for i = 1, fed and 2 or 1 do
 		local gate = fed and Mirror(piece, lit, level, false) or Medals.Layer(lit.container and piece or lit, level)
 		local flare = Medals.Layer(gate.lit or gate, level)
-		flare.gate = gate
+		flare.gate, flare.stilled = gate, true
 		Medals.Gate(gate, ns.Slab.Resting() and 0 or 1)
 		gates[#gates + 1] = gate
 		if color and select(4, Tokens.Texture(token)) then

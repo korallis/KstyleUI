@@ -73,6 +73,13 @@ do
 	assert(Burning(fire), "showing it again starts the loop")
 
 	local bare = Medals.Piece(parent, 5, 30)
+	Medals.Settle(fire, true)
+	assert(Still(fire), "a settled fire, one whose presence Lua cannot read, holds its still at Full")
+	Medals.Rest()
+	assert(Still(fire), "and stays still through the next motion pass")
+	Medals.Settle(fire, false)
+	assert(Burning(fire), "unsettled, it loops again")
+
 	local flame = Medals.Mark(bare, bare, "sigilVolley", 20, "jewelHawk")
 	assert(Draws(flame, BARE) and flame.units == 20 * 1.25 and bare._regions[3].units == 20, "a bare aura's cell is its span wider than the figure")
 	local figure = bare._regions[3]
@@ -125,12 +132,17 @@ do
 	Medals.Rest()
 	assert(not Engine(fire, m.lit) and not fire.loop:IsPlaying(), "below Full the engine holds no loop, and Lua never plays it in the engine's place")
 	Medals.Engine({ m }, true, true)
+	local owner = Medals.Piece(parent, 5, 30)
+	local own = Medals.Mark(owner, owner, "glyphHawk", 30, "gilt")
+	Medals.Rest()
+	assert(Burning(own), "an aura on the addon's own frames loops at Full")
 
 	env._aurasSecret = true
 	env.SetCombat(true)
 	K.Options.Write("Medallions", "motion", "calm")
 	env.RunTimers()
 	Medals.Rest()
+	assert(Still(own), "Calm chosen while auras are hidden stills an aura on the addon's own frames at once")
 	-- The stub forbids every region under an engine aura button while auras are secret, so any touch is an error here.
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 	env._aurasSecret = false
@@ -141,26 +153,25 @@ do
 	Motion("full")
 end
 
+-- A flare sits shown at alpha zero between its flashes, so its forged mark draws the aura's still cell and binds no loop: art no one
+-- sees does no playback work (review of the hunter auras).
 do
 	local m = Medals.Medal(parent, { feed = "aura", unit = "player", filter = "HELPFUL", spells = { 6673 }, color = "gilt" }, 5)
-	Medals.Flare(m, m.lit, 8, "glyphHawk", 30, nil, "gilt")
+	local made = Medals.Flare(m, m.lit, 8, "glyphHawk", 30, nil, "gilt")
 	local slot
 	for _, mirror in ipairs(m.lit.mirrors) do
-		if mirror.auraLoops and mirror.alt == 1 then slot = mirror end
+		if mirror.alt == 1 then slot = mirror end
 	end
-	assert(slot and slot.flare, "a flare drawn with a forged mark holds its flare and its aura on one engine button")
+	assert(slot and slot.flare and Draws(made[1], FILE), "a flare drawn with a forged mark draws its aura sheet on its engine button")
+	local x, _, y = made[1]:GetTexCoord()
+	assert(x == 0 and y == 0 and not made[1].loop and slot.auraLoops == nil, "the flare draws the sheet's first cell and binds no loop")
 	Medals.Engine({ m }, true, true)
 	Slots.Set(env, "player", { { id = 6673, count = 0, icon = 132333, start = 0, duration = 120 } })
-	local loop = slot.auraLoops[1]
-	assert(loop:IsPlaying(), "the flare's aura plays while its aura shows")
-	local dropped = Removals(slot, loop)
-	env.SetTarget(false)
-	env.RunTimers()
-	assert(not loop:IsPlaying(), "the crest resting: the flare's aura stops")
-	env.SetTarget(true)
-	env.RunTimers()
-	assert(loop:IsPlaying(), "woken, the flare's aura plays again")
-	assert(#dropped == 0, "resting and waking leave the flare itself bound")
+	for _, field in ipairs({ "_shownAnimations", "_assignedAnimations" }) do
+		for _, group in ipairs(slot[field] or {}) do
+			assert(group._anims[1]._type ~= "FlipBook", "with its aura up the flare's engine button holds no aura loop")
+		end
+	end
 	Slots.Set(env, "player", nil)
 end
 

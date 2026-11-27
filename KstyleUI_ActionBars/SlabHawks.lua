@@ -308,6 +308,7 @@ end
 local function Paint(p, moving, full)
 	local have, _, start, duration = GetTotemInfo(p.slot)
 	Gate(p.lit, have)
+	Medals.Settle(p.fire, IsSecret(have))
 	Steel(p, have)
 	local object = GetTotemDuration and GetTotemDuration(p.slot)
 	local known = not (IsSecret(have) or IsSecret(start) or IsSecret(duration)) and have == true

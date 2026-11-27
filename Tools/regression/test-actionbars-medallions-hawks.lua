@@ -475,8 +475,6 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
-print("actionbars medallions hawks ok")
-
 do
 	-- The perched hawks burn the aura kit's sheet (KstyleUI_ActionBars/SlabMedals.lua Medals.Aura) only while their perch is lit.
 	local env, K, ns = New("HUNTER", { [RANK3] = true })
@@ -499,8 +497,14 @@ do
 	env.RunTimers()
 	ns.SlabMedals.Rest()
 	assert(right.fire.loop:IsPlaying(), "back at Full it burns again")
+	Gone(env, 3, true)
+	assert(right.lit:IsShown() and not right.fire.loop:IsPlaying() and right.fire.still:GetAlpha() == 1, "a perch whose hawk Lua cannot read stays drawn behind its secret gate, holding the still so an empty perch plays nothing")
+	Hawk(env, 3, 102)
+	assert(right.fire.loop:IsPlaying(), "a readable hawk burns again")
 	K.Options.Write("ActionBars", "crestHawks", false)
 	env.RunTimers()
 	right.lit:GetScript("OnHide")(right.lit)
 	assert(not right.fire:IsVisible() and not right.fire.loop:IsPlaying(), "Hawk perches off hides the aura and stops its loop")
 end
+
+print("actionbars medallions hawks ok")

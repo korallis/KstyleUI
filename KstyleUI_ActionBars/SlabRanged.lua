@@ -222,6 +222,7 @@ local function Flash(parent, spec, level, form)
 	local p = Effect(parent, spec, level, form)
 	if form == "crest" then
 		p.ready:SetAlpha(0)
+		Medals.Settle(p.lit.art, true)
 		p.rest:Hide()
 		p.timer:SetDrawSwipe(false)
 	end
