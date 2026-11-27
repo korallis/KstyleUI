@@ -1012,8 +1012,23 @@ end
 local function Animate(button, mode)
 	mode = mode or false
 	local was, awake = button.full or false, button.auraLoops ~= nil and Moving()
-	if was == mode and (button.auraAwake or false) == awake then
-		return false
+	if was == mode then
+		if (button.auraAwake or false) == awake then
+			return false
+		end
+		button.auraAwake = awake
+		if mode ~= true then
+			return false
+		end
+		for _, group in ipairs(button.auraLoops) do
+			if awake then
+				button:AddAuraShownAnimation(group)
+			else
+				button:RemoveAuraShownAnimation(group)
+				group:Stop()
+			end
+		end
+		return awake
 	end
 	for verb, state in pairs({ Remove = { was, button.auraAwake }, Add = { mode, awake } }) do
 		for kind, groups in pairs(state[1] and Wanted(button, state[1], state[2]) or NONE) do
@@ -1091,12 +1106,16 @@ function Medals.Rest()
 	for _, fire in ipairs(restricted and NONE or auras) do
 		Burn(fire, not still)
 	end
-	local armed = {}
+	local stale = {}
 	for _, button in ipairs(restricted and NONE or feds) do
-		if button.fed ~= nil then
-			Drive(button, button.fed, button.full, armed)
-		elseif button.full ~= nil then
-			Animate(button, button.full)
+		if button.full ~= nil and Animate(button, button.full) then
+			stale[button.container] = true
+		end
+	end
+	for c in pairs(stale) do
+		if c.on then
+			c:SetEnabled(false)
+			c:SetEnabled(true)
 		end
 	end
 	local dark, mode = not Effects.Allows("flare") or ns.Slab.Resting(), Effects.Allows("ambient") or Effects.Allows("flare") and "calm" or false

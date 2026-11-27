@@ -1,4 +1,4 @@
--- test-actionbars-crest-auras.lua: the aura kit's drawing rule (KstyleUI_ActionBars/SlabMedals.lua Medals.Mark, the KSTY-51 plan): a forged mark with an aura draws its sheet twice in white additive light over the empty socket, a fire looping the sheet's FlipBook and a still on its first cell; the fire loops only at Full with the crest awake and its owner shown, Calm, Off and the resting crest show the still, a hidden owner plays nothing until it shows, a mark under an engine aura button hands its loop to the engine's shown animations, and while auras are secret nothing touches it until the restriction ends.
+-- test-actionbars-crest-auras.lua: the aura kit's drawing rule (KstyleUI_ActionBars/SlabMedals.lua Medals.Mark, the KSTY-51 plan): a forged mark with an aura draws its sheet twice in white additive light over the empty socket, a fire looping the sheet's FlipBook and a still on its first cell; the fire loops only at Full with the crest awake and its owner shown, Calm, Off and the resting crest show the still, a hidden owner plays nothing until it shows, a mark under an engine aura button (a medal slot, a flare's mirror or a cooldown sigil) hands its loop to the engine's shown animations, resting drops only that loop and waking with the aura shown plays it again, and while auras are secret nothing touches it until the restriction ends.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -96,6 +96,18 @@ do
 	assert((figure._state.Texture or {})[1] == texture("sigilVolley") and r + g + b == 0, "and burns over its own figure drawn black")
 end
 
+local function Removals(button, loop)
+	local dropped = {}
+	for _, kind in ipairs({ "AuraShown", "AuraAssigned", "PandemicActive" }) do
+		local remove = button["Remove" .. kind .. "Animation"]
+		button["Remove" .. kind .. "Animation"] = function(self, group)
+			if group ~= loop then dropped[#dropped + 1] = kind end
+			return remove(self, group)
+		end
+	end
+	return dropped
+end
+
 local function Engine(fire, lit)
 	local bound = false
 	for _, g in ipairs(lit._shownAnimations) do bound = bound or g == fire.loop end
@@ -146,6 +158,30 @@ do
 end
 
 do
+	local m = Medals.Medal(parent, { feed = "aura", unit = "player", filter = "HELPFUL", spells = { 6673 }, color = "gilt" }, 5)
+	Medals.Flare(m, m.lit, 8, "glyphHawk", 30, nil, "gilt")
+	local slot
+	for _, mirror in ipairs(m.lit.mirrors) do
+		if mirror.auraLoops and mirror.alt == 1 then slot = mirror end
+	end
+	assert(slot and slot.flare, "a flare drawn with a forged mark holds its flare and its aura on one engine button")
+	Medals.Engine({ m }, true, true)
+	Slots.Set(env, "player", { { id = 6673, count = 0, icon = 132333, start = 0, duration = 120 } })
+	local loop = slot.auraLoops[1]
+	assert(loop:IsPlaying(), "the flare's aura plays while its aura shows")
+	local dropped = Removals(slot, loop)
+	env.SetTarget(false)
+	env.RunTimers()
+	assert(not loop:IsPlaying(), "the crest resting: the flare's aura stops")
+	env.SetTarget(true)
+	env.RunTimers()
+	assert(loop:IsPlaying(), "woken, the flare's aura plays again")
+	assert(#dropped == 0, "resting and waking leave the flare itself bound")
+	Slots.Set(env, "player", nil)
+end
+
+do
+	env.C_SpellBook.IsSpellKnown = function(id) return id == 3045 end
 	local rim = Medals.CooldownRim(parent, { families = { { spells = { 3045 }, sigil = "Volley" } }, color = "jewelHawk" }, 5)
 	Medals.Place(rim, parent, 0, 0)
 	local button = rim.sigils[1]
@@ -156,6 +192,18 @@ do
 		if region.loop then fire = region end
 	end
 	assert(fire and Engine(fire, button), "at Full the sigil's engine button holds the loop")
+	local dropped = Removals(rim.lit)
+	Slots.Set(env, "player", { { id = 3045, count = 0, icon = 132208, start = 0, duration = 15 } })
+	assert(button:IsShown() and fire.loop:IsPlaying(), "the sigil lit: the engine plays its loop")
+	env.SetTarget(false)
+	env.RunTimers()
+	assert(not Engine(fire, button) and not fire.loop:IsPlaying() and fire.still:GetAlpha() == 1, "the crest resting: the sigil's loop leaves the engine and stops")
+	env.SetTarget(true)
+	env.RunTimers()
+	assert(Engine(fire, button) and fire.loop:IsPlaying(), "woken with the sigil still lit, its loop plays again")
+	assert(#dropped == 0, "resting and waking leave the rim's flares and other cues bound")
+	Slots.Set(env, "player", nil)
+	assert(not button:IsShown() and not fire.loop:IsPlaying(), "the sigil cleared: its loop stops")
 end
 
 assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
