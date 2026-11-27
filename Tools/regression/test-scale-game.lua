@@ -121,6 +121,11 @@ do
 	mx, my = Pixels(F.METER)
 	assert(tx == 1347 and ty == 811, string.format("the tracker keeps its pixels, got %d,%d", tx, ty))
 	assert(mx == 1653 and my == 175, string.format("the damage meter keeps its pixels, got %d,%d", mx, my))
+	-- A rescale that leaves every place where it is, as the size settings applied at each login do, saves nothing.
+	local saves = state.saves
+	K.Callbacks.Fire("HudStyleChanged")
+	env.RunTimers()
+	assert(state.saves == saves, "a restyle that moves nothing does not save the layouts again")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

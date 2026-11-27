@@ -260,7 +260,7 @@ function Profiles.Preview(text, scope, includeLayout, extras)
 	if not valid then return nil, err end
 	local current, future = Store.Module("Appearance"), settings.Appearance
 	local scaleChanged = Store.Module("ProfileTools").scaleWarning and future
-		and ((future.uiScaleGame == true) ~= (current.uiScaleGame == true) or future.uiScaleAuto ~= current.uiScaleAuto or future.uiScaleAuto == false and future.uiScale ~= current.uiScale)
+		and ((future.uiScaleGame == true) ~= (current.uiScaleGame == true) or future.uiScaleGame ~= true and (future.uiScaleAuto ~= current.uiScaleAuto or future.uiScaleAuto == false and future.uiScale ~= current.uiScale))
 	return { text = cooldowns and Envelope("everything", encoded, nil, cooldowns) or encoded, changes = changes, summary = #changes > 0 and table.concat(changes, ", ") or L["No changes"],
 		warning = scaleChanged and L["This import changes your interface size. Review Size in General after applying."] or nil }
 end

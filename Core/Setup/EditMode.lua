@@ -976,7 +976,9 @@ function EditMode.Restyle(name, story)
 	local layout, viewer, moved = all[active], Enum.EditModeSystem.CooldownViewer, {}
 	for _, place in ipairs(Places(name, story, {})) do
 		local ours = place.system == viewer and Mine(layout, place) or place.stamp ~= nil and Owned(layout, place)
-		if ours and Place(layout, place) then
+		local entry = ours and FindSystem(layout, place.system, place.index)
+		local was = entry and Copy({ entry.anchorInfo, entry.settings, entry.isInDefaultPosition })
+		if entry and Place(layout, place) and not Same(was, { entry.anchorInfo, entry.settings, entry.isInDefaultPosition }) then
 			moved[#moved + 1] = place
 		end
 	end
