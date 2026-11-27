@@ -1,4 +1,4 @@
--- Window.lua: the setup, with HUD and role pictures (one big picture per layout, and the arrangements on wide screens), the Looks, the controls, module and detected-addon choices and the Apply summary.
+-- Window.lua: the setup, with HUD and role pictures (one big picture per layout, and the arrangements on wide screens), the Looks, the controls, the interface size, module and detected-addon choices and the Apply summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -211,6 +211,8 @@ local function Refresh()
 		if ns.Store.Module("Setup").looks then lead = lead .. "\n" .. string.format(L["Look: %s."], look and look.label or L["Your own"]) end
 		local controls = Setup.Looks.Get(choice.controls or Setup.Looks.Controls(), Setup.Looks.CONTROLS)
 		if Setup.Looks.ControlsShown() then lead = lead .. "\n" .. string.format(L["Controls: %s."], controls and controls.label or L["Your own"]) end
+		local size = Setup.Looks.Get(choice.uiScale or Setup.Looks.Size(), Setup.Looks.SIZES)
+		lead = lead .. "\n" .. string.format(L["Interface size: %s."], size and size.label or L["Your own"])
 		if Wide() then lead = lead .. "\n" .. string.format(L["Arrangement: %s."], ARRANGEMENTS[arrangement == "spread" and 2 or 1].label) end
 		local head = lead .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
@@ -983,6 +985,7 @@ local function BuildStyles(page, width)
 	end
 	panel.lookCaption, panel.lookTabs, panel.lookNote = Choice(L["Look"], "look")
 	panel.padCaption, panel.padTabs, panel.padNote = Choice(L["Controls"], "controls")
+	panel.sizeCaption, panel.sizeTabs, panel.sizeNote = Choice(L["Interface size"], "uiScale")
 	panel.styleFit = { width = cardWidth, spacing = spacing }
 end
 
@@ -1034,11 +1037,19 @@ FitStyles = function(retried)
 	end
 	Place(panel.padCaption, panel.padTabs, panel.padNote, looks and panel.lookTabs or panel.styleHint)
 	if page:IsVisible() then
+		local current, picked = Setup.Looks.Size(), Setup.Choice().uiScale
+		panel.sizeTabs:SetTabs(current and Setup.Looks.SIZES_STATUS or Setup.Looks.SIZES_CUSTOM, picked or current or "Custom")
+		local set = Setup.Looks.Get(picked or current, Setup.Looks.SIZES)
+		panel.sizeNote:SetText(set and set.note or L["Your own settings. Apply keeps them."])
+	end
+	Place(panel.sizeCaption, panel.sizeTabs, panel.sizeNote, controls and panel.padTabs or looks and panel.lookTabs or panel.styleHint)
+	if page:IsVisible() then
 		local rise = 2 * Widgets.Border(panel)
-		local base = HEIGHT + (controls and math.ceil((Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing) / rise) * rise or 0)
+		local row = Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing
+		local base = HEIGHT + math.ceil((controls and 2 or 1) * row / rise) * rise
 		Widgets.Size(panel, WIDTH, base)
 		local lowest, top = panel.styleHint:GetBottom(), panel.next:GetTop()
-		for _, region in ipairs({ panel.lookTabs, panel.lookNote, panel.padTabs, panel.padNote }) do
+		for _, region in ipairs({ panel.lookTabs, panel.lookNote, panel.padTabs, panel.padNote, panel.sizeTabs, panel.sizeNote }) do
 			if lowest and region:IsShown() then
 				local bottom = region:GetBottom()
 				lowest = bottom and min(lowest, bottom)
