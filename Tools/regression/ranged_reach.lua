@@ -1,4 +1,4 @@
--- ranged_reach.lua: Reach.Check(sizes, classes, only) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. With only set to a piece's key (crestRail), only that piece is measured, with no hawk perches, so one class's rail can be checked at a size where another of its pieces is not yet clear. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, against those obstacles and every other rail medal, leaving out only the samples where it sits on its own seat or in the crown.
+-- ranged_reach.lua: Reach.Check(sizes, classes, only) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. With only set to a piece's key (crestRail), only that piece is measured, with no hawk perches, so one class's rail can be checked at a size where another of its pieces is not yet clear. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Reach = {}
@@ -26,6 +26,50 @@ local function Content(path)
 	return CONTENT[path]
 end
 
+-- Spread(path, rows, columns, coords) -> how far from its cell's centre, as a share of the cell's width, the texture's pixels of alpha
+-- 64 or more reach in any direction, so a round medal measures as round however it turns. A flipbook sheet folds into one cell;
+-- otherwise only the part the texture coordinates show counts.
+local SPREAD = {}
+local function Spread(path, rows, columns, coords)
+	local u0, u1, v0, v1 = 0, 1, 0, 1
+	if rows == 1 and columns == 1 and coords then
+		u0, u1 = math.min(coords[1], coords[2]), math.max(coords[1], coords[2])
+		v0, v1 = math.min(coords[3], coords[4]), math.max(coords[3], coords[4])
+	end
+	local key = table.concat({ tostring(path), rows, columns, u0, u1, v0, v1 }, "/")
+	if SPREAD[key] == nil then
+		local file = tostring(path):gsub("\\", "/"):match("Media/.+$")
+		local ok, alpha, w, h = pcall(Png.Alpha, file or "")
+		local most = 0
+		if ok then
+			local x0, x1, y0, y1 = math.floor(u0 * w), math.ceil(u1 * w) - 1, math.floor(v0 * h), math.ceil(v1 * h) - 1
+			local cw, ch = (x1 - x0 + 1) / columns, (y1 - y0 + 1) / rows
+			for y = y0, y1 do
+				for x = x0, x1 do
+					if alpha(x, y) >= 64 then
+						local dx = math.abs(((x - x0) % cw + 0.5) / cw - 0.5) + 0.5 / cw
+						local dy = (math.abs(((y - y0) % ch + 0.5) / ch - 0.5) + 0.5 / ch) * ch / cw
+						most = math.max(most, math.sqrt(dx * dx + dy * dy))
+					end
+				end
+			end
+		end
+		SPREAD[key] = most > 0 and most or false
+	end
+	return SPREAD[key]
+end
+
+-- Cells(region) -> the rows and columns of the flipbook a group on the region plays, or 1, 1.
+local function Cells(region)
+	for _, group in ipairs(region._groups or {}) do
+		for _, anim in ipairs(group._anims or {}) do
+			local state = anim._state or {}
+			if anim._type == "FlipBook" and state.FlipBookRows then return state.FlipBookRows[1], state.FlipBookColumns[1] end
+		end
+	end
+	return 1, 1
+end
+
 -- Eased(anim, at) -> how far the animation has run at time at of its group's pass, 0 to 1, through its smoothing.
 local function Eased(anim, at)
 	local p = math.max(0, math.min(1, (at - anim.from) / math.max(anim.run, 1e-6)))
@@ -37,7 +81,7 @@ local function Eased(anim, at)
 end
 
 -- Passes(group) -> its Translation, Rotation and Scale animations, each with the time it starts and runs for in one pass, and the pass's
--- times worth sampling: each start and end and 48 steps between.
+-- times worth sampling: each start, end and the instant before each end, where a later animation taking over would hide its peak, and 48 steps between.
 local function Passes(group)
 	local orders, timed, times, start = {}, {}, { 0 }, 0
 	for _, anim in ipairs(group._anims or {}) do
@@ -52,7 +96,7 @@ local function Passes(group)
 			longest = math.max(longest, delay + run)
 			if anim._type == "Translation" or anim._type == "Rotation" or anim._type == "Scale" then
 				timed[#timed + 1] = { anim = anim, from = start + delay, run = run }
-				times[#times + 1], times[#times + 2] = start + delay, start + delay + run
+				times[#times + 1], times[#times + 2], times[#times + 3] = start + delay, start + delay + run, start + delay + run * 0.999
 			end
 		end
 		start = start + longest
@@ -260,42 +304,50 @@ function Reach.Check(sizes, classes, only)
 				end
 			end
 			assert(checked > ((low or only) and 10 or 20), at .. " " .. class .. ": the lit pieces are measured (" .. checked .. ")")
-			local crown, medals, fliers = solver:rect(railPiece.crown), {}, 0
-			local ox, oy = (crown[1] + crown[3]) / 2, (crown[2] + crown[4]) / 2
+			local medals, fliers, faces, landing = {}, 0, {}, 1
+			for _, seat in ipairs(railPiece.order) do
+				for _, sample in ipairs(seat.rise and Samples(seat.rise) or {}) do landing = math.max(landing, sample[5]) end
+			end
+			for _, region in ipairs(Textures(railPiece.crown, {})) do
+				local texture, box = region._state.Texture, solver:rect(region)
+				local rows, columns = Cells(region)
+				local reach = texture and box and not flying[region] and Spread(texture[1], rows, columns, region._state.TexCoord)
+				if reach then
+					local face = { (box[1] + box[3]) / 2, (box[2] + box[4]) / 2, reach * math.max(box[3] - box[1], box[4] - box[2]) * landing }
+					faces[texture[1]] = faces[texture[1]] and faces[texture[1]][3] > face[3] and faces[texture[1]] or face
+				end
+			end
 			for _, list in ipairs({ railPiece.order, railPiece.spare }) do
-				for _, seat in ipairs(list) do medals[#medals + 1] = { seat = seat, box = solver:rect(seat) } end
+				for _, seat in ipairs(list) do
+					local box = solver:rect(seat)
+					medals[#medals + 1] = { seat = seat, x = (box[1] + box[3]) / 2, y = (box[2] + box[4]) / 2, r = (box[3] - box[1]) / 2 }
+				end
 			end
 			for _, seat in ipairs(railPiece.spare) do
-				local home = solver:rect(seat)
-				local hx, hy = (home[1] + home[3]) / 2, (home[2] + home[4]) / 2
 				for _, leg in ipairs(seat.lift and { { seat.lift, seat.rise }, { seat.ghost, seat.home } } or {}) do
 					fliers = fliers + 1
 					local layer = solver:rect(leg[1])
 					local lx, ly = (layer[1] + layer[3]) / 2, (layer[2] + layer[4]) / 2
 					for _, region in ipairs(Textures(leg[1], {})) do
 						local texture = region._state.Texture
-						local box, content = solver:rect(region), texture and Content(texture[1])
-						if box and content then
-							local w, h = box[3] - box[1], box[4] - box[2]
-							local bl, br, bt, bb = box[1] + content[1] * w, box[1] + content[2] * w, box[4] - content[3] * h, box[4] - content[4] * h
+						local rows, columns = Cells(region)
+						local box, reach = solver:rect(region), texture and Spread(texture[1], rows, columns, region._state.TexCoord)
+						if box and reach then
+							local rx, ry, across = (box[1] + box[3]) / 2 - lx, (box[2] + box[4]) / 2 - ly, math.max(box[3] - box[1], box[4] - box[2])
 							local name = at .. " " .. class .. " second-rail " .. seat.key .. "'s flight " .. tostring(texture[1]):match("[^\\/]+$")
 							for _, sample in ipairs(Samples(leg[2])) do
 								local x, y, c, s, scale = sample[1], sample[2], sample[3], sample[4], sample[5]
-								local l, r, t, b = math.huge, -math.huge, -math.huge, math.huge
-								for _, corner in ipairs({ { bl, bt }, { br, bt }, { bl, bb }, { br, bb } }) do
-									local dx, dy = (corner[1] - lx) * scale, (corner[2] - ly) * scale
-									local px, py = lx + dx * c - dy * s + x * unit, ly + dx * s + dy * c + y * unit
-									l, r, t, b = math.min(l, px), math.max(r, px), math.max(t, py), math.min(b, py)
+								local px = lx + (rx * c - ry * s) * scale + x * unit
+								local py = ly + (rx * s + ry * c) * scale + y * unit
+								local radius = reach * across * scale
+								for _, a in ipairs(railed) do
+									local nx, ny = math.max(a[1], math.min(px, a[3])), math.max(a[2], math.min(py, a[4]))
+									assert((px - nx) ^ 2 + (py - ny) ^ 2 >= radius ^ 2, name .. " crosses an action slot, the level badge, a unit frame, a cast bar or the cooldown row")
 								end
-								local mx, my = (l + r) / 2, (t + b) / 2
-								local landed = math.abs(mx - ox) <= 2 * unit and math.abs(my - oy) <= 2 * unit
-								local docked = math.abs(mx - hx) <= 2 * unit and math.abs(my - hy) <= 2 * unit
-								for _, a in ipairs((landed or docked) and {} or railed) do
-									assert(r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses an action slot, the level badge, a unit frame, a cast bar or the cooldown row")
-								end
-								for _, m in ipairs((landed or docked) and {} or medals) do
-									local a = m.box
-									assert(m.seat == seat or r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses the " .. m.seat.key .. " medal")
+								local face = faces[texture[1]]
+								local crowned = face and math.sqrt((px - face[1]) ^ 2 + (py - face[2]) ^ 2) + radius <= face[3] + 1e-6
+								for _, m in ipairs(medals) do
+									assert(m.seat == seat or crowned or (px - m.x) ^ 2 + (py - m.y) ^ 2 >= (radius + m.r) ^ 2, name .. " crosses the " .. m.seat.key .. " medal")
 								end
 							end
 						end

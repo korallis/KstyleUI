@@ -660,8 +660,15 @@ do
 	assert(stone.lit:GetAlpha() == 1, "and a hidden cooldown keeps the ready stone lit")
 	env.C_Item.GetItemCooldown = get
 	assert(ritual and ritual.key == "ritual" and ritual.lit:GetAlpha() == 1, "Ritual of Doom stands ready beside it")
+	local ready, hour = env.C_Spell.GetSpellCooldownDuration, { start = env._now, finish = env._now + 3600 }
+	env.C_Spell.GetSpellCooldownDuration = function(spell, ...) if spell == 18540 then return hour end return ready(spell, ...) end
 	Cooling(env, 18540, true)
 	assert(ritual.lit:GetAlpha() == 0 and ritual.cold:GetAlpha() == 1, "the ritual's one-hour cooldown turns its medal steel")
+	for _, timer in ipairs({ ritual.sweep, ritual.refill }) do
+		local fed = R.AB.W.LastCall(timer, "SetCooldownFromDurationObject")
+		assert(fed and fed[1] == hour, "the ritual's dark sweep and steel ring count the one-hour duration the client reports for Ritual of Doom")
+	end
+	env.C_Spell.GetSpellCooldownDuration = ready
 	Cooled(env, ritual)
 	assert(ritual.lit:GetAlpha() == 1, "and it relights when the ritual is ready again")
 	Clean(env, K)
