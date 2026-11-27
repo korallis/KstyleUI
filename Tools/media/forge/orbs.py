@@ -86,9 +86,19 @@ def shrink(lin, size):
     return np.clip(np.stack([np.asarray(c) for c in chans], -1), 0, None)
 
 
+def straight(rgb):
+    # Additive light stored as straight RGBA, as the other Medallions additive sheets are: alpha is the brightest channel and
+    # the colour is divided by it, so the game's ADD blend (colour times alpha) draws the same light and black is clear.
+    alpha = rgb.max(-1)
+    safe = np.maximum(alpha, 1)[..., None].astype(np.float32)
+    colour = np.clip(rgb.astype(np.float32) * 255 / safe + 0.5, 0, 255).astype(np.uint8)
+    return np.concatenate([colour, alpha[..., None]], -1)
+
+
 def write_rgb(lin, path):
     path.parent.mkdir(parents=True, exist_ok=True)
-    Image.fromarray((to_srgb(lin) * 255 + 0.5).astype(np.uint8), "RGB").save(path, optimize=True)
+    rgb = (to_srgb(lin) * 255 + 0.5).astype(np.uint8)
+    Image.fromarray(straight(rgb), "RGBA").save(path, optimize=True)
     return path
 
 

@@ -569,17 +569,26 @@ for _, name in ipairs({ "auraGlyphFacet", "auraGlyphHealthstone", "auraSigilArca
 end
 TEXTURES.auraTrackerGust = { file = "Textures\\Auras\\Trackers\\Gust.png", rows = 8, columns = 2, frames = 16, seconds = 1.44 }
 TEXTURES.auraSocket = { file = "Textures\\Auras\\Socket.png" }
-for _, race in ipairs({ "Human", "Gnome", "Orc", "Scourge", "Troll", "Skyborne" }) do
-	TEXTURES["orbVessel" .. race] = { file = "Textures\\Medallions\\Orbs\\Vessel" .. race .. ".png" }
-end
-for _, school in ipairs({ "Arcane", "Fire", "Frost" }) do
-	TEXTURES["orbLight" .. school] = { file = "Textures\\Medallions\\Orbs\\Light" .. school .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-	TEXTURES["orbCore" .. school] = { file = "Textures\\Medallions\\Orbs\\Core" .. school .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-	TEXTURES["orbMeniscus" .. school] = { file = "Textures\\Medallions\\Orbs\\Meniscus" .. school .. ".png" }
-end
-for _, name in ipairs({ "Clear", "Barrage", "Heat", "Rime1", "Rime2" }) do
-	TEXTURES["orb" .. name] = { file = "Textures\\Medallions\\Orbs\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-end
+TEXTURES.orbVesselHuman = { file = "Textures\\Medallions\\Orbs\\VesselHuman.png" }
+TEXTURES.orbVesselGnome = { file = "Textures\\Medallions\\Orbs\\VesselGnome.png" }
+TEXTURES.orbVesselOrc = { file = "Textures\\Medallions\\Orbs\\VesselOrc.png" }
+TEXTURES.orbVesselScourge = { file = "Textures\\Medallions\\Orbs\\VesselScourge.png" }
+TEXTURES.orbVesselTroll = { file = "Textures\\Medallions\\Orbs\\VesselTroll.png" }
+TEXTURES.orbVesselSkyborne = { file = "Textures\\Medallions\\Orbs\\VesselSkyborne.png" }
+TEXTURES.orbLightArcane = { file = "Textures\\Medallions\\Orbs\\LightArcane.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.orbCoreArcane = { file = "Textures\\Medallions\\Orbs\\CoreArcane.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.orbMeniscusArcane = { file = "Textures\\Medallions\\Orbs\\MeniscusArcane.png" }
+TEXTURES.orbLightFire = { file = "Textures\\Medallions\\Orbs\\LightFire.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.orbCoreFire = { file = "Textures\\Medallions\\Orbs\\CoreFire.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.orbMeniscusFire = { file = "Textures\\Medallions\\Orbs\\MeniscusFire.png" }
+TEXTURES.orbLightFrost = { file = "Textures\\Medallions\\Orbs\\LightFrost.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.orbCoreFrost = { file = "Textures\\Medallions\\Orbs\\CoreFrost.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.orbMeniscusFrost = { file = "Textures\\Medallions\\Orbs\\MeniscusFrost.png" }
+TEXTURES.orbClear = { file = "Textures\\Medallions\\Orbs\\Clear.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.orbBarrage = { file = "Textures\\Medallions\\Orbs\\Barrage.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.orbHeat = { file = "Textures\\Medallions\\Orbs\\Heat.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.orbRime1 = { file = "Textures\\Medallions\\Orbs\\Rime1.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.orbRime2 = { file = "Textures\\Medallions\\Orbs\\Rime2.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 TEXTURES.orbGlass = { file = "Textures\\Medallions\\Orbs\\Glass.png" }
 for _, set in ipairs({
 	{ kind = "Sigil", names = { "Crossed", "Skull", "Wall", "Heart", "Sweep", "Thorns", "Bubble", "Aegis", "Sun", "Hand", "Wing", "Bulwark", "Voice",
