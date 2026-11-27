@@ -126,6 +126,40 @@ do
 	K.Callbacks.Fire("HudStyleChanged")
 	env.RunTimers()
 	assert(state.saves == saves, "a restyle that moves nothing does not save the layouts again")
+	-- Restyle compares the whole Edit Mode entry: a second anchor on the tracker, which Place clears, is a change it saves.
+	F.Find(F.Named(state, "KstyleUI DPS"), F.TRACKER).anchorInfo2 = { point = "BOTTOMRIGHT", relativeTo = "UIParent", relativePoint = "BOTTOMLEFT", offsetX = 1600, offsetY = 600 }
+	K.Callbacks.Fire("HudStyleChanged")
+	env.RunTimers()
+	assert(state.saves == saves + 1 and F.Find(F.Named(state, "KstyleUI DPS"), F.TRACKER).anchorInfo2 == nil, "a restyle that clears the tracker's second anchor saves it")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- Follow mode: at 1920x1080 a game scale of 2/3 asks 0.9375, a whole step, so the root-to-game ratio stays 1 while
+-- the root grows from 1920x1080 to 2048x1152 units. Setup re-places what it owns at the places a fresh Apply at 2/3
+-- writes (tracker 1475,883, tracked buff icons 933,462.6), and a buff bar viewer the player moved by hand, with no
+-- setup stamp, keeps its place.
+do
+	local state = { saved = { { layoutName = "Mine", layoutType = F.ACCOUNT, systems = F.Modern().systems } }, active = 1 }
+	local env, K = W.New({ boot = false, width = 1920, height = 1080, uiScale = DEFAULT_GAME_SCALE, size = "auto", setup = function(e) F.Install(e, state) end })
+	CoreEnv.Boot(env)
+	K.Options.Write("Appearance", "uiScaleGame", true)
+	env.RunTimers()
+	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
+	env.RunTimers()
+	local layout = F.Named(state, "KstyleUI DPS")
+	local icons = F.Find(layout, F.VIEWER, F.BUFF_ICON).anchorInfo
+	assert(near(icons.offsetX, 869) and near(icons.offsetY, 462.6), string.format("setup places the tracked buff icons at 869,462.6, got %s,%s", icons.offsetX, icons.offsetY))
+	K.Store.Account().editModeRows["KstyleUI DPS"][F.BUFF_BAR] = nil
+	F.Find(layout, F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX = 100
+	SetGameScale(env, 2 / 3, 1920, 1080)
+	assert(near(K.Scale.AppliedUserScale(), 0.9375) and near(K.Setup.EditMode.Factor(), 1), "2/3 follows to 0.9375 with the ratio unchanged")
+	-- SaveLayouts replaces the fake's saved tables, so read the layout again.
+	layout = F.Named(state, "KstyleUI DPS")
+	local tracker, bars = F.Find(layout, F.TRACKER).anchorInfo, F.Find(layout, F.VIEWER, F.BUFF_BAR).anchorInfo
+	icons = F.Find(layout, F.VIEWER, F.BUFF_ICON).anchorInfo
+	assert(near(tracker.offsetX, 1475) and near(tracker.offsetY, 883), string.format("the tracker follows the grown HUD to 1475,883, got %s,%s", tracker.offsetX, tracker.offsetY))
+	assert(near(icons.offsetX, 933) and near(icons.offsetY, 462.6), string.format("setup's tracked buff icons follow to 933,462.6, got %s,%s", icons.offsetX, icons.offsetY))
+	assert(near(bars.offsetX, 100), "a buff bar viewer moved by hand, with no setup stamp, keeps its place, got " .. tostring(bars.offsetX))
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
