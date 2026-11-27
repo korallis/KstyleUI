@@ -574,7 +574,7 @@ for _, build in ipairs({
 	local env, K, ns = New(class, build[3])
 	K.Options.Write("Medallions", "restingCrest", false)
 	env.RunTimers()
-	local lits, auras, named = {}, {}, {}
+	local lits, auras, gated = {}, {}, {}
 	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
 		for _, lit in ipairs(piece.lits) do
 			if lit.lights and lit:GetParent():IsVisible() then
@@ -585,12 +585,12 @@ for _, build in ipairs({
 					table.insert(auras[unit], { id = family.spells[1], count = 3, start = 0, duration = 30, harmful = harmful, mine = true })
 				end
 				lits[#lits + 1] = { lit = lit, key = piece.spec.key, what = class .. " " .. piece.spec.key .. " " .. spec.spells[1] }
-				named[piece.spec.key] = true
+				gated[piece.spec.key] = true
 			end
 		end
 	end
 	for _, key in ipairs(want) do
-		assert(named[key], class .. ": " .. key .. " burns its aura on gated copies")
+		assert(gated[key], class .. ": " .. key .. " burns its aura on gated copies")
 	end
 	Motion(env, K, "calm")
 	for unit, list in pairs(auras) do
