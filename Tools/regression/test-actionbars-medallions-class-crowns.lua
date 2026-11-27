@@ -318,11 +318,10 @@ do
 		for i, p in ipairs(crown.pips) do
 			local a = p.aura
 			assert(a.loop:IsPlaying() == a.lit:IsShown(), "arrow " .. i .. " loops exactly while it shows")
+			assert(a.gate:GetAlpha() == (a.lit:IsShown() and 0 or 1), "arrow " .. i .. "'s still copy shows exactly while it does not burn")
 			lit[i] = a.loop:IsPlaying() and "1" or "0"
 		end
-		local all = table.concat(lit)
-		assert((all == "000") == (crown.cool:GetAlpha() == 1 and crown.burn:GetAlpha() == 0), "the still copies show exactly while nothing burns")
-		return all
+		return table.concat(lit)
 	end
 	local sniper = { id = 1310687, count = 1 }
 	local function Stack(n)
@@ -341,6 +340,15 @@ do
 	assert(Burning() == "111", "three stacks burn all three")
 	Stack(1)
 	assert(Burning() == "100", "losing two stacks stops the second and third arrows' loops")
+	local third = crown.pips[3].aura
+	assert(third.still:GetParent():GetParent() == third.bars[1] and third.gate:GetAlpha() == 1, "and hands each back to its still copy on the stack's fill, which drains")
+	AB.Hiding(env)
+	ns.Slab.hub:Hide()
+	assert(Burning() == "000", "the crest hidden by an ancestor: every loop stops")
+	Stack(2)
+	assert(Burning() == "000", "and a stack gained while hidden starts none")
+	ns.Slab.hub:Show()
+	assert(Burning() == "110", "shown again, the two held stacks burn")
 	Stack(2)
 	env.SetTarget(false)
 	env.RunTimers()

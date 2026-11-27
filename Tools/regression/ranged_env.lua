@@ -9,37 +9,6 @@ local KNOWN = {
 	WARLOCK = { 172, 980, 348, 688, 6201, 1120, 18094, 18288, 706, 702, 17962, 2362, 6789 },
 }
 
--- The shared stub's Hide runs no OnHide. With opts.hiding a shown frame that hides, by Hide or SetShown(false), runs OnHide on
--- itself and every shown descendant, as the client does, so a test reaches a hide handler only through the code that hides it.
-local function Hidden(frame)
-	local fn = frame._scripts and frame._scripts.OnHide
-	if fn then fn(frame) end
-	for _, kid in ipairs(frame._kids or {}) do
-		if kid._shown then Hidden(kid) end
-	end
-end
-
-local function Hiding(env)
-	local meta = getmetatable(env.UIParent)
-	if not meta.hiding then
-		local index = meta.__index
-		local wrapped = {}
-		for _, key in ipairs({ "Hide", "SetShown" }) do
-			wrapped[key] = function(self, shown, ...)
-				local visible = self:IsVisible()
-				index(self, key)(self, shown, ...)
-				if visible and not self:IsVisible() then Hidden(self) end
-			end
-		end
-		meta.__index = function(object, key)
-			local owner = rawget(object, "_env")
-			return owner and owner._hiding and wrapped[key] or index(object, key)
-		end
-		meta.hiding = true
-	end
-	env._hiding = true
-end
-
 local function New(class, opts)
 	opts = opts or {}
 	local size = opts.size or SIZES[1]
@@ -146,7 +115,7 @@ local function New(class, opts)
 		end,
 	})
 	if opts.hiding then
-		Hiding(env)
+		AB.Hiding(env)
 	end
 	env._owned = {}
 	local events = K.Events

@@ -281,8 +281,6 @@ local function Slot(fed, key, anchor, level, low, ease, texture, color, add, con
 	return bar
 end
 
--- A hunter's arrows: each arrow's still copy sits on an aura slot under a layer of the crown's own, because only that layer can
--- swap it while auras are secret, and the engine's stack count reveals it the way it sweeps the other crowns' art.
 local function Gate(fed, level)
 	local gate = CreateFrame("Frame", nil, fed.holder)
 	gate:SetAllPoints(fed.holder)
@@ -296,11 +294,10 @@ local function Gate(fed, level)
 	return gate
 end
 
--- The burning copy is the crown's own frame, not an aura button's, so Lua can stop its loop while auras are secret. It is clipped
--- to the still copy's application bar fill, and Pace shows and plays it only for a stack the player is known to hold.
-local function Ember(fed, p, token)
+local function Ember(fed, p, token, level)
 	local rows, columns, frames, seconds, span = Tokens.Flipbook(token)
-	local bar = Slot(fed, "lit" .. p.i, p.frame, fed.cool:GetFrameLevel() + 1, p.i - 1, true, nil, nil, nil, fed.cool.container)
+	local gate = Gate(fed, level)
+	local bar = Slot(fed, "lit" .. p.i, p.frame, level + 1, p.i - 1, true, nil, nil, nil, gate.container)
 	bar:ClearAllPoints()
 	bar:SetPoint("CENTER", p.frame, "CENTER", 0, 0)
 	bar:SetStatusBarTexture((Tokens.Texture("barFlat")))
@@ -319,7 +316,7 @@ local function Ember(fed, p, token)
 		t:SetTexCoord(0, 1 / columns, 0, 1 / rows)
 		return t, clip
 	end
-	local a = { span = span or 1, bars = { bar } }
+	local a = { span = span or 1, bars = { bar }, gate = gate }
 	a.still = Copy(bar)
 	a.moving, a.lit = Copy(fed.burn)
 	a.lit:Hide()
@@ -340,7 +337,6 @@ local function Bind(feeds, moving)
 	end
 end
 
--- The player's stacks, read only while auras are open; nil when they are secret or unreadable, so no secret is ever compared.
 local function Stacks(c)
 	local read = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
 	if c.unit ~= "player" or type(read) ~= "function" or not Widgets.CrownOpen() then
@@ -362,18 +358,15 @@ local function Stacks(c)
 	return 0
 end
 
--- Arrow i burns and loops only while the crown burns, shows and the player holds i stacks; otherwise, and whenever auras are
--- secret, every loop stops and the engine-fed still copies show.
 function Crown:Pace()
 	if not self.burn then
 		return
 	end
-	local n = self.burning and self.shown and Stacks(self.c) or 0
-	self.burn:SetAlpha(n > 0 and 1 or 0)
-	self.cool:SetAlpha(n > 0 and 0 or 1)
+	local n = self.burning and self.holder:IsVisible() and Stacks(self.c) or 0
 	for i, a in ipairs(self.auras) do
 		local lit = i <= n
 		a.lit:SetShown(lit)
+		a.gate:SetAlpha(lit and 0 or 1)
 		if not lit then
 			a.loop:Stop()
 		elseif not a.loop:IsPlaying() then
@@ -382,7 +375,6 @@ function Crown:Pace()
 	end
 end
 
--- burning: whether the arrows' auras loop (Full, and the crest awake); otherwise each shows its first frame.
 function Crown:SetBurning(burning)
 	self.burning = burning == true and self.auras[1] ~= nil
 	self:Pace()
@@ -432,7 +424,6 @@ end
 function Crown:SetShown(on)
 	self.holder:SetShown(on)
 	for _, container in ipairs(self.containers) do container:SetEnabled(on) end
-	self.shown = on == true
 	self:Pace()
 end
 
@@ -455,10 +446,12 @@ function Widgets.FedCrown(parent, kind, angles, size, moving)
 	end
 	local fed = setmetatable({ c = c, holder = holder, container = container, options = { candidateFilters = { includeSpellIDs = ids } }, pips = {}, feeds = {}, auras = {}, containers = { container } }, { __index = Crown })
 	if c.aura then
-		fed.cool = Gate(fed, level + 4)
 		fed.burn = CreateFrame("Frame", nil, holder)
 		fed.burn:SetAllPoints(holder)
 		fed.burn:SetFrameLevel(level + 6)
+		local function Pace() fed:Pace() end
+		holder:SetScript("OnShow", Pace)
+		holder:SetScript("OnHide", Pace)
 	end
 	for i, angle in ipairs(angles) do
 		local set = Widgets.ClassPipSet(kind, angle)
@@ -473,7 +466,7 @@ function Widgets.FedCrown(parent, kind, angles, size, moving)
 		p.halo = Slot(fed, "halo" .. i, p.haloFrame, level + 2, i - 1, false, set.glow, set.glowColor, true)
 		p.blade = Slot(fed, "lit" .. i, frame, level + 3, i - 1, true, set.lit, c.aura and "black" or "white")
 		if c.aura then
-			Ember(fed, p, c.aura .. angle)
+			Ember(fed, p, c.aura .. angle, level + 4)
 		end
 		fed.pips[i] = p
 	end
