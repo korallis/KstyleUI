@@ -10,6 +10,7 @@ local Trackers = {}
 ns.SlabTrackers = Trackers
 
 local OWNER = "ActionBars.SlabTrackers"
+local STRIP = "unitframes.castbar.player"
 local RELIQUARY, MAIN_HAND, OFF_HAND, TRINKET, ARMORY_TRINKET = 30, 16, 17, { 44, 0 }, { 33, -24 }
 local LUA = {
 	cooldown = { "SPELL_UPDATE_COOLDOWN" },
@@ -139,6 +140,7 @@ local function Resolve(p, row)
 	end
 	local spec = setmetatable({ burst = HOOKS[ns.class] and HOOKS[ns.class].burst }, { __index = p })
 	spec.size = row and Medals.SIZE or p.seat == "top" and RELIQUARY or p.size
+	spec.row = row
 	if p.feeds and ns.SlabArmory.LOOKS[p.look or ""] then
 		spec.feeds = {}
 		for _, feed in ipairs(p.feeds) do
@@ -240,6 +242,8 @@ local function Shape(name, seat)
 		local bar, totems = ns.bars.stance, ns.Totems.state
 		local first = bar.count and bar.count > 0 and bar.buttons[1]
 		local over = totems.shown and totems.header or seat:IsShown() and first
+		local cast = K.Layout and K.Layout.Element and K.Layout.Element(STRIP)
+		form.strip = cast and cast.frame
 		local own = form.frame:GetParent():GetEffectiveScale()
 		form.frame:SetScale(own > 0 and seat:GetEffectiveScale() / own * (first and first.opts.size or Medals.SIZE) / Medals.SIZE or 1)
 		form.frame:SetFrameStrata(seat:GetFrameStrata())
@@ -249,6 +253,27 @@ local function Shape(name, seat)
 	end
 	form.frame:Show()
 	return form
+end
+
+local function Plates(form, n)
+	form.plates = form.plates or {}
+	local edge = Widgets.Border(form.frame)
+	for i = 1, math.max(n, #form.plates) do
+		local plate = form.plates[i]
+		if i <= n and not plate then
+			plate = { form.frame:CreateTexture(nil, "BACKGROUND", nil, -2), form.frame:CreateTexture(nil, "BACKGROUND", nil, -1) }
+			plate[1]:SetColorTexture(K.Tokens.Color("slotEdge"))
+			plate[2]:SetColorTexture(K.Tokens.Color("slotFill"))
+			form.plates[i] = plate
+		end
+		for layer, texture in ipairs(plate or {}) do
+			local x, y = Medals.Cell(i - 1)
+			texture:ClearAllPoints()
+			texture:SetPoint("CENTER", form.frame, "CENTER", x, y)
+			texture:SetSize(Medals.SIZE - (layer - 1) * 2 * edge, Medals.SIZE - (layer - 1) * 2 * edge)
+			texture:SetShown(i <= n)
+		end
+	end
 end
 
 local function Lay(form, name, seat, shown, order, specs)
@@ -288,6 +313,16 @@ local function Lay(form, name, seat, shown, order, specs)
 	end
 	if strip then
 		Medals.Place(strip, form.frame, Medals.Cell(math.ceil(n / Medals.LINE) * Medals.LINE + over))
+	end
+	local x, top = form.strip and form.strip:GetCenter(), form.strip and form.strip:GetTop()
+	local k = top and form.strip:GetEffectiveScale() / form.frame:GetEffectiveScale()
+	if name == "row" then
+		Plates(form, n)
+	end
+	if name == "row" and k then
+		local width = math.max(1, math.min(n, Medals.LINE)) * (Medals.SIZE + Medals.GAP) - Medals.GAP
+		form.frame:ClearAllPoints()
+		form.frame:SetPoint("BOTTOM", UIParent, "BOTTOMLEFT", x * k + (Medals.SIZE - width) / 2, top * k + Medals.GAP)
 	end
 	ns.SlabTarget.Seat()
 end
@@ -350,6 +385,8 @@ local function Listen(on, lua, forms)
 	local Events = K.Events
 	Events.UnregisterAll(OWNER)
 	K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
+	K.Callbacks.Unregister("LayoutChanged", OWNER)
+	K.Callbacks.Unregister("ModuleChanged", OWNER)
 	if not on then
 		return
 	end
@@ -357,6 +394,16 @@ local function Listen(on, lua, forms)
 	Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Trackers.Update)
 	Events.Register(OWNER, "ADDON_RESTRICTION_STATE_CHANGED", Trackers.Update)
 	K.Callbacks.Register("EffectsLevelChanged", OWNER, Trackers.Update)
+	K.Callbacks.Register("LayoutChanged", OWNER, function(_, element)
+		if element == STRIP then
+			Trackers.Update()
+		end
+	end)
+	K.Callbacks.Register("ModuleChanged", OWNER, function(_, module)
+		if module == "UnitFrames" then
+			Trackers.Update()
+		end
+	end)
 	local updating = {}
 	for _, event in ipairs(hooks.update or {}) do
 		Events.Register(OWNER, event, Trackers.Update)

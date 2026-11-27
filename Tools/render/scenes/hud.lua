@@ -761,6 +761,8 @@ end
 -- Action bars: bar 1 and bar 2 filled with the class's icons, one on cooldown, one proc, one pressed, one
 -- disabled; the stance bar when the class has forms; the pet bar when it has a pet.
 
+local STRIP_CAST = "unitframes.castbar.player"
+
 function modules.actionbars(opts)
 	local AB = dofile("Tools/regression/actionbars_env.lua")
 	local travel = rawget(_G, "RENDER_TRAVEL") or os.getenv("RENDER_TRAVEL")
@@ -992,6 +994,17 @@ function modules.actionbars(opts)
 		if crown then SetCrown(env, crown, n) end
 	end) }
 	local scene = build(env, opts, { time = env._time }, function()
+		-- The Frames tracker strip sits on the player cast bar, which the unit frames built in their own environment;
+		-- the game's one Layout registry holds both, and enabling the unit frames lays the strip again.
+		local frames = Hud.built and Hud.built.unitframes
+		local cast = frames and frames.KstyleUI.Layout.Element(STRIP_CAST)
+		if cast and not K.Layout.Element(STRIP_CAST) then
+			local Element = K.Layout.Element
+			K.Layout.Element = function(key)
+				return Element(key) or key == STRIP_CAST and cast or nil
+			end
+			K.Callbacks.Fire("ModuleChanged", "UnitFrames", true)
+		end
 		Fx.Apply(env, "actionbars", ns, notes)
 		if class == "SHAMAN" and TotemScene.Story() then TotemScene.Play(env, K, ns, AB, notes) end
 		if TrackerScene.Story(class) then TrackerScene.Play(env, K, ns, notes) end
@@ -2375,9 +2388,12 @@ function Hud.Build(opts)
 		opts.trackerAnchor = Hud.StoryTracker(opts.layout, false)
 	end
 	local scenes = {}
+	Hud.built = {}
 	for _, name in ipairs(opts.modules or Hud.Order()) do
 		scenes[#scenes + 1] = (Hud.Module(name, opts))
+		Hud.built[name] = Hud.envs[scenes[#scenes]]
 	end
+	Hud.built = nil
 	local merged = Scene.Merge(scenes, Hud.Style() ~= "Frames")
 	local class, spec = Hud.Class(opts)
 	-- The class the scene drew, for Tools/render/classes.py's manifest.

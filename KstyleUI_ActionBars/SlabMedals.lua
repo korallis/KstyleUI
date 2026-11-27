@@ -19,13 +19,13 @@ local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
 }
-local PIP, PIP_GAP, GLOW, SPARK_LAP = 16, 2, 0.35, 1.6
+local PIP, PIP_GAP, ROW_PIP, ROW_PIP_ARC, GLOW, SPARK_LAP = 16, 2, 4, 22, 0.35, 1.6
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local HELD = FLARE[1][3] + FLARE[2][3]
 local OWNER = "ActionBars.SlabMedals"
 local refreshed, rims, watchers, gates, breaths, NONE = {}, {}, {}, {}, {}, {}
 local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
-Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP, Medals.PIP, Medals.SETTING = SIZE, 16, 5, 4, PIP, SETTING
+Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP, Medals.PIP, Medals.SETTING = SIZE, 16, 10, 4, PIP, SETTING
 
 function Medals.Cell(n)
 	local pitch = SIZE + Medals.GAP
@@ -434,15 +434,16 @@ local function Lit(piece, spec, level, share)
 end
 Medals.Lit = Lit
 
-function Medals.Pips(m, lit, each, size, level, at)
-	local r = size / 2 + PIP / 2
-	local step = 2 * math.asin(math.min(1, (PIP + PIP_GAP) / (2 * r)))
+function Medals.Pips(m, lit, each, size, level, at, row)
+	local units = row and ROW_PIP or PIP
+	local r = size / 2 + (row and ROW_PIP or units / 2)
+	local step = row and rad(ROW_PIP_ARC) or 2 * math.asin(math.min(1, (PIP + PIP_GAP) / (2 * r)))
 	for n = 1, lit.container and each.pips or 0 do
 		local slot = lit.container:AddAuraSlot("pip" .. n, each.filter or "HELPFUL", each.options)
 		pcall(slot.EnableMouse, slot, false)
 		slot:SetAllPoints(m)
 		slot:SetFrameLevel(level)
-		local pip = m.add(CreateFrame("StatusBar", nil, slot), PIP)
+		local pip = m.add(CreateFrame("StatusBar", nil, slot), units)
 		local a = rad(270) + (n - (each.pips + 1) / 2) * step
 		pip:SetPoint("CENTER", m, "CENTER", at and at[n][1] or r * cos(a), at and at[n][2] or r * sin(a))
 		pip:SetStatusBarTexture((Tokens.Texture("dot")))
@@ -505,7 +506,7 @@ function Medals.Medal(parent, spec, level)
 			lit.count:SetPoint("BOTTOMRIGHT", m.steel, "CENTER", corner, -corner)
 			lit:SetApplicationCount(lit.count)
 		end
-		Medals.Pips(m, lit, each, size, level + 2)
+		Medals.Pips(m, lit, each, size, level + 2, nil, spec.row)
 		m.timer = m.timer or lit.timer
 		if each.feed == "usable" or each.feed == "item" then
 			lit:Hide()

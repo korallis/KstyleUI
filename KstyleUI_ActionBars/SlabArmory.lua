@@ -160,7 +160,7 @@ local function Light(m, look, each, level, size, top, share, form)
 				at[n] = { p[1] - each.seat[1], p[2] - each.seat[2] }
 			end
 		end
-		Medals.Pips(m, lit, each, size, level + 1, at)
+		Medals.Pips(m, lit, each, size, level + 1, at, form == "row")
 	elseif each.feed == "cooldown" or each.feed == "item" then
 		lit.timer = m.add(Medals.Timer(lit, level + 1, "orbRing", color, each.feed == "item" and 1 or 0), size + TRACK)
 		lit.timer:SetDrawSwipe(each.feed == "item")
