@@ -49,7 +49,7 @@ repos:
         always_run: true
 
       # luacheck checks the files pre-commit passes: the changed ones before a push, every one in CI.
-      # A change to .luacheckrc or the generated globals re-checks the whole tree. .luacheckrc holds the exclusions.
+      # On GitHub a change to .luacheckrc or the generated globals re-checks the whole tree. .luacheckrc holds the exclusions.
       - id: luacheck
         name: luacheck
         entry: bash Tools/hooks/luacheck.sh
