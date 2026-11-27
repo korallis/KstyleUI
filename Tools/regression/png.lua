@@ -1,4 +1,4 @@
--- png.lua: Png.Alpha(path) decodes an 8-bit RGBA, non-interlaced PNG (zlib inflate and row filters in plain Lua 5.1) and returns alpha(x, y), width, height.
+-- png.lua: Png.Alpha(path) decodes an 8-bit RGBA or RGB, non-interlaced PNG (zlib inflate and row filters in plain Lua 5.1) and returns alpha(x, y), width, height. An RGB file has no alpha: the addon's only RGB files are the aura sheets under Media/Textures/Auras, drawn with the ADD blend, where black adds nothing, so its alpha is its brightest channel.
 local Png = {}
 local floor = math.floor
 
@@ -107,23 +107,25 @@ function Png.Alpha(path)
 	local s = file:read("*a")
 	file:close()
 	assert(s:sub(1, 8) == "\137PNG\r\n\26\n", path .. " is no PNG")
-	local pos, idat, w, h = 9, {}, nil, nil
+	local pos, idat, w, h, depth = 9, {}, nil, nil, nil
 	while pos < #s do
 		local len, kind = U32(s, pos), s:sub(pos + 4, pos + 7)
 		if kind == "IHDR" then
 			w, h = U32(s, pos + 8), U32(s, pos + 12)
-			assert(s:byte(pos + 16) == 8 and s:byte(pos + 17) == 6 and s:byte(pos + 20) == 0, path .. ": png.lua reads 8-bit RGBA, non-interlaced PNGs only")
+			local color = s:byte(pos + 17)
+			assert(s:byte(pos + 16) == 8 and (color == 6 or color == 2) and s:byte(pos + 20) == 0, path .. ": png.lua reads 8-bit RGBA or RGB, non-interlaced PNGs only")
+			depth = color == 6 and 4 or 3
 		elseif kind == "IDAT" then
 			idat[#idat + 1] = s:sub(pos + 8, pos + 7 + len)
 		end
 		pos = pos + 12 + len
 	end
-	local raw, stride, rows, prev = Inflate(table.concat(idat)), w * 4, {}, {}
+	local raw, stride, rows, prev = Inflate(table.concat(idat)), w * depth, {}, {}
 	for y = 0, h - 1 do
 		local base, cur = y * (stride + 1) + 1, {}
 		local filter = raw[base]
 		for i = 1, stride do
-			local x, a, b, c = raw[base + i], cur[i - 4] or 0, prev[i] or 0, prev[i - 4] or 0
+			local x, a, b, c = raw[base + i], cur[i - depth] or 0, prev[i] or 0, prev[i - depth] or 0
 			if filter == 1 then x = x + a
 			elseif filter == 2 then x = x + b
 			elseif filter == 3 then x = x + floor((a + b) / 2)
@@ -135,6 +137,12 @@ function Png.Alpha(path)
 			cur[i] = x % 256
 		end
 		rows[y], prev = cur, cur
+	end
+	if depth == 3 then
+		return function(x, y)
+			local row = rows[y]
+			return math.max(row[x * 3 + 1], row[x * 3 + 2], row[x * 3 + 3])
+		end, w, h
 	end
 	return function(x, y) return rows[y][x * 4 + 4] end, w, h
 end

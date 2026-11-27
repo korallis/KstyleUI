@@ -1,4 +1,4 @@
--- ranged_reach.lua: Reach.Check(sizes, classes, only) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. With only set to a piece's key (crestRail), only that piece is measured, with no hawk perches, so one class's rail can be checked at a size where another of its pieces is not yet clear. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches.
+-- ranged_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture: an additive RGB aura sheet by its brightest channel, a flipbook sheet folded into one cell, a still cell through its texture coordinates; an addon file the reader cannot read stops the check) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The warlock knows every summon and Demonic Sacrifice, so its demon piece builds each demon's mark and each Sacrifice copy, and unless only is set each of those aura sheets must be among the measured textures. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Pose = dofile("Tools/regression/anim_pose.lua")
@@ -7,29 +7,13 @@ local Reach = {}
 local RING = { crestGust = true, crestClearcasting = true, crestTrance = true, crestWard = true, crestAutoShot = true, crestCooldowns = true, crestFiveSecond = true }
 local FRAMES = { "unitframes.player", "unitframes.target", "unitframes.castbar.player", "unitframes.castbar.target" }
 local ROW = { "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars" }
-local CONTENT, SAMPLES = {}, {}
-
--- Content(path) -> the share of the texture its pixels of alpha 64 or more span: left, right, top, bottom; false if none.
-local function Content(path)
-	if CONTENT[path] == nil then
-		local file = tostring(path):gsub("\\", "/"):match("Media/.+$")
-		local ok, alpha, w, h = pcall(Png.Alpha, file or "")
-		local l, r, t, b = 1, 0, 1, 0
-		for y = 0, ok and h - 1 or -1 do
-			for x = 0, w - 1 do
-				if alpha(x, y) >= 64 then
-					l, r, t, b = math.min(l, x / w), math.max(r, (x + 1) / w), math.min(t, y / h), math.max(b, (y + 1) / h)
-				end
-			end
-		end
-		CONTENT[path] = ok and r > l and { l, r, t, b } or false
-	end
-	return CONTENT[path]
-end
+local DECODED, CONTENT, SAMPLES = {}, {}, {}
+local DEMON_SHEETS = { "HornsPet", "Imp", "Voidwalker", "Succubus", "Fangs", "ImpFel", "VoidwalkerFel", "SuccubusFel", "FangsFel" }
 
 -- Spread(path, rows, columns, coords) -> how far from its cell's centre, as a share of the cell's width, the texture's pixels of alpha
 -- 64 or more reach in any direction, so a round medal measures as round however it turns. A flipbook sheet folds into one cell;
--- otherwise only the part the texture coordinates show counts.
+-- otherwise only the part the texture coordinates show counts. False for a texture that is not one of the addon's own files; an
+-- addon file the reader cannot read stops the check.
 local SPREAD = {}
 local function Spread(path, rows, columns, coords)
 	local u0, u1, v0, v1 = 0, 1, 0, 1
@@ -40,9 +24,10 @@ local function Spread(path, rows, columns, coords)
 	local key = table.concat({ tostring(path), rows, columns, u0, u1, v0, v1 }, "/")
 	if SPREAD[key] == nil then
 		local file = tostring(path):gsub("\\", "/"):match("Media/.+$")
-		local ok, alpha, w, h = pcall(Png.Alpha, file or "")
 		local most = 0
-		if ok then
+		if file then
+			DECODED[file] = DECODED[file] or { Png.Alpha(file) }
+			local alpha, w, h = DECODED[file][1], DECODED[file][2], DECODED[file][3]
 			local x0, x1, y0, y1 = math.floor(u0 * w), math.ceil(u1 * w) - 1, math.floor(v0 * h), math.ceil(v1 * h) - 1
 			local cw, ch = (x1 - x0 + 1) / columns, (y1 - y0 + 1) / rows
 			for y = y0, y1 do
@@ -69,6 +54,66 @@ local function Cells(region)
 		end
 	end
 	return 1, 1
+end
+
+-- Window(region) -> the texture coordinates at the region's left, right, top and bottom edges (reversed for a flipped texture), or
+-- nil when they turn the texture, reach past it or show a single texel row or column, where the whole region counts as drawn.
+local function Window(region)
+	local c = region._state.TexCoord
+	if not c or (c.n or #c) < 4 then return 0, 1, 0, 1 end
+	local l, r, t, b = c[1], c[2], c[3], c[4]
+	if (c.n or #c) >= 8 then
+		if c[1] ~= c[3] or c[5] ~= c[7] or c[2] ~= c[6] or c[4] ~= c[8] then return nil end
+		l, r, t, b = c[1], c[5], c[2], c[4]
+	end
+	for _, v in ipairs({ l, r, t, b }) do
+		if type(v) ~= "number" or v < 0 or v > 1 then return nil end
+	end
+	if l == r or t == b then return nil end
+	return l, r, t, b
+end
+
+-- Content(region) -> the share of the region its texture's pixels of alpha 64 or more span: left, right, top, bottom; false if none
+-- or if the texture is not one of the addon's own files. A flipbook sheet folds into one cell, since the region shows one cell at a
+-- time; otherwise only the part the texture coordinates show counts, mirrored as they mirror it. An addon file the reader cannot
+-- read stops the check, so a piece is never passed unmeasured.
+local function Content(region)
+	local texture = region._state.Texture
+	local file = texture and tostring(texture[1]):gsub("\\", "/"):match("Media/.+$")
+	if not file then return false end
+	local rows, columns = Cells(region)
+	local ul, ur, vt, vb = 0, 1, 0, 1
+	if rows == 1 and columns == 1 then
+		ul, ur, vt, vb = Window(region)
+		if not ul then return { 0, 1, 0, 1 } end
+	end
+	local key = table.concat({ file, rows, columns, ul, ur, vt, vb }, "/")
+	if CONTENT[key] == nil then
+		DECODED[file] = DECODED[file] or { Png.Alpha(file) }
+		local alpha, w, h = DECODED[file][1], DECODED[file][2], DECODED[file][3]
+		local x0, x1 = math.floor(math.min(ul, ur) * w), math.ceil(math.max(ul, ur) * w) - 1
+		local y0, y1 = math.floor(math.min(vt, vb) * h), math.ceil(math.max(vt, vb) * h) - 1
+		local cw, ch = (x1 - x0 + 1) / columns, (y1 - y0 + 1) / rows
+		local l, r, t, b = 1, 0, 1, 0
+		for y = y0, y1 do
+			for x = x0, x1 do
+				if alpha(x, y) >= 64 then
+					local sx, ex, sy, ey
+					if columns > 1 or rows > 1 then
+						sx, sy = ((x - x0) % cw) / cw, ((y - y0) % ch) / ch
+						ex, ey = sx + 1 / cw, sy + 1 / ch
+					else
+						sx, ex = (x / w - ul) / (ur - ul), ((x + 1) / w - ul) / (ur - ul)
+						sy, ey = (y / h - vt) / (vb - vt), ((y + 1) / h - vt) / (vb - vt)
+					end
+					l, r = math.min(l, sx, ex), math.max(r, sx, ex)
+					t, b = math.min(t, sy, ey), math.max(b, sy, ey)
+				end
+			end
+		end
+		CONTENT[key] = r > l and { l, r, t, b } or false
+	end
+	return CONTENT[key]
 end
 
 -- Samples(group) -> the group's offset, turn and scale at each sampled time of its pass (anim_pose.lua), worked out once per group and check.
@@ -140,15 +185,16 @@ local function Textures(frame, list)
 end
 
 -- Each class's widest rail: four seats, the trinket and a full second rail of six, with the racials standing in for a
--- character's one or two so every class fills it.
+-- character's one or two so every class fills it. The warlock also knows every summon and Demonic Sacrifice, so the demon
+-- piece builds each demon's mark and each Sacrifice copy (SlabRanged.lua's Pet).
 local WIDEST = {
 	HUNTER = { 1293241, 19574, 3045, 19577, 14305, 19263, 20572, 20554, 20594, 1259799, 20600, 1260270, 13795, 24579, 14916, 19801 },
 	MAGE = { 12042, 12043, 12051, 11129, 11958, 12472, 2136, 20572, 20554, 1260270 },
-	WARLOCK = { 6789, 1122, 18288, 18708, 6353, 20572, 20554, 1259821, 1299026, 7744, 1260270 },
+	WARLOCK = { 6789, 1122, 18288, 18708, 6353, 20572, 20554, 1259821, 1299026, 7744, 1260270, 688, 697, 712, 691, 18788 },
 }
 local SPARES = 6
 
-function Reach.Check(sizes, classes, only)
+function Reach.Check(sizes, classes)
 	local original, measured = dofile, nil
 	_G.dofile = function(path)
 		local result = original(path)
@@ -215,17 +261,15 @@ function Reach.Check(sizes, classes, only)
 			for _, box in ipairs(frames) do avoid[#avoid + 1] = box end
 			for _, box in ipairs(rail) do railed[#railed + 1] = box end
 			assert(#avoid > 16, at .. " " .. class .. ": the action slots, badge, unit frames and cast bars are placed")
-			local checked = 0
+			local checked, demons = 0, {}
 			local pieces = {}
 			for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-				if not only or p.spec.key == only then
-					pieces[#pieces + 1] = { key = p.spec.key, regions = RING[p.spec.key] and {} or Textures(p, {}) }
-				end
+				pieces[#pieces + 1] = { key = p.spec.key, regions = RING[p.spec.key] and {} or Textures(p, {}) }
 			end
-			for i, p in ipairs(not low and not only and ns.SlabHawks and ns.SlabHawks.state.perches or {}) do
+			for i, p in ipairs(not low and ns.SlabHawks and ns.SlabHawks.state.perches or {}) do
 				pieces[#pieces + 1] = { key = "hawk perch " .. i, regions = Textures(p.holder, {}) }
 			end
-			assert(class ~= "HUNTER" or low or only or #pieces > 2 and pieces[#pieces].key == "hawk perch 2", at .. ": the hunter's hawk perches are measured")
+			assert(class ~= "HUNTER" or low or #pieces > 2 and pieces[#pieces].key == "hawk perch 2", at .. ": the hunter's hawk perches are measured")
 			local seated = ns.SlabTrackers.state.forms.crest.pieces
 			local railPiece
 			for _, p in pairs(seated) do railPiece = p.spec.key == "crestRail" and p or railPiece end
@@ -241,9 +285,10 @@ function Reach.Check(sizes, classes, only)
 			for _, p in ipairs(pieces) do
 				for _, region in ipairs(p.regions) do
 					local texture = (region._barOwner and region or region)._state.Texture
-					local box, content = solver:rect(region._barOwner or region), texture and Content(texture[1])
+					local box, content = solver:rect(region._barOwner or region), texture and Content(region)
 					if box and content and not flying[region] then
 						checked = checked + 1
+						if p.key == "crestDemon" then demons[tostring(texture[1]):gsub("\\", "/"):match("Auras/Glyphs/(.+)%.png$") or ""] = true end
 						local w, h = box[3] - box[1], box[4] - box[2]
 						local name = at .. " " .. class .. " " .. p.key .. "'s " .. tostring(texture[1]):match("[^\\/]+$")
 						local own = p.key == "crestRail" and railed or avoid
@@ -257,7 +302,10 @@ function Reach.Check(sizes, classes, only)
 					end
 				end
 			end
-			assert(checked > ((low or only) and 10 or 20), at .. " " .. class .. ": the lit pieces are measured (" .. checked .. ")")
+			assert(checked > (low and 10 or 20), at .. " " .. class .. ": the lit pieces are measured (" .. checked .. ")")
+			for _, sheet in ipairs(class == "WARLOCK" and DEMON_SHEETS or {}) do
+				assert(demons[sheet], at .. " WARLOCK: the demon piece's " .. sheet .. " aura sheet is measured")
+			end
 			local medals, fliers, faces, landing = {}, 0, {}, 1
 			for _, seat in ipairs(railPiece.order) do
 				for _, sample in ipairs(seat.rise and Samples(seat.rise) or {}) do landing = math.max(landing, sample[5]) end
