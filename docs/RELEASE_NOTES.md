@@ -1,6 +1,6 @@
 # KstyleUI release notes
 
-The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The release workflow hands the packager the tagged version's section of that file, so CurseForge, Wago and the GitHub release each show that version's notes; the zip carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes, and after `bash scripts/gate.sh release` passes on the commit to be tagged.
+The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The release workflow hands the packager the tagged version's section of that file, so CurseForge, Wago and the GitHub release each show that version's notes; the zip carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes, and after the `nightly` workflow, started by hand on `main`, passes on the commit to be tagged. `bash scripts/gate.sh release` on that commit stands in only when GitHub cannot run `nightly` ([`DEVELOPING.md`](DEVELOPING.md), Releases and testing).
 
 ## 0.3.5.2: the HUD keeps its size with any bar shape (2026-11-27)
 
