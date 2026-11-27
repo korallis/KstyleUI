@@ -231,7 +231,9 @@ function Medals.Prepare(piece)
 		local each = piece.later[i]
 		if Ready(each[1]) then
 			table.remove(piece.later, i)
+			Medals.twin = piece.twin
 			each[2]()
+			Medals.twin = nil
 			piece.sized = nil
 		end
 	end
@@ -592,6 +594,7 @@ function Medals.Twins(piece, build)
 			end
 		end
 		Bare(twin, twin, keep)
+		twin.twin = true
 		faces[i + 1] = twin
 	end
 	piece.twins = { faces[2], faces[3] }
@@ -1153,9 +1156,11 @@ end
 local function Wanted(button, mode, awake)
 	local flare, flicker = button.flare, button.flicker
 	local gate = flare and (flare.gate or button.hold and button.hold.face and button.hold)
+	local assigned = { flare and (mode == true and Medals.Arbitrate(flare.play, true, gate) or mode == "calm" and Hold(flare) and Medals.Arbitrate(flare.still, true, gate)) or nil }
+	assigned[#assigned + 1] = mode == true and button.cue or nil
 	return {
 		AuraShown = mode == true and Shown(button, awake) or NONE,
-		AuraAssigned = { flare and (mode == true and Medals.Arbitrate(flare.play, true, gate) or mode == "calm" and Hold(flare) and Medals.Arbitrate(flare.still, true, gate)) or nil },
+		AuraAssigned = assigned,
 		PandemicActive = { flicker and (mode == true and flicker or mode == "calm" and ns.Slab.Still(flicker)) or nil },
 	}
 end

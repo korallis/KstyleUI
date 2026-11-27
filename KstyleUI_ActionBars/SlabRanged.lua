@@ -131,7 +131,8 @@ local function Light(p, each, level, look)
 		lit.art, cast, _, _, aura = Medals.Mark(p, light, art, size, each.color, r, g, b, level + 2, lights)
 		lit.art:SetDesaturated(not aura)
 		if lights and lights.flame:GetParent().container then
-			lights.flame:GetParent().loops = { Bloom(lights.flame, 1.2).play, look.loop and Medals.Steps(lights.flame, look.loop, true) or nil }
+			local copy = lights.flame:GetParent()
+			copy.cue, copy.loops = Bloom(lights.flame, 1.2).play, { look.loop and Medals.Steps(lights.flame, look.loop, true) or nil }
 		end
 	end
 	if lit.container then
@@ -271,7 +272,7 @@ local function Fuse(parent, spec, level, form)
 				lit.mark = Medals.Mark(p, host, each.glyph, size, each.color, r, g, b, nil, lights)
 				if lights and lights.flame:GetParent().container then
 					local copy = lights.flame:GetParent()
-					copy.loops, copy.flicker = { Bloom(lights.flame, 1.5).play }, ns.Slab.Flicker(lights.flame)
+					copy.cue, copy.flicker = Bloom(lights.flame, 1.5).play, ns.Slab.Flicker(lights.flame)
 				end
 			end)
 		else

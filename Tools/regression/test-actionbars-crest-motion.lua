@@ -553,7 +553,8 @@ end
 
 -- An aura mark a slot feeds burns its fire and its still on two gated copies of that slot (the aura kit's motion rule, KSTY-51 plan): the caster's perches,
 -- fuse heads, stack embers, spire feet and sacrificed demons, the cooldown sigils and the hunter's gust. Under hidden values the engine keeps every binding, so the
--- fire's loop stays bound at each level and only the layers choose: a level chosen during the pull shows at once, Full first chosen there included.
+-- fire's loop stays bound at each level and only the layers choose: a level chosen during the pull shows at once, from a restriction begun at Calm, Off or rest,
+-- and the loop stops when its aura clears or its piece is switched off.
 local function Unknown(...)
 	local set = {}
 	for _, list in ipairs({ ... }) do
@@ -562,22 +563,24 @@ local function Unknown(...)
 	return set
 end
 -- Each build seats one choice per seat: a mage who conjures no gem wears the Intellect perch, one without the Scorch talents stacks Winter's Chill embers, and a
--- warlock who makes no healthstone wears the armor perch.
+-- warlock who makes no healthstone wears the armor perch. The counts are the fires each fed seat shows: one head or perch, a fire per curse (five), per Torment
+-- foot (four) and per stack ember (five, the spec's stacks); one sacrificed demon, the Imp's buff fed alone; one gust; and a sigil per family with an aura
+-- sheet, the class's own plus the shared racials and consumables that the fixture's spellbook knows.
 for _, build in ipairs({
-	{ "MAGE", { "crestYourSpell", "crestCooldowns" } },
-	{ "MAGE", { "crestSchool", "crestManaGem" }, Unknown({ 10054, 10053, 3552, 759 }, { 11095, 12872, 12873 }) },
-	{ "WARLOCK", { "crestTorments", "crestCurse", "crestDemon", "crestCooldowns" } },
-	{ "WARLOCK", { "crestHealthstone" }, Unknown({ 11730, 11729, 5699, 6202, 6201 }) },
-	{ "HUNTER", { "crestGust", "crestCooldowns" } },
+	{ "MAGE", { crestYourSpell = 1, crestCooldowns = 15 } },
+	{ "MAGE", { crestSchool = 5, crestManaGem = 1 }, Unknown({ 10054, 10053, 3552, 759 }, { 11095, 12872, 12873 }) },
+	{ "WARLOCK", { crestTorments = 4, crestCurse = 5, crestDemon = 1, crestCooldowns = 14 } },
+	{ "WARLOCK", { crestHealthstone = 1 }, Unknown({ 11730, 11729, 5699, 6202, 6201 }) },
+	{ "HUNTER", { crestGust = 1, crestCooldowns = 10 } },
 }) do
 	local class, want = build[1], build[2]
 	local env, K, ns = New(class, build[3])
 	K.Options.Write("Medallions", "restingCrest", false)
 	env.RunTimers()
-	local lits, auras, gated = {}, {}, {}
+	local lits, auras = {}, {}
 	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
 		for _, lit in ipairs(piece.lits) do
-			if lit.lights and lit:GetParent():IsVisible() then
+			if want[piece.spec.key] and lit.lights and lit:GetParent():IsVisible() then
 				local spec = lit.spec
 				local unit, harmful = spec.unit or "player", (spec.filter or "HELPFUL"):find("HARMFUL", 1, true) ~= nil
 				auras[unit] = auras[unit] or {}
@@ -585,25 +588,22 @@ for _, build in ipairs({
 					table.insert(auras[unit], { id = family.spells[1], count = 3, start = 0, duration = 30, harmful = harmful, mine = true })
 				end
 				lits[#lits + 1] = { lit = lit, key = piece.spec.key, what = class .. " " .. piece.spec.key .. " " .. spec.spells[1] }
-				gated[piece.spec.key] = true
 			end
 		end
 	end
-	for _, key in ipairs(want) do
-		assert(gated[key], class .. ": " .. key .. " burns its aura on gated copies")
+	local function Feed(on)
+		for unit, list in pairs(auras) do
+			Slots.Set(env, unit, on and list or {})
+		end
 	end
-	Motion(env, K, "calm")
-	for unit, list in pairs(auras) do
-		Slots.Set(env, unit, list)
-	end
-	local fires, seen = {}, {}
-	local burning = {}
+	Feed(true)
+	local fires, seen, burning = {}, {}, {}
 	local function Find(frame, each)
 		for _, region in ipairs(frame._regions or {}) do
 			if region.loop and region.still and not seen[region] then
 				seen[region] = true
 				fires[#fires + 1] = { fire = region, what = each.what }
-				burning[each.key] = true
+				burning[each.key] = (burning[each.key] or 0) + 1
 			end
 		end
 		for _, kid in ipairs(frame._kids or {}) do
@@ -620,8 +620,8 @@ for _, build in ipairs({
 			end
 		end
 	end
-	for _, key in ipairs(want) do
-		assert(burning[key], class .. ": " .. key .. "'s fire is found on its flame copy")
+	for key, count in pairs(want) do
+		assert(burning[key] == count, class .. ": " .. key .. " burns " .. count .. " fires on its flame copies (" .. tostring(burning[key]) .. ")")
 	end
 	local function Shows(region)
 		return region:IsVisible() and region:GetEffectiveAlpha() > 0
@@ -634,18 +634,56 @@ for _, build in ipairs({
 		end
 		env._engine = nil
 	end
-	env.SetCombat(true)
-	env._aurasSecret = true
-	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
-	for _, step in ipairs({ { "full", true }, { "calm", false }, { "off", false }, { "full", true } }) do
-		Motion(env, K, step[1])
-		Check(step[1], step[2])
+	local function Restrict(on)
+		env._aurasSecret = on
+		env.SetCombat(on)
+		env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+		env.RunTimers()
+	end
+	for _, start in ipairs({ "calm", "off", "rest" }) do
+		if start == "rest" then
+			K.Options.Write("Medallions", "restingCrest", true)
+			env.SetTarget(false)
+			env.RunTimers()
+		else
+			Motion(env, K, start)
+		end
+		Check("the " .. start .. " start", false)
+		-- The pull begins: auras go secret and combat wakes a resting crest; Full is then chosen while they stay secret.
+		Restrict(true)
+		Motion(env, K, "full")
+		Check("full from " .. start, true)
+		for _, step in ipairs({ { "calm", false }, { "off", false }, { "full", true } }) do
+			Motion(env, K, step[1])
+			Check(step[1] .. " from " .. start, step[2])
+		end
+		assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+		if start == "rest" then
+			-- Every aura clears in the pull: each loop stops with its slot.
+			Feed(false)
+			env._engine = true
+			for _, f in ipairs(fires) do
+				assert(not f.fire.loop:IsPlaying() and not Shows(f.fire), f.what .. ": its aura cleared under hidden values, the fire's loop stops")
+			end
+			env._engine = nil
+			Feed(true)
+		end
+		Restrict(false)
+		if start == "rest" then
+			K.Options.Write("Medallions", "restingCrest", false)
+			env.SetTarget(true)
+			env.RunTimers()
+		end
+	end
+	-- Each piece switched off after the pull takes its loops with it.
+	for key in pairs(want) do
+		K.Options.Write("ActionBars", key, false)
+	end
+	env.RunTimers()
+	for _, f in ipairs(fires) do
+		assert(not f.fire.loop:IsPlaying() and not Shows(f.fire), f.what .. ": its piece switched off, the fire's loop stops")
 	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
-	env._aurasSecret = false
-	env.SetCombat(false)
-	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
-	env.RunTimers()
 end
 
 -- A cue that began while its layer was dark took no flare place, so a level change may not bring it on screen half played beside the flare that holds the place: its

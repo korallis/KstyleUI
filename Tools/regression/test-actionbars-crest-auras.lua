@@ -182,8 +182,7 @@ end
 
 -- A cooldown sigil burns on two copies of its slot, so a motion level changed under hidden values still applies at once (the owner's rule in
 -- test-actionbars-crest-motion.lua): the fire on a copy whose layer is dark unless the crest is awake at Full, the still on one dark only then.
--- The fire's copy keeps its loop bound at every level, so a level first chosen under hidden values finds it ready (review of 071e48df,
--- restricted-entry-without-full-binding).
+-- The fire's copy keeps its loop bound at every level, so a level first chosen under hidden values finds it ready.
 do
 	-- The plan loads a sheet only once its spell is known: the rim is built and bound at Full before Rapid Fire is learned.
 	env.C_SpellBook.IsSpellKnown = function() return false end

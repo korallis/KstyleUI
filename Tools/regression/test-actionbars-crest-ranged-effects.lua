@@ -292,6 +292,12 @@ do
 	assert(lit:IsShown() and lit.mark.loop and Art(lit.mark) == (K.Tokens.Texture("auraGlyphPolyCurl")) and socket, "Polymorph's head burns the sheep's aura over the empty socket")
 	assert(lit.mark:GetParent():GetParent() == lit.lights.flame and lit.mark.still:GetParent():GetParent() == lit.lights.calm,
 		"the head's fire and still burn on the fuse slot's two gated copies, so a motion level chosen under hidden values swaps them at once")
+	-- A fresh Polymorph replacing the last one while the fuse stays lit blooms the head again, as the assigned flare always did.
+	local copy = lit.mark:GetParent():GetParent()
+	local cue = copy.cue or {}
+	if copy.cue then cue:Stop() end
+	Slots.Set(env, "target", { { id = 12826, harmful = true, start = 0, duration = 50 } })
+	assert(copy:IsShown() and copy.cue and cue:IsPlaying(), "a Polymorph replaced without the fuse hiding blooms the head's burning sheep again")
 	local arcane = Piece(ns, "crestCooldowns").sigils[1]
 	local fire
 	for _, region in ipairs(arcane.flame._regions) do
@@ -337,6 +343,16 @@ do
 	Slots.Set(env, "target", { { id = 348, harmful = true, start = 0, duration = 15 } })
 	local rune = spires.spires[3].rune
 	assert(rune:IsVisible() and rune.loop:IsPlaying(), "the learned Immolate lights its spire and burns its foot's sheet")
+	-- The Torments have twin faces for instant motion; a foot learned after they were built still burns once, on the face that shows.
+	local burning = 0
+	local function Count(frame)
+		for _, region in ipairs(frame._regions or {}) do
+			if region.loop and Art(region) == Art(rune) and region:IsVisible() then burning = burning + 1 end
+		end
+		for _, kid in ipairs(frame._kids or {}) do Count(kid) end
+	end
+	for _, face in ipairs({ spires, unpack(spires.twins or {}) }) do Count(face) end
+	assert(spires.twins and burning == 1, "the learned Immolate's foot burns once across the Torments and their twins (" .. burning .. ")")
 	env._petSpells[3716] = true
 	env.FireEvent("UNIT_PET", "player")
 	assert(demon.marks.glyphVoidwalker:IsVisible() and demon.marks.glyphVoidwalker.fire.loop:IsPlaying(), "the learned Voidwalker, summoned, burns its own green sheet on the pet's sigil")
