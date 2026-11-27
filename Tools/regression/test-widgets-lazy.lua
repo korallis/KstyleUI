@@ -301,10 +301,6 @@ do
 	-- so together they take the hunter's limit from 5,168 to 5,222. The rail then came to the mage and the warlock, and every
 	-- class's rail gained a second rail of smaller medals for the long cooldowns past the four seats and the racial (27
 	-- regions on the lit hunter).
-	-- Each hunter mark that burns an aura sheet in a coin (KstyleUI_ActionBars/SlabMedals.lua's Medals.Mark) keeps a burning and a still
-	-- frame of the sheet over a dark socket, one region more than the old sheen over its solid body (40 marks across the crest and its
-	-- copies). The arrows' burning figures add six regions and drop a pip and seven glows, the rail's seats drawn from the shared sheets
-	-- add three, and the shot faces built only when they first come up save four, which takes the hunter's limit to 5,259.
 	-- The potion sigil every class's rail carries burns as an aura (a fire, a still and its figure drawn black beneath, in
 	-- place of one flat texture): 2 more for each class, and the druid's Dash sigil does the same on each of its form rails: 12.
 	-- The mage's and warlock's marks, cooldown sigils and soul wisps burn as auras the same way, as the captain asked: a fire and a
@@ -316,6 +312,9 @@ do
 	-- the tracking mark's still glyphs (4 each), the range ring and the pet's focus bar, less the forged bodies the tracking mark gave up.
 	-- Tranquilizing Shot's glyph on the lower left foot is part of that total.
 	-- With the crest rail and its second rail on top of those auras and homes, the lit hunter comes to 5,377, the mage to 5,024 and the warlock, with Soulstone and Ritual of Doom on its second rail, to 5,254.
+	-- The hunter's marks then burn as auras through the same kit (KstyleUI_ActionBars/SlabMedals.lua's Medals.Mark): a fire and a still
+	-- on the kit's motion copies in place of each forged sheen, a sheet drawn only once its spell is known and its seat shown, and the
+	-- ready shot's faces built only when they first come up. That takes the hunter from 5,377 to the measured HUNTERN.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
 	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5377, MAGE = 5024, WARLOCK = 5254 }) do

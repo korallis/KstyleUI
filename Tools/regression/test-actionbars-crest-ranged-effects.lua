@@ -83,6 +83,16 @@ local function Drawn(frame, file, add)
 	end
 end
 
+-- Host(frame, file) -> the frame under frame whose own regions draw file unblended: a burning mark's socket and halo sit on the
+-- mark's layer, while its fire and still burn on the aura slot's two copies.
+local function Host(frame, file)
+	if Drawn(frame, file, false) then return frame end
+	for _, kid in ipairs(frame._kids or {}) do
+		local found = Host(kid, file)
+		if found then return found end
+	end
+end
+
 -- Same(what, { r, g, b }, er, eg, eb): the expected colour last.
 local function Same(what, rgb, er, eg, eb)
 	assert(math.abs(rgb[1] - er) < 1e-4 and math.abs(rgb[2] - eg) < 1e-4 and math.abs(rgb[3] - eb) < 1e-4, what .. ": " .. table.concat(rgb, ", "))
@@ -122,7 +132,7 @@ local function Pandemic(env, unit, aura)
 end
 
 do
-	local env, K, ns = New("HUNTER", { known = { 13165, 13163, 5118, 13159, 20043, 13161, 415423, 1978, 3034, 3043, 19386, 24118, 3674, 1130, 883, 2643 }, pet = { max = 100, missing = 40, mood = 3 } })
+	local env, K, ns = New("HUNTER", { known = { 13165, 13163, 5118, 13159, 20043, 13161, 415423, 1978, 3034, 3043, 19386, 24118, 3674, 13795, 1130, 883, 2643 }, pet = { max = 100, missing = 40, mood = 3 } })
 	local aspect, sting, mark, pet, shot = Piece(ns, "crestAspect"), Piece(ns, "crestSting"), Piece(ns, "crestMark"), Piece(ns, "crestPet"), Piece(ns, "crestShot")
 	assert(#aspect.lits == 7 and Kinds(aspect) == 7, "each Aspect lights its own sigil: hawk, crescents, paw, pack, leaf, claws, coil")
 	assert(#sting.lits == 7 and Kinds(sting, "mark") == 7, "each Sting, Lacerate, Black Arrow and Immolation Trap's burn carries its own mark at the fuse's head")
@@ -132,21 +142,22 @@ do
 	Slots.Set(env, "target", { serpent })
 	local lit = sting.lits[1]
 	assert(lit:IsShown() and not sting.lits[3]:IsShown() and lit._durationBar[1] == lit.art and lit.art:GetOrientation() == "VERTICAL", "Serpent Sting's fuse is a duration bar burning down the band")
-	assert(Shown(lit, lit.flare.play) and Shown(lit, lit.loop), "the fuse's mark ignites and its head flickers as the engine's animations")
+	local copy = lit.mark:GetParent():GetParent()
+	assert(copy == lit.lights.flame and Shown(copy, copy.flare.play) and Shown(lit, lit.loop), "the fuse's mark ignites on its burning copy and its head flickers as the engine's animations")
 	assert(Aura(lit.mark, "Glyphs\\Serpent"), "the serpent burns as its own aura, its colour baked from Serpent Sting's green rather than tinted")
 	local burn, seat = lit.head._kids[1], lit.head._kids[2]
 	assert(#lit._regions + #lit.head._regions == 0 and #burn._regions == 1 and #burn._kids == 0, "the head's flicker holds the flame alone")
 	-- A Sting's mark cannot be read at 16 units over the ring's runes, so it draws at 24 units,
 	-- moved 14 units in from the fuse onto a dark shade, steady while the flame flickers; at that size the gold rule applies.
-	local whole = lit.mark:GetParent()
+	local whole = Host(lit.head, "Socket.png")
 	local body = Drawn(whole, "Socket.png", false)
 	assert(body.units == 24 and select(4, seat:GetPoint(1)) == -14 and whole:GetParent() == seat, "Serpent Sting's mark is 24 units, 14 in from the fuse's head")
 	Same("its socket is gold, coinGold f0c75e", { body:GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
 	Same("its halo is the Sting's colour, schoolNature 6fdc5a", { Drawn(whole, "Glow.png", true):GetVertexColor() }, 0x6f / 255, 0xdc / 255, 0x5a / 255)
 	assert(#seat._regions == 2 and Drawn(seat, "Glow.png", false) and not Drawn(seat, "Glow.png", true), "its socket stands on a soft dark shade, not a lit halo")
-	assert(lit.mark.units == 24 and lit.flare.play:GetParent() == whole, "the aura fills the socket and the ignition grows the whole mark")
-	Same("Wyvern Sting's halo is schoolFire ff8a3d, apart from Black Arrow's violet", { Drawn(sting.lits[4].mark:GetParent(), "Glow.png", true):GetVertexColor() }, 0xff / 255, 0x8a / 255, 0x3d / 255)
-	Same("Black Arrow's halo is schoolShadow 9d7bff", { Drawn(sting.lits[6].mark:GetParent(), "Glow.png", true):GetVertexColor() }, 0x9d / 255, 0x7b / 255, 0xff / 255)
+	assert(lit.mark.units == 24 and copy.flare.play:GetParent() == lit.mark:GetParent(), "the aura fills the socket and the ignition grows the whole burning mark")
+	Same("Wyvern Sting's halo is schoolFire ff8a3d, apart from Black Arrow's violet", { Drawn(Host(sting.lits[4].head, "Socket.png"), "Glow.png", true):GetVertexColor() }, 0xff / 255, 0x8a / 255, 0x3d / 255)
+	Same("Black Arrow's halo is schoolShadow 9d7bff", { Drawn(Host(sting.lits[6].head, "Socket.png"), "Glow.png", true):GetVertexColor() }, 0x9d / 255, 0x7b / 255, 0xff / 255)
 	assert(aspect.rest:GetAlpha() == 0.85, "an unlit forged Aspect rests at 0.85 so its outline shows on the ring")
 	-- The unlit mark never hides, so a lit Aspect other than the Hawk blacks it out; the backing must hold still while the figure breathes and blooms.
 	local function Backing(slot)
@@ -166,10 +177,10 @@ do
 	-- The captain's answer on the plan: a lit mark is a gold body with the spell's colour as a halo behind it (24 units and above).
 	Slots.Set(env, "player", { { id = 415423, start = 0 } })
 	local viper = aspect.lits[7]
-	local cast = viper.art:GetParent()
+	local cast, burning = Host(viper, "Socket.png"), viper.art:GetParent():GetParent()
 	Same("Aspect of the Viper's socket is gold, coinGold f0c75e", { Drawn(cast, "Socket.png", false):GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
 	Same("its halo is the spell's colour, magic 5aa9ff", { Drawn(cast, "Glow.png", true):GetVertexColor() }, 0x5a / 255, 0xa9 / 255, 0xff / 255)
-	assert(viper:IsShown() and Aura(viper.art, "Glyphs\\Viper") and viper.flare.play:GetParent() == cast, "the lit pass is the coil's aura in its socket and the landing grows the whole mark")
+	assert(viper:IsShown() and Aura(viper.art, "Glyphs\\Viper") and burning.flare.play:GetParent() == viper.art:GetParent(), "the lit pass is the coil's aura in its socket and the landing grows the whole burning mark")
 	Slots.Set(env, "player", nil)
 	assert(lit._pandemicAnimations[1] == lit.flicker and not lit.flicker:IsPlaying(), "the ending blink waits for the pandemic window")
 	Pandemic(env, "target", serpent)
@@ -186,7 +197,8 @@ do
 	local mend = pet.lits[#pet.lits]
 	assert(mend.loops[1]:GetParent():GetAlpha() > 0, "Mend Pet's motes show with no animation running")
 	for _, each in ipairs(aspect.lits) do
-		assert(#each._regions == 0 and not each.awake and Shown(each, each.flare.play), "each Aspect's sigil blooms itself as it lands, with no extra glow or flare")
+		local burning = each.art:GetParent():GetParent()
+		assert(#each._regions == 0 and not each.awake and Shown(burning, burning.flare.play), "each Aspect's sigil blooms itself on its burning copy as it lands, with no extra glow or flare")
 	end
 	K.Options.Write("ActionBars", "crestSting", false)
 	assert(not sting:IsShown() and mark.lit:IsShown(), "Your Sting off puts the fuse out alone")
@@ -313,7 +325,11 @@ do
 	K.Options.Write("ActionBars", "crestRail", false)
 	local volley = Piece(ns, "crestCooldowns").sigils[1]
 	Same("Rapid Fire's sigil stands in black under its light", { Drawn(volley, "Sigils\\Volley.png", false):GetVertexColor() }, 0, 0, 0)
-	assert(volley.fire and Aura(volley.fire, "Sigils\\Volley") and Aura(volley.fire.still, "Sigils\\Volley"), "and burns as its aura")
+	local fire
+	for _, region in ipairs(volley.flame._regions or {}) do
+		fire = fire or region.loop and region
+	end
+	assert(fire and Aura(fire, "Sigils\\Volley") and Aura(fire.still, "Sigils\\Volley"), "and burns as its aura on the sigil's burning copy")
 	Clean(env, K)
 end
 
