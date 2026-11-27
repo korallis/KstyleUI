@@ -116,7 +116,7 @@ local function Light(p, each, level, look)
 	local lit = Medals.Lit(p, each, level)
 	local hold = lit.container and lit or Medals.Layer(lit, level)
 	local light = Medals.Layer(look.bar and lit or hold, level + 2)
-	local cast
+	local cast, gated
 	if look.bar then
 		lit.art = p.add(Bar(light, art, "white", not look.solid and "ADD" or nil), size)
 		lit.art:GetStatusBarTexture():SetDesaturated(not look.native)
@@ -132,12 +132,13 @@ local function Light(p, each, level, look)
 		lit.art:SetDesaturated(not aura)
 		if lights and lights.flame:GetParent().container then
 			local copy = lights.flame:GetParent()
-			copy.cue, copy.loops = Bloom(lights.flame, 1.2).play, { look.loop and Medals.Steps(lights.flame, look.loop, true) or nil }
+			copy.flare, copy.loops, gated = Bloom(lights.flame, 1.2), { look.loop and Medals.Steps(lights.flame, look.loop, true) or nil }, true
+			copy.flare.gate = lit.flames
 		end
 	end
 	if lit.container then
 		lit.loop = Medals.Steps(light, look.loop, true)
-		lit.flare = Bloom(cast or lit.art, 1.2)
+		lit.flare = not gated and Bloom(cast or lit.art, 1.2) or nil
 		return
 	end
 	lit.glow = p.add(Medals.Texture(hold, "BACKGROUND", 1, "glow", each.color, p.units * 1.6, "ADD"))
@@ -266,13 +267,14 @@ local function Fuse(parent, spec, level, form)
 		local above = level + (seat == burn and 3 or 4)
 		if select(5, Tokens.Texture(each.glyph)) then
 			local host = Medals.Layer(seat, above)
-			lit.flare = Bloom(host, 1.5)
+			lit.flare = not lit.container and Bloom(host, 1.5) or nil
 			Medals.Later(p, each == spec and spec.known or rawget(each, "known") or each.spells, function()
 				local lights = lit.container and Medals.Lights(p, lit, above + 1, host) or nil
 				lit.mark = Medals.Mark(p, host, each.glyph, size, each.color, r, g, b, nil, lights)
 				if lights and lights.flame:GetParent().container then
 					local copy = lights.flame:GetParent()
-					copy.cue, copy.flicker = Bloom(lights.flame, 1.5).play, ns.Slab.Flicker(lights.flame)
+					copy.flare, copy.flicker = Bloom(lights.flame, 1.5), ns.Slab.Flicker(lights.flame)
+					copy.flare.gate = lit.flames
 				end
 			end)
 		else

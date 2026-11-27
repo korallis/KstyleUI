@@ -784,6 +784,55 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- A caster's fed mark blooms on its flame copy through the same flare place: Polymorph's fuse head and Counterspell's ready cue stop each other, and a bloom
+-- begun while its copy was dark keeps that copy dark after a switch to Full for the rest of its time, while the still copy keeps the steady aura on screen. The
+-- mage knows neither Ignite nor Winter's Chill, so the fuse seats its Polymorph choice.
+do
+	local env, K, ns = New("MAGE", Unknown({ 11119, 11120, 12846, 12847, 12848 }, { 11180, 28592, 28593, 28594, 28595 }))
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	local Effects = K.Effects
+	local cool, fuse = assert(Piece(ns, "crestCounterspell"), "a cooldown medal"), assert(Piece(ns, "crestYourSpell"), "Polymorph's fuse")
+	local ready = assert(cool.timer:GetScript("OnCooldownDone"), "the cooldown medal flares from its own timer's end")
+	local lit = fuse.lit
+	local flames, stills = lit.flames, lit.stills
+	local copy = lit.mark:GetParent():GetParent()
+	local bloom = assert(copy.flare, "the head blooms on its flame copy").play
+	assert(not lit.flare, "the fuse's own slot carries no second bloom for the same aura")
+	local function Cast(id)
+		Slots.Set(env, "target", { { id = id, harmful = true, start = env._now or 0, duration = 50, mine = true } })
+	end
+	env.SetTarget(true)
+	env.RunTimers()
+	Cast(118)
+	assert(bloom:IsPlaying() and Effects.Holder("crestFlare") ~= nil, "a new Polymorph blooms the head and holds the crest's flare place")
+	ready(cool.timer)
+	assert(cool.flare.play:IsPlaying() and not bloom:IsPlaying(), "a cooldown coming ready stops the head's bloom: two never overlap")
+	Cast(12826)
+	assert(bloom:IsPlaying() and not cool.flare.play:IsPlaying(), "and a fresh Polymorph's bloom stops the cooldown's")
+	env.RunTimers()
+	bloom:Stop()
+	Slots.Set(env, "target", {})
+
+	Motion(env, K, "calm")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	env._now = 100
+	local after, armed = env.C_Timer.After, {}
+	env.C_Timer.After = function(_, fn) armed[#armed + 1] = fn end
+	Cast(118)
+	assert(stills:GetAlpha() == 1 and flames:GetAlpha() == 0, "at Calm the still copy shows the aura")
+	K.Options.Write("Medallions", "motion", "full")
+	assert(flames.base == 1 and flames:GetAlpha() == 0, "Calm to Full inside the bloom's time: the flame copy whose bloom began unseen stays dark")
+	assert(stills:GetAlpha() == 1, "and the still copy keeps the steady aura on screen meanwhile")
+	for _, fn in ipairs(armed) do fn() end
+	assert(flames:GetAlpha() == 1 and stills:GetAlpha() == 0, "once the bloom's time is over the flame copy shows alone")
+	env.C_Timer.After = after
+	env._aurasSecret = nil
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- Under hidden values Lua may not stop a flare the engine is playing inside an aura slot. The newer flare shows at once all the same, and the older one is hidden: its
 -- slot sits under a layer of its own, which the addon owns and turns dark for the rest of the flare's time. The slot's next flare shows it again at once.
 do

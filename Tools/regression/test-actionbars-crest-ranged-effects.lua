@@ -294,10 +294,10 @@ do
 		"the head's fire and still burn on the fuse slot's two gated copies, so a motion level chosen under hidden values swaps them at once")
 	-- A fresh Polymorph replacing the last one while the fuse stays lit blooms the head again, as the assigned flare always did.
 	local copy = lit.mark:GetParent():GetParent()
-	local cue = copy.cue or {}
-	if copy.cue then cue:Stop() end
+	local cue = copy.flare and copy.flare.play or {}
+	if copy.flare then cue:Stop() end
 	Slots.Set(env, "target", { { id = 12826, harmful = true, start = 0, duration = 50 } })
-	assert(copy:IsShown() and copy.cue and cue:IsPlaying(), "a Polymorph replaced without the fuse hiding blooms the head's burning sheep again")
+	assert(copy:IsShown() and copy.flare and cue:IsPlaying(), "a Polymorph replaced without the fuse hiding blooms the head's burning sheep again")
 	local arcane = Piece(ns, "crestCooldowns").sigils[1]
 	local fire
 	for _, region in ipairs(arcane.flame._regions) do

@@ -403,6 +403,9 @@ end
 function Medals.Gates(piece, lit, level, still)
 	if not lit.lights then
 		lit.lights = { flame = Gate(piece, lit, level, "flames", false), calm = still and Gate(piece, lit, level, "stills", true) or nil }
+		if still and lit.stills.flame == nil then
+			lit.flames.gates, lit.stills.flame = { lit.flames, lit.stills }, lit.flames
+		end
 	end
 	return lit.lights.flame, lit.lights.calm
 end
@@ -454,6 +457,8 @@ function Medals.Gate(gate, alpha)
 	local face = gate.face
 	if (face or gate).hushed then
 		gate:SetAlpha(face and not gate.lit.full and 1 or 0)
+	elseif gate.flame and gate.flame.hushed and gate.flame.base == 1 then
+		gate:SetAlpha(1)
 	else
 		gate:SetAlpha(gate.base or 1)
 	end
@@ -1156,11 +1161,9 @@ end
 local function Wanted(button, mode, awake)
 	local flare, flicker = button.flare, button.flicker
 	local gate = flare and (flare.gate or button.hold and button.hold.face and button.hold)
-	local assigned = { flare and (mode == true and Medals.Arbitrate(flare.play, true, gate) or mode == "calm" and Hold(flare) and Medals.Arbitrate(flare.still, true, gate)) or nil }
-	assigned[#assigned + 1] = mode == true and button.cue or nil
 	return {
 		AuraShown = mode == true and Shown(button, awake) or NONE,
-		AuraAssigned = assigned,
+		AuraAssigned = { flare and (mode == true and Medals.Arbitrate(flare.play, true, gate) or mode == "calm" and Hold(flare) and Medals.Arbitrate(flare.still, true, gate)) or nil },
 		PandemicActive = { flicker and (mode == true and flicker or mode == "calm" and ns.Slab.Still(flicker)) or nil },
 	}
 end
