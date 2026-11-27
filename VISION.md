@@ -26,7 +26,7 @@ A test render proves layout, not freedom from taint; only the game settles that,
 
 KstyleUI targets the Forever client and nothing else: TOC `16001`, game type `camelot`, classic-era spell IDs.
 No change adds another client's branches or prepares for one.
-Every API, event, template, mixin, CVar or Blizzard frame name is found in the Forever UI source revision the repo records, or in build-matched client proof, and the pull request cites it.
+Every API, event, template, mixin, CVar or Blizzard frame name is found in the Forever UI source revision the repo records, and the pull request cites it. An engine CVar absent from that source may use build-matched client proof instead.
 Retail branches, retail spell IDs, deprecated shims and the combat log are refused.
 An unknown Blizzard global is a finding to resolve, never something to silence in `.luacheckrc`.
 
@@ -83,4 +83,4 @@ The accent is the class colour or one custom colour, and the Forged, Clean and R
 The optional icon pack is not part of the addon and ships only on GitHub.
 
 A change aligns when it brings the crest more alive, turns a still mark into an animated aura, removes a Lua error, a taint or wasted work, makes an effect or module cheaper without taking it away, brings a surface closer to the owner's picture, completes a class's crest and cooldown work, moves the gamepad layout forward inside these rules, or fixes a real player report at its root, with a test.
-A change should be resisted when it can throw or taint in combat, attaches a script to a frame whose state is secret, relies on an API it cannot cite from the Forever source, adds another client's branches, does work while disabled, loads or draws art nobody sees, ignores the motion choice, adds a static icon where an animated aura belongs, cuts a crest effect to save frame cost before making it cheaper, adds colour literals outside the tokens, copied code or a redundant library, changes geometry or the art direction without an owner ruling, or reaches `main` before the owner's in-game pass.
+A change should be resisted when it can throw or taint in combat, attaches a script to a frame whose state is secret, relies on an API it cannot cite from the Forever source or an engine CVar absent from that source without build-matched client proof, adds another client's branches, does work while disabled, loads or draws art nobody sees, ignores the motion choice, adds a static icon where an animated aura belongs, cuts a crest effect to save frame cost before making it cheaper, adds colour literals outside the tokens, copied code or a redundant library, changes geometry or the art direction without an owner ruling, or reaches `main` before the owner's in-game pass.
