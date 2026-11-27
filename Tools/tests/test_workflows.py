@@ -30,6 +30,16 @@ def steps_after(text, start):
     return "\n".join(block)
 
 
+def step_guard_runs(expression, cancelled, checkout, commit):
+    """Evaluate a step's if: built only from !cancelled(), the checkout and commit steps' outcomes, ==, != and &&."""
+    inner = expression.strip()
+    if not (inner.startswith("${{") and inner.endswith("}}")):
+        raise ValueError("not a ${{ }} expression: " + expression)
+    python = inner[3:-2].replace("!cancelled()", "(not cancelled)").replace("&&", " and ")
+    python = python.replace("steps.checkout.outcome", "checkout").replace("steps.commit.outcome", "commit")
+    return eval(python, {"__builtins__": {}}, {"cancelled": cancelled, "checkout": checkout, "commit": commit})
+
+
 def jobs_of(text):
     """Return {job id: job text} for a workflow's jobs."""
     parts = re.split(r"(?m)^  ([\w-]+):$", text.split("\njobs:\n", 1)[1])
@@ -340,11 +350,20 @@ class WorkflowsTest(unittest.TestCase):
                     break
                 block.append(line)
             scripts.append(textwrap.dedent("\n".join(block)))
-            # Review finding: a later step that runs after a failure must still never run on a refused commit.
+            # Review finding: a later step that runs after a failure must still never run without a checkout or on a
+            # refused commit. A step with no if: gets GitHub's implicit success(), which already stops it.
             for later in re.split(r"(?m)^      - ", step)[2:]:
                 guard = re.search(r"(?m)^        if: (.*)$", later)
-                if guard:
-                    self.assertIn("steps.commit.outcome != 'failure'", guard.group(1), f"{job}: {later.splitlines()[0]}")
+                if not guard:
+                    continue
+                for cancelled, checkout, commit, runs in (
+                        (False, "success", "skipped", True),
+                        (False, "success", "success", True),
+                        (False, "success", "failure", False),
+                        (False, "failure", "skipped", False),
+                        (True, "success", "success", False)):
+                    with self.subTest(job=job, step=later.splitlines()[0], checkout=checkout, commit=commit, cancelled=cancelled):
+                        self.assertEqual(step_guard_runs(guard.group(1), cancelled, checkout, commit), runs)
         self.assertEqual(scripts[0], scripts[1], "both jobs check the commit the same way")
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
