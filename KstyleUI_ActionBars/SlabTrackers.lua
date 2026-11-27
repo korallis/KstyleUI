@@ -660,7 +660,7 @@ end
 
 local Rail = ns.SlabRail
 local RAIL = { SPELL_UPDATE_COOLDOWN = true, BAG_UPDATE_COOLDOWN = true, UNIT_SPELLCAST_SUCCEEDED = true }
-local RAIL_ROW = { key = "crestRail", seat = "rim", build = Rail.Build, place = Rail.Place, known = Rail.Known, hold = Rail.Holding, crestOnly = true }
+local RAIL_ROW = { key = "crestRail", build = Rail.Build, place = Rail.Place, known = Rail.Known, hold = Rail.Holding, crestOnly = true }
 
 local function PaintRail(form, event, ...)
 	for _, p in pairs(form.pieces) do

@@ -23,7 +23,6 @@ local DIP, DIP_RUN, BURST, BURST_RUN = 0.86, 0.12, { 0.85, 1.45 }, 0.4
 local LIFT_RUN, TURN, POP, POP_RUN, SETTLE_RUN, FOLD_RUN, HOME_RUN = 0.28, 16, 1.29 / 1.21, 0.2, 0.16, 0.35, 0.3
 local CASTS = { "unitframes.castbar.player", "unitframes.castbar.target" }
 local OWNER, NONE = "ActionBars.SlabRail", {}
-local MEDAL_RISE = 15
 local RACIALS = {
 	{ key = "bloodFury", spells = { 20572 }, sigil = "Axe", major = true, race = true, unit = "player" },
 	{ key = "berserking", spells = { 20554 }, sigil = "Tusks", major = true, race = true, unit = "player" },
@@ -891,7 +890,6 @@ local function Low()
 end
 
 function Rail.Build(parent, spec, level)
-	level = level + MEDAL_RISE
 	local r = Medals.Piece(parent, level, 2 * (SPAN + SEAT))
 	r.rail, r.order, r.spare, r.all, r.made, r.majors, r.running, r.stamps = true, {}, {}, {}, {}, {}, {}, {}
 	r.crown = Medals.Piece(r, level + 12, CROWN)
