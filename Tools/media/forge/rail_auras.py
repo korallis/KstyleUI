@@ -6,7 +6,7 @@ circling motes), bloomed and reduced to 128 px cells in linear light, and packed
 sheet is light on black with alpha set to its brightest channel, for ADD; the crest plays it as a FlipBook
 (KstyleUI_ActionBars/SlabRail.lua) and loads a sheet only for a seat the hunter has.
 
-    python3 Tools/media/forge/auras.py [--blender PATH] [--work DIR] [--only Volley,Paw] [--out DIR]
+    python3 Tools/media/forge/rail_auras.py [--blender PATH] [--work DIR] [--only Volley,Paw] [--out DIR]
 
 Needs Blender 5.x (BLENDER, --blender or blender on the PATH), numpy, Pillow and scipy.
 """
