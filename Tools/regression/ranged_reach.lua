@@ -1,4 +1,4 @@
--- ranged_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The hunter's cooldown rail is measured at its widest, four abilities and the trinket, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out.
+-- ranged_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The hunter's cooldown rail is measured at its widest, four abilities and the trinket, with the pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Reach = {}
@@ -165,7 +165,7 @@ function Reach.Check(sizes, classes)
 			local _, ns = Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 			if class == "HUNTER" then
 				local known = measured.C_SpellBook.IsSpellKnown
-				local widest = { [1293241] = true, [19574] = true, [3045] = true, [19577] = true, [14305] = true }
+				local widest = { [1293241] = true, [19574] = true, [3045] = true, [19577] = true, [14305] = true, [13795] = true, [24579] = true, [14916] = true, [19801] = true }
 				measured.C_SpellBook.IsSpellKnown = function(id, ...) return widest[id] or known(id, ...) end
 				measured.GetTotemInfo = measured.GetTotemInfo or function() return false, "", 0, 0, 0, 1, 0 end
 				measured.GetInventoryItemID = function(_, slot) return slot == 13 and 5002 or nil end
@@ -192,9 +192,7 @@ function Reach.Check(sizes, classes)
 			local checked = 0
 			local pieces = {}
 			for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-				if not low or p.spec.key == "crestRail" then
-					pieces[#pieces + 1] = { key = p.spec.key, regions = RING[p.spec.key] and {} or Textures(p, {}) }
-				end
+				pieces[#pieces + 1] = { key = p.spec.key, regions = RING[p.spec.key] and {} or Textures(p, {}) }
 			end
 			for i, p in ipairs(not low and ns.SlabHawks and ns.SlabHawks.state.perches or {}) do
 				pieces[#pieces + 1] = { key = "hawk perch " .. i, regions = Textures(p.holder, {}) }

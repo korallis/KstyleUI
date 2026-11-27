@@ -118,7 +118,7 @@ do
 	local env, K, ns = New("HUNTER", { known = { 13165, 13163, 5118, 13159, 20043, 13161, 415423, 1978, 3034, 3043, 24118, 3674, 1130, 883, 2643 }, pet = { max = 100, missing = 40, mood = 3 } })
 	local aspect, sting, mark, pet, shot = Piece(ns, "crestAspect"), Piece(ns, "crestSting"), Piece(ns, "crestMark"), Piece(ns, "crestPet"), Piece(ns, "crestShot")
 	assert(#aspect.lits == 7 and Kinds(aspect) == 7, "each Aspect lights its own sigil: hawk, crescents, paw, pack, leaf, claws, coil")
-	assert(#sting.lits == 6 and Kinds(sting, "mark") == 6, "each Sting, Lacerate and Black Arrow carries its own mark at the fuse's head")
+	assert(#sting.lits == 7 and Kinds(sting, "mark") == 7, "each Sting, Lacerate, Black Arrow and Immolation Trap's burn carries its own mark at the fuse's head")
 	assert(Near(ns, aspect, 73, 228) and At(ns, mark, -56, 0) and At(ns, shot, 0, 0), "the Aspect perches on the lower left, the Mark on the left band and the shots over the emblem")
 	assert(At(ns, sting, 64, 0) and At(ns, pet, 42, -46), "the fuse burns down the right band and the pet's light runs along the lower right band")
 	local serpent = { id = 1978, harmful = true, start = 0, duration = 15 }
