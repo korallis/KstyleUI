@@ -218,7 +218,7 @@ do
 	local corruption = torments.spires[1]
 	assert(corruption.lit:GetParent()._durationBar and corruption.glow:GetParent()._durationBar and corruption.core:GetParent()._durationBar, "each spire's three bars are duration bars the engine drains")
 	Slots.Set(env, "target", { { id = 25311, icon = 136118, harmful = true, start = 0, duration = 18 } })
-	assert(corruption.lit:GetParent():IsShown() and corruption.rune:GetParent() == corruption.lit:GetParent() and corruption.neck:GetParent() == corruption.lit:GetParent(), "your Corruption lights its spire, the glyph at its foot and the neck between")
+	assert(corruption.lit:GetParent():IsShown() and corruption.rune.loop and corruption.rune:GetParent():GetParent() == corruption.lit:GetParent() and corruption.neck:GetParent() == corruption.lit:GetParent(), "your Corruption lights its spire, the glyph's aura at its foot and the neck between")
 	assert(not torments.spires[2].lit:GetParent():IsShown(), "no Bane: its spire stays dark")
 	local count = 0
 	for _, s in ipairs(wisps.seats) do count = count + (s.wisp:IsShown() and 1 or 0) end

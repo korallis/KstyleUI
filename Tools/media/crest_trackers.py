@@ -9,6 +9,9 @@ Writes, procedurally and with no model or source image:
     Gust.png      256x64  a hunter's Quick Shots gust: three feather-thin wind streaks, tapered at both ends, and a
                           small feather riding the front of the middle one, white (tinted in the game), drawn ADD
 
+The crest burns both as animated auras instead (Tools/media/forge/auras.py: Media/Textures/Auras/Trackers/); these flat
+files stay for the Frames row's flat textures and as the wisp's black figure.
+
 Each is drawn at 8x in linear light, blurred for its glow, reduced with Lanczos and stored as Tools/media/medallions_kit.py
 stores effects: colour unpremultiplied, alpha the brightest channel, so ADD draws the light the picture shows.
 Needs Pillow and numpy.

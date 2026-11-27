@@ -155,6 +155,16 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 	return fire, span > 1
 end
 
+function Medals.Dim(piece, host, art, size, color)
+	local aura = select(5, Tokens.Texture(art))
+	if not aura then
+		return piece.add(Medals.Texture(host, "ARTWORK", 0, art, color, size)), nil
+	end
+	local span = select(5, Tokens.Flipbook(aura))
+	local socket = span == 1 and piece.add(Medals.Texture(host, "ARTWORK", -1, "auraSocket", color, size)) or nil
+	return piece.add(Cell(Medals.Texture(host, "ARTWORK", 0, aura, color, size * span, "ADD"), aura, AURA_STILL)), socket
+end
+
 function Medals.Mark(piece, parent, art, size, color, r, g, b, level, lights)
 	local _, _, _, forged, aura = Tokens.Texture(art)
 	aura = lights ~= false and aura or nil

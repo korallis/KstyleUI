@@ -19,10 +19,12 @@ local SIZE, BASE, SPIRE, WISP, LIFT, BAR, NECK = 26, 17, 24, 16, 1, 3, 8
 local SOCKETS, ORBIT, PERIOD, STEPS, WISPS, HALO, INNER, LOW_AMMO, FAINT = 67, 46, 12, 24, 5, 1.6, 112, 200, 0.35
 local STEEL, LIGHT, GROOVE, PERCH, GEM, SHOT, FLASH, HEAD = 0.45, 0.8, 0.35, 28, 26, 80, 36, 1
 local MOODS, NONE = { "hostile", "neutral" }, {}
+local LOOSE = { add = function(part) return part end }
 local HAUNCH, HAUNCH_HALO, HAUNCH_BLINK, HAUNCH_HOLD, HAUNCH_FADE = 28, 1.65, 3, 0.15, 0.45
 local BREATH = { { 0.6, 1, 0.9 }, { 1, 0.6, 0.9 } }
 local GLEAM = { { 0.8, 1, 0.7 }, { 1, 0.8, 0.7 } }
 local MARK, MARK_IN, MARK_BACK, REST_FORGED, SHOT_FLAT, SHOT_FORGED = 24, 14, 2.6, 0.85, 0.82, 0.45
+local DEMON, DEMON_SIZE = "glyphHorns", 24
 local OPENING = { { 0, 1, 0.06 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.08 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.1 } }
 local GROW = { { 0, 1, 0.6 } }
 local BAND = {
@@ -124,8 +126,9 @@ local function Light(p, each, level, look)
 		end
 	else
 		local r, g, b = Lift(each.color, look.white)
-		lit.art, cast = Medals.Mark(p, light, art, size, each.color, r, g, b, level + 2)
-		lit.art:SetDesaturated(true)
+		local aura
+		lit.art, cast, _, _, aura = Medals.Mark(p, light, art, size, each.color, r, g, b, level + 2)
+		lit.art:SetDesaturated(not aura)
 	end
 	if lit.container then
 		lit.loop = Medals.Steps(light, look.loop, true)
@@ -165,7 +168,7 @@ local function Effect(parent, spec, level, form)
 	p.rest = Medals.Layer(spec.feed == "item" and p.lit or p, level)
 	local art = look.steel or spec.glyph or look.art
 	p.rest:SetAlpha(look.rest or select(4, Tokens.Texture(art)) and REST_FORGED or STEEL)
-	p.add(Medals.Texture(p.rest, "ARTWORK", 0, art, "steel", p.units * look.k)):SetDesaturated(true)
+	Medals.Dim(p, p.rest, art, p.units * look.k, "steel"):SetDesaturated(true)
 	for i, each in ipairs(select(4, Tokens.Texture(art)) and spec.feeds or {}) do
 		if each.glyph ~= art then
 			p.add(Medals.Texture(Medals.Layer(p.lits[i], level + 1), "BACKGROUND", 0, art, "black", p.units * look.k))
@@ -195,6 +198,15 @@ local function Spot(p, parent, art, color, size, x, y, layer)
 	local t = p.add(Medals.Texture(parent, layer or "ARTWORK", 0, art, color, size, "ADD"))
 	t:SetPoint("CENTER", p, "CENTER", x, y)
 	return t
+end
+
+local function Seat(m, parent, art, color, size, x, y)
+	local seat = CreateFrame("Frame", nil, parent)
+	seat:SetFrameLevel(parent:GetFrameLevel())
+	seat:SetSize(1, 1)
+	seat:SetPoint("CENTER", m, "CENTER", x, y)
+	Medals.Mark(m, seat, art, size, color, Lift(color, 0.2))
+	return seat
 end
 
 local function Flare(p, lit, level, size, x, y)
@@ -434,9 +446,8 @@ local function Pet(parent, spec, level, form)
 	end
 	if spec.demons then
 		m.sigil = Medals.Layer(m.pet, level + 3)
-		Spot(m, m.sigil, "glow", spec.light, 44 * k, Off(67, 184)):SetAlpha(0.5)
-		m.glyph = Spot(m, m.sigil, "glyphHorns", "white", 28 * k, Off(67, 184))
-		m.glyph:SetVertexColor(Lift(spec.light, 0.2))
+		m.at, m.size = { Off(67, 184) }, DEMON_SIZE * k
+		m.art, m.marks = DEMON, { [DEMON] = Seat(m, m.sigil, DEMON, spec.light, m.size, unpack(m.at)) }
 		m.bob = m.sigil:CreateAnimationGroup()
 		m.bob:SetLooping("REPEAT")
 		for n, dy in ipairs({ 2, -2 }) do
@@ -454,12 +465,18 @@ local function Pet(parent, spec, level, form)
 			Spot(m, light, "trackerFlame", spec.color, 24 * k, Off(69, 162 + 8 * i)):SetDesaturated(true)
 		end
 		lit.loop = ns.Slab.Flicker(light)
+		m.fel = {}
 		for n, demon in ipairs(spec.demons) do
 			local slot = lit.container:AddAuraSlot("fel" .. n, "HELPFUL", { candidateFilters = { includeSpellIDs = { [demon[3]] = true } } })
 			pcall(slot.EnableMouse, slot, false)
 			slot:SetAllPoints(m)
 			slot:SetFrameLevel(level + 6)
-			Spot(m, slot, demon[1], "white", 28 * k, Off(67, 184)):SetVertexColor(Lift(spec.color, 0.2))
+			slot.container, slot.hold = lit.container, lit.hold
+			m.lits[#m.lits + 1] = slot
+			m.fel[n] = slot
+			if Medals.Known({ demon[4] }) then
+				slot.seat = Seat(m, slot, demon[1], spec.color, m.size, unpack(m.at))
+			end
 		end
 		Flare(m, lit, level + 8, 40 * k, Off(60, 184))
 	end
@@ -522,7 +539,7 @@ local function Gust(r, spec, level)
 	local feed = Medals.Feed(r.lit.hold or r, spec, level + 3)
 	feed.hold = r.lit.hold
 	local gust = Medals.Layer(feed, level + 3)
-	r.gust = Medals.Texture(gust, "OVERLAY", 0, "trackerGust", spec.color, nil, "ADD")
+	r.gust = Medals.Aura(LOOSE, gust, "auraTrackerGust", 1)
 	local loop = gust:CreateAnimationGroup()
 	loop:SetLooping("REPEAT")
 	local jump, move = loop:CreateAnimation("Translation"), loop:CreateAnimation("Translation")
@@ -556,7 +573,8 @@ local function Ring(piece, anchor, form, _, n)
 		Medals.Place(piece, anchor, 0, 0)
 		for _, face in ipairs(Medals.Restricted() and {} or { piece, unpack(piece.twins or {}) }) do
 			if face.gust then
-				Widgets.Size(face.gust, INNER, 28)
+				Widgets.Size(face.gust, INNER, INNER / 4)
+				Widgets.Size(face.gust.still, INNER, INNER / 4)
 			end
 		end
 		return n
@@ -610,7 +628,7 @@ local function Wisps(parent, spec, level, form)
 		s.wisp = Medals.Layer(s, level)
 		s.add(Medals.Texture(s.wisp, "BACKGROUND", -1, "glow", "black", WISP * 1.6))
 		s.add(Medals.Texture(s.wisp, "BACKGROUND", 0, "glow", "jewelShard", WISP * 1.8, "ADD"))
-		s.art = s.add(Medals.Texture(s.wisp, "ARTWORK", 0, "trackerWisp", "white", WISP, "ADD"))
+		s.art = Medals.Mark(s, s.wisp, "trackerWisp", WISP, "jewelShard")
 		s.come = s.wisp:CreateAnimationGroup()
 		local from, to = s.come:CreateAnimation("Translation"), s.come:CreateAnimation("Translation")
 		from:SetOffset(FROM[1], FROM[2])
@@ -652,8 +670,12 @@ end
 local function Spire(p, container, i, s, angle, level)
 	local t = { def = s, angle = angle }
 	t.base = Medals.Piece(p, level, BASE)
-	t.dim = t.base.add(Medals.Texture(t.base, "ARTWORK", 0, s.glyph, "steel", BASE - 3))
-	t.dim:SetAlpha(STEEL)
+	local socket
+	t.dim, socket = Medals.Dim(t.base, t.base, s.glyph, BASE - 3, "steel")
+	t.dim:SetDesaturated(true)
+	for _, part in ipairs({ t.dim, socket }) do
+		part:SetAlpha(STEEL)
+	end
 	t.spire = Medals.Piece(p, level, SPIRE)
 	t.spire.add(Medals.Texture(t.spire, "BACKGROUND", 0, "pipSpireSteel" .. angle, "white", SPIRE))
 	local ids = {}
@@ -678,11 +700,10 @@ local function Spire(p, container, i, s, angle, level)
 	t.lit:SetStatusBarColor(Lift(s.color, 0.55))
 	lit.flicker = ns.Slab.Flicker(t.lit)
 	Slot("core", "pipSpireCore", s.color, "ADD", SPIRE, 3)
-	t.rune = lit:CreateTexture(nil, "OVERLAY")
-	t.rune:SetTexture((Tokens.Texture(s.glyph)))
-	t.rune:SetVertexColor(Lift(s.color))
-	t.rune:SetBlendMode("ADD")
-	t.rune:SetAllPoints(t.dim)
+	local foot = CreateFrame("Frame", nil, lit)
+	foot:SetFrameLevel(lit:GetFrameLevel())
+	foot:SetAllPoints(t.base)
+	t.rune = Medals.Mark(t.base, foot, s.glyph, BASE - 3, s.color, Lift(s.color))
 	t.neck = lit:CreateTexture(nil, "OVERLAY")
 	t.neck:SetTexture((Tokens.Texture("glow")))
 	t.neck:SetVertexColor(Lift(s.color, 0.2))
@@ -741,19 +762,32 @@ local function Bob(m)
 	end
 end
 
+local function Fel(m, n)
+	local demon = m.spec.demons[n]
+	for _, face in ipairs(m.fel and { m, unpack(m.twins or NONE) } or NONE) do
+		local slot = face.fel[n]
+		slot.seat = slot.seat or Seat(face, slot, demon[1], m.spec.color, face.size, unpack(face.at))
+	end
+end
+
 local function Sigil(m)
-	local book, bank, art = C_SpellBook, Enum and Enum.SpellBookSpellBank, "glyphHorns"
-	for _, demon in ipairs(book and type(book.IsSpellKnown) == "function" and bank and m.spec.demons or NONE) do
+	local book, bank, art, out = C_SpellBook, Enum and Enum.SpellBookSpellBank, DEMON, nil
+	for n, demon in ipairs(book and type(book.IsSpellKnown) == "function" and bank and m.spec.demons or NONE) do
 		for _, id in ipairs(demon[2]) do
 			local known = book.IsSpellKnown(id, bank.Pet)
 			if not IsSecret(known) and known == true then
-				art = demon[1]
+				art, out = demon[1], n
 			end
 		end
 	end
 	if art ~= m.art then
+		m.marks[art] = m.marks[art] or Seat(m, m.sigil, art, m.spec.light, m.size, unpack(m.at))
+		m.marks[m.art]:Hide()
+		m.marks[art]:Show()
 		m.art = art
-		m.glyph:SetTexture((Tokens.Texture(art)))
+	end
+	if out then
+		Fel(m, out)
 	end
 end
 
@@ -840,7 +874,7 @@ local function PaintPet(m, event)
 	if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
 		return
 	end
-	if m.glyph and up then
+	if m.marks and up then
 		Sigil(m)
 	end
 	if m.haunch then
@@ -1088,10 +1122,10 @@ if CLASS == "WARLOCK" then
 	local STONES = { 9421, 19012, 19013, 5510, 19010, 19011, 5509, 19008, 19009, 5511, 19006, 19007, 5512, 19004, 19005 }
 	local CREATE = { 11730, 11729, 5699, 6202, 6201 }
 	local SIGILS = {
-		{ "glyphImp", { 3110, 7799, 7800, 7801, 7802, 11762, 11763 }, 18789 },
-		{ "glyphVoidwalker", { 3716, 7809, 7810, 7811, 11774, 11775 }, 18790 },
-		{ "glyphSuccubus", { 7814, 7815, 7816, 11778, 11779, 11780 }, 18791 },
-		{ "glyphFangs", { 19505, 19731, 19734, 19736, 19244, 19647 }, 18792 },
+		{ "glyphImp", { 3110, 7799, 7800, 7801, 7802, 11762, 11763 }, 18789, 688 },
+		{ "glyphVoidwalker", { 3716, 7809, 7810, 7811, 11774, 11775 }, 18790, 697 },
+		{ "glyphSuccubus", { 7814, 7815, 7816, 11778, 11779, 11780 }, 18791, 712 },
+		{ "glyphFangs", { 19505, 19731, 19734, 19736, 19244, 19647 }, 18792, 691 },
 	}
 	local CURSES = {
 		{ spells = { 702, 1108, 6205, 7646, 11707, 11708 }, color = "jewelShard", glyph = "glyphWeakness" },
@@ -1125,7 +1159,7 @@ if CLASS == "WARLOCK" then
 			{ build = Effect, seat = SIGIL, size = PERCH, look = "glyph", glyph = "glyphHorns", feed = "aura", color = "jewelShard", spells = ARMORS },
 		} },
 		{ key = "crestHealthstone", seat = PENDANT, build = Effect, choices = {
-			{ build = Gem, look = "gem", size = GEM, feed = "item", items = STONES, color = "friendly", known = function() return Medals.Known(CREATE) or Have(STONES) and CREATE[#CREATE] end },
+			{ build = Gem, look = "gem", glyph = "glyphHealthstone", size = GEM, feed = "item", items = STONES, color = "friendly", known = function() return Medals.Known(CREATE) or Have(STONES) and CREATE[#CREATE] end },
 			{ seat = PERCH_RIGHT, size = PERCH, look = "glyph", glyph = "glyphHorns", feed = "aura", color = "jewelShard", spells = ARMORS,
 				known = function() return Medals.Known(DEMONS) and Medals.Known(ARMORS) end, active = Demon },
 		} },

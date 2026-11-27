@@ -282,16 +282,23 @@ do
 	Clean(env, K)
 end
 
--- The approved plan keeps the forged rule behind a per-texture flag: a class still on flat art draws as before.
+-- The approved plan burns the mage's and warlock's marks as looping auras: Polymorph's fuse head seats its sheep on the empty
+-- socket as the hunter's sting does, and Arcane Power's cooldown sigil burns its own sheet.
 do
 	local env, K, ns = New("MAGE", { known = { 118, 12042 } })
 	Slots.Set(env, "target", { { id = 118, harmful = true, start = 0, duration = 50 } })
 	local lit = Piece(ns, "crestYourSpell", 3).lit
-	local burn = lit.mark:GetParent()
-	assert(lit:IsShown() and burn == lit.head._kids[1] and #burn._regions == 2 and #burn._kids == 0, "Polymorph's flat mark is one additive texture beside the flame, no body and no layer of its own")
-	assert(lit.mark:GetAlpha() == 1 and lit.mark._state.BlendMode[1] == "ADD" and lit.flare.play:GetParent() == lit.mark, "it keeps its full light and its own ignition")
+	local socket
+	for _, region in ipairs(lit.mark:GetParent()._regions) do
+		socket = socket or (region._state.Texture or {})[1] == (K.Tokens.Texture("auraSocket"))
+	end
+	assert(lit:IsShown() and lit.mark.loop and Art(lit.mark) == (K.Tokens.Texture("auraGlyphPolyCurl")) and socket, "Polymorph's head burns the sheep's aura over the empty socket")
 	local arcane = Piece(ns, "crestCooldowns").sigils[1]
-	assert(Drawn(arcane, "Arcane.png", true):GetAlpha() == 1 and not Drawn(arcane, "Arcane.png", false), "a flat cooldown sigil is its one additive texture at full light, with no solid body")
+	local fire
+	for _, region in ipairs(arcane.auraHosts.fire._regions) do
+		fire = fire or region.loop and region
+	end
+	assert(fire and Art(fire) == (K.Tokens.Texture("auraSigilArcane")), "Arcane Power's sigil burns its own aura")
 	Clean(env, K)
 end
 
@@ -313,9 +320,12 @@ do
 	local demon, stone, curse = Piece(ns, "crestDemon"), Piece(ns, "crestHealthstone"), Piece(ns, "crestCurse")
 	assert(At(ns, demon, -64, 0) and demon.pet:IsShown() and demon.health:GetOrientation() == "VERTICAL" and demon.health:GetReverseFill(), "the demon's health lights the left band from the top")
 	assert(env.Reveal(demon.health:GetValue()) == 75 and demon.sigil:IsShown(), "its health is the engine's value, under the demon's sigil")
+	-- The approved plan loads a mark's sheet only for a spell the character knows: no Voidwalker summoned or known, no Voidwalker sheet.
+	assert(not demon.marks.glyphImp and demon.fel[1].seat and demon.fel[4].seat and not demon.fel[2].seat and not demon.fel[3].seat,
+		"only the known demons' sacrifice sigils load, and no demon's own sigil before it is out")
 	env._petSpells[3110] = true
 	env.FireEvent("UNIT_PET", "player")
-	assert(Art(demon.glyph):find("Imp"), "an Imp out shows the Imp's sigil")
+	assert(demon.marks.glyphImp:IsVisible() and not demon.marks.glyphHorns:IsShown(), "an Imp out shows the Imp's sigil in place of the horns")
 	assert(Near(ns, stone, 80, 312), "the Healthstone hangs from the lower right")
 	assert(not stone.lit:IsShown() and not stone.rest:IsVisible() and stone.bail:IsVisible() and Art(stone.bail):find("Bail"), "no Healthstone: the empty bail hangs there")
 	env._bags[5512] = 1
@@ -342,9 +352,11 @@ do
 	assert(sacrifice:IsShown() and sacrifice._durationBar[1] == sacrifice.art and Art(sacrifice.art):find("RimLeft"), "Demonic Sacrifice burns fel flames along the left band, its rim line draining")
 	local fel = {}
 	for _, slot in pairs(sacrifice.container._slots) do
-		if slot.frame:IsShown() and slot.frame._regions[1] then fel[#fel + 1] = Art(slot.frame._regions[1]) end
+		for _, region in ipairs(slot.frame:IsShown() and slot.frame._kids[1]._regions or {}) do
+			if region.loop then fel[#fel + 1] = Art(region) end
+		end
 	end
-	assert(#fel == 1 and fel[1]:find("Fangs") and not demon.pet:IsShown(), "the sacrificed Felhunter's sigil stays on the band, turned fel")
+	assert(#fel == 1 and fel[1] == (K.Tokens.Texture("auraGlyphFangs")) and not demon.pet:IsShown(), "the sacrificed Felhunter's sigil burns its aura on the band")
 	env._pet = { max = 100, missing = 25 }
 	Slots.Set(env, "target", { { id = 702, harmful = true, start = 0, duration = 120 } })
 	assert(curse.lits[1]:IsShown() and curse.lits[1]._durationBar[1] == curse.lits[1].art and At(ns, curse, 64, 0), "your Curse of Weakness burns its fuse down the right band")
