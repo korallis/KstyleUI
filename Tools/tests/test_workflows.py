@@ -1,4 +1,4 @@
-"""Tests for .github: pinned actions, dropped credentials, minimal permissions and that Actions only makes the release."""
+"""Tests for .github: pinned actions, dropped credentials, minimal permissions, the checks workflow and the release."""
 
 import os
 import re
@@ -174,28 +174,77 @@ class WorkflowsTest(unittest.TestCase):
         self.assertLess(release.index("uses: BigWigsMods/packager@"), notes)
         self.assertLess(notes, release.index('gh release edit "$GITHUB_REF_NAME" --notes-file'))
 
-    def test_actions_only_makes_the_release(self):
-        # The owner's ruling: lint and tests run on the computer that made the change; Actions is for what cannot.
-        self.assertEqual([path.name for path in workflows()], ["release.yml"])
+    def test_actions_runs_the_checks_the_nightly_suite_and_the_release(self):
+        # The captain's ruling: on each pull request, the GitHub Actions workflow; nightly or before a release, the full suite.
+        self.assertEqual([path.name for path in workflows()], ["checks.yml", "nightly.yml", "pr-rules.yml", "release.yml"])
         self.assertFalse((REPO / ".github" / "actionlint.yaml").exists(), "no workflow uses a self-hosted runner label")
 
-    def test_jobs_run_on_hosted_runners_for_a_tag_push_or_a_manual_repost(self):
+    def test_every_job_runs_on_a_hosted_runner(self):
         for path in workflows():
             jobs = jobs_of(path.read_text(encoding="utf-8"))
             self.assertTrue(jobs, path.name)
             for job, body in jobs.items():
                 self.assertEqual(re.search(r"(?m)^    runs-on: (.+)$", body).group(1), "ubuntu-latest", f"{path.name}: {job}")
-                guard = re.search(r"(?m)^    if: (.*)$", body)
-                self.assertIsNotNone(guard, f"{path.name}: {job} has no event guard")
-                expected = "github.event_name == 'workflow_dispatch'" if job == "discord-repost" else "github.event_name == 'push'"
-                self.assertEqual(guard.group(1), expected, f"{path.name}: {job}")
 
-    def test_no_workflow_runs_for_a_pull_request(self):
-        for path in workflows():
-            on = path.read_text(encoding="utf-8").split("\non:\n", 1)[1].split("\n\n", 1)[0]
-            events = re.findall(r"(?m)^  ([\w-]+):", on)
-            self.assertTrue(events, path.name)
-            self.assertTrue(set(events) <= {"push", "workflow_dispatch"}, f"{path.name}: {events}")
+    def test_release_jobs_run_for_a_tag_push_or_a_manual_repost(self):
+        for job, body in jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8")).items():
+            guard = re.search(r"(?m)^    if: (.*)$", body)
+            self.assertIsNotNone(guard, f"release.yml: {job} has no event guard")
+            expected = "github.event_name == 'workflow_dispatch'" if job == "discord-repost" else "github.event_name == 'push'"
+            self.assertEqual(guard.group(1), expected, f"release.yml: {job}")
+
+    def events(self, name):
+        on = (WORKFLOWS / name).read_text(encoding="utf-8").split("\non:\n", 1)[1].split("\n\n", 1)[0]
+        return on, re.findall(r"(?m)^  ([\w-]+):", on)
+
+    def test_which_workflows_run_for_a_pull_request_and_on_a_schedule(self):
+        self.assertTrue(set(self.events("release.yml")[1]) <= {"push", "workflow_dispatch"})
+        self.assertEqual(self.events("pr-rules.yml")[1], ["pull_request"])
+        self.assertEqual(self.events("nightly.yml")[1], ["schedule", "workflow_dispatch"])
+        on, events = self.events("checks.yml")
+        self.assertEqual(events, ["pull_request", "push", "workflow_dispatch"])
+        self.assertIn("    branches: [staging, main]\n", on)
+        self.assertNotIn("branches", on.split("\n  push:", 1)[0], "every pull request runs, whatever its base")
+
+    def test_no_workflow_skips_fork_pull_requests_or_reads_a_secret_outside_the_release(self):
+        for name in ("checks.yml", "nightly.yml", "pr-rules.yml"):
+            text = (WORKFLOWS / name).read_text(encoding="utf-8")
+            self.assertNotIn("head.repo", text, name)
+            self.assertNotRegex(text, r"secrets\.|: write", name)
+
+    def test_pull_request_checks_pick_by_what_changed_and_only_warn_on_perf(self):
+        # The captain's ruling: checks picked by what changed (docs-only runs no Lua tests), perf a warning on each pull request.
+        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
+        self.assertEqual(list(jobs), ["lua", "lint-python-package", "checks"])
+        self.assertIn("      KSTYLEUI_PERF: warn\n", jobs["lua"])
+        self.assertIn("if bash Tools/hooks/needs-lua.sh HEAD^1; then", jobs["lua"])
+        self.assertIn('run: bash Tools/regression/run-all.sh --shard "$SHARD/$SHARD_TOTAL" --affected HEAD^1\n', jobs["lua"])
+        self.assertEqual(jobs["lua"].count("if: steps.scope.outputs.run == 'true'"), 4, "every Lua step waits on the scope")
+        self.assertIn("run: bash scripts/gate.sh fast\n", jobs["lint-python-package"])
+        self.assertIn("""run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py HEAD^1 --skip test_render_deterministic.py'\n""",
+                      jobs["lint-python-package"])
+        self.assertIn("run: bash Tools/hooks/check-package.sh\n", jobs["lint-python-package"])
+
+    def test_the_nightly_run_checks_everything_with_perf_enforced(self):
+        text = (WORKFLOWS / "nightly.yml").read_text(encoding="utf-8")
+        jobs = jobs_of(text)
+        self.assertNotIn("KSTYLEUI_PERF", text)
+        self.assertNotIn("--skip", text)
+        self.assertIn("run: bash scripts/gate.sh lint\n", jobs["lint-python-package"])
+        self.assertIn("""run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py'\n""", jobs["lint-python-package"])
+        self.assertIn('--shard "$SHARD/$SHARD_TOTAL" --affected 4b825dc642cb6eb9a060e54bf8d69288fbee4904\n', jobs["lua"])
+        self.assertIn("key: lua-deps-${{ github.run_id }}", jobs["lua-deps"])
+
+    def test_the_checks_job_passes_only_when_every_job_passed(self):
+        # The checks job is the one status a merge waits on, so a failed, cancelled or skipped job must turn it red.
+        job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["checks"]
+        self.assertIn("    if: ${{ always() }}\n    needs: [lua, lint-python-package]\n", job)
+        script = textwrap.dedent(job.split("        run: |\n", 1)[1])
+        for results, code in (("success success", 0), ("success failure", 1), ("cancelled success", 1),
+                              ("success skipped", 1)):
+            with self.subTest(results=results):
+                done = subprocess.run(["bash", "-c", script], env=dict(os.environ, RESULTS=results), capture_output=True, text=True)
+                self.assertEqual(done.returncode, code, done.stdout + done.stderr)
 
     def test_the_runner_tools_are_checked_by_version(self):
         release = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))

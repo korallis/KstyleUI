@@ -1,8 +1,9 @@
 """Tests for Tools/media/crest_trackers.py: it writes both crest tracker textures into any --out folder, inside the
-repository or not, byte-identical to the shipped files. Skips without NumPy or Pillow."""
+repository or not, as PNGs of the shipped size. Skips without NumPy or Pillow."""
 
 import importlib.util
 import io
+import struct
 import sys
 import tempfile
 import unittest
@@ -25,8 +26,11 @@ class CrestTrackers(unittest.TestCase):
         with tempfile.TemporaryDirectory() as out, mock.patch.object(sys, "argv", ["crest_trackers.py", "--out", out]):
             with redirect_stdout(io.StringIO()):
                 module.main()
+            # The captain's ruling: no test compares exact PNG bytes, which differ between NumPy and Pillow builds.
             for name in ("SoulWisp.png", "Gust.png"):
-                self.assertEqual((Path(out) / name).read_bytes(), (SHIPPED / name).read_bytes(), name)
+                written, shipped = (Path(out) / name).read_bytes(), (SHIPPED / name).read_bytes()
+                self.assertEqual(written[:8], b"\x89PNG\r\n\x1a\n", name)
+                self.assertEqual(struct.unpack(">II", written[16:24]), struct.unpack(">II", shipped[16:24]), name)
 
 
 if __name__ == "__main__":

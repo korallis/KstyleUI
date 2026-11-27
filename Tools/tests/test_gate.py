@@ -129,7 +129,7 @@ class GateTest(unittest.TestCase):
         self.assertNotIn('step "luacheck"', text)
         self.assertNotIn('step "check_toc"', text)
         hooks = (REPO / ".pre-commit-config.yaml").read_text(encoding="utf-8")
-        self.assertIn("entry: luacheck --no-color .", hooks)
+        self.assertIn("entry: bash Tools/hooks/luacheck.sh", hooks)
         self.assertIn("entry: python Tools/hooks/check_toc.py", hooks)
         self.assertIn("source Tools/regression/run-all.sh", text)
         picker = (REPO / "Tools/regression/run-all.sh").read_text(encoding="utf-8")
@@ -139,8 +139,10 @@ class GateTest(unittest.TestCase):
         result = subprocess.run(["bash", str(GATE), "nonsense"], cwd=REPO, capture_output=True, text=True)
         self.assertEqual(result.returncode, 2)
 
-    def run_gate(self, *args, failing="", versions=("Luacheck: 1.2.0", "pre-commit 4.7.0"), dirty=False, **pr):
-        """Run gate.sh in a committed repository of stand-ins that log each command; return (exit code, stdout lines, logged commands)."""
+    def run_gate(self, *args, failing="", versions=("Luacheck: 1.2.0", "pre-commit 4.7.0"), dirty=False, during="", **pr):
+        """Run gate.sh in a committed repository of stand-ins that log each command; return (exit code, stdout lines, logged commands).
+
+        during is a shell command the suppression check's stand-in runs mid-gate."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             for folder in ("scripts", "Tools/regression", "Tools/hooks", "bin"):
@@ -150,7 +152,7 @@ class GateTest(unittest.TestCase):
             version = '[ "$1" = --version ] && { echo "%s"; exit 0; }\n'
             suite = 'case "$*" in *run_suite.py*) echo "py-stub $* wording=${PR_TITLE-unset},${PR_BODY-unset},${PR_LABELS-unset}${KSTYLEUI_RELEASE:+ release}" >> gate.log; exit 0 ;; esac\n'
             stubs = {"bin/luacheck": version % versions[0], "bin/pre-commit": version % versions[1] + log, "bin/py-stub": suite + log,
-                     "scripts/check-suppressions.sh": log, "Tools/hooks/check-pr.sh": 'echo "$(basename "$0") $* title=$PR_TITLE" >> gate.log\n'}
+                     "scripts/check-suppressions.sh": '[ -z "${GATE_DURING:-}" ] || bash -c "$GATE_DURING"\n' + log, "Tools/hooks/check-pr.sh": 'echo "$(basename "$0") $* title=$PR_TITLE" >> gate.log\n'}
             for name, body in stubs.items():
                 (root / name).write_text("#!/usr/bin/env bash\n" + body, encoding="utf-8", newline="\n")
                 os.chmod(root / name, 0o755)
@@ -164,15 +166,17 @@ class GateTest(unittest.TestCase):
             git(root, "add", "-A")
             git(root, "commit", "-q", "-m", "stand-ins")
             if dirty:
-                (root / "scripts/check-suppressions.sh").write_text("#!/usr/bin/env bash\n" + log + "# edited\n", encoding="utf-8", newline="\n")
+                (root / "scripts/check-suppressions.sh").write_text("#!/usr/bin/env bash\n" + stubs["scripts/check-suppressions.sh"] + "# edited\n",
+                                                                    encoding="utf-8", newline="\n")
             commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
             env = {key: value for key, value in os.environ.items()
                    if key not in ("KSTYLEUI_FULL", "KSTYLEUI_RELEASE", "GATE_BASE", "PR_TITLE", "PR_BODY", "PR_BODY_FILE", "PR_LABELS")}
-            env.update(PATH=str(root / "bin") + os.pathsep + env["PATH"], LUA="luajit", GATE_FAIL=failing, **pr)
+            env.update(PATH=str(root / "bin") + os.pathsep + env["PATH"], LUA="luajit", GATE_FAIL=failing, GATE_DURING=during, **pr)
             result = subprocess.run(["bash", "scripts/gate.sh", *args], cwd=root, env=env, capture_output=True, text=True)
             logged = root / "gate.log"
             commands = logged.read_text(encoding="utf-8").splitlines() if logged.exists() else []
-            return result.returncode, [line.replace(commit, "<commit>") for line in result.stdout.splitlines()], commands
+            return (result.returncode, [line.replace(commit, "<commit>") for line in result.stdout.splitlines()],
+                    [command.replace(commit, "<commit>") for command in commands])
 
     def run_release_gate(self, failing=""):
         return self.run_gate("release", "--shard", "1/8", failing=failing)
@@ -202,6 +206,32 @@ class GateTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertTrue(lines[-1].startswith("gate passed (lint) with uncommitted changes"), lines[-1])
         self.assertNotIn("<commit>", lines[-1])
+
+    def test_the_default_gate_lints_only_the_changed_files_and_runs_no_tests(self):
+        # The captain's ruling: before each push, only the fast checks, with luacheck limited to changed files.
+        code, lines, commands = self.run_gate(GATE_BASE="HEAD")
+        self.assertEqual(commands, [
+            "py-stub Tools/dev/crlf.py --check",
+            "pre-commit run --from-ref <commit> --to-ref HEAD --show-diff-on-failure",
+            "py-stub Tools/locale/strings.py check",
+            "check-suppressions.sh HEAD",
+        ])
+        self.assertEqual((code, lines[-1]), (0, "gate passed (fast) at <commit>"))
+
+    def test_a_pass_names_no_commit_when_the_working_copy_moved_during_the_run(self):
+        # KSTY-58: a run that ended on a new commit had printed "gate passed (all) at <new commit>" for a tree it never tested.
+        code, lines, _ = self.run_gate("lint", during="git -c user.name=t -c user.email=t@example.com -c commit.gpgsign=false "
+                                                     "commit -q --allow-empty -m moved")
+        self.assertEqual(code, 0)
+        self.assertRegex(lines[-1], r"^gate passed \(lint\) on a working copy that moved from <commit> to [0-9a-f]{40} during the run: "
+                                    r"run again on the new commit$")
+
+    def test_a_pass_names_no_commit_when_the_changes_were_committed_during_the_run(self):
+        # KSTY-58: uncommitted changes at the start mean the tested tree is not the commit the run ends on.
+        code, lines, _ = self.run_gate("lint", dirty=True, during="git add -A && git -c user.name=t -c user.email=t@example.com "
+                                                                  "-c commit.gpgsign=false commit -q -m done")
+        self.assertEqual(code, 0)
+        self.assertTrue(lines[-1].startswith("gate passed (lint) with uncommitted changes"), lines[-1])
 
     def test_lint_fails_unless_luacheck_and_pre_commit_are_the_pinned_versions(self):
         # The owner's ruling, checks run locally: the gate checks the two lint tool versions, as no workflow does.

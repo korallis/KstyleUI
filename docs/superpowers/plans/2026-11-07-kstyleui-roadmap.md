@@ -6,7 +6,7 @@
 
 **Architecture:** One core addon at the repository root holds the design system and every shared service. Each module is a `KstyleUI_<Module>` addon that depends on the core and talks only to the core's public API, `_G.KstyleUI`. Modules in the same phase are independent and are built in parallel worktrees.
 
-**Tech Stack:** Lua 5.1 (WoW client), XML load files, Python 3.12 for tooling, the [local gate toolchain](../../DEVELOPING.md#pull-requests-are-checked-locally), LuaJIT for renders, the BigWigs packager, Higgsfield `gpt_image_2_5` for generated art.
+**Tech Stack:** Lua 5.1 (WoW client), XML load files, Python 3.12 for tooling, the [local gate toolchain](../../DEVELOPING.md#pull-requests-are-checked-on-github), LuaJIT for renders, the BigWigs packager, Higgsfield `gpt_image_2_5` for generated art.
 
 **Spec:** [`docs/superpowers/specs/2026-11-07-kstyleui-design.md`](../specs/2026-11-07-kstyleui-design.md)
 

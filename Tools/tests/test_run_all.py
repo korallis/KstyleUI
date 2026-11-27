@@ -318,6 +318,21 @@ class RunAllTest(unittest.TestCase):
         self.assertNotIn("FAIL test-pass", result.stdout)
         self.assertTrue(result.stdout.rstrip().endswith("passed 1, failed 1"))
 
+    def test_perf_failures_warn_on_pull_request_runs_and_fail_otherwise(self):
+        # The captain's ruling: on each pull request perf is a warning rather than a failure; the nightly run fails it.
+        (self.regression / "test-perf-slow.lua").write_text("print('over budget')\nraise SystemExit(1)\n")
+        (self.regression / "test-other.lua").write_text("raise SystemExit(1)\n")
+        warned = self.run_all(KSTYLEUI_PERF="warn")
+        self.assertEqual(warned.returncode, 1, "a failure outside test-perf still fails")
+        self.assertIn("WARN perf, not counted as a failure (KSTYLEUI_PERF=warn): test-perf-slow\nover budget\n", warned.stdout)
+        self.assertIn("FAIL test-other", warned.stdout)
+        self.assertTrue(warned.stdout.rstrip().endswith("passed 0, failed 1, perf warnings 1: test-perf-slow"), warned.stdout)
+        (self.regression / "test-other.lua").unlink()
+        self.assertEqual(self.run_all(KSTYLEUI_PERF="warn").returncode, 0)
+        enforced = self.run_all()
+        self.assertEqual(enforced.returncode, 1)
+        self.assertIn("FAIL test-perf-slow", enforced.stdout)
+
     def test_exits_0_when_all_pass(self):
         (self.regression / "test-a.lua").write_text("pass\n")
         (self.regression / "test-b.lua").write_text("pass\n")

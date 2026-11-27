@@ -412,7 +412,7 @@ class RunAllAffectedTest(GitRepoCase):
         self.assertEqual(self.ran(result), ["test-a", "test-d"])
         self.assertIn("affected: running 2 of 4 test files", result.stdout)
         self.assertIn("Mod/a.lua changed", result.stdout)
-        self.assertTrue(result.stdout.rstrip().endswith("(affected mode: 2 of 4 test files ran; the other 2 did not; bash scripts/gate.sh release runs them all)"))
+        self.assertTrue(result.stdout.rstrip().endswith("(affected mode: 2 of 4 test files ran; the other 2 did not; the nightly run runs them all)"))
 
     def test_a_language_file_change_runs_the_test_that_sets_a_language_and_not_the_one_that_does_not(self):
         # Intent: the approved faster-gate plan. A language file returns on its first line where GetLocale is unset.

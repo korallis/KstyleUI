@@ -21,5 +21,5 @@ A change to a TOC "## Version" line or to CODE_BUILD also needs the "release" la
 
 ## Checklist
 
-- [ ] Follow [Check and deliver](https://github.com/korallis/KstyleUI/blob/staging/AGENTS.md#check-and-deliver): run `bash scripts/gate.sh` with `PR_TITLE`, `PR_BODY_FILE` and `PR_LABELS` before and after pushing, then post the `local gate` mark.
+- [ ] Follow [Check and deliver](https://github.com/korallis/KstyleUI/blob/staging/AGENTS.md#check-and-deliver): run `bash scripts/gate.sh` once with `PR_TITLE`, `PR_BODY_FILE` and `PR_LABELS` before pushing, then wait for `checks` and `pr-rules` to pass on the newest commit.
 - [ ] One independent review of the diff against `origin/staging` by the latest GPT Sol model

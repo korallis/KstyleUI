@@ -1,7 +1,8 @@
 """Run every Tools/regression/test-*.lua in parallel under Lua 5.1, with a time and memory budget per file.
 
 run-all.sh starts this from the repository root. Tools/regression/README.md describes the interpreter
-choice, the budgets, the output, --shard (one slice of the files, for CI) and --affected (only the files a change can reach).
+choice, the budgets, the output, --shard (one slice of the files, for CI), --affected (only the files a change can reach)
+and KSTYLEUI_PERF=warn, which pull request checks set so a failing test-perf file warns instead of failing.
 """
 
 import argparse
@@ -504,6 +505,8 @@ def main(argv):
         wall = time.monotonic() - start
 
         passed = failed = 0
+        warned = []
+        perf_warns = os.environ.get("KSTYLEUI_PERF") == "warn"
         for path in tests:
             name, result = Path(path).stem, results[path]
             print("usage: {0} cpu={1} wall={2} peak_mb={3}".format(
@@ -527,8 +530,9 @@ def main(argv):
                         records[path]["seen"] = affected.seen(records[path], memo=hashes)
                     except (OSError, RuntimeError):
                         pass
+            perf_file = perf_warns and name.startswith("test-perf")
             for line in lines:
-                print(line)
+                print("WARN " + line[5:] if perf_file and line.startswith("FAIL ") else line)
             if result["ok"] and not any(line.startswith("FAIL ") for line in lines):
                 with open(os.path.join(logs, name + ".out"), encoding="utf-8", errors="replace") as log:
                     for line in log:
@@ -536,9 +540,13 @@ def main(argv):
                             print(line.rstrip())
                 passed += 1
                 continue
-            failed += 1
+            perf_warning = perf_file and not result["stopped"]
+            if perf_warning:
+                warned.append(name)
+            else:
+                failed += 1
             if not result["ok"] and not result["stopped"]:
-                print("FAIL " + name)
+                print(("WARN perf, not counted as a failure (KSTYLEUI_PERF=warn): " if perf_warning else "FAIL ") + name)
                 with open(os.path.join(logs, name + ".out"), encoding="utf-8", errors="replace") as log:
                     tail = log.read().splitlines()[-TAIL_LINES:]
                 for line in tail:
@@ -582,8 +590,10 @@ def main(argv):
         (HERE / "weights.json").write_text(json.dumps(measured, indent=1, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
         print("wrote {0} weights to {1}".format(len(measured), HERE / "weights.json"))
     summary = "passed {0}, failed {1}".format(passed, failed)
+    if warned:
+        summary += ", perf warnings {0}: {1}".format(len(warned), ", ".join(warned))
     if args.affected:
-        summary += " (affected mode: {0} of {1} test files ran; the other {2} did not; bash scripts/gate.sh release runs them all)".format(
+        summary += " (affected mode: {0} of {1} test files ran; the other {2} did not; the nightly run runs them all)".format(
             len(tests), len(every), len(every) - len(tests))
     print(summary)
     return 0 if failed == 0 else 1

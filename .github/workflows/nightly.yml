@@ -1,0 +1,147 @@
+# nightly.yml: the full suite on staging each night, and by hand on a release commit: lint on every file, every Lua test file with
+# perf budgets enforced, every Python test file with the renders, and a fresh record of what each Lua test loads for checks.yml.
+name: nightly
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  lua:
+    name: lua ${{ matrix.shard }}/${{ strategy.job-total }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    env:
+      KSTYLEUI_DEPS_CACHE: /home/runner/lua-deps.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/lua51/*.deb
+          key: ${{ runner.os }}-${{ runner.arch }}-lua515
+      - name: Install hosted Lua 5.1
+        run: |
+          mkdir -p "$HOME/.cache/lua51/partial"
+          sudo apt-get update -qq
+          sudo apt-get -o Dir::Cache::archives="$HOME/.cache/lua51" install -y lua5.1
+          lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
+      - name: Every Lua test file, one slice, recording what each loads
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ strategy.job-total }}
+        # The empty tree is not a commit, so --affected cannot compare with it: it runs every file and still records what each loads.
+        run: bash Tools/regression/run-all.sh --shard "$SHARD/$SHARD_TOTAL" --affected 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lua-deps-${{ matrix.shard }}
+          path: /home/runner/lua-deps.json
+          if-no-files-found: error
+          retention-days: 2
+
+  lua-deps:
+    name: record what each Lua test loads
+    needs: [lua]
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: lua-deps-*
+          path: ${{ runner.temp }}/shards
+      - name: Merge the slices
+        env:
+          SHARDS: ${{ runner.temp }}/shards
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          merged = None
+          for path in sorted(Path(os.environ["SHARDS"]).glob("*/lua-deps.json")):
+              data = json.loads(path.read_text(encoding="utf-8"))
+              if merged is None:
+                  merged = data
+              else:
+                  merged["tests"].update(data["tests"])
+          Path("/home/runner/lua-deps.json").write_text(json.dumps(merged, sort_keys=True), encoding="utf-8")
+          print("records for", len(merged["tests"]), "test files")
+          PY
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /home/runner/lua-deps.json
+          key: lua-deps-${{ github.run_id }}
+
+  lint-python-package:
+    name: lint, python and package
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      KSTYLEUI_PYTHON: /home/runner/.local/share/wow-dev/venv/bin/python
+      KSTYLEUI_RELEASE: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        id: python
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: tools
+        with:
+          path: |
+            ~/.luarocks
+            ~/.local/share/wow-dev/venv
+            ~/.cache/pre-commit
+          key: ${{ runner.os }}-${{ runner.arch }}-python${{ steps.python.outputs.python-version }}-precommit470-luacheck120-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Install the hosted runner tools
+        env:
+          CACHE_HIT: ${{ steps.tools.outputs.cache-hit }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lua5.1 luajit luarocks
+          if [ "$CACHE_HIT" != true ]; then
+            luarocks --local --lua-version=5.1 install luacheck 1.2.0
+            python3 -m venv "$HOME/.local/share/wow-dev/venv"
+            "$KSTYLEUI_PYTHON" -m pip install pre-commit==4.7.0
+          fi
+          echo "$HOME/.luarocks/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/share/wow-dev/venv/bin" >> "$GITHUB_PATH"
+          echo "LUA_PATH=$(luarocks --local --lua-version=5.1 path --lr-path)" >> "$GITHUB_ENV"
+          echo "LUA_CPATH=$(luarocks --local --lua-version=5.1 path --lr-cpath)" >> "$GITHUB_ENV"
+      - name: Lint every file
+        if: ${{ !cancelled() }}
+        env:
+          GATE_BASE: HEAD^1
+        run: bash scripts/gate.sh lint
+      - name: Every Python test file, the renders included
+        if: ${{ !cancelled() }}
+        run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py'
+      - name: Remove tags from the check build
+        if: ${{ !cancelled() }}
+        run: git for-each-ref --format='delete %(refname)' refs/tags | git update-ref --stdin
+      - name: Package without uploading or localisation
+        if: ${{ !cancelled() }}
+        uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
+        with:
+          args: -d -l
+          pandoc: false
+      - name: Check the zip
+        if: ${{ !cancelled() }}
+        run: bash Tools/hooks/check-package.sh

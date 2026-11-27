@@ -1,0 +1,142 @@
+# checks.yml: the checks a pull request and a push to staging or main wait for, picked by what changed, on GitHub-hosted runners.
+# Lint covers the changed files; Lua runs only the test files the change can reach (none for docs), with perf failures as warnings;
+# Python leaves out tool tests whose tool is unchanged and the render comparison. nightly.yml runs everything with perf enforced.
+name: checks
+run-name: "${{ github.event_name == 'push' && format('{0}: {1}', github.ref_name, github.event.head_commit.message) || github.event.pull_request.title || 'checks (manual run)' }}"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [staging, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lua:
+    name: lua ${{ matrix.shard }}/${{ strategy.job-total }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    env:
+      KSTYLEUI_DEPS_CACHE: /home/runner/lua-deps.json
+      KSTYLEUI_PERF: warn
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # HEAD^1 is the base: the target branch for a pull request's merge commit, the previous commit for a push.
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Decide whether the change reaches a Lua test
+        id: scope
+        run: |
+          if bash Tools/hooks/needs-lua.sh HEAD^1; then echo run=true >> "$GITHUB_OUTPUT"; else echo run=false >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: steps.scope.outputs.run == 'true'
+        with:
+          # What each test loads, recorded by the nightly run; without it every file runs.
+          path: /home/runner/lua-deps.json
+          key: lua-deps-
+          restore-keys: lua-deps-
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: steps.scope.outputs.run == 'true'
+        with:
+          path: ~/.cache/lua51/*.deb
+          key: ${{ runner.os }}-${{ runner.arch }}-lua515
+      - name: Install hosted Lua 5.1
+        if: steps.scope.outputs.run == 'true'
+        run: |
+          mkdir -p "$HOME/.cache/lua51/partial"
+          sudo apt-get update -qq
+          sudo apt-get -o Dir::Cache::archives="$HOME/.cache/lua51" install -y lua5.1
+          lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
+      - name: The Lua test files the change reaches, one slice
+        if: steps.scope.outputs.run == 'true'
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ strategy.job-total }}
+        run: bash Tools/regression/run-all.sh --shard "$SHARD/$SHARD_TOTAL" --affected HEAD^1
+
+  lint-python-package:
+    name: lint, python and package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      KSTYLEUI_PYTHON: /home/runner/.local/share/wow-dev/venv/bin/python
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        id: python
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: tools
+        with:
+          path: |
+            ~/.luarocks
+            ~/.local/share/wow-dev/venv
+            ~/.cache/pre-commit
+          key: ${{ runner.os }}-${{ runner.arch }}-python${{ steps.python.outputs.python-version }}-precommit470-luacheck120-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Install the hosted runner tools
+        env:
+          CACHE_HIT: ${{ steps.tools.outputs.cache-hit }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lua5.1 luajit luarocks
+          if [ "$CACHE_HIT" != true ]; then
+            luarocks --local --lua-version=5.1 install luacheck 1.2.0
+            python3 -m venv "$HOME/.local/share/wow-dev/venv"
+            "$KSTYLEUI_PYTHON" -m pip install pre-commit==4.7.0
+          fi
+          echo "$HOME/.luarocks/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/share/wow-dev/venv/bin" >> "$GITHUB_PATH"
+          echo "LUA_PATH=$(luarocks --local --lua-version=5.1 path --lr-path)" >> "$GITHUB_ENV"
+          echo "LUA_CPATH=$(luarocks --local --lua-version=5.1 path --lr-cpath)" >> "$GITHUB_ENV"
+      - name: Lint the changed files
+        if: ${{ !cancelled() }}
+        env:
+          GATE_BASE: HEAD^1
+        run: bash scripts/gate.sh fast
+      - name: Python tool tests the change reaches
+        if: ${{ !cancelled() }}
+        run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py HEAD^1 --skip test_render_deterministic.py'
+      - name: Remove tags from the check build
+        if: ${{ !cancelled() }}
+        run: git for-each-ref --format='delete %(refname)' refs/tags | git update-ref --stdin
+      - name: Package without uploading or localisation
+        if: ${{ !cancelled() }}
+        uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
+        with:
+          args: -d -l
+          pandoc: false
+      - name: Check the zip
+        if: ${{ !cancelled() }}
+        run: bash Tools/hooks/check-package.sh
+
+  checks:
+    name: checks
+    if: ${{ always() }}
+    needs: [lua, lint-python-package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for result in $RESULTS; do
+            [ "$result" = success ] || exit 1
+          done

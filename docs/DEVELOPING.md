@@ -11,7 +11,7 @@ The binding design is [`docs/superpowers/specs/2026-11-07-kstyleui-design.md`](s
 
 Each release is a `vX.Y.Z` tag on `main`, cut after the owner's in-game pass on `staging`. [`CHANGELOG.md`](../CHANGELOG.md) and [`docs/RELEASE_NOTES.md`](RELEASE_NOTES.md) hold what each release changed, and [`docs/TESTING.md`](TESTING.md) is the test guide.
 
-Before pushing a `v*` tag, run `bash scripts/gate.sh release` on the exact commit to be tagged and quote its last line, `gate passed (release) at <commit>`, in the release report. It runs lint, every Lua test file and every Python test file; a hotfix tag gets the same run. The release workflow runs none of them. Its `check` job verifies that the tag is on `main`, validates the tag's changelog section, builds the icon pack and packages without uploading. Uploads require `check` to succeed. Before packaging, both jobs write the tag's changelog section to `Tools/release/packager-changelog.md` (`python3 Tools/release/discord_post.py --section <tag>`), the file `.pkgmeta` gives the packager as the text it uploads with the zip: GitHub refuses release text over 125,000 characters, and the whole `CHANGELOG.md` is longer. The zip still carries the whole file. After the upload, the release job sets the GitHub release text to that version's changelog section and the CurseForge and Wago links.
+Before pushing a `v*` tag, start the `nightly` workflow by hand on `main` while its newest commit is the one to tag, and quote the passing run's link in the release report; a hotfix tag gets the same run. It runs lint on every file, every Lua test file with perf budgets enforced and every Python test file. Only when GitHub cannot run it, run `bash scripts/gate.sh release` on that commit and quote its last line instead. The release workflow runs none of them. Its `check` job verifies that the tag is on `main`, validates the tag's changelog section, builds the icon pack and packages without uploading. Uploads require `check` to succeed. Before packaging, both jobs write the tag's changelog section to `Tools/release/packager-changelog.md` (`python3 Tools/release/discord_post.py --section <tag>`), the file `.pkgmeta` gives the packager as the text it uploads with the zip: GitHub refuses release text over 125,000 characters, and the whole `CHANGELOG.md` is longer. The zip still carries the whole file. After the upload, the release job sets the GitHub release text to that version's changelog section and the CurseForge and Wago links.
 
 To run the current `staging` build from a clone at `~/KstyleUI`, follow [Install the addons](TESTING.md#install-the-addons) in the test guide.
 
@@ -85,11 +85,11 @@ The glyph-table comparison skips if Pillow was built without Raqm text layout. T
 "$HOME/.local/share/wow-dev/venv/bin/python" -m unittest discover -s Tools/tests -p test_render_standins.py -k test_glyph_table_is_current -v
 ```
 
-On a new setup the Lua runner may select every test to learn which files each test uses. If it refuses because another run holds worker slots, wait for that run or use `KSTYLEUI_FULL=1 bash scripts/gate.sh` to let the larger selection proceed. The worker slots and all checks still apply.
+The default group is `fast`: lint on the files changed against the base, about 15 seconds, with no tests. `bash scripts/gate.sh lua` runs the Lua tests the change reaches and `bash scripts/gate.sh python` the Python tests; `lint` checks every file and `all` runs lint, lua and python. On a new setup the Lua runner may select every test to learn which files each test uses. If it refuses because another run holds worker slots, wait for that run or use `KSTYLEUI_FULL=1 bash scripts/gate.sh lua` to let the larger selection proceed.
 
-### Pull requests are checked locally
+### Pull requests are checked on GitHub
 
-No workflow runs for a pull request or for a push to `staging`. The gate on the computer that made the change is the only check, so run it on the exact commit you push.
+Run `bash scripts/gate.sh` once before you push. GitHub then runs the checks on the pull request; do not run the gate again after the push.
 
 - **Wording.** Set `PR_TITLE`, `PR_BODY` or `PR_BODY_FILE`, and `PR_LABELS`, and the lint group also runs `Tools/hooks/check-pr.sh`: the title reads `type(scope): summary`, the changelog line and the release markers. Run `bash scripts/gate.sh lint` with them again after editing the title, the body or the labels.
 
@@ -97,14 +97,17 @@ No workflow runs for a pull request or for a push to `staging`. The gate on the 
   PR_TITLE="fix(chat): keep the edit box under the newest line" PR_BODY_FILE=body.md PR_LABELS="" bash scripts/gate.sh
   ```
 
-- **The pass mark.** A pass on a clean working copy ends `gate passed (all) at <commit>`; with uncommitted changes the last line says so and names no commit. After the push, post a commit status on that commit with context `local gate`, state `success` and that last line as the description (`POST /repos/korallis/KstyleUI/statuses/<commit>`). A failing run, a one-group run or a run with uncommitted changes posts nothing, and a pull request whose newest commit lacks the mark is not ready to merge. `gh pr checks <number>` lists the mark.
-- **A new commit needs a new mark.** The mark belongs to one commit, so a later push, including a merge of `staging` into the branch, needs a new run and a new mark.
-- **A pull request from a fork** has no mark until someone with write access runs the gate on its commit and posts one.
+- **What merges wait for.** `checks` passes only when lint, the Lua shards, the Python tests and the package build passed, and `pr-rules` checks the title, changelog line and release markers again whenever they change. A pull request is ready to merge when both passed on its newest commit. `gh pr checks <number>` lists them. A pull request from a fork runs the same workflows with a read-only token.
+- **The pass line.** A pass ends `gate passed (<group>) at <commit>` only when the working copy was clean and on that commit from the start of the run to its end; otherwise the last line says what changed and names no commit.
 - **Tools.** The gate needs Lua 5.1.5, `luacheck` 1.2.0, `pre-commit` 4.7.0 and Python 3; the lint group fails on any other `luacheck` or `pre-commit` version. Budgets: instruction-count, allocation, memory (4096 MB) and hang limits fail on every computer; a file over its CPU-time limit prints a warning, and no machine enforces CPU time.
 
 ### What Actions runs
 
-Only the release. `release.yml` runs for a `v*` tag on `main` (and by hand to repost a release to Discord) on GitHub-hosted `ubuntu-latest`: its `check` job verifies the tag, the changelog, the icon pack and a dry package build, and the upload needs that job. It runs no lint and no test suite. Actions are pinned by commit hash, and the release jobs check the Lua 5.1.5 and Pillow 13.0.0 they install.
+`checks.yml` runs for every pull request and every push to `staging` and `main`, and picks its work by what changed against the base. `lua 1/8` to `lua 8/8` run `run-all.sh --shard I/8 --affected HEAD^1` only when a changed file can reach a Lua test (`Tools/hooks/needs-lua.sh`: addon Lua, TOC or XML, `.luacheckrc`, `Tools/regression/`, `Tools/data/` or `Media/`), so a docs-only change runs none; what each test loads comes from the last nightly run's record, and without one every file runs. They set `KSTYLEUI_PERF=warn`, so a failing `test-perf` file is reported as a warning. `lint, python and package` runs `gate.sh fast`, the Python tests whose tool changed and every other Python test file except the render comparison, and a dry package build. `checks` passes only when both jobs passed. `pr-rules.yml` checks the wording on every pull request event.
+
+`nightly.yml` runs on `staging` each night and by hand: lint on every file, every Lua test file with perf enforced, every Python test file including the render comparison, a dry package build, and a new record of what each Lua test loads for `checks.yml`. None of these workflows reads a secret or writes anything.
+
+`release.yml` runs for a `v*` tag on `main` (and by hand to repost a release to Discord) on GitHub-hosted `ubuntu-latest`: its `check` job verifies the tag, the changelog, the icon pack and a dry package build, and the upload needs that job. It runs no lint and no test suite. Actions are pinned by commit hash, and the release jobs check the Lua 5.1.5 and Pillow 13.0.0 they install.
 
 ## Add or change a translation
 

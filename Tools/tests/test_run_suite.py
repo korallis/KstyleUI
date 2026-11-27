@@ -119,6 +119,16 @@ class RunTest(unittest.TestCase):
         self.assertIn("2 of 2 test files", release.stdout)
         self.assertIn("ok   test_crlf.py", release.stdout)
 
+    def test_a_skipped_file_does_not_run_and_an_unknown_name_is_refused(self):
+        # The captain's ruling: pull request checks leave the renders to the nightly run.
+        files = {"test_render_x.py": "    def test_a(self):\n        self.fail('rendered')\n",
+                 "test_other.py": "    def test_a(self):\n        pass\n"}
+        result = self.run_suite(files, "--skip", "test_render_x.py")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("python suite: left out 1 by request: test_render_x.py", result.stdout)
+        self.assertIn("1 of 1 test files", result.stdout)
+        self.assertEqual(self.run_suite(files, "--skip", "test_missing.py").returncode, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
