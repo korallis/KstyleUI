@@ -182,6 +182,8 @@ end
 
 -- A cooldown sigil burns on two copies of its slot, so a motion level changed under hidden values still applies at once (the owner's rule in
 -- test-actionbars-crest-motion.lua): the fire on a copy whose layer is dark unless the crest is awake at Full, the still on one dark only then.
+-- The fire's copy keeps its loop bound at every level, so a level first chosen under hidden values finds it ready (review of 071e48df,
+-- restricted-entry-without-full-binding).
 do
 	env.C_SpellBook.IsSpellKnown = function(id) return id == 3045 end
 	local rim = Medals.CooldownRim(parent, { families = { { spells = { 3045 }, sigil = "Volley" } }, color = "jewelHawk" }, 5)
@@ -204,15 +206,23 @@ do
 	assert(flame:IsShown() and fire.loop:IsPlaying(), "the sigil lit: the engine plays its loop")
 	env.SetTarget(false)
 	env.RunTimers()
-	assert(not Engine(fire, flame) and not fire.loop:IsPlaying() and burning:GetAlpha() == 0 and resting:GetAlpha() == 1, "the crest resting: the loop leaves the engine and the still shows")
+	assert(Engine(fire, flame) and burning:GetAlpha() == 0 and resting:GetAlpha() == 1, "the crest resting: the fire's copy goes dark with its loop still bound and the still shows")
 	env.SetTarget(true)
 	env.RunTimers()
 	assert(Engine(fire, flame) and fire.loop:IsPlaying() and burning:GetAlpha() == 1, "woken with the sigil still lit, its loop plays again")
 	assert(#dropped == 0, "resting and waking leave the rim's flares and other cues bound")
 
+	K.Options.Write("Medallions", "motion", "calm")
+	env.RunTimers()
+	Medals.Rest()
+	assert(Engine(fire, flame) and burning:GetAlpha() == 0 and resting:GetAlpha() == 1, "at Calm the fire's copy is dark and keeps its loop bound")
 	env._aurasSecret = true
 	env.SetCombat(true)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	K.Options.Write("Medallions", "motion", "full")
+	env.RunTimers()
+	Medals.Rest()
+	assert(Engine(fire, flame) and burning:GetAlpha() == 1 and resting:GetAlpha() == 0, "Full first chosen under hidden values shows a fire whose loop is bound at once")
 	K.Options.Write("Medallions", "motion", "calm")
 	env.RunTimers()
 	Medals.Rest()

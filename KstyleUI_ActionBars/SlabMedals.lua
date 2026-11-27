@@ -335,20 +335,24 @@ local function Mirror(piece, lit, level, key)
 end
 Medals.Mirror, Medals.Timer = Mirror, Timer
 
-function Medals.Gates(piece, lit, level, still)
-	if not lit.flames then
-		lit.flames = Mirror(piece, lit, level, false)
-		lit.flames.burning = true
-		lit.flames:SetAlpha(Moving() and 1 or 0)
-		gates[#gates + 1] = lit.flames
-		if still then
-			lit.stills = Mirror(piece, lit, level, false)
-			lit.stills.calm = true
-			lit.stills:SetAlpha(Moving() and 0 or 1)
-			gates[#gates + 1] = lit.stills
-		end
+local function Gate(piece, lit, level, key, calm)
+	local shared = lit.share and lit.share[key]
+	local gate = Mirror(piece, lit, level, key)
+	gate.lit.burns = not calm
+	if not shared then
+		gate.burning, gate.calm = not calm, calm
+		gate:SetAlpha(Moving() == not calm and 1 or 0)
+		gates[#gates + 1] = gate
 	end
-	return lit.flames.lit, lit.stills and lit.stills.lit
+	lit[key] = gate
+	return gate.lit
+end
+
+function Medals.Gates(piece, lit, level, still)
+	if not lit.lights then
+		lit.lights = { flame = Gate(piece, lit, level, "flames", false), calm = still and Gate(piece, lit, level, "stills", true) or nil }
+	end
+	return lit.lights.flame, lit.lights.calm
 end
 
 function Medals.Gate(gate, alpha)
@@ -773,7 +777,7 @@ local function Sigil(r, lit, key, family, color, size, bloom)
 			pcall(slot.EnableMouse, slot, false)
 			slot:SetPoint("CENTER", r, "CENTER", 0, 0)
 			slot:SetFrameLevel(button:GetFrameLevel())
-			slot.container = mirror.container
+			slot.container, slot.burns = mirror.container, name == "flame"
 			lights[name] = r.add(slot, size)
 		end
 		button.flame, button.calm = lights.flame, lights.calm
@@ -1058,7 +1062,7 @@ end
 
 local function Animate(button, mode)
 	mode = mode or false
-	local was, awake = button.full or false, button.auraLoops ~= nil and Moving()
+	local was, awake = button.full or false, button.auraLoops ~= nil and (button.burns or Moving())
 	if was == mode then
 		if (button.auraAwake or false) == awake then
 			return false
@@ -1117,7 +1121,7 @@ function Medals.Engine(pieces, on, full)
 		for _, button in ipairs(p.sigils or NONE) do
 			Animate(button, mode)
 			if button.flame then
-				Animate(button.flame, mode)
+				Animate(button.flame, true)
 			end
 		end
 		for _, button in ipairs(p.lits or { p.lit }) do
@@ -1125,7 +1129,7 @@ function Medals.Engine(pieces, on, full)
 				Drive(button, on, mode, armed)
 			end
 			for _, mirror in ipairs(button.mirrors or NONE) do
-				Drive(mirror, on, mirror.alt and FLARES[mode or false][mirror.alt] or mode, armed)
+				Drive(mirror, on, mirror.burns or mirror.alt and FLARES[mode or false][mirror.alt] or mode, armed)
 			end
 		end
 	end
@@ -1153,8 +1157,10 @@ function Medals.Rest()
 		Medals.Still(r, still, 1)
 	end
 	local restricted = Medals.Restricted()
-	for _, fire in ipairs(restricted and NONE or auras) do
-		Burn(fire, not still)
+	for _, fire in ipairs(auras) do
+		if not (restricted and fire.fed) then
+			Burn(fire, not still)
+		end
 	end
 	local stale = {}
 	for _, button in ipairs(restricted and NONE or feds) do

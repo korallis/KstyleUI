@@ -131,12 +131,12 @@ local function Fill(m, lit, look, color, units, level, usable)
 	end
 	if look.aura then
 		local span = select(5, Tokens.Flipbook(look.aura))
-		local function Clip(parent, above)
+		local function Clip(parent)
 			local clip = CreateFrame("Frame", nil, parent)
-			clip:SetFrameLevel(above:GetFrameLevel() + 1)
+			clip:SetFrameLevel(parent:GetFrameLevel() + 1)
 			clip:SetClipsChildren(true)
-			clip:SetPoint(lead, fill, lead, dx * units * (span - 1) / 2, dy * units * (span - 1) / 2)
-			clip:SetPoint(tail, m, "CENTER", -dx * units * span / 2, -dy * units * span / 2)
+			clip:SetPoint(lead, fill, lead, 0, 0)
+			clip:SetPoint(tail, fill, tail, 0, 0)
 			if orient == "VERTICAL" then
 				clip:SetWidth(units * span)
 			else
@@ -145,9 +145,12 @@ local function Fill(m, lit, look, color, units, level, usable)
 			return clip
 		end
 		fill:SetAlpha(LIGHT)
-		local still = Clip(lit.bar, lit.bar)
-		local flame = lit.container and Medals.Gates(m, lit, lit.bar:GetFrameLevel() + 1)
-		lit.fire = Medals.Aura(m, still, look.aura, units, color, nil, nil, nil, flame and { flame = Clip(flame, flame) })
+		local lights
+		if lit.container then
+			local flame, calm = Medals.Gates(m, lit, lit.bar:GetFrameLevel() + 1, true)
+			lights = { flame = Clip(flame), calm = Clip(calm) }
+		end
+		lit.fire = Medals.Aura(m, lights and lights.calm or Clip(lit.bar), look.aura, units, color, nil, nil, nil, lights)
 		for _, t in ipairs({ lit.fire, lit.fire.still }) do
 			t:ClearAllPoints()
 			t:SetPoint("CENTER", m.ghost or m, "CENTER", 0, 0)

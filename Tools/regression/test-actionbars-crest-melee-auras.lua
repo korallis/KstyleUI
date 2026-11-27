@@ -69,15 +69,34 @@ do
 		return call and call[1] == true
 	end
 	assert(Clips(clip) and Clips(fire.still:GetParent()), "the fire and the still burn inside clipped frames")
+	-- Both clips span exactly the lit fill along the horn's length, so an empty fill shows no light and a half fill lights only its lit half
+	-- (review of 071e48df, aura-clip-leads-fill).
 	local fill = horn.lit.bar:GetStatusBarTexture()
-	local anchored = false
-	for i = 1, clip:GetNumPoints() do
-		local _, to = clip:GetPoint(i)
-		anchored = anchored or to == fill
+	for _, each in ipairs({ clip, fire.still:GetParent() }) do
+		local ends = {}
+		for i = 1, each:GetNumPoints() do
+			local point, to, at, x, y = each:GetPoint(i)
+			assert(to == fill and point == at and x == 0 and y == 0, "a clip's " .. point .. " sits on the fill's own " .. tostring(at))
+			ends[point] = true
+		end
+		assert(ends.TOP and ends.BOTTOM and each:GetNumPoints() == 2, "a clip is held at both ends of the fill")
 	end
-	assert(anchored, "the fire's clip follows the fill's lit end, so the light drains with it")
 	assert(Colour(fire) == Token(K, horn.spec.color), "the horn's light takes its piece's colour")
-	assert(clip:GetParent() == horn.lit.flames.lit, "the fire burns on the aura slot's own copy")
+	assert(clip:GetParent() == horn.lit.lights.flame, "the fire burns on the aura slot's own copy")
+	assert(fire.still:GetParent():GetParent() == horn.lit.lights.calm, "and the still on another, so each layer can go dark alone")
+	-- A motion level chosen under hidden values swaps the horn's fire for its still at once (review of 071e48df, object-motion-freezes-under-restriction).
+	env._aurasSecret = true
+	env.SetCombat(true)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	for _, level in ipairs({ { "calm", 0, 1 }, { "full", 1, 0 }, { "off", 0, 1 } }) do
+		K.Options.Write("Medallions", "motion", level[1])
+		env.RunTimers()
+		ns.SlabMedals.Rest()
+		assert(horn.lit.flames:GetAlpha() == level[2] and horn.lit.stills:GetAlpha() == level[3], level[1] .. " under hidden values: the horn's fire " .. level[2] .. ", still " .. level[3])
+	end
+	env._aurasSecret = false
+	env.SetCombat(false)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
 	Clean(env, K, "horn")
 end
 
@@ -93,6 +112,22 @@ do
 	env.FireEvent("SPELL_UPDATE_USABLE")
 	assert(File(fire) == Sheet("Effects", "Axe") and File(fire.still) == Sheet("Effects", "Axe"), "Execute taking over burns its axe's sheet")
 	assert(Colour(fire) == Token(K, "plateHostile") and Colour(fire.still) == Token(K, "plateHostile"), "in Execute's red")
+	-- The opening's light burns on no aura slot, so it keeps answering the motion level while auras are hidden (review of 071e48df,
+	-- object-motion-freezes-under-restriction).
+	env._aurasSecret = true
+	env.SetCombat(true)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	K.Options.Write("Medallions", "motion", "calm")
+	env.RunTimers()
+	ns.SlabMedals.Rest()
+	assert(fire:GetAlpha() == 0 and fire.still:GetAlpha() == 1 and not fire.loop:IsPlaying(), "Calm under hidden values: the opening's light stills at once")
+	K.Options.Write("Medallions", "motion", "full")
+	env.RunTimers()
+	ns.SlabMedals.Rest()
+	assert(fire:GetAlpha() == 1 and fire.still:GetAlpha() == 0 and fire.loop:IsPlaying(), "and Full burns it again at once")
+	env._aurasSecret = false
+	env.SetCombat(false)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
 	Clean(env, K, "opening")
 end
 
