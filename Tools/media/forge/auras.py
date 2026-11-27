@@ -4,7 +4,8 @@ An aura is a mark's own figure made of moving spell light. Its design (designs_<
 the silhouette and relief; this writes a signed distance field and a ridge map from them, has Blender render 16
 frames at 512 px with EEVEE (aura.py), reduces each frame to a 128 px cell in linear light, fades the light before the
 socket's gilt rim (a mark seated on a plate) or the cell's edge (a bare figure or a sigil), and packs a 4x4 sheet of
-512x512, the shape of the class ambient sheets. The crest plays it with an engine FlipBook added over the socket
+512x512, the shape of the class ambient sheets; a mark in BANDS is a strip, its frames cut to their middle band and
+packed in cells as wide as the band is long (Quick Shots' gust: 2 columns by 8 rows of 256x64). The crest plays it with an engine FlipBook added over the socket
 (Core/Tokens.lua aura<Kind><Name>, KstyleUI_ActionBars/SlabMedals.lua Medals.Mark).
 
 The socket is a forged coin with its figure taken out, the dark plate and gilt rim only, forged by forge.py and
@@ -34,6 +35,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 sys.path[:0] = [str(HERE), str(HERE.parent)]
 
+import designs_casters as casters
 import melee_effects
 import sigils
 from finish import load, outline, resize, save, to_lin, to_srgb
@@ -46,13 +48,16 @@ RIM_INNER = 0.49 - 0.045  # the socket plate's radius as a share of the box (rel
 SPAN = 1.25               # a bare figure's cell is this much wider than the figure, so its flames have room
 EDGE = 3                  # cell pixels over which a bare figure's light fades before the cell's edge
 
-# mark: (kind, Core/Tokens.lua colour, design). A "glyphs" mark's design is its factory in the class's designs module
-# (designs_hunter.D["Hawk"]), whose emblem seats on the socket when it has a seated figure; a "sigils" mark draws
-# Tools/media/sigils.py's figure of its name and takes None; an "effects" mark (named Effects/<Art>) is a crest object of
-# Tools/media/melee_effects.py, its design the function drawing it, lit in place in its own box so the crest can lay its
-# light over the object's fill. Each class adds its marks as it takes the kit. A mark in "white" bakes a neutral light the
-# game tints: a racial, a potion or Sprint is on every class's rail in that class's colour, and an object takes its
-# piece's colour, which a seal's school or a picked weapon changes.
+# mark: (kind, Core/Tokens.lua colour, design). A "glyphs" or "trackers" mark's design is its factory in the class's
+# designs module (designs_hunter.D["Hawk"]), whose emblem seats on the socket when it has a seated figure; a "sigils"
+# mark draws Tools/media/sigils.py's figure of its name and takes None; an "effects" mark (named Effects/<Art>) is a crest
+# object of Tools/media/melee_effects.py, its design the function drawing it, lit in place in its own box so the crest can
+# lay its light over the object's fill. The name is the texture token's (glyph<Name>, sigil<Name>, tracker<Name> in
+# Core/Tokens.lua), which may keep an older subject's name: the mage's ChillShard is the designs' ice Shard; a "#" suffix
+# tells two kinds' marks of one name apart (Eye#glyph, Hourglass#sigil), and the sheet keeps the name before it. Each class
+# adds its marks as it takes the kit. A mark in "white" bakes a neutral light the game tints: a racial, a potion or Sprint is
+# on every class's rail in that class's colour, and an object takes its piece's colour, which a seal's school or a picked
+# weapon changes. Every other mark's colour is the one its seat draws it in.
 MARKS = {}
 NEUTRAL = "white"
 
@@ -69,6 +74,47 @@ for name, (art, threshold) in {"Horn": ("Horn.png", 0.5), "Sword": ("Sword.png",
                                "Vial": ("Vial.png", 0.5), "Ward": ("Ward.png", 0.5), "Oath": ("Oath.png", 0.3),
                                "Stain": ("Stain.png", 0.3)}.items():
     MARKS["Effects/" + name] = ("effects", NEUTRAL, (art, threshold))
+# the mage's and warlock's marks (KstyleUI_ActionBars/SlabRanged.lua); Facet and Healthstone are one gem in two lights,
+# and each demon burns twice: in the live pet's green on its sigil (HornsPet for a pet out whose spellbook names none of the four demons) and in fel violet as the
+# sacrificed demon (ImpFel and the rest), while Horns stays the armor perch's violet
+MARKS.update({
+    "Intellect": ("glyphs", "schoolArcane", casters.D["Intellect"]),
+    "Facet": ("glyphs", "magic", casters.D["Gem"]),
+    "Healthstone": ("glyphs", "friendly", casters.D["Gem"]),
+    "FireTongue": ("glyphs", "schoolFire", casters.D["Flame"]),
+    "ChillShard": ("glyphs", "schoolFrost", casters.D["Shard"]),
+    "PolyCurl": ("glyphs", "schoolArcane", casters.D["Sheep"]),
+    "Imp": ("glyphs", "schoolNature", casters.D["Imp"]),
+    "Voidwalker": ("glyphs", "schoolNature", casters.D["Voidwalker"]),
+    "Succubus": ("glyphs", "schoolNature", casters.D["Succubus"]),
+    "Fangs": ("glyphs", "schoolNature", casters.D["Felhunter"]),
+    "Horns": ("glyphs", "jewelShard", casters.D["Demon"]),
+    "HornsPet": ("glyphs", "schoolNature", casters.D["Demon"]),
+    "ImpFel": ("glyphs", "jewelShard", casters.D["Imp"]),
+    "VoidwalkerFel": ("glyphs", "jewelShard", casters.D["Voidwalker"]),
+    "SuccubusFel": ("glyphs", "jewelShard", casters.D["Succubus"]),
+    "FangsFel": ("glyphs", "jewelShard", casters.D["Felhunter"]),
+    "Weakness": ("glyphs", "jewelShard", casters.D["BrokenBlade"]),
+    "Tongue": ("glyphs", "schoolArcane", casters.D["Tongues"]),
+    "Burst": ("glyphs", "hostile", casters.LINEART["Burst"]),
+    "Elements": ("glyphs", "schoolFire", casters.LINEART["Elements"]),
+    "Hourglass": ("glyphs", "schoolFrost", casters.LINEART["Hourglass"]),
+    "Swirl": ("glyphs", "totemEarth", casters.LINEART["Swirl"]),
+    "Eye#glyph": ("glyphs", "jewelShard", casters.LINEART["Eye"]),
+    "Siphon": ("glyphs", "healthHostile", casters.LINEART["Siphon"]),
+    "Arcane": ("sigils", "pipMageGlow", None),
+    "Hourglass#sigil": ("sigils", "pipMageGlow", None),
+    "Flame": ("sigils", "pipMageGlow", None),
+    "Vortex": ("sigils", "pipMageGlow", None),
+    "Crystal": ("sigils", "pipMageGlow", None),
+    "Curse": ("sigils", "jewelShard", None),
+    "Horns#sigil": ("sigils", "jewelShard", None),
+    "Shade": ("sigils", "jewelShard", None),
+    "Void": ("sigils", "jewelShard", None),
+    "SoulWisp": ("trackers", "jewelShard", casters.D["SoulWisp"]),
+    "Gust": ("trackers", "jewelHawk", casters.D["Gust"]),
+})
+BANDS = {"Gust": 4}  # mark: its strip's length over its height
 # the amber spell fire of the approved hawk mock: dark ember to the crest's gilt to white heat
 GILT = [[0.0, "000000"], [0.06, "2a0a02"], [0.18, "a8320a"], [0.34, "f26a12"], [0.52, "ffb22e"], [0.72, "ffe39a"], [1.0, "fffdf4"]]
 
@@ -125,14 +171,13 @@ def fields(name, mask, height, folder):
     Image.fromarray((ridge * 65535).astype(np.uint16)).save(folder / f"{name}_ridge.png")
 
 
-def fade(seated):
+def fade(seated, w=CELL, h=CELL):
     """The cell's light falls off before the socket's rim, or before the cell's edge for a bare figure."""
-    yy, xx = np.mgrid[0:CELL, 0:CELL]
-    c = (CELL - 1) / 2
+    yy, xx = np.mgrid[0:h, 0:w]
     if seated:
-        r = np.hypot(xx - c, yy - c)
-        return np.clip((RIM_INNER * CELL - 2 - r) / 3.0, 0, 1)[..., None]
-    edge = np.minimum(np.minimum(xx, CELL - 1 - xx), np.minimum(yy, CELL - 1 - yy))
+        r = np.hypot(xx - (w - 1) / 2, yy - (h - 1) / 2)
+        return np.clip((RIM_INNER * w - 2 - r) / 3.0, 0, 1)[..., None]
+    edge = np.minimum(np.minimum(xx, w - 1 - xx), np.minimum(yy, h - 1 - yy))
     return np.clip(edge / EDGE, 0, 1)[..., None]
 
 
@@ -146,20 +191,33 @@ def loop_start(cells):
     return (steps.index(min(steps)) + 1) % FRAMES
 
 
-def bake(frames, seated, path):
-    """16 master frames to one 4x4 sheet of 128 px cells; returns the loop's seam step against its largest ordinary step."""
-    k = fade(seated)
+def shape(band):
+    """A sheet's cell width, cell height and columns: 4x4 square cells, or a band's strips two wide down the sheet."""
+    if not band:
+        return CELL, CELL, GRID
+    w = CELL * GRID // 2
+    return w, w // band, 2
+
+
+def bake(frames, seated, path, band=0):
+    """16 master frames to one 512x512 sheet; returns the loop's seam step against its largest ordinary step."""
+    w, h, columns = shape(band)
+    k = fade(seated, w, h)
     cells = []
     for f in frames:
         lin = to_lin(np.asarray(Image.open(f).convert("RGB"), np.float32) / 255)
-        small = np.stack([np.asarray(Image.fromarray(lin[..., i]).resize((CELL, CELL), Image.LANCZOS)) for i in range(3)], -1)
+        if band:
+            lin = np.rot90(lin, 1)
+            top = (lin.shape[0] - lin.shape[1] // band) // 2
+            lin = lin[top:top + lin.shape[1] // band]
+        small = np.stack([np.asarray(Image.fromarray(lin[..., i]).resize((w, h), Image.LANCZOS)) for i in range(3)], -1)
         cells.append(to_srgb(np.clip(small, 0, 1)) * k)
     start = loop_start(cells)
     cells = cells[start:] + cells[:start]
     sheet = np.zeros((CELL * GRID, CELL * GRID, 3), np.float32)
     for i, cell in enumerate(cells):
-        y, x = divmod(i, GRID)
-        sheet[y * CELL:(y + 1) * CELL, x * CELL:(x + 1) * CELL] = cell
+        y, x = divmod(i, columns)
+        sheet[y * h:(y + 1) * h, x * w:(x + 1) * w] = cell
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray((np.clip(sheet, 0, 1) * 255 + 0.5).astype(np.uint8), "RGB").save(path, optimize=True)
     steps = [float(np.abs(cells[(i + 1) % FRAMES] - cells[i]).mean()) for i in range(FRAMES)]
@@ -206,21 +264,28 @@ def main(argv=None):
     if not only or "Socket" in only:
         path = socket(work, args.blender, env, args.out)
         print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest())
-    for name, (kind, colour, design) in MARKS.items():
-        if only and name not in only:
+    for key, (kind, colour, design) in MARKS.items():
+        if only and key not in only:
             continue
-        mask, height, seated = figure(name.split("/")[-1], kind, design, work)
-        stem = name.replace("/", "")
-        fields(stem, mask, height, work / "fields")
-        frames = work / "frames" / stem
+        name, tag = key.split("#")[0].split("/")[-1], key.replace("#", "-").replace("/", "")
+        mask, height, seated = figure(name, kind, design, work)
+        band = BANDS.get(key, 0)
+        if band:
+            # the rig's light rises up the frame; a strip lies on its side so its light streams back along it, and its
+            # frames turn upright again in bake()
+            mask, height = np.rot90(mask, -1), np.rot90(height, -1)
+        fields(tag, mask, height, work / "fields")
+        frames = work / "frames" / tag
         shutil.rmtree(frames, ignore_errors=True)
+        # a band fills the frame's width, its flames cropped above and below rather than shrunk inside a span
+        fit = 1.0 if seated or band else 1 / SPAN
         subprocess.run([args.blender, "-b", "--factory-startup", "--python-exit-code", "1", "--python", str(HERE / "aura.py"), "--",
-                        str(work / "fields"), stem, str(frames), "--frames", str(FRAMES), "--size", str(MASTER),
-                        "--palette", json.dumps(palette(hexes[colour])), "--fit", str(1.0 if seated else 1 / SPAN),
+                        str(work / "fields"), tag, str(frames), "--frames", str(FRAMES), "--size", str(MASTER),
+                        "--palette", json.dumps(palette(hexes[colour])), "--fit", str(fit),
                         "--plate", str(RIM_INNER if seated else 0.0), "--pad", str(PAD / (N + 2 * PAD))],
                        check=True, stdout=subprocess.DEVNULL, env=env)
-        path = args.out / kind.capitalize() / f"{name.split('/')[-1]}.png"
-        seam = bake([frames / f"{stem}_{i:02d}.png" for i in range(FRAMES)], seated, path)
+        path = args.out / kind.capitalize() / f"{name}.png"
+        seam = bake([frames / f"{tag}_{i:02d}.png" for i in range(FRAMES)], seated, path, band)
         print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest(), f"seam {seam:.2f}x largest ordinary step",
               "seated" if seated else "bare")
     if not args.work:

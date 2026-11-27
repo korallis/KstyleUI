@@ -534,6 +534,9 @@ function Trackers.Update()
 		local piece = form.pieces[key] or not restricted and Build(form, name, key, spec)
 		if piece then
 			Medals.Retexture(piece, spec.texture)
+			for _, face in ipairs(restricted and {} or { piece, unpack(piece.twins or {}) }) do
+				Medals.Prepare(face)
+			end
 			Medals.Size(piece)
 			prepared[key] = piece
 			if LUA[spec.feed] then

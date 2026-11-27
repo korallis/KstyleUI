@@ -182,14 +182,31 @@ end
 
 -- A cooldown sigil burns on two copies of its slot, so a motion level changed under hidden values still applies at once (the owner's rule in
 -- test-actionbars-crest-motion.lua): the fire on a copy whose layer is dark unless the crest is awake at Full, the still on one dark only then.
--- The fire's copy keeps its loop bound at every level, so a level first chosen under hidden values finds it ready (review of 071e48df,
--- restricted-entry-without-full-binding).
+-- The fire's copy keeps its loop bound at every level, so a level first chosen under hidden values finds it ready.
 do
-	env.C_SpellBook.IsSpellKnown = function(id) return id == 3045 end
+	-- The plan loads a sheet only once its spell is known: the rim is built and bound at Full before Rapid Fire is learned.
+	env.C_SpellBook.IsSpellKnown = function() return false end
 	local rim = Medals.CooldownRim(parent, { families = { { spells = { 3045 }, sigil = "Volley" } }, color = "jewelHawk" }, 5)
 	Medals.Place(rim, parent, 0, 0)
+	Medals.Prepare(rim)
 	local button = rim.sigils[1]
 	local flame, calm = button.flame, button.calm
+	assert(flame and calm and not flame.auraLoops and #(calm._regions or {}) == 0, "a sigil whose spell is not known loads no sheet")
+	Medals.Engine({ rim }, true, true)
+	-- Rapid Fire is already up when it is learned, so its slot has no new show edge to start the loop on: the tracker
+	-- update's prepare, size, bind and rest must start it without another cast.
+	Slots.Set(env, "player", { { id = 3045, count = 0, icon = 132208, start = 0, duration = 15 } })
+	env.C_SpellBook.IsSpellKnown = function(id) return id == 3045 end
+	Medals.Prepare(rim)
+	Medals.Place(rim, parent, 0, 0)
+	Medals.Engine({ rim }, true, true)
+	Medals.Rest()
+	local early
+	for _, region in ipairs(flame._regions) do
+		early = early or region.loop and region
+	end
+	assert(early and flame:IsShown() and early.loop:IsPlaying(), "the learned sigil's aura already up burns its loop at once")
+	Slots.Set(env, "player", nil)
 	assert(flame and calm and not button.auraLoops and not button.fires and not flame.fires, "a cooldown sigil's aura burns on its own slot copies and hooks nothing")
 	assert(flame.auraLoops and #flame.auraLoops == 1, "the fire's copy hands its loop to the engine")
 	local fire
@@ -206,35 +223,53 @@ do
 	assert(flame:IsShown() and fire.loop:IsPlaying(), "the sigil lit: the engine plays its loop")
 	env.SetTarget(false)
 	env.RunTimers()
+	-- What the screen shows: the test reads with the secret flag lifted, since the stub forbids the read to any code.
+	local function Read(fn)
+		local secret = env._aurasSecret
+		env._aurasSecret = false
+		local ok = fn()
+		env._aurasSecret = secret
+		return ok
+	end
+	local function Lit(f, s)
+		return Read(function() return fire:GetEffectiveAlpha() == f and fire.still:GetEffectiveAlpha() == s end)
+	end
 	assert(Engine(fire, flame) and burning:GetAlpha() == 0 and resting:GetAlpha() == 1, "the crest resting: the fire's copy goes dark with its loop still bound and the still shows")
 	env.SetTarget(true)
 	env.RunTimers()
 	assert(Engine(fire, flame) and fire.loop:IsPlaying() and burning:GetAlpha() == 1, "woken with the sigil still lit, its loop plays again")
 	assert(#dropped == 0, "resting and waking leave the rim's flares and other cues bound")
-
-	K.Options.Write("Medallions", "motion", "calm")
-	env.RunTimers()
-	Medals.Rest()
-	assert(Engine(fire, flame) and burning:GetAlpha() == 0 and resting:GetAlpha() == 1, "at Calm the fire's copy is dark and keeps its loop bound")
-	env._aurasSecret = true
-	env.SetCombat(true)
-	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
-	K.Options.Write("Medallions", "motion", "full")
-	env.RunTimers()
-	Medals.Rest()
-	assert(Engine(fire, flame) and burning:GetAlpha() == 1 and resting:GetAlpha() == 0, "Full first chosen under hidden values shows a fire whose loop is bound at once")
-	K.Options.Write("Medallions", "motion", "calm")
-	env.RunTimers()
-	Medals.Rest()
-	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
-	assert(burning:GetAlpha() == 0 and resting:GetAlpha() == 1, "Calm chosen under hidden values: the fire's copy goes dark and the still shows at once")
-	K.Options.Write("Medallions", "motion", "full")
-	env.RunTimers()
-	Medals.Rest()
-	assert(burning:GetAlpha() == 1 and resting:GetAlpha() == 0, "and Full brings the fire back at once")
-	env._aurasSecret = false
-	env.SetCombat(false)
-	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+	-- The restriction starts at Calm, at Off and at rest; Full chosen under it shows the fire already playing, and every later
+	-- level swaps fire and still at once.
+	for _, start in ipairs({ "calm", "off", "rest" }) do
+		if start == "rest" then
+			env.SetTarget(false)
+			env.RunTimers()
+		else
+			Motion(start)
+		end
+		assert(Engine(fire, flame) and Lit(0, 1), "before the restriction, " .. start .. " shows the sigil's still")
+		env._aurasSecret = true
+		env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+		if start == "rest" then
+			env.SetTarget(true)
+			env.RunTimers()
+		else
+			env.SetCombat(true)
+			Motion("full")
+		end
+		assert(Engine(fire, flame) and Read(function() return fire.loop:IsPlaying() end) and Lit(1, 0),
+			"from " .. start .. ", Full chosen while auras are secret shows the sigil's fire playing")
+		for _, step in ipairs({ { "calm", 0, 1 }, { "off", 0, 1 }, { "full", 1, 0 } }) do
+			Motion(step[1])
+			assert(Lit(step[2], step[3]), "chosen while auras are secret, " .. step[1] .. " shows the sigil's " .. (step[2] == 1 and "fire" or "still"))
+		end
+		assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+		env._aurasSecret = false
+		env.SetCombat(false)
+		env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+		Medals.Rest()
+	end
 	Slots.Set(env, "player", nil)
 	assert(not flame:IsShown() and not fire.loop:IsPlaying(), "the sigil cleared: its loop stops")
 end

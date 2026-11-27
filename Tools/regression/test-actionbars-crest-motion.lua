@@ -7,11 +7,11 @@ local Slots = dofile("Tools/regression/aura_slots.lua")
 local SHOUT = 25289
 local CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
 
-local function New(class)
+local function New(class, unknown, before)
 	local env, K, ns = AB.New({ class = class, setup = function(e)
 		e._trackOrigin = true
 		e.C_SpellBook = e.C_SpellBook or {}
-		e.C_SpellBook.IsSpellKnown = function() return true end
+		e.C_SpellBook.IsSpellKnown = function(id) return not (unknown and unknown[id]) end
 		e.C_Secrets = { ShouldAurasBeSecret = function() return e._aurasSecret == true end }
 		e.GetTime = function() return e._now or 0 end
 		e._auraData = {}
@@ -35,6 +35,7 @@ local function New(class)
 		Slots.Install(e)
 		e.AuraContainerSortMethod, e.AuraContainerSortDirection = { Default = 0, AuraInstanceIDOnly = 8 }, { Normal = 0, Reverse = 1 }
 	end })
+	if before then before(env, K) end
 	AB.Enable(env, K)
 	env.RunTimers()
 	assert(#env._errors == 0 and K.ErrorCount() == 0, class .. ": " .. AB.Errors(env))
@@ -128,6 +129,10 @@ local function Warnings(ns, class)
 	local function walk(piece, key)
 		for _, lit in ipairs(piece.lits or { piece.lit }) do
 			check(lit.flicker, key .. " refresh cue")
+			-- A caster mark's fire burns on its slot's gated copy, which carries the refresh cue of the part it burns on.
+			for _, copy in ipairs(lit.mirrors or {}) do
+				check(copy.flicker, key .. " fire copy")
+			end
 			-- The looks that burn with the one flicker while their aura shows: a fuse's head, and a flame or a crackle on a warrior's or paladin's hip.
 			if lit.loop and rawget(lit.loop, "low") then check(lit.loop, key .. " burn") end
 			for _, group in ipairs(lit.awake and lit.awake.lit.loops or {}) do
@@ -502,9 +507,9 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- The same holds for a cue on a slot the piece adds beside its first one: a mage's stack embers (Scorch, Winter's Chill), a warlock's torment spires and the hunter's
--- gust. A live warning or loop is followed through the three levels under hidden values.
-for _, case in ipairs({ { "MAGE", "crestSchool" }, { "WARLOCK", "crestTorments" }, { "HUNTER", "crestGust" } }) do
+-- The same holds for a cue on a slot the piece adds beside its first one: a mage's stack embers (Scorch, Winter's Chill) and a warlock's torment spires. A live
+-- warning is followed through the three levels under hidden values.
+for _, case in ipairs({ { "MAGE", "crestSchool" }, { "WARLOCK", "crestTorments" } }) do
 	local env, K, ns = New(case[1])
 	K.Options.Write("Medallions", "restingCrest", false)
 	env.RunTimers()
@@ -544,6 +549,162 @@ for _, case in ipairs({ { "MAGE", "crestSchool" }, { "WARLOCK", "crestTorments" 
 	assert(Seen() == "off" and #off._pandemicAnimations == 0 and #off._shownAnimations == 0, what .. "off under hidden values: the copy with no cue shows (" .. Seen() .. ")")
 	Motion(env, K, "full")
 	assert(Seen() == "full", what .. "full under hidden values: the moving slot shows again (" .. Seen() .. ")")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- An aura mark a slot feeds burns its fire and its still on two gated copies of that slot (the aura kit's motion rule, KSTY-51 plan): the caster's perches,
+-- fuse heads, stack embers, spire feet and sacrificed demons, the cooldown sigils and the hunter's gust. Under hidden values the engine keeps every binding, so the
+-- fire's loop stays bound at each level and only the layers choose: a level chosen during the pull shows at once, from a restriction begun at Calm, Off or rest,
+-- and the loop stops when its aura clears or its piece is switched off.
+local function Unknown(...)
+	local set = {}
+	for _, list in ipairs({ ... }) do
+		for _, id in ipairs(list) do set[id] = true end
+	end
+	return set
+end
+-- Each build seats one choice per seat: a mage who conjures no gem wears the Intellect perch, one without the Scorch talents stacks Winter's Chill embers, and a
+-- warlock who makes no healthstone wears the armor perch. The counts are the fires each fed seat shows: one head or perch, a fire per curse (five), per Torment
+-- foot (four) and per stack ember (five, the spec's stacks); one sacrificed demon, the Imp's buff fed alone; one gust; and a sigil per family with an aura
+-- sheet, the class's own plus the shared racials and consumables that the fixture's spellbook knows.
+for _, build in ipairs({
+	{ "MAGE", { crestYourSpell = 1, crestCooldowns = 15 } },
+	{ "MAGE", { crestSchool = 5, crestManaGem = 1 }, Unknown({ 10054, 10053, 3552, 759 }, { 11095, 12872, 12873 }) },
+	{ "WARLOCK", { crestTorments = 4, crestCurse = 5, crestDemon = 1, crestCooldowns = 14 } },
+	{ "WARLOCK", { crestHealthstone = 1 }, Unknown({ 11730, 11729, 5699, 6202, 6201 }) },
+	{ "HUNTER", { crestGust = 1, crestCooldowns = 10 } },
+}) do
+	local class, want = build[1], build[2]
+	local env, K, ns = New(class, build[3])
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	local lits, auras = {}, {}
+	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+		for _, lit in ipairs(piece.lits) do
+			if want[piece.spec.key] and lit.lights and lit:GetParent():IsVisible() then
+				local spec = lit.spec
+				local unit, harmful = spec.unit or "player", (spec.filter or "HELPFUL"):find("HARMFUL", 1, true) ~= nil
+				auras[unit] = auras[unit] or {}
+				for _, family in ipairs(spec.families or { spec }) do
+					table.insert(auras[unit], { id = family.spells[1], count = 3, start = 0, duration = 30, harmful = harmful, mine = true })
+				end
+				lits[#lits + 1] = { lit = lit, key = piece.spec.key, what = class .. " " .. piece.spec.key .. " " .. spec.spells[1] }
+			end
+		end
+	end
+	local function Feed(on)
+		for unit, list in pairs(auras) do
+			Slots.Set(env, unit, on and list or {})
+		end
+	end
+	Feed(true)
+	local fires, seen, burning = {}, {}, {}
+	local function Find(frame, each)
+		for _, region in ipairs(frame._regions or {}) do
+			if region.loop and region.still and not seen[region] then
+				seen[region] = true
+				fires[#fires + 1] = { fire = region, what = each.what }
+				burning[each.key] = (burning[each.key] or 0) + 1
+			end
+		end
+		for _, kid in ipairs(frame._kids or {}) do
+			Find(kid, each)
+		end
+	end
+	for _, each in ipairs(lits) do
+		for _, copy in ipairs(each.lit.mirrors) do
+			if copy.burns and copy:IsShown() then
+				Find(copy, each)
+				for _, slot in pairs(copy.container and copy.container._slots or {}) do
+					if slot.frame ~= copy and slot.frame:IsShown() then Find(slot.frame, each) end
+				end
+			end
+		end
+	end
+	for key, count in pairs(want) do
+		assert(burning[key] == count, class .. ": " .. key .. " burns " .. count .. " fires on its flame copies (" .. tostring(burning[key]) .. ")")
+	end
+	-- Under hidden values the addon writes nothing to these slots' containers: a level is chosen by the layers alone, so a container switched off and on again
+	-- inside the pull, which would end in the same picture, is caught here.
+	local writes, watched = {}, {}
+	local function Watch(container)
+		if not container or watched[container] then return end
+		watched[container] = true
+		for _, name in ipairs({ "SetEnabled", "SetAuraSlotEnabled", "SetUnit", "AddAuraSlot", "UpdateAllAuras" }) do
+			local write = container[name]
+			container[name] = function(...)
+				if env._aurasSecret then writes[#writes + 1] = name end
+				return write(...)
+			end
+		end
+	end
+	for _, each in ipairs(lits) do
+		Watch(each.lit.container)
+		for _, copy in ipairs(each.lit.mirrors) do
+			Watch(copy.container)
+		end
+	end
+	local function Shows(region)
+		return region:IsVisible() and region:GetEffectiveAlpha() > 0
+	end
+	local function Check(level, moving)
+		env._engine = true
+		for _, f in ipairs(fires) do
+			assert(f.fire.loop:IsPlaying(), f.what .. ": at " .. level .. " the fire's loop stays bound and playing")
+			assert(Shows(f.fire) == moving and Shows(f.fire.still) == not moving, f.what .. ": at " .. level .. " under hidden values the " .. (moving and "fire" or "still") .. " shows alone")
+		end
+		env._engine = nil
+	end
+	local function Restrict(on)
+		env._aurasSecret = on
+		env.SetCombat(on)
+		env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+		env.RunTimers()
+	end
+	for _, start in ipairs({ "calm", "off", "rest" }) do
+		if start == "rest" then
+			K.Options.Write("Medallions", "restingCrest", true)
+			env.SetTarget(false)
+			env.RunTimers()
+		else
+			Motion(env, K, start)
+		end
+		Check("the " .. start .. " start", false)
+		-- The pull begins: auras go secret and combat wakes a resting crest; Full is then chosen while they stay secret.
+		Restrict(true)
+		Motion(env, K, "full")
+		Check("full from " .. start, true)
+		for _, step in ipairs({ { "calm", false }, { "off", false }, { "full", true } }) do
+			Motion(env, K, step[1])
+			Check(step[1] .. " from " .. start, step[2])
+		end
+		assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+		if start == "rest" then
+			-- Every aura clears in the pull: each loop stops with its slot.
+			Feed(false)
+			env._engine = true
+			for _, f in ipairs(fires) do
+				assert(not f.fire.loop:IsPlaying() and not Shows(f.fire), f.what .. ": its aura cleared under hidden values, the fire's loop stops")
+			end
+			env._engine = nil
+			Feed(true)
+		end
+		assert(#writes == 0, class .. ": from the " .. start .. " start the pull wrote to a fed slot's container (" .. table.concat(writes, ", ") .. ")")
+		Restrict(false)
+		if start == "rest" then
+			K.Options.Write("Medallions", "restingCrest", false)
+			env.SetTarget(true)
+			env.RunTimers()
+		end
+	end
+	-- Each piece switched off after the pull takes its loops with it.
+	for key in pairs(want) do
+		K.Options.Write("ActionBars", key, false)
+	end
+	env.RunTimers()
+	for _, f in ipairs(fires) do
+		assert(not f.fire.loop:IsPlaying() and not Shows(f.fire), f.what .. ": its piece switched off, the fire's loop stops")
+	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -642,6 +803,112 @@ do
 	Gain(true)
 	assert(not cool.flare.play:IsPlaying() and not still:IsPlaying() and Effects.Holder("crestFlare") == nil, "Off plays no flare, shows no mark and claims nothing")
 	assert(fed.lit.flareGate:GetAlpha() == 0 and fed.lit.flareGate.other:GetAlpha() == 0, "the aura medal's two cue layers are dark")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A caster's fed mark blooms on its flame copy through the same flare place: Polymorph's fuse head and Counterspell's ready cue stop each other, and a bloom
+-- begun while its copy was dark keeps that copy dark after a switch to Full for the rest of its time, while the still copy keeps the steady aura on screen. The
+-- mage knows neither Ignite nor Winter's Chill, so the fuse seats its Polymorph choice.
+do
+	local env, K, ns = New("MAGE", Unknown({ 11119, 11120, 12846, 12847, 12848 }, { 11180, 28592, 28593, 28594, 28595 }))
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	local Effects = K.Effects
+	local cool, fuse = assert(Piece(ns, "crestCounterspell"), "a cooldown medal"), assert(Piece(ns, "crestYourSpell"), "Polymorph's fuse")
+	local ready = assert(cool.timer:GetScript("OnCooldownDone"), "the cooldown medal flares from its own timer's end")
+	local lit = fuse.lit
+	local flames, stills = lit.flames, lit.stills
+	local copy = lit.mark:GetParent():GetParent()
+	local bloom = assert(copy.flare, "the head blooms on its flame copy").play
+	assert(not lit.flare, "the fuse's own slot carries no second bloom for the same aura")
+	local function Cast(id)
+		Slots.Set(env, "target", { { id = id, harmful = true, start = env._now or 0, duration = 50, mine = true } })
+	end
+	env.SetTarget(true)
+	env.RunTimers()
+	Cast(118)
+	assert(bloom:IsPlaying() and Effects.Holder("crestFlare") ~= nil, "a new Polymorph blooms the head and holds the crest's flare place")
+	ready(cool.timer)
+	assert(cool.flare.play:IsPlaying() and not bloom:IsPlaying(), "a cooldown coming ready stops the head's bloom: two never overlap")
+	Cast(12826)
+	assert(bloom:IsPlaying() and not cool.flare.play:IsPlaying(), "and a fresh Polymorph's bloom stops the cooldown's")
+	env.RunTimers()
+	bloom:Stop()
+	Slots.Set(env, "target", {})
+
+	-- Calm keeps one still arrival cue, on a copy bound for Calm whose layer only Calm lights, which takes the flare place like any flare while the unseen bloom
+	-- claims nothing; Off has no cue.
+	local still = assert(lit.cues and lit.cues.lit.flare, "the head has a cue copy bound for Calm").still
+	Motion(env, K, "calm")
+	Cast(118)
+	assert(still:IsPlaying() and Effects.Holder("crestFlare") ~= nil, "at Calm a new Polymorph holds the head still for one pass in the flare place")
+	assert(flames:GetAlpha() == 0 and flames.late, "the moving bloom plays only on the dark flame copy and takes no place")
+	ready(cool.timer)
+	assert(cool.flare.still:IsPlaying() and not still:IsPlaying(), "a cooldown's still mark stops it: one cue at a time")
+	env.RunTimers()
+	Slots.Set(env, "target", {})
+	Motion(env, K, "off")
+	Cast(118)
+	assert(lit.cues:GetAlpha() == 0 and Effects.Holder("crestFlare") == nil and flames:GetAlpha() == 0, "Off shows no arrival cue and claims nothing")
+	Slots.Set(env, "target", {})
+
+	-- In a pull the copies keep the bindings made before it, so the level chosen there decides at once whether a fresh aura's cue shows: from Calm, Off shows
+	-- the steady mark with no cue; from Off, Calm shows the cue. Nothing is bound while auras are secret (the slots refuse it).
+	local function Pull(on)
+		env._aurasSecret = on or nil
+		env.SetCombat(on)
+		env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+		env.RunTimers()
+	end
+	for _, path in ipairs({ { "calm", "off" }, { "off", "calm" } }) do
+		Motion(env, K, path[1])
+		Pull(true)
+		Motion(env, K, path[2])
+		env._now = (env._now or 0) + 10
+		Cast(path[2] == "off" and 118 or 12826)
+		local what = path[1] .. " to " .. path[2] .. " in the pull: "
+		env._engine = true
+		if path[2] == "off" then
+			assert(lit.cues:GetAlpha() == 0 and Effects.Holder("crestFlare") == nil and stills:GetAlpha() == 1, what .. "a fresh aura shows its steady mark with no cue")
+		else
+			assert(still:IsPlaying() and lit.cues:GetAlpha() == 1 and Effects.Holder("crestFlare") ~= nil, what .. "a fresh aura's still cue shows at once in the flare place")
+		end
+		env._engine = nil
+		env.RunTimers()
+		Slots.Set(env, "target", {})
+		Pull(false)
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+
+	Motion(env, K, "calm")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	env._now = 100
+	local after, armed = env.C_Timer.After, {}
+	env.C_Timer.After = function(_, fn) armed[#armed + 1] = fn end
+	Cast(118)
+	assert(stills:GetAlpha() == 1 and flames:GetAlpha() == 0, "at Calm the still copy shows the aura")
+	K.Options.Write("Medallions", "motion", "full")
+	assert(flames.base == 1 and flames:GetAlpha() == 0, "Calm to Full inside the bloom's time: the flame copy whose bloom began unseen stays dark")
+	assert(stills:GetAlpha() == 1, "and the still copy keeps the steady aura on screen meanwhile")
+	for _, fn in ipairs(armed) do fn() end
+	assert(flames:GetAlpha() == 1 and stills:GetAlpha() == 0, "once the bloom's time is over the flame copy shows alone")
+	env.C_Timer.After = after
+	env._aurasSecret = nil
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A fuse built at Calm with Polymorph already on the target binds its copies with the aura present: its flame copy is dark from the start, so the bloom the
+-- engine plays there claims nothing.
+do
+	local env, K, ns = New("MAGE", Unknown({ 11119, 11120, 12846, 12847, 12848 }, { 11180, 28592, 28593, 28594, 28595 }), function(e, K)
+		K.Options.Write("Medallions", "restingCrest", false)
+		K.Options.Write("Medallions", "motion", "calm")
+		Slots.Set(e, "target", { { id = 118, harmful = true, start = 0, duration = 50, mine = true } })
+	end)
+	local lit = assert(Piece(ns, "crestYourSpell"), "Polymorph's fuse").lit
+	assert(lit:IsShown() and lit.flames.base == 0 and lit.flames.late, "the first binding's bloom began on a dark flame copy and claims nothing")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

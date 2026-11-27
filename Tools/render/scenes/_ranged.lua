@@ -6,8 +6,13 @@
 -- another build or level band, whose fields replace the class's: a hunter's rail (the five-seat cooldown rail: Intimidation
 -- cast at 1 s, a fire trap at 2 s (ready again at 17 s), Rapid Fire at 4 s (its buff to 19 s), the trinket used at 7 s and Bestial Wrath at
 -- 9 s (the pet's buff to 27 s), each cooling only from its cast), melee or level 8 build, a mage's arcane,
--- fire (Fire Vulnerability at three stacks), frost or level 10 build, a warlock's felhunter (Spell Lock cooling), sacrifice
--- (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, the hunter's bite (Mongoose Bite ready) or raptor
+-- fire (Fire Vulnerability at three stacks), frost (Winter's Chill embers) or level 10 build, a warlock's felhunter (Spell Lock
+-- cooling), imp, voidwalker or succubus (that demon out, chosen through the pet's spellbook as the felhunter's Spell Lock
+-- chooses it), curses (each of the five curses on the target in turn, one at a time as
+-- the game allows: RENDER_TRACKERS=moment at RENDER_TRACKERS_T 1.5, 3.5, 5.5, 7.5 and 9.5), sacrifice (Demonic Sacrifice of the Imp, Death Coil cooling;
+-- every summon known, so RENDER_TRACKERS_SWAP=18789:18790, 18789:18791 or 18789:18792 sacrifices the Voidwalker, Succubus or Felhunter instead), nodemon or level 8 build, each caster's sigils build (every
+-- cooldown sigil of the class up at once: the mage's Arcane Power, Presence of Mind, Combustion, Evocation and Ice Block, the warlock's
+-- Amplify Curse, Fel Domination, Shadow Ward and the Voidwalker's Sacrifice), the hunter's bite (Mongoose Bite ready) or raptor
 -- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
 -- breakout_fire), timed as the break-out design's clips: an aura's warn time puts it in its pandemic window, a usable
 -- spell's window and the pet's health steps and leaving time play out on the clock. RENDER_TRACKERS_OFF=1 turns the class's
@@ -16,7 +21,11 @@
 -- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
 -- Content, Happy) in place of the story's own, so the haunch shows or goes. RENDER_CAST_ON_FRAME=off gives the action bars the
 -- centred cast bars' layout elements the unit frames register in the game, so the hunter's rail takes its own flat row.
--- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it.
+-- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it. The hunter's
+-- default story keeps the cooldown rail on, so Rapid Fire at 4 s feeds the rail and the crest's gust waits for Quick Shots at 5 s:
+-- a gust still or clip starts after 5 s and reads the strip across the ring's inner band, not the rail. A mage's crest
+-- is drawn as players asked for it, with Blizzard's Cooldown Manager switched off: render every mage story and build (low, arcane,
+-- fire, frost, sigils, breakout) with RENDER_COOLDOWN_VIEWER=off (hud.lua).
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
 local Ranged = {}
@@ -79,6 +88,10 @@ local STORIES = {
 		},
 		builds = {
 			arcane = {},
+			sigils = { known = { 7302, 759, 118, 116, 12042, 12043, 11129, 12051, 11958 }, cooling = {},
+				auras = { { unit = "player", id = 12042, icon = 136048, at = 1, duration = 15 }, { unit = "player", id = 12043, icon = 136031, at = 1.5, duration = 30 },
+					{ unit = "player", id = 11129, icon = 135824, at = 2, duration = 15 }, { unit = "player", id = 12051, icon = 136075, at = 2.5, duration = 8 },
+					{ unit = "player", id = 11958, icon = 135865, at = 3, duration = 10 } } },
 			breakout = { known = { 7302, 759, 118, 116, 2139, 122, 1326079 }, cooling = { [1326079] = { 4.6, 4 }, [2139] = { 5.6, 5.6 } },
 				items = { [5514] = { icon = 134104, steps = { { 0, 1 } }, used = 7.4, cooldown = 120 } },
 				auras = { { unit = "player", id = 7302, icon = 135843, at = 1.4, duration = 9.5, warn = 10 },
@@ -97,7 +110,7 @@ local STORIES = {
 					{ unit = "target", id = 412538, icon = 135818, at = 2, duration = 4, harmful = true }, { unit = "target", id = 122, icon = 135848, at = 3.5, duration = 8, harmful = true },
 					{ unit = "player", id = 11129, icon = 135824, at = 4, duration = 15 } } },
 			frost = { known = { 7302, 759, 11426, 11180, 118, 116, 11958, 2139, 122 },
-				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "target", id = 12579, icon = 135836, at = 1, duration = 15, harmful = true },
+				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "target", id = 12579, icon = 135836, at = 1, duration = 15, harmful = true, count = 3 },
 					{ unit = "player", id = 11426, icon = 135988, at = 2, duration = 60 }, { unit = "target", id = 116, icon = 135846, at = 3, duration = 9, harmful = true },
 					{ unit = "target", id = 12494, icon = 135842, at = 3.5, duration = 5, harmful = true } } },
 			low = { known = { 168, 1459, 116, 118, 2136, 122 }, items = {}, cooling = { [2136] = { 4, 8 } },
@@ -134,9 +147,19 @@ local STORIES = {
 					{ unit = "target", id = 980, icon = 136139, at = 3.6, duration = 7.6, harmful = true },
 					{ unit = "target", id = 18265, icon = 136188, at = 4.2, duration = 7, harmful = true },
 					{ unit = "player", id = 18792, icon = 136218, at = 7.4, duration = 1800 } } },
-			sacrifice = { known = { 172, 980, 348, 18265, 688, 18788, 6201, 1120, 702, 6789 }, pet = false, cooling = { [6789] = { 4, 15 } }, auras = {
+			sacrifice = { known = { 172, 980, 348, 18265, 688, 697, 712, 691, 18788, 6201, 1120, 702, 6789 }, pet = false, cooling = { [6789] = { 4, 15 } }, auras = {
 				{ unit = "player", id = 18789, icon = 136218, at = 0.5, duration = 1800 }, { unit = "target", id = 348, icon = 135817, at = 1, duration = 15, harmful = true },
 				{ unit = "target", id = 702, icon = 136138, at = 1.5, duration = 120, harmful = true }, { unit = "target", id = 172, icon = 136118, at = 2, duration = 18, harmful = true } } },
+			sigils = { known = { 172, 702, 697, 18288, 18708, 6229, 706 }, pet = false, cooling = {},
+				auras = { { unit = "player", id = 18288, icon = 136132, at = 1, duration = 30 }, { unit = "player", id = 18708, icon = 237564, at = 1.5, duration = 15 },
+					{ unit = "player", id = 6229, icon = 136121, at = 2, duration = 30 }, { unit = "player", id = 7812, icon = 136190, at = 2.5, duration = 30 } } },
+			imp = { known = { 172, 980, 348, 688, 702 }, petSpells = { 3110 } },
+			voidwalker = { known = { 172, 980, 348, 697, 702 }, petSpells = { 3716 } },
+			succubus = { known = { 172, 980, 348, 712, 702 }, petSpells = { 7814 } },
+			curses = { lit = 1.5, known = { 172, 348, 688, 702, 704, 1714, 440892, 18223 }, petSpells = { 3110 }, cooling = {},
+				auras = { { unit = "target", id = 702, icon = 136138, at = 1, duration = 2, harmful = true }, { unit = "target", id = 704, icon = 136225, at = 3, duration = 2, harmful = true },
+					{ unit = "target", id = 1714, icon = 136140, at = 5, duration = 2, harmful = true }, { unit = "target", id = 440892, icon = 136130, at = 7, duration = 2, harmful = true },
+					{ unit = "target", id = 18223, icon = 136162, at = 9, duration = 2, harmful = true } } },
 			nodemon = { pet = false, auras = {
 				{ unit = "player", id = 706, icon = 136185, at = 0.5, duration = 1800 }, { unit = "target", id = 348, icon = 135817, at = 1, duration = 15, harmful = true },
 				{ unit = "target", id = 172, icon = 136118, at = 2, duration = 18, harmful = true }, { unit = "player", id = 17941, icon = 136200, at = 5, duration = 10 } } },
@@ -184,7 +207,12 @@ function Ranged.Install(env, class)
 	env.C_SpellBook = env.C_SpellBook or {}
 	env.Enum.SpellBookSpellBank = env.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
 	local before = env.C_SpellBook.IsSpellKnown
-	env.C_SpellBook.IsSpellKnown = function(id, bank) return known[id] == true or before ~= nil and before(id, bank) end
+	local pets = {}
+	for _, id in ipairs(s.petSpells or {}) do pets[id] = true end
+	env.C_SpellBook.IsSpellKnown = function(id, bank)
+		if bank == env.Enum.SpellBookSpellBank.Pet and pets[id] then return true end
+		return known[id] == true or before ~= nil and before(id, bank)
+	end
 	local spell = env.C_Spell or {}
 	env.C_Spell = spell
 	local texture = spell.GetSpellTexture

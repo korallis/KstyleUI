@@ -282,8 +282,9 @@ do
 		print("lazy regions " .. module .. ": " .. created)
 	end
 	-- A healer, hunter, mage or warlock with every crest tracker known and lit (the render harness's RENDER_TRACKERS=lit
-	-- story) creates no more action bar regions than staging did before its crest broke out of its sockets (b4ec7887b); a
-	-- lit Rogue is 5,063, so 4,900 holds only the stock fixture above. A hunter's forged marks each add a solid body, and
+	-- story) starts from the action bar regions staging created before its crest broke out of its sockets (b4ec7887b), and
+	-- each class's ceiling below adds only the regions named here for the layers and auras chosen since; a lit Rogue is 5,063,
+	-- so 4,900 holds only the stock fixture above. A hunter's forged marks each add a solid body, and
 	-- the perched and emblem ones a shadow and a halo (49 regions); each of the six Sting marks, drawn at 24 units so it
 	-- reads, adds a shadow, a halo and two dark shades (24 regions), and each lit Aspect but the Hawk a dark silhouette
 	-- over the unlit hawk (6 regions), which takes its limit from 4,915 to 4,980. The hunter,
@@ -300,9 +301,13 @@ do
 	-- so together they take the hunter's limit from 5,168 to 5,222.
 	-- The potion sigil every class's rail carries burns as an aura (a fire, a still and its figure drawn black beneath, in
 	-- place of one flat texture): 2 more for each class, and the druid's Dash sigil does the same on each of its form rails: 12.
+	-- The mage's and warlock's marks, cooldown sigils and soul wisps burn as auras the same way, as the captain asked: a fire and a
+	-- still in place of each flat glyph, a seated one over a socket plate, and each perch or fuse head an aura slot feeds adds a
+	-- transparent copy of its still for the Calm arrival cue. That takes the mage from 4,925 to 4,953 and the warlock, whose five
+	-- curse heads, four spire feet and live and sacrificed demon sheets are each their own aura, from 5,099 to 5,227.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5224, MAGE = 4943, WARLOCK = 5099 }) do
+	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5224, MAGE = 4953, WARLOCK = 5227 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")

@@ -107,7 +107,8 @@ do
 	for _, button in ipairs(rim.sigils) do seen = seen + (button:IsShown() and 1 or 0) end
 	assert(seen == 2, "Rapid Fire and the pet's Bestial Wrath both stand on the cooldown rim")
 	local gust = Piece(ns, "crestGust")
-	assert(Shown(gust.lits[#gust.lits], gust.lits[#gust.lits].loop), "at Full the gust is the engine's shown animation")
+	local copy = gust.lits[#gust.lits].lights.flame
+	assert(Shown(copy, copy.loop) and gust.gust:GetParent():GetParent() == copy, "at Full the gust is the engine's shown animation on its feed's gated fire copy")
 	assert(gust.gust:GetParent():GetAlpha() > 0, "the gust's streaks stay visible if its tween never runs")
 	Clean(env, K)
 end
@@ -218,7 +219,7 @@ do
 	local corruption = torments.spires[1]
 	assert(corruption.lit:GetParent()._durationBar and corruption.glow:GetParent()._durationBar and corruption.core:GetParent()._durationBar, "each spire's three bars are duration bars the engine drains")
 	Slots.Set(env, "target", { { id = 25311, icon = 136118, harmful = true, start = 0, duration = 18 } })
-	assert(corruption.lit:GetParent():IsShown() and corruption.rune:GetParent() == corruption.lit:GetParent() and corruption.neck:GetParent() == corruption.lit:GetParent(), "your Corruption lights its spire, the glyph at its foot and the neck between")
+	assert(corruption.lit:GetParent():IsShown() and corruption.rune.loop and corruption.rune:GetParent():GetParent() == corruption.lit:GetParent().lights.flame and corruption.neck:GetParent() == corruption.lit:GetParent(), "your Corruption lights its spire, the glyph's aura at its foot and the neck between")
 	assert(not torments.spires[2].lit:GetParent():IsShown(), "no Bane: its spire stays dark")
 	local count = 0
 	for _, s in ipairs(wisps.seats) do count = count + (s.wisp:IsShown() and 1 or 0) end

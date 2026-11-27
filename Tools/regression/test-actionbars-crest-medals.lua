@@ -147,9 +147,12 @@ do
 			if type(t) == "string" and t:find("Sigils", 1, true) then return t end
 		end
 	end
+	-- The racial the character lacks draws its sigil once learned (test-actionbars-crest-auras owns that).
 	for i, family in ipairs(families) do
 		local b = rim.sigils[i]
-		assert(Art(b):find(family.sigil .. ".png", 1, true) and not b._icon, family.sigil .. ": the family's own sigil, never the aura's icon")
+		if family.known or env._known[family.spells[1]] then
+			assert(Art(b):find(family.sigil .. ".png", 1, true) and not b._icon, family.sigil .. ": the family's own sigil, never the aura's icon")
+		end
 	end
 	assert(c._slots.sigil5.disabled and not rim.sigils[5].at, "a racial the character does not have takes no place and reads no aura")
 	local at = {}

@@ -541,6 +541,29 @@ for _, name in ipairs({
 }) do
 	TEXTURES[name].forged = true
 end
+TEXTURES.glyphHealthstone = { file = "Textures\\Glyphs\\Facet.png" }
+for name, base in pairs({ HornsPet = "Horns", ImpFel = "Imp", VoidwalkerFel = "Voidwalker", SuccubusFel = "Succubus", FangsFel = "Fangs" }) do
+	TEXTURES["glyph" .. name] = { file = TEXTURES["glyph" .. base].file }
+end
+for kind, names in pairs({
+	Glyph = { "Burst", "ChillShard", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Healthstone", "Horns", "Hourglass", "Imp", "Intellect",
+		"PolyCurl", "Siphon", "Succubus", "Swirl", "Tongue", "Voidwalker", "Weakness", "HornsPet", "ImpFel", "VoidwalkerFel", "SuccubusFel",
+		"FangsFel" },
+	Sigil = { "Arcane", "Crystal", "Curse", "Flame", "Horns", "Hourglass", "Shade", "Void", "Vortex" },
+}) do
+	for _, name in ipairs(names) do
+		local token = "aura" .. kind .. name
+		TEXTURES[token] = { file = "Textures\\Auras\\" .. kind .. "s\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44 }
+		TEXTURES[kind:lower() .. name].aura, TEXTURES[kind:lower() .. name].forged = token, true
+	end
+end
+TEXTURES.auraTrackerSoulWisp = { file = "Textures\\Auras\\Trackers\\SoulWisp.png", rows = 4, columns = 4, frames = 16, seconds = 1.44 }
+TEXTURES.trackerWisp.aura = "auraTrackerSoulWisp"
+for _, name in ipairs({ "auraGlyphFacet", "auraGlyphHealthstone", "auraSigilArcane", "auraSigilCrystal", "auraSigilCurse", "auraSigilFlame",
+	"auraSigilHorns", "auraSigilHourglass", "auraSigilShade", "auraSigilVoid", "auraSigilVortex", "auraTrackerSoulWisp" }) do
+	TEXTURES[name].span = 1.25
+end
+TEXTURES.auraTrackerGust = { file = "Textures\\Auras\\Trackers\\Gust.png", rows = 8, columns = 2, frames = 16, seconds = 1.44 }
 TEXTURES.auraSocket = { file = "Textures\\Auras\\Socket.png" }
 TEXTURES.railAuraAimed = { file = "Textures\\Medallions\\Rail\\AuraAimed.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 TEXTURES.railAuraCharm = { file = "Textures\\Medallions\\Rail\\AuraCharm.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }

@@ -282,16 +282,122 @@ do
 	Clean(env, K)
 end
 
--- The approved plan keeps the forged rule behind a per-texture flag: a class still on flat art draws as before.
+-- The approved plan burns the mage's and warlock's marks as looping auras: Polymorph's fuse head seats its sheep on the empty
+-- socket as the hunter's sting does, and Arcane Power's cooldown sigil burns its own sheet.
 do
 	local env, K, ns = New("MAGE", { known = { 118, 12042 } })
 	Slots.Set(env, "target", { { id = 118, harmful = true, start = 0, duration = 50 } })
 	local lit = Piece(ns, "crestYourSpell", 3).lit
-	local burn = lit.mark:GetParent()
-	assert(lit:IsShown() and burn == lit.head._kids[1] and #burn._regions == 2 and #burn._kids == 0, "Polymorph's flat mark is one additive texture beside the flame, no body and no layer of its own")
-	assert(lit.mark:GetAlpha() == 1 and lit.mark._state.BlendMode[1] == "ADD" and lit.flare.play:GetParent() == lit.mark, "it keeps its full light and its own ignition")
+	local socket = #Sockets(lit.head, { [(K.Tokens.Texture("auraSocket"))] = "auraSocket" }, {}) == 1
+	assert(lit:IsShown() and lit.mark.loop and Art(lit.mark) == (K.Tokens.Texture("auraGlyphPolyCurl")) and socket, "Polymorph's head burns the sheep's aura over the empty socket")
+	assert(lit.mark:GetParent():GetParent() == lit.lights.flame and lit.mark.still:GetParent():GetParent() == lit.lights.calm,
+		"the head's fire and still burn on the fuse slot's two gated copies, so a motion level chosen under hidden values swaps them at once")
+	-- A fresh Polymorph replacing the last one while the fuse stays lit blooms the head again, as the assigned flare always did.
+	local copy = lit.mark:GetParent():GetParent()
+	local cue = copy.flare and copy.flare.play or {}
+	if copy.flare then cue:Stop() end
+	Slots.Set(env, "target", { { id = 12826, harmful = true, start = 0, duration = 50 } })
+	assert(copy:IsShown() and copy.flare and cue:IsPlaying(), "a Polymorph replaced without the fuse hiding blooms the head's burning sheep again")
 	local arcane = Piece(ns, "crestCooldowns").sigils[1]
-	assert(Drawn(arcane, "Arcane.png", true):GetAlpha() == 1 and not Drawn(arcane, "Arcane.png", false), "a flat cooldown sigil is its one additive texture at full light, with no solid body")
+	local fire
+	for _, region in ipairs(arcane.flame._regions) do
+		fire = fire or region.loop and region
+	end
+	assert(fire and Art(fire) == (K.Tokens.Texture("auraSigilArcane")), "Arcane Power's sigil burns its own aura")
+	Clean(env, K)
+end
+
+-- The approved plan loads each sheet only once its spell is known, and learning another spell later loads that one too:
+-- one summon, curse, Torment and cooldown known at first, then a second of each learned.
+do
+	local env, K, ns = New("WARLOCK", { known = { 688, 702, 172, 6229 }, pet = { max = 100, missing = 0 } })
+	env.SetTarget(true)
+	env.RunTimers()
+	local demon, curse, spires, rim = Piece(ns, "crestDemon"), Piece(ns, "crestCurse"), Piece(ns, "crestTorments"), Piece(ns, "crestCooldowns")
+	local function Sigil(name)
+		for _, button in ipairs(rim.sigils) do
+			if button.family.sigil == name then
+				for _, region in ipairs(button.flame._regions) do
+					if region.loop then return Art(region) end
+				end
+				return false
+			end
+		end
+	end
+	local function Loaded()
+		return demon.marks.glyphVoidwalker ~= nil, curse.lits[2].mark ~= nil, spires.spires[3].rune ~= nil, Sigil("Void")
+	end
+	assert(demon.marks.glyphImp and curse.lits[1].mark and spires.spires[1].rune and Sigil("Shade") == (K.Tokens.Texture("auraSigilShade")),
+		"the known summon, curse, Torment and cooldown load their sheets")
+	local voidwalker, recklessness, immolate, void = Loaded()
+	assert(not voidwalker and not recklessness and not immolate and not void, "an unknown summon, curse, Torment or pet cooldown loads no sheet")
+	-- Recklessness is already on the target when it is learned, so its slot has no new show edge: its prepared sheet must
+	-- start without another cast.
+	Slots.Set(env, "target", { { id = 704, harmful = true, start = 0, duration = 120 } })
+	R.Learn(env, 697, 704, 348)
+	voidwalker, recklessness, immolate, void = Loaded()
+	assert(voidwalker and recklessness and immolate and void == (K.Tokens.Texture("auraSigilVoid")),
+		"learning a summon, a curse and a Torment loads their sheets, and the Voidwalker's Sacrifice sigil with its summon")
+	local reckless = curse.lits[2]
+	assert(reckless:IsShown() and reckless.mark:IsVisible() and reckless.mark.loop:IsPlaying(), "the learned curse already on the target burns its sheet at once")
+	Slots.Set(env, "target", { { id = 348, harmful = true, start = 0, duration = 15 } })
+	local rune = spires.spires[3].rune
+	assert(rune:IsVisible() and rune.loop:IsPlaying(), "the learned Immolate lights its spire and burns its foot's sheet")
+	-- The Torments have twin faces for instant motion; a foot learned after they were built still burns once, on the face that shows.
+	local burning = 0
+	local function Count(frame)
+		for _, region in ipairs(frame._regions or {}) do
+			if region.loop and Art(region) == Art(rune) and region:IsVisible() then burning = burning + 1 end
+		end
+		for _, kid in ipairs(frame._kids or {}) do Count(kid) end
+	end
+	for _, face in ipairs({ spires, unpack(spires.twins or {}) }) do Count(face) end
+	assert(spires.twins and burning == 1, "the learned Immolate's foot burns once across the Torments and their twins (" .. burning .. ")")
+	env._petSpells[3716] = true
+	env.FireEvent("UNIT_PET", "player")
+	assert(demon.marks.glyphVoidwalker:IsVisible() and demon.marks.glyphVoidwalker.fire.loop:IsPlaying(), "the learned Voidwalker, summoned, burns its own green sheet on the pet's sigil")
+	Slots.Set(env, "player", { { id = 7812, start = 0, duration = 30 } })
+	local fire
+	for _, button in ipairs(rim.sigils) do
+		for _, region in ipairs(button.family.sigil == "Void" and button.flame._regions or {}) do
+			fire = fire or region.loop and region
+		end
+	end
+	assert(fire:IsVisible() and fire.loop:IsPlaying(), "the Voidwalker's Sacrifice burns its learned sigil")
+	assert(not demon.fel[2].seat, "without Demonic Sacrifice no sacrificed demon's sheet loads")
+	R.Learn(env, 18788)
+	assert(demon.fel[1].seat and demon.fel[2].seat and not demon.fel[3].seat, "learning Demonic Sacrifice loads the known demons' violet sheets only")
+	env._pet = nil
+	env.FireEvent("UNIT_PET", "player")
+	Slots.Set(env, "player", { { id = 18790, start = 0, duration = 1800 } })
+	local violet = demon.fel[2].seat
+	assert(demon.fel[2]:IsShown() and violet.fire:IsVisible() and violet.fire.loop:IsPlaying() and Art(violet.fire) == (K.Tokens.Texture("auraGlyphVoidwalkerFel")),
+		"the Voidwalker sacrificed after Demonic Sacrifice is learned burns its violet sheet on the band")
+	Clean(env, K)
+end
+
+-- The approved plan burns the mage's ChillShard as an aura wherever it is drawn: each Winter's Chill ember is the sheet,
+-- clipped to the engine-fed stack bar so the count still lights one ember per stack.
+do
+	local env, K, ns = New("MAGE", { known = { 11180 } })
+	local chill = Piece(ns, "crestSchool", 2)
+	local embers = {}
+	for _, part in ipairs(chill.parts) do
+		if part._count then embers[#embers + 1] = part end
+	end
+	local ember = embers[1]
+	local clip = ember and ember.aura and ember.aura:GetParent():GetParent()
+	assert(#embers == 5 and ember.aura and ember.aura.loop and Art(ember.aura) == (K.Tokens.Texture("auraGlyphChillShard")) and ember:GetStatusBarTexture():GetAlpha() == 0
+		and clip:DoesClipChildren() and select(2, clip:GetPoint(1)) == ember:GetStatusBarTexture(), "each Winter's Chill ember burns the ChillShard aura clipped to its stack bar")
+	for _, count in ipairs({ 2, 5 }) do
+		Slots.Set(env, "target", { { id = 12579, harmful = true, start = 0, duration = 15, count = count } })
+		local lit = 0
+		for _, part in ipairs(embers) do
+			local _, high = part:GetMinMaxValues()
+			lit = lit + (env.Reveal(part:GetValue()) >= high and 1 or 0)
+		end
+		assert(lit == count, count .. " stacks of Winter's Chill fill " .. count .. " embers (" .. lit .. ")")
+	end
 	Clean(env, K)
 end
 
@@ -313,9 +419,16 @@ do
 	local demon, stone, curse = Piece(ns, "crestDemon"), Piece(ns, "crestHealthstone"), Piece(ns, "crestCurse")
 	assert(At(ns, demon, -64, 0) and demon.pet:IsShown() and demon.health:GetOrientation() == "VERTICAL" and demon.health:GetReverseFill(), "the demon's health lights the left band from the top")
 	assert(env.Reveal(demon.health:GetValue()) == 75 and demon.sigil:IsShown(), "its health is the engine's value, under the demon's sigil")
+	-- The approved plan loads a mark's sheet only for a spell the character knows: no Voidwalker summon known, no Voidwalker sheet.
+	assert(demon.marks.glyphImp and not demon.marks.glyphImp:IsShown() and demon.marks.glyphFangs and not demon.marks.glyphVoidwalker
+		and demon.fel[1].seat and demon.fel[4].seat and not demon.fel[2].seat and not demon.fel[3].seat,
+		"only the known demons' sigils and sacrifice sigils load, waiting hidden until their demon is out")
+	local horns = demon.marks.glyphHornsPet
+	assert(horns:IsVisible() and horns.fire and Art(horns.fire) == (K.Tokens.Texture("auraGlyphHornsPet")), "no demon out: the horns burn in the pet's green light")
 	env._petSpells[3110] = true
 	env.FireEvent("UNIT_PET", "player")
-	assert(Art(demon.glyph):find("Imp"), "an Imp out shows the Imp's sigil")
+	local imp = demon.marks.glyphImp
+	assert(imp:IsVisible() and not horns:IsShown() and Art(imp.fire) == (K.Tokens.Texture("auraGlyphImp")), "an Imp out burns the Imp's green sigil in place of the horns")
 	assert(Near(ns, stone, 80, 312), "the Healthstone hangs from the lower right")
 	assert(not stone.lit:IsShown() and not stone.rest:IsVisible() and stone.bail:IsVisible() and Art(stone.bail):find("Bail"), "no Healthstone: the empty bail hangs there")
 	env._bags[5512] = 1
@@ -341,10 +454,14 @@ do
 	local sacrifice = demon.lit
 	assert(sacrifice:IsShown() and sacrifice._durationBar[1] == sacrifice.art and Art(sacrifice.art):find("RimLeft"), "Demonic Sacrifice burns fel flames along the left band, its rim line draining")
 	local fel = {}
-	for _, slot in pairs(sacrifice.container._slots) do
-		if slot.frame:IsShown() and slot.frame._regions[1] then fel[#fel + 1] = Art(slot.frame._regions[1]) end
+	for _, slot in pairs(sacrifice.lights.flame.container._slots) do
+		for _, kid in ipairs(slot.frame:IsShown() and slot.frame._kids or {}) do
+			for _, region in ipairs(kid._regions or {}) do
+				if region.loop then fel[#fel + 1] = Art(region) end
+			end
+		end
 	end
-	assert(#fel == 1 and fel[1]:find("Fangs") and not demon.pet:IsShown(), "the sacrificed Felhunter's sigil stays on the band, turned fel")
+	assert(#fel == 1 and fel[1] == (K.Tokens.Texture("auraGlyphFangsFel")) and not demon.pet:IsShown(), "the sacrificed Felhunter's sigil burns its fel violet aura on the band")
 	env._pet = { max = 100, missing = 25 }
 	Slots.Set(env, "target", { { id = 702, harmful = true, start = 0, duration = 120 } })
 	assert(curse.lits[1]:IsShown() and curse.lits[1]._durationBar[1] == curse.lits[1].art and At(ns, curse, 64, 0), "your Curse of Weakness burns its fuse down the right band")
