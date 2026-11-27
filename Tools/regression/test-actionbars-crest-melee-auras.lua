@@ -42,6 +42,8 @@ local RAILS = {
 for _, rail in ipairs(RAILS) do
 	local class, spell, own, color, tinted = rail[1], rail[2], rail[3], rail[4], rail[5]
 	local env, K, ns = New(class, { spell, 20572, rail[6] })
+	-- The crest rail takes the cooldowns it seats off this rim, so the rim keeps them only with the rail off.
+	K.Options.Write("ActionBars", "crestRail", false)
 	local rim = assert(Find(ns, "crestCooldowns"), class .. " builds its cooldown rim")
 	local mine = Drawn(rim, Sheet("Sigils", own))
 	assert(#mine == 2, class .. ": its own " .. own .. " sigil burns its sheet as a fire and a still, got " .. #mine)
