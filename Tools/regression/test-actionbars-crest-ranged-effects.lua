@@ -288,11 +288,10 @@ do
 	local env, K, ns = New("MAGE", { known = { 118, 12042 } })
 	Slots.Set(env, "target", { { id = 118, harmful = true, start = 0, duration = 50 } })
 	local lit = Piece(ns, "crestYourSpell", 3).lit
-	local socket
-	for _, region in ipairs(lit.mark:GetParent()._regions) do
-		socket = socket or (region._state.Texture or {})[1] == (K.Tokens.Texture("auraSocket"))
-	end
+	local socket = #Sockets(lit.head, { [(K.Tokens.Texture("auraSocket"))] = "auraSocket" }, {}) == 1
 	assert(lit:IsShown() and lit.mark.loop and Art(lit.mark) == (K.Tokens.Texture("auraGlyphPolyCurl")) and socket, "Polymorph's head burns the sheep's aura over the empty socket")
+	assert(lit.mark:GetParent():GetParent() == lit.lights.flame and lit.mark.still:GetParent():GetParent() == lit.lights.calm,
+		"the head's fire and still burn on the fuse slot's two gated copies, so a motion level chosen under hidden values swaps them at once")
 	local arcane = Piece(ns, "crestCooldowns").sigils[1]
 	local fire
 	for _, region in ipairs(arcane.flame._regions) do
@@ -439,9 +438,11 @@ do
 	local sacrifice = demon.lit
 	assert(sacrifice:IsShown() and sacrifice._durationBar[1] == sacrifice.art and Art(sacrifice.art):find("RimLeft"), "Demonic Sacrifice burns fel flames along the left band, its rim line draining")
 	local fel = {}
-	for _, slot in pairs(sacrifice.container._slots) do
-		for _, region in ipairs(slot.frame:IsShown() and slot.frame._kids[1]._regions or {}) do
-			if region.loop then fel[#fel + 1] = Art(region) end
+	for _, slot in pairs(sacrifice.lights.flame.container._slots) do
+		for _, kid in ipairs(slot.frame:IsShown() and slot.frame._kids or {}) do
+			for _, region in ipairs(kid._regions or {}) do
+				if region.loop then fel[#fel + 1] = Art(region) end
+			end
 		end
 	end
 	assert(#fel == 1 and fel[1] == (K.Tokens.Texture("auraGlyphFangsFel")) and not demon.pet:IsShown(), "the sacrificed Felhunter's sigil burns its fel violet aura on the band")

@@ -7,11 +7,11 @@ local Slots = dofile("Tools/regression/aura_slots.lua")
 local SHOUT = 25289
 local CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
 
-local function New(class)
+local function New(class, unknown)
 	local env, K, ns = AB.New({ class = class, setup = function(e)
 		e._trackOrigin = true
 		e.C_SpellBook = e.C_SpellBook or {}
-		e.C_SpellBook.IsSpellKnown = function() return true end
+		e.C_SpellBook.IsSpellKnown = function(id) return not (unknown and unknown[id]) end
 		e.C_Secrets = { ShouldAurasBeSecret = function() return e._aurasSecret == true end }
 		e.GetTime = function() return e._now or 0 end
 		e._auraData = {}
@@ -128,6 +128,10 @@ local function Warnings(ns, class)
 	local function walk(piece, key)
 		for _, lit in ipairs(piece.lits or { piece.lit }) do
 			check(lit.flicker, key .. " refresh cue")
+			-- A caster mark's fire burns on its slot's gated copy, which carries the refresh cue of the part it burns on.
+			for _, copy in ipairs(lit.mirrors or {}) do
+				check(copy.flicker, key .. " fire copy")
+			end
 			-- The looks that burn with the one flicker while their aura shows: a fuse's head, and a flame or a crackle on a warrior's or paladin's hip.
 			if lit.loop and rawget(lit.loop, "low") then check(lit.loop, key .. " burn") end
 			for _, group in ipairs(lit.awake and lit.awake.lit.loops or {}) do
@@ -502,9 +506,9 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- The same holds for a cue on a slot the piece adds beside its first one: a mage's stack embers (Scorch, Winter's Chill), a warlock's torment spires and the hunter's
--- gust. A live warning or loop is followed through the three levels under hidden values.
-for _, case in ipairs({ { "MAGE", "crestSchool" }, { "WARLOCK", "crestTorments" }, { "HUNTER", "crestGust" } }) do
+-- The same holds for a cue on a slot the piece adds beside its first one: a mage's stack embers (Scorch, Winter's Chill) and a warlock's torment spires. A live
+-- warning is followed through the three levels under hidden values.
+for _, case in ipairs({ { "MAGE", "crestSchool" }, { "WARLOCK", "crestTorments" } }) do
 	local env, K, ns = New(case[1])
 	K.Options.Write("Medallions", "restingCrest", false)
 	env.RunTimers()
@@ -545,6 +549,103 @@ for _, case in ipairs({ { "MAGE", "crestSchool" }, { "WARLOCK", "crestTorments" 
 	Motion(env, K, "full")
 	assert(Seen() == "full", what .. "full under hidden values: the moving slot shows again (" .. Seen() .. ")")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- An aura mark a slot feeds burns its fire and its still on two gated copies of that slot (the aura kit's motion rule, KSTY-51 plan): the caster's perches,
+-- fuse heads, stack embers, spire feet and sacrificed demons, the cooldown sigils and the hunter's gust. Under hidden values the engine keeps every binding, so the
+-- fire's loop stays bound at each level and only the layers choose: a level chosen during the pull shows at once, Full first chosen there included.
+local function Unknown(...)
+	local set = {}
+	for _, list in ipairs({ ... }) do
+		for _, id in ipairs(list) do set[id] = true end
+	end
+	return set
+end
+-- Each build seats one choice per seat: a mage who conjures no gem wears the Intellect perch, one without the Scorch talents stacks Winter's Chill embers, and a
+-- warlock who makes no healthstone wears the armor perch.
+for _, build in ipairs({
+	{ "MAGE", { "crestYourSpell", "crestCooldowns" } },
+	{ "MAGE", { "crestSchool", "crestManaGem" }, Unknown({ 10054, 10053, 3552, 759 }, { 11095, 12872, 12873 }) },
+	{ "WARLOCK", { "crestTorments", "crestCurse", "crestDemon", "crestCooldowns" } },
+	{ "WARLOCK", { "crestHealthstone" }, Unknown({ 11730, 11729, 5699, 6202, 6201 }) },
+	{ "HUNTER", { "crestGust", "crestCooldowns" } },
+}) do
+	local class, want = build[1], build[2]
+	local env, K, ns = New(class, build[3])
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	local lits, auras, named = {}, {}, {}
+	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+		for _, lit in ipairs(piece.lits) do
+			if lit.lights and lit:GetParent():IsVisible() then
+				local spec = lit.spec
+				local unit, harmful = spec.unit or "player", (spec.filter or "HELPFUL"):find("HARMFUL", 1, true) ~= nil
+				auras[unit] = auras[unit] or {}
+				for _, family in ipairs(spec.families or { spec }) do
+					table.insert(auras[unit], { id = family.spells[1], count = 3, start = 0, duration = 30, harmful = harmful, mine = true })
+				end
+				lits[#lits + 1] = { lit = lit, key = piece.spec.key, what = class .. " " .. piece.spec.key .. " " .. spec.spells[1] }
+				named[piece.spec.key] = true
+			end
+		end
+	end
+	for _, key in ipairs(want) do
+		assert(named[key], class .. ": " .. key .. " burns its aura on gated copies")
+	end
+	Motion(env, K, "calm")
+	for unit, list in pairs(auras) do
+		Slots.Set(env, unit, list)
+	end
+	local fires, seen = {}, {}
+	local burning = {}
+	local function Find(frame, each)
+		for _, region in ipairs(frame._regions or {}) do
+			if region.loop and region.still and not seen[region] then
+				seen[region] = true
+				fires[#fires + 1] = { fire = region, what = each.what }
+				burning[each.key] = true
+			end
+		end
+		for _, kid in ipairs(frame._kids or {}) do
+			Find(kid, each)
+		end
+	end
+	for _, each in ipairs(lits) do
+		for _, copy in ipairs(each.lit.mirrors) do
+			if copy.burns and copy:IsShown() then
+				Find(copy, each)
+				for _, slot in pairs(copy.container and copy.container._slots or {}) do
+					if slot.frame ~= copy and slot.frame:IsShown() then Find(slot.frame, each) end
+				end
+			end
+		end
+	end
+	for _, key in ipairs(want) do
+		assert(burning[key], class .. ": " .. key .. "'s fire is found on its flame copy")
+	end
+	local function Shows(region)
+		return region:IsVisible() and region:GetEffectiveAlpha() > 0
+	end
+	local function Check(level, moving)
+		env._engine = true
+		for _, f in ipairs(fires) do
+			assert(f.fire.loop:IsPlaying(), f.what .. ": at " .. level .. " the fire's loop stays bound and playing")
+			assert(Shows(f.fire) == moving and Shows(f.fire.still) == not moving, f.what .. ": at " .. level .. " under hidden values the " .. (moving and "fire" or "still") .. " shows alone")
+		end
+		env._engine = nil
+	end
+	env.SetCombat(true)
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	for _, step in ipairs({ { "full", true }, { "calm", false }, { "off", false }, { "full", true } }) do
+		Motion(env, K, step[1])
+		Check(step[1], step[2])
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+	env._aurasSecret = false
+	env.SetCombat(false)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	env.RunTimers()
 end
 
 -- A cue that began while its layer was dark took no flare place, so a level change may not bring it on screen half played beside the flare that holds the place: its

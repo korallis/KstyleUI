@@ -127,8 +127,12 @@ local function Light(p, each, level, look)
 	else
 		local r, g, b = Lift(each.color, look.white)
 		local aura
-		lit.art, cast, _, _, aura = Medals.Mark(p, light, art, size, each.color, r, g, b, level + 2)
+		local lights = lit.container and select(5, Tokens.Texture(art)) and Medals.Lights(p, lit, level + 3, light) or nil
+		lit.art, cast, _, _, aura = Medals.Mark(p, light, art, size, each.color, r, g, b, level + 2, lights)
 		lit.art:SetDesaturated(not aura)
+		if lights and lights.flame:GetParent().container then
+			lights.flame:GetParent().loops = { Bloom(lights.flame, 1.2).play, look.loop and Medals.Steps(lights.flame, look.loop, true) or nil }
+		end
 	end
 	if lit.container then
 		lit.loop = Medals.Steps(light, look.loop, true)
@@ -200,12 +204,13 @@ local function Spot(p, parent, art, color, size, x, y, layer)
 	return t
 end
 
-local function Seat(m, parent, art, color, size, x, y)
+local function Seat(m, parent, art, color, size, x, y, lights)
 	local seat = CreateFrame("Frame", nil, parent)
 	seat:SetFrameLevel(parent:GetFrameLevel())
 	seat:SetSize(1, 1)
 	seat:SetPoint("CENTER", m, "CENTER", x, y)
-	seat.fire = Medals.Mark(m, seat, art, size, color, Lift(color, 0.2))
+	local r, g, b = Lift(color, 0.2)
+	seat.fire = Medals.Mark(m, seat, art, size, color, r, g, b, nil, lights and lights(seat))
 	return seat
 end
 
@@ -262,7 +267,12 @@ local function Fuse(parent, spec, level, form)
 			local host = Medals.Layer(seat, above)
 			lit.flare = Bloom(host, 1.5)
 			Medals.Later(p, each == spec and spec.known or rawget(each, "known") or each.spells, function()
-				lit.mark = Medals.Mark(p, host, each.glyph, size, each.color, r, g, b)
+				local lights = lit.container and Medals.Lights(p, lit, above + 1, host) or nil
+				lit.mark = Medals.Mark(p, host, each.glyph, size, each.color, r, g, b, nil, lights)
+				if lights and lights.flame:GetParent().container then
+					local copy = lights.flame:GetParent()
+					copy.loops, copy.flicker = { Bloom(lights.flame, 1.5).play }, ns.Slab.Flicker(lights.flame)
+				end
 			end)
 		else
 			local mark, cast = Medals.Mark(p, seat, each.glyph, size, each.color, r, g, b, above)
@@ -329,13 +339,23 @@ local function Stacks(parent, spec, level, form)
 		ember:SetPoint("CENTER", p, "CENTER", (x - band[2]) * k, (y - band[3]) * k)
 		if select(5, Tokens.Texture(spec.ember)) then
 			ember:GetStatusBarTexture():SetAlpha(0)
-			local clip = CreateFrame("Frame", nil, ember)
-			clip:SetAllPoints(ember:GetStatusBarTexture())
-			clip:SetClipsChildren(true)
-			local seat = CreateFrame("Frame", nil, clip)
-			seat:SetSize(1, 1)
-			seat:SetPoint("CENTER", ember, "CENTER", 0, 0)
-			ember.aura = Medals.Mark(p, seat, spec.ember, 16 * h, spec.color, Lift(spec.color, 0.3))
+			local function Clip(parent)
+				local clip = CreateFrame("Frame", nil, parent)
+				clip:SetAllPoints(ember:GetStatusBarTexture())
+				clip:SetClipsChildren(true)
+				local seat = CreateFrame("Frame", nil, clip)
+				seat:SetSize(1, 1)
+				seat:SetPoint("CENTER", ember, "CENTER", 0, 0)
+				return seat
+			end
+			local hosts = Medals.Lights(p, lit, level + 4, false)
+			local flame, calm = hosts.flame, hosts.calm
+			if not flame.embers then
+				flame.embers, calm.embers = Medals.Layer(flame, level + 4), Medals.Layer(calm, level + 4)
+				flame.flicker = flame.container and ns.Slab.Flicker(flame.embers) or nil
+			end
+			local r, g, b = Lift(spec.color, 0.3)
+			ember.aura = Medals.Mark(p, Clip(ember), spec.ember, 16 * h, spec.color, r, g, b, nil, { flame = Clip(flame.embers), calm = Clip(calm.embers) })
 		end
 		slot:SetApplicationBar(ember, { minApplications = n - 1, maxApplications = n })
 		slot.flicker = ns.Slab.Flicker(ember)
@@ -475,7 +495,10 @@ local function Pet(parent, spec, level, form)
 			Medals.Later(m, function()
 				return m.fel and spec.sacrifice and Medals.Known(summon) and Medals.Known(spec.sacrifice)
 			end, function()
-				m.fel[n].seat = Seat(m, m.fel[n], demon[1] .. "Fel", spec.color, m.size, unpack(m.at))
+				local x, y = unpack(m.at)
+				m.fel[n].seat = Seat(m, m.fel[n], demon[1] .. "Fel", spec.color, m.size, x, y, function(seat)
+					return Medals.Lights(m, m.fel.lit, level + 7, seat, "fel" .. n, "HELPFUL", { candidateFilters = { includeSpellIDs = { [demon[3]] = true } } })
+				end)
 			end)
 		end
 		m.bob = m.sigil:CreateAnimationGroup()
@@ -495,7 +518,7 @@ local function Pet(parent, spec, level, form)
 			Spot(m, light, "trackerFlame", spec.color, 24 * k, Off(69, 162 + 8 * i)):SetDesaturated(true)
 		end
 		lit.loop = ns.Slab.Flicker(light)
-		m.fel = {}
+		m.fel = { lit = lit }
 		for n, demon in ipairs(spec.demons) do
 			local slot = lit.container:AddAuraSlot("fel" .. n, "HELPFUL", { candidateFilters = { includeSpellIDs = { [demon[3]] = true } } })
 			pcall(slot.EnableMouse, slot, false)
@@ -565,8 +588,10 @@ end
 local function Gust(r, spec, level)
 	local feed = Medals.Feed(r.lit.hold or r, spec, level + 3)
 	feed.hold = r.lit.hold
-	local gust = Medals.Layer(feed, level + 3)
-	r.gust = Medals.Aura(LOOSE, gust, "auraTrackerGust", 1)
+	local hosts = Medals.Lights(r, feed, level + 3, false)
+	local flame, calm = hosts.flame, hosts.calm
+	local gust = Medals.Layer(flame, level + 3)
+	r.gust = Medals.Aura(LOOSE, gust, "auraTrackerGust", 1, nil, nil, nil, nil, { flame = gust, calm = Medals.Layer(calm, level + 3) })
 	local loop = gust:CreateAnimationGroup()
 	loop:SetLooping("REPEAT")
 	local jump, move = loop:CreateAnimation("Translation"), loop:CreateAnimation("Translation")
@@ -576,7 +601,7 @@ local function Gust(r, spec, level)
 	move:SetDuration(GUST_RUN)
 	ns.Slab.Fade(loop, 0, 1, GUST_RUN / 4)
 	ns.Slab.Fade(loop, 1, 0, GUST_RUN / 4, 1, GUST_RUN * 3 / 4):SetEndDelay(GUST_REST)
-	feed.loop = loop
+	flame.loop = flame.container and loop or nil
 	r.lits[#r.lits + 1] = feed
 end
 
@@ -731,7 +756,8 @@ local function Spire(p, container, i, s, angle, level)
 		for _, part in ipairs({ t.dim, socket }) do
 			part:SetAlpha(STEEL)
 		end
-		t.rune = Medals.Mark(t.base, foot, s.glyph, BASE - 3, s.color, Lift(s.color))
+		local r, g, b = Lift(s.color)
+		t.rune = Medals.Mark(t.base, foot, s.glyph, BASE - 3, s.color, r, g, b, nil, Medals.Lights(p, lit, level + 2, foot))
 		t.base.sized = nil
 	end)
 	t.neck = lit:CreateTexture(nil, "OVERLAY")

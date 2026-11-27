@@ -211,7 +211,14 @@ function Medals.Mark(piece, parent, art, size, color, r, g, b, level, lights)
 	return t, host ~= parent and host or t, tint, gold, aura ~= nil
 end
 
+local function Ready(need)
+	return type(need) == "function" and need() or type(need) == "table" and Medals.Known(need)
+end
+
 function Medals.Later(piece, spells, make)
+	if not Medals.Locked() and Ready(spells) then
+		return make()
+	end
 	piece.later = piece.later or {}
 	piece.later[#piece.later + 1] = { spells, make }
 end
@@ -222,8 +229,7 @@ function Medals.Prepare(piece)
 	end
 	for i = #piece.later, 1, -1 do
 		local each = piece.later[i]
-		local need = each[1]
-		if type(need) == "function" and need() or type(need) == "table" and Medals.Known(need) then
+		if Ready(each[1]) then
 			table.remove(piece.later, i)
 			each[2]()
 			piece.sized = nil
@@ -397,6 +403,48 @@ function Medals.Gates(piece, lit, level, still)
 		lit.lights = { flame = Gate(piece, lit, level, "flames", false), calm = still and Gate(piece, lit, level, "stills", true) or nil }
 	end
 	return lit.lights.flame, lit.lights.calm
+end
+
+function Medals.Lights(piece, lit, level, at, key, filter, options)
+	local hosts = {}
+	if Medals.twin then
+		local unseen = CreateFrame("Frame", nil, piece)
+		unseen:Hide()
+		hosts.flame, hosts.calm = unseen, unseen
+	else
+		local spec = lit.spec or {}
+		local group = (spec.unit or "player") .. "|" .. (spec.filter or "HELPFUL")
+		piece.lighting = piece.lighting or {}
+		local first = piece.lighting[group]
+		if first and first ~= lit and not lit.lights and not lit.share then
+			lit.share = first
+		end
+		local flames, stills = Medals.Gates(piece, lit, level, true)
+		piece.lighting[group] = first or lit
+		for name, copy in pairs({ flame = flames, calm = stills }) do
+			local host = copy
+			if key then
+				host = copy.container:AddAuraSlot(key, filter or "HELPFUL", options)
+				pcall(host.EnableMouse, host, false)
+				host:SetAllPoints(copy)
+				host:SetFrameLevel(copy:GetFrameLevel())
+				host.container, host.burns, host.spec = copy.container, copy.burns, copy.spec
+				lit.mirrors[#lit.mirrors + 1] = host
+			end
+			hosts[name] = host
+		end
+	end
+	if at == false then
+		return hosts
+	end
+	local lights = {}
+	for name, host in pairs(hosts) do
+		local seat = CreateFrame("Frame", nil, host)
+		seat:SetFrameLevel(host:GetFrameLevel() + 1)
+		seat:SetAllPoints(at)
+		lights[name] = seat
+	end
+	return lights
 end
 
 function Medals.Gate(gate, alpha)
