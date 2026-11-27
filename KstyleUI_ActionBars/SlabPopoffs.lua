@@ -326,7 +326,7 @@ end
 
 Popoffs.CLASSES = {
 	{ "MAGE", {
-		Row("emblem", "Crystal", "schoolFrost", { 11958, 27619 }, { known = { 11958 }, overlay = true, size = 96, ring = 70, from = { 0, 0 } }),
+		Row("emblem", "Crystal", "schoolFrost", { 11958, 27619 }, { known = { 11958 }, overlay = true, size = 84, ring = 62, from = { 0, 0 } }),
 		Row(Ranged.PENDANT, "Vortex", "schoolArcane", { 12051 }, { overlay = true, ticks = true, from = { 0, 0 } }),
 	} },
 	{ "HUNTER", {
