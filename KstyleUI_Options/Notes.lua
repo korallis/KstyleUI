@@ -2,6 +2,10 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.3.5.2 (2026-11-27)", {
+		L["A bar shape that cannot fit beside the others no longer shrinks the whole HUD below its usual size."],
+		L["Two-row action bars lift the frames above them by a row, so the bars no longer cover the player frame."],
+	} },
 	{ "v0.3.5.1 (2026-11-26)", {
 		L["Click the quest card's header to fold the card down to that one row, and click again to open it."],
 		L["The chat edit box opens in its own strip under the newest line, no longer over your messages."],
@@ -17,11 +21,5 @@ ns.NOTES = {
 		L["Rogues and cat druids get an energy tick spark that sweeps the energy bar between ticks."],
 		L["Aura timers about to run out turn a lighter red that stays readable over any scenery, on every frame."],
 		L["Windows and pages show at once, no more invisible windows, plus RestedXP, loot-roll and Zygor fixes."],
-	} },
-	{ "v0.3.4.5 (2026-11-24)", {
-		L["The crest no longer throws forbidden object Lua errors in combat, like Vanish or Stealth mid-fight."],
-		L["Every crest piece keeps lighting, filling and counting through the fight, shaman storm clouds included."],
-		L["Your first stance, form or Stealth switch in combat shows its crest pieces at once."],
-		L["Medals snap back to whole pixels after you change the UI scale."],
 	} },
 }

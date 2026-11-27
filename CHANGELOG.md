@@ -1,5 +1,20 @@
 # KstyleUI changelog
 
+## v0.3.5.2 (2026-11-27)
+
+A hotfix for the HUD's action bars: a bar shape that cannot fit keeps the HUD its usual size, and two-row bars move the frames above them out of the way.
+
+Highlights:
+
+- A bar shape that cannot fit beside the others no longer shrinks the whole HUD below its usual size.
+- Two-row action bars lift the frames above them by a row, so the bars no longer cover the player frame.
+
+### Fixed
+
+- HUD: a bar shape that overlaps at every size no longer shrinks the whole HUD; the HUD keeps its size.
+- HUD: when bar 1 or bar 2 takes more than one row, bar 2 (under Frames) and the frames above the bars move up by the added rows. Frames you placed by hand in Layout Mode stay where you put them.
+- Releases: CurseForge and Wago show one version's notes with each file, as the GitHub release page already did.
+
 ## v0.3.5.1 (2026-11-26)
 
 A hotfix that adds a collapse toggle to the quest card and ships the bug fixes made since v0.3.5, from the chat edit box and trainers to settings, group frames and nameplates.
