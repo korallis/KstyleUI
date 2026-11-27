@@ -7,7 +7,9 @@
 -- cast at 1 s, a fire trap at 2 s (ready again at 17 s), Rapid Fire at 4 s (its buff to 19 s), the trinket used at 7 s and Bestial Wrath at
 -- 9 s (the pet's buff to 27 s), each cooling only from its cast), melee or level 8 build, a mage's arcane,
 -- fire (Fire Vulnerability at three stacks), frost (Winter's Chill embers) or level 10 build, a warlock's felhunter (Spell Lock
--- cooling), sacrifice (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, each caster's sigils build (every
+-- cooling), imp, voidwalker or succubus (that demon out, chosen through the pet's spellbook as the felhunter's Spell Lock
+-- chooses it), curses (each of the five curses on the target in turn, one at a time as
+-- the game allows: RENDER_TRACKERS=moment at RENDER_TRACKERS_T 1.5, 3.5, 5.5, 7.5 and 9.5), sacrifice (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, each caster's sigils build (every
 -- cooldown sigil of the class up at once: the mage's five, the warlock's four with the Voidwalker's Sacrifice), the hunter's bite (Mongoose Bite ready) or raptor
 -- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
 -- breakout_fire), timed as the break-out design's clips: an aura's warn time puts it in its pandemic window, a usable
@@ -18,7 +20,8 @@
 -- Content, Happy) in place of the story's own, so the haunch shows or goes. RENDER_CAST_ON_FRAME=off gives the action bars the
 -- centred cast bars' layout elements the unit frames register in the game, so the hunter's rail takes its own flat row.
 -- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it. A mage's crest
--- is drawn as players asked for it, with Blizzard's Cooldown Manager switched off: render its stories with RENDER_COOLDOWN_VIEWER=off (hud.lua).
+-- is drawn as players asked for it, with Blizzard's Cooldown Manager switched off: render every mage story and build (low, arcane,
+-- fire, frost, sigils, breakout) with RENDER_COOLDOWN_VIEWER=off (hud.lua).
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
 local Ranged = {}
@@ -146,6 +149,13 @@ local STORIES = {
 			sigils = { known = { 172, 702, 697, 18288, 18708, 6229, 706 }, pet = false, cooling = {},
 				auras = { { unit = "player", id = 18288, icon = 136132, at = 1, duration = 30 }, { unit = "player", id = 18708, icon = 237564, at = 1.5, duration = 15 },
 					{ unit = "player", id = 6229, icon = 136121, at = 2, duration = 30 }, { unit = "player", id = 7812, icon = 136190, at = 2.5, duration = 30 } } },
+			imp = { known = { 172, 980, 348, 688, 702 }, petSpells = { 3110 } },
+			voidwalker = { known = { 172, 980, 348, 697, 702 }, petSpells = { 3716 } },
+			succubus = { known = { 172, 980, 348, 712, 702 }, petSpells = { 7814 } },
+			curses = { lit = 1.5, known = { 172, 348, 688, 702, 704, 1714, 440892, 18223 }, petSpells = { 3110 }, cooling = {},
+				auras = { { unit = "target", id = 702, icon = 136138, at = 1, duration = 2, harmful = true }, { unit = "target", id = 704, icon = 136225, at = 3, duration = 2, harmful = true },
+					{ unit = "target", id = 1714, icon = 136140, at = 5, duration = 2, harmful = true }, { unit = "target", id = 440892, icon = 136130, at = 7, duration = 2, harmful = true },
+					{ unit = "target", id = 18223, icon = 136162, at = 9, duration = 2, harmful = true } } },
 			nodemon = { pet = false, auras = {
 				{ unit = "player", id = 706, icon = 136185, at = 0.5, duration = 1800 }, { unit = "target", id = 348, icon = 135817, at = 1, duration = 15, harmful = true },
 				{ unit = "target", id = 172, icon = 136118, at = 2, duration = 18, harmful = true }, { unit = "player", id = 17941, icon = 136200, at = 5, duration = 10 } } },
@@ -193,7 +203,12 @@ function Ranged.Install(env, class)
 	env.C_SpellBook = env.C_SpellBook or {}
 	env.Enum.SpellBookSpellBank = env.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
 	local before = env.C_SpellBook.IsSpellKnown
-	env.C_SpellBook.IsSpellKnown = function(id, bank) return known[id] == true or before ~= nil and before(id, bank) end
+	local pets = {}
+	for _, id in ipairs(s.petSpells or {}) do pets[id] = true end
+	env.C_SpellBook.IsSpellKnown = function(id, bank)
+		if bank == env.Enum.SpellBookSpellBank.Pet and pets[id] then return true end
+		return known[id] == true or before ~= nil and before(id, bank)
+	end
 	local spell = env.C_Spell or {}
 	env.C_Spell = spell
 	local texture = spell.GetSpellTexture

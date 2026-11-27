@@ -24,7 +24,7 @@ local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local HELD = FLARE[1][3] + FLARE[2][3]
 local OWNER = "ActionBars.SlabMedals"
 local AURA_STILL = 0
-local refreshed, rims, auras, feds, watchers, gates, breaths, NONE = {}, {}, {}, {}, {}, {}, {}, {}
+local refreshed, rims, auras, feds, watchers, gates, breaths, rearm, NONE = {}, {}, {}, {}, {}, {}, {}, {}, {}
 local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
 Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP, Medals.PIP, Medals.SETTING = SIZE, 16, 10, 4, PIP, SETTING
 
@@ -98,6 +98,16 @@ local function Burn(fire, moving)
 	end
 end
 
+local function Rearm(containers)
+	for c in pairs(containers) do
+		if c.on then
+			c:SetEnabled(false)
+			c:SetEnabled(true)
+		end
+		containers[c] = nil
+	end
+end
+
 local function Fed(frame)
 	while frame do
 		if frame.container then
@@ -144,6 +154,7 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 		fed.auraLoops[#fed.auraLoops + 1] = fire.loop
 		if fed.full == true and fed.auraAwake then
 			fed:AddAuraShownAnimation(fire.loop)
+			rearm[fed.container] = true
 		end
 		feds[#feds + 1] = fed
 	else
@@ -1161,8 +1172,8 @@ function Medals.Engine(pieces, on, full)
 	local function Bind(p, mode)
 		for _, button in ipairs(p.sigils or NONE) do
 			Animate(button, mode)
-			if button.flame then
-				Animate(button.flame, true)
+			if button.flame and Animate(button.flame, true) then
+				rearm[button.flame.container] = true
 			end
 		end
 		for _, button in ipairs(p.lits or { p.lit }) do
@@ -1203,18 +1214,12 @@ function Medals.Rest()
 			Burn(fire, not still)
 		end
 	end
-	local stale = {}
 	for _, button in ipairs(restricted and NONE or feds) do
 		if button.full ~= nil and Animate(button, button.full) then
-			stale[button.container] = true
+			rearm[button.container] = true
 		end
 	end
-	for c in pairs(stale) do
-		if c.on then
-			c:SetEnabled(false)
-			c:SetEnabled(true)
-		end
-	end
+	Rearm(rearm)
 	local dark, mode = not Effects.Allows("flare") or ns.Slab.Resting(), Effects.Allows("ambient") or Effects.Allows("flare") and "calm" or false
 	for _, gate in ipairs(gates) do
 		local bound = gate.lit and gate.lit.full

@@ -295,7 +295,7 @@ do
 	assert(lit:IsShown() and lit.mark.loop and Art(lit.mark) == (K.Tokens.Texture("auraGlyphPolyCurl")) and socket, "Polymorph's head burns the sheep's aura over the empty socket")
 	local arcane = Piece(ns, "crestCooldowns").sigils[1]
 	local fire
-	for _, region in ipairs(arcane.auraHosts.fire._regions) do
+	for _, region in ipairs(arcane.flame._regions) do
 		fire = fire or region.loop and region
 	end
 	assert(fire and Art(fire) == (K.Tokens.Texture("auraSigilArcane")), "Arcane Power's sigil burns its own aura")
@@ -306,11 +306,13 @@ end
 -- one summon, curse, Torment and cooldown known at first, then a second of each learned.
 do
 	local env, K, ns = New("WARLOCK", { known = { 688, 702, 172, 6229 }, pet = { max = 100, missing = 0 } })
+	env.SetTarget(true)
+	env.RunTimers()
 	local demon, curse, spires, rim = Piece(ns, "crestDemon"), Piece(ns, "crestCurse"), Piece(ns, "crestTorments"), Piece(ns, "crestCooldowns")
 	local function Sigil(name)
 		for _, button in ipairs(rim.sigils) do
 			if button.family.sigil == name then
-				for _, region in ipairs(button.auraHosts.fire._regions) do
+				for _, region in ipairs(button.flame._regions) do
 					if region.loop then return Art(region) end
 				end
 				return false
@@ -324,11 +326,32 @@ do
 		"the known summon, curse, Torment and cooldown load their sheets")
 	local voidwalker, recklessness, immolate, void = Loaded()
 	assert(not voidwalker and not recklessness and not immolate and not void, "an unknown summon, curse, Torment or pet cooldown loads no sheet")
+	-- Recklessness is already on the target when it is learned: its prepared sheet must start without another cast
+	-- (review of ff8ccbf0, prepare-active-slot-loop).
+	Slots.Set(env, "target", { { id = 704, harmful = true, start = 0, duration = 120 } })
 	R.Learn(env, 697, 704, 348)
 	voidwalker, recklessness, immolate, void = Loaded()
 	assert(voidwalker and recklessness and immolate and void == (K.Tokens.Texture("auraSigilVoid")),
 		"learning a summon, a curse and a Torment loads their sheets, and the Voidwalker's Sacrifice sigil with its summon")
-	assert(curse.lits[2].mark.loop and spires.spires[3].rune.loop and demon.fel[2].seat, "the learned sheets burn as auras, the sacrificed Voidwalker's among them")
+	local reckless = curse.lits[2]
+	assert(reckless:IsShown() and reckless.mark:IsVisible() and reckless.mark.loop:IsPlaying(), "the learned curse already on the target burns its sheet at once")
+	Slots.Set(env, "target", { { id = 348, harmful = true, start = 0, duration = 15 } })
+	local rune = spires.spires[3].rune
+	assert(rune:IsVisible() and rune.loop:IsPlaying(), "the learned Immolate lights its spire and burns its foot's sheet")
+	env._petSpells[3716] = true
+	env.FireEvent("UNIT_PET", "player")
+	assert(demon.marks.glyphVoidwalker:IsVisible() and demon.marks.glyphVoidwalker.fire.loop:IsPlaying(), "the learned Voidwalker, summoned, burns its own green sheet on the pet's sigil")
+	Slots.Set(env, "player", { { id = 7812, start = 0, duration = 30 } })
+	local fire
+	for _, button in ipairs(rim.sigils) do
+		for _, region in ipairs(button.family.sigil == "Void" and button.flame._regions or {}) do
+			fire = fire or region.loop and region
+		end
+	end
+	assert(fire:IsVisible() and fire.loop:IsPlaying(), "the Voidwalker's Sacrifice burns its learned sigil")
+	assert(not demon.fel[2].seat, "without Demonic Sacrifice no sacrificed demon's sheet loads")
+	R.Learn(env, 18788)
+	assert(demon.fel[1].seat and demon.fel[2].seat and not demon.fel[3].seat, "learning Demonic Sacrifice loads the known demons' violet sheets only")
 	Clean(env, K)
 end
 

@@ -467,12 +467,15 @@ local function Pet(parent, spec, level, form)
 		m.at, m.size = { Off(67, 184) }, DEMON_SIZE * k
 		m.art, m.marks = DEMON, { [DEMON] = Seat(m, m.sigil, DEMON, spec.light, m.size, unpack(m.at)) }
 		for n, demon in ipairs(spec.demons) do
-			Medals.Later(m, { demon[4] }, function()
+			local summon = { demon[4] }
+			Medals.Later(m, summon, function()
 				m.marks[demon[1]] = Seat(m, m.sigil, demon[1], spec.light, m.size, unpack(m.at))
 				m.marks[demon[1]]:Hide()
-				if m.fel then
-					m.fel[n].seat = Seat(m, m.fel[n], demon[1] .. "Fel", spec.color, m.size, unpack(m.at))
-				end
+			end)
+			Medals.Later(m, function()
+				return m.fel and spec.sacrifice and Medals.Known(summon) and Medals.Known(spec.sacrifice)
+			end, function()
+				m.fel[n].seat = Seat(m, m.fel[n], demon[1] .. "Fel", spec.color, m.size, unpack(m.at))
 			end)
 		end
 		m.bob = m.sigil:CreateAnimationGroup()
@@ -1171,7 +1174,7 @@ if CLASS == "WARLOCK" then
 	Trackers.Register("WARLOCK", {
 		{ key = "crestDemon", seat = At(BAND.left), choices = {
 			{ build = Pet, band = "left", light = "schoolNature", demons = SIGILS, known = DEMONS, active = Demon, feed = "aura", color = "jewelShard",
-				spells = { 18789, 18790, 18791, 18792 } },
+				spells = { 18789, 18790, 18791, 18792 }, sacrifice = SACRIFICE },
 			{ build = Effect, seat = SIGIL, size = PERCH, look = "glyph", glyph = "glyphHorns", feed = "aura", color = "jewelShard", spells = ARMORS },
 		} },
 		{ key = "crestHealthstone", seat = PENDANT, build = Effect, choices = {
