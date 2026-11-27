@@ -45,10 +45,14 @@ local function Clean(env, K, what)
 end
 
 local function Piece(ns, key, form)
-	local f = ns.SlabTrackers.state.forms[form or "crest"]
+	local f, found = ns.SlabTrackers.state.forms[form or "crest"], nil
 	for _, p in pairs(f and f.pieces or {}) do
-		if p.spec and p.spec.key == key then return p end
+		if p.spec and p.spec.key == key then
+			if p:IsShown() then return p end
+			found = found or p
+		end
 	end
+	return found
 end
 
 -- The hot swipe a lit's ember mirror drives, and the mirror's gate.
@@ -430,7 +434,6 @@ end
 -- A hunter's pet aura is watched on the pet.
 do
 	local env, K, ns = New("HUNTER", { 3045, 19574, 75 })
-	K.Options.Write("ActionBars", "crestRail", false)
 	local cooldowns = Piece(ns, "crestCooldowns")
 	local pet = Watched(ns, cooldowns, "pet")
 	assert(pet, "the pet's cooldown slot is watched on the pet")
