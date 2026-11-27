@@ -938,14 +938,20 @@ local function newObject(env, objectType, name, parent)
 end
 
 -- An AnimationGroup plays from the stub clock (env._now) when Play is called, so a render can sample its
--- animations at a later time; Stop and Finish end it, and Pause holds it until Play. The group lists its animations in _anims and the frame
--- its groups in _groups.
+-- animations at a later time; Stop and Finish end it, and Pause holds it until Play. Stop runs OnStop on a group that was playing, as the
+-- client's engine does when it stops a slot's shown animations (Blizzard_CustomAuraButton.lua:694-705; OnStop: GamepadReticle.lua:70).
+-- The group lists its animations in _anims and the frame its groups in _groups.
 function Object:Play()
 	self._playedAt, self._paused = self._env._now, nil
 	local onPlay = self._scripts and self._scripts.OnPlay
 	if onPlay then onPlay(self) end
 end
-function Object:Stop() self._playedAt, self._paused = nil, nil end
+function Object:Stop()
+	local was = self._playedAt ~= nil or self._paused
+	self._playedAt, self._paused = nil, nil
+	local onStop = was and self._scripts and self._scripts.OnStop
+	if onStop then onStop(self) end
+end
 function Object:Finish() self._playedAt, self._paused = nil, nil end
 function Object:Pause() if self._playedAt then self._playedAt, self._paused = nil, true end end
 function Object:IsPaused() return self._paused == true end

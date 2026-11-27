@@ -1,4 +1,4 @@
--- test-actionbars-crest-unleashed.lua: Unleashed (SlabUnleashed.lua): a major cooldown lights the crest's corona, hot line, blazing glyphs and outer ring from the cooldown rim's own aura slots, under the level badge and inside the crest's footprint, flares the class burst as it is assigned and lifts the emblem on the player's own cast; at Full the awake layers loop through the engine, Calm, Off and the crest at rest show the still layers, and the bindings change only out of combat; while auras are readable the corona folds and the glyphs cool when the tracked aura instance goes, whatever was cast, and an unrelated aura event queries nothing; the switch hides it all, stops its one-shots, detaches and disables its slots and stops listening, as disabling the module does; a palette change retints it; nothing is written under an aura button while auras are secret; under Frames the cooldown row wears the corona over a glow behind the row.
+-- test-actionbars-crest-unleashed.lua: Unleashed (SlabUnleashed.lua): a major cooldown lights the crest's corona, hot line, blazing glyphs and outer ring from the cooldown rim's own aura slots, under the level badge and inside the crest's footprint, flares the class burst as it is assigned and lifts the emblem on the player's own cast; at Full the awake layers loop through the engine, Calm, Off and the crest at rest show the still layers, and the bindings change only out of combat; while auras are readable the corona folds and the glyphs cool when the tracked aura instance goes, whatever was cast, and an unrelated aura event queries nothing; the switch hides it all, stops its one-shots, detaches and disables its slots and stops listening, as disabling the module does; a palette change retints it; nothing is written under an aura button while auras are secret, and a cooldown that began while the crest or the switch was hidden still folds when it ends; under Frames the cooldown row wears the corona over a glow behind the row.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -35,16 +35,23 @@ local function Clean(env, K, what)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, what .. ": " .. AB.Errors(env))
 end
 
--- The game stops a slot's shown groups when it hides it; the stub's Hide runs no script, so the tests run it by hand, with the scripts read before combat forbids the slot.
-local function Hidden(set)
-	local watch = assert(set.watch, "the hot line's slot tells the crest through its shown group when the game hides it")
-	set.hidden = assert(watch._scripts.OnStop, "its stop telling the crest the slot is lit no more")
-	set.shown = assert(watch._scripts.OnPlay, "and its play when it shows")
+-- Clearing the unit's aura has the slot fake stop the hot line's shown group, as the game does, which runs its OnStop.
+local function Dark(env, unit)
+	Slots.Set(env, unit or "player", nil)
 end
 
-local function Dark(env, set, unit)
-	Slots.Set(env, unit or "player", nil)
-	set.hidden(set.awake.lit)
+-- Hiding an ancestor runs OnHide on every frame it takes from view, which the stub's Hide does not, so a test that hides the crest or switches it off runs each hot line layer's own OnHide.
+local function Veil(action, ...)
+	local sets = { ... }
+	for _, set in ipairs(sets) do
+		assert(set.awake:IsVisible(), "the hot line's layer is in view before it hides")
+	end
+	action()
+	for _, set in ipairs(sets) do
+		assert(not set.awake:IsVisible(), "and out of view after")
+		local hide = set.awake:GetScript("OnHide")
+		if hide then hide(set.awake) end
+	end
 end
 
 local function Rim(ns, form)
@@ -207,7 +214,6 @@ do
 	local env, K, ns = New()
 	local set = ns.SlabUnleashed.sets[1]
 	local done = set.awake.timer:GetScript("OnCooldownDone")
-	Hidden(set)
 	env._aurasSecret = true
 	env.SetCombat(true)
 	Slots.Set(env, "player", Reck())
@@ -216,7 +222,7 @@ do
 	K.Options.Write("Medallions", "motion", "full")
 	K.Theme.SetPalette({ WARRIOR = { r = 0.1, g = 0.3, b = 0.8 } }, 0)
 	ns.SlabMedals.Rest()
-	Dark(env, set)
+	Dark(env)
 	env.FireEvent("UNIT_AURA", "player", env.Secret({ removedAuraInstanceIDs = { 7 } }))
 	assert(not set.fold.play:IsPlaying(), "secret, an aura event it cannot read folds nothing in the frame the slot hides")
 	-- The crest plan: in combat the ending folds instead of cutting, the frame after the game hides the last lit slot or ends its timer.
@@ -232,18 +238,16 @@ do
 	Reset()
 	-- The game timer running out is the ending: the fold plays the frame after, whether or not the game has hidden the slot yet, and the hide that follows adds nothing.
 	Slots.Set(env, "player", Reck())
-	set.shown(set.awake.lit)
 	done(set.awake.timer)
 	env.RunTimers()
 	assert(Folding(), "a hot line's timer running out folds the corona the frame after, with its slot not yet hidden")
 	Reset()
-	Dark(env, set)
+	Dark(env)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "and the slot hiding afterwards folds nothing more")
 	-- One cooldown running out as another takes its slot, which stays lit and so stops neither its shown group nor plays it again: the game plays the slot's assigned animations for the
 	-- new aura, and that keeps the slot lit for the crest, so nothing folds until that one ends.
 	Slots.Set(env, "player", Reck())
-	set.shown(set.awake.lit)
 	done(set.awake.timer)
 	local other
 	for _, id in ipairs(set.lit.spec.spells) do
@@ -256,20 +260,20 @@ do
 	env.RunTimers()
 	assert(Folding(), "and that one's timer running out, the last, folds")
 	Reset()
-	Dark(env, set)
+	Dark(env)
 	env.RunTimers()
 	done(set.awake.timer)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "and does not replay from a timer's end when nothing was lit")
 	Slots.Set(env, "player", Reck())
 	K.Options.Write("Medallions", "motion", "off")
-	Dark(env, set)
+	Dark(env)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "at Off the ending folds nothing")
 	K.Options.Write("Medallions", "motion", "full")
 	Slots.Set(env, "player", Reck())
-	K.Options.Write("ActionBars", "crestUnleashed", false)
-	Dark(env, set)
+	Veil(function() K.Options.Write("ActionBars", "crestUnleashed", false) end, set)
+	Dark(env)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "switched off in combat, the slots the game still drives fold nothing")
 	-- Still switched off: the game assigns a cooldown to the slots it still drives. The burst nobody sees takes no place among the crest's flares (a place it held
@@ -305,29 +309,22 @@ do
 	K.Options.Write("ActionBars", "crestUnleashed", true)
 	-- The switch hides the hot line's own layer, and its slot with it, which is no cooldown ending: off and on again with the cooldown still up folds nothing.
 	Slots.Set(env, "player", Reck())
-	set.shown(set.awake.lit)
-	K.Options.Write("ActionBars", "crestUnleashed", false)
-	set.hidden(set.awake.lit)
+	Veil(function() K.Options.Write("ActionBars", "crestUnleashed", false) end, set)
 	K.Options.Write("ActionBars", "crestUnleashed", true)
 	env.RunTimers()
 	assert(set.piece:IsVisible() and not set.fold.play:IsPlaying(), "switched off and on again before the next frame, the cooldown still up, nothing folds")
-	set.shown(set.awake.lit)
-	Dark(env, set)
+	Dark(env)
 	env.RunTimers()
 	assert(Folding(), "and that cooldown's real ending folds")
 	Reset()
 	-- Hiding the crest hides every slot with it, which is no cooldown ending: nothing folds then, when the crest comes back with its cooldown still up, or later from a
 	-- cooldown that ended while the crest was hidden.
 	Slots.Set(env, "player", Reck())
-	set.shown(set.awake.lit)
-	set.piece:Hide()
-	set.hidden(set.awake.lit)
+	Veil(function() set.piece:Hide() end, set)
 	set.piece:Show()
-	set.shown(set.awake.lit)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "hiding the crest and showing it again before the next frame folds nothing")
-	set.piece:Hide()
-	set.hidden(set.awake.lit)
+	Veil(function() set.piece:Hide() end, set)
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "nor does leaving it hidden")
 	Slots.Set(env, "player", nil)
@@ -336,11 +333,47 @@ do
 	env.RunTimers()
 	assert(not set.fold.play:IsPlaying(), "a cooldown that ended while the crest was hidden leaves no ending behind to fold later")
 	Slots.Set(env, "player", Reck())
-	set.shown(set.awake.lit)
-	Dark(env, set)
+	Dark(env)
 	env.RunTimers()
 	assert(Folding(), "and the next real ending still folds")
 	Reset()
+	-- A timer that runs out while the crest or the switch is hidden is no ending the crest showed, even when it shows again before the deferred check runs.
+	Slots.Set(env, "player", Reck())
+	Veil(function() set.piece:Hide() end, set)
+	done(set.awake.timer)
+	set.piece:Show()
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "a timer that ran out while the crest was hidden folds nothing when it shows again in the same frame")
+	Dark(env)
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "nor when its slot's aura clears afterwards")
+	Slots.Set(env, "player", Reck())
+	Veil(function() K.Options.Write("ActionBars", "crestUnleashed", false) end, set)
+	done(set.awake.timer)
+	K.Options.Write("ActionBars", "crestUnleashed", true)
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "a timer that ran out while switched off folds nothing when the switch comes back in the same frame")
+	Dark(env)
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "nor when its slot's aura clears afterwards, with the switch back on")
+	-- A cooldown that begins while the crest or the switch is hidden lights the crest when it shows, so its ending folds.
+	Veil(function() set.piece:Hide() end, set)
+	Slots.Set(env, "player", Reck())
+	set.piece:Show()
+	Dark(env)
+	env.RunTimers()
+	assert(Folding(), "a cooldown that began while the crest was hidden folds as its aura clears")
+	Reset()
+	Veil(function() K.Options.Write("ActionBars", "crestUnleashed", false) end, set)
+	Slots.Set(env, "player", Reck())
+	K.Options.Write("ActionBars", "crestUnleashed", true)
+	done(set.awake.timer)
+	env.RunTimers()
+	assert(Folding(), "a cooldown that began while switched off in combat folds as its timer runs out")
+	Reset()
+	Dark(env)
+	env.RunTimers()
+	assert(not set.fold.play:IsPlaying(), "and its aura clearing afterwards folds nothing more")
 	env._aurasSecret = false
 	env.SetCombat(false)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
@@ -359,15 +392,13 @@ do
 		end
 	end
 	assert(own and pets and fold, "the crest has a hot line for the player's cooldowns and one for the pet's")
-	Hidden(own)
-	Hidden(pets)
 	local ended = own.awake.timer:GetScript("OnCooldownDone")
 	local function Up(s, on)
 		local spec = s.awake.lit.spec
 		if on then
 			Slots.Set(env, spec.unit or "player", { { id = spec.spells[1], auraInstanceID = spec.unit == "pet" and 8 or 7, start = 0, duration = 15 } })
 		else
-			Dark(env, s, spec.unit)
+			Dark(env, spec.unit)
 		end
 	end
 	env._aurasSecret = true
@@ -387,6 +418,14 @@ do
 	Up(pets, false)
 	env.RunTimers()
 	assert(fold.fold.play:IsPlaying(), "a cooldown on the pet alone folds when it ends")
+	fold.fold.play:Stop()
+	fold.cool.play:Stop()
+	Veil(function() own.piece:Hide() end, own, pets)
+	Up(pets, true)
+	own.piece:Show()
+	Up(pets, false)
+	env.RunTimers()
+	assert(fold.fold.play:IsPlaying() and fold.cool.play:IsPlaying(), "a pet cooldown that began while the crest was hidden folds when it ends")
 	Clean(env, K, "pet fold")
 end
 
