@@ -6,6 +6,7 @@ local Png = dofile("Tools/regression/png.lua")
 -- mage cooldown updates, and 46,100 and 2,000 for a hundred warlock pet health ticks, with this fixture.
 local BUDGET_COOLDOWN, BUDGET_HEALTH = { 229200, 1700 }, { 46100, 2000 }
 local AB, Slots, New, Piece, Seated, Shown, Clean, Tint, Icons = R.AB, R.Slots, R.New, R.Piece, R.Seated, R.Shown, R.Clean, R.Tint, R.Icons
+local Aura = R.Aura
 
 local SHARED = { crestCooldowns = true }
 local LIGHT = {
@@ -124,19 +125,18 @@ do
 	local lit = sting.lits[1]
 	assert(lit:IsShown() and not sting.lits[3]:IsShown() and lit._durationBar[1] == lit.art and lit.art:GetOrientation() == "VERTICAL", "Serpent Sting's fuse is a duration bar burning down the band")
 	assert(Shown(lit, lit.flare.play) and Shown(lit, lit.loop), "the fuse's mark ignites and its head flickers as the engine's animations")
-	local r, g, b = lit.mark:GetVertexColor()
-	assert(r + g + b < 2.6, "the serpent keeps its colour rather than burning white")
+	assert(Aura(lit.mark, "Glyphs\\Serpent"), "the serpent burns as its own aura, its colour baked from Serpent Sting's green rather than tinted")
 	local burn, seat = lit.head._kids[1], lit.head._kids[2]
 	assert(#lit._regions + #lit.head._regions == 0 and #burn._regions == 1 and #burn._kids == 0, "the head's flicker holds the flame alone")
 	-- A Sting's mark cannot be read at 16 units over the ring's runes, so it draws at 24 units,
 	-- moved 14 units in from the fuse onto a dark shade, steady while the flame flickers; at that size the gold rule applies.
 	local whole = lit.mark:GetParent()
-	local body = Drawn(whole, "Serpent.png", false)
+	local body = Drawn(whole, "Socket.png", false)
 	assert(body.units == 24 and select(4, seat:GetPoint(1)) == -14 and whole:GetParent() == seat, "Serpent Sting's mark is 24 units, 14 in from the fuse's head")
-	Same("its body is gold, coinGold f0c75e", { body:GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
+	Same("its socket is gold, coinGold f0c75e", { body:GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
 	Same("its halo is the Sting's colour, schoolNature 6fdc5a", { Drawn(whole, "Glow.png", true):GetVertexColor() }, 0x6f / 255, 0xdc / 255, 0x5a / 255)
 	assert(#seat._regions == 2 and Drawn(seat, "Glow.png", false) and not Drawn(seat, "Glow.png", true), "it sits on a soft dark shade, never a socket")
-	assert(lit.mark:GetAlpha() == 0.15 and lit.flare.play:GetParent() == whole, "the lit pass is a sheen and the ignition grows the whole mark")
+	assert(lit.mark.units == 24 and lit.flare.play:GetParent() == whole, "the aura fills the socket and the ignition grows the whole mark")
 	Same("Wyvern Sting's halo is schoolFire ff8a3d, apart from Black Arrow's violet", { Drawn(sting.lits[4].mark:GetParent(), "Glow.png", true):GetVertexColor() }, 0xff / 255, 0x8a / 255, 0x3d / 255)
 	Same("Black Arrow's halo is schoolShadow 9d7bff", { Drawn(sting.lits[6].mark:GetParent(), "Glow.png", true):GetVertexColor() }, 0x9d / 255, 0x7b / 255, 0xff / 255)
 	assert(aspect.rest:GetAlpha() == 0.85, "an unlit forged Aspect rests at 0.85 so its outline shows on the ring")
@@ -159,9 +159,9 @@ do
 	Slots.Set(env, "player", { { id = 415423, start = 0 } })
 	local viper = aspect.lits[7]
 	local cast = viper.art:GetParent()
-	Same("Aspect of the Viper's body is gold, coinGold f0c75e", { Drawn(cast, "Viper.png", false):GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
+	Same("Aspect of the Viper's socket is gold, coinGold f0c75e", { Drawn(cast, "Socket.png", false):GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
 	Same("its halo is the spell's colour, magic 5aa9ff", { Drawn(cast, "Glow.png", true):GetVertexColor() }, 0x5a / 255, 0xa9 / 255, 0xff / 255)
-	assert(viper:IsShown() and viper.art:GetAlpha() == 0.15 and viper.flare.play:GetParent() == cast, "the lit pass is a sheen over the body and the landing grows the whole mark")
+	assert(viper:IsShown() and Aura(viper.art, "Glyphs\\Viper") and viper.flare.play:GetParent() == cast, "the lit pass is the coil's aura in its socket and the landing grows the whole mark")
 	Slots.Set(env, "player", nil)
 	assert(lit._pandemicAnimations[1] == lit.flicker and not lit.flicker:IsPlaying(), "the ending blink waits for the pandemic window")
 	Pandemic(env, "target", serpent)
@@ -223,9 +223,12 @@ do
 	raptor.timer:GetScript("OnCooldownDone")(raptor.timer)
 	assert(raptor.ready:IsShown() and raptor.flare.play:IsPlaying(), "and flashes the moment it is ready")
 	-- The approved plan for the crest marks puts the flash under the forged rule: the flash is all a strike shows on the crest.
-	Same("Raptor Strike's flash is the gold talon, coinGold f0c75e", { Drawn(raptor.flare, "Raptor.png", false):GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
+	-- The KSTY-51 plan makes it the talon's aura: a bare figure burns over its own dark silhouette, its cell wider than the figure so its flames have room.
+	local talon = Drawn(raptor.flare, "Auras\\Glyphs\\Raptor.png", true)
+	assert(talon and Aura(talon, "Glyphs\\Raptor") and math.abs(talon.units - 41.4 * 1.25) < 1e-6, "Raptor Strike's flash is the talon's aura")
+	Same("over the talon's own figure in black", { Drawn(raptor.flare, "Glyphs\\Raptor.png", false):GetVertexColor() }, 0, 0, 0)
 	Same("haloed in its colour, gilt d3b574", { Drawn(raptor.flare, "Glow.png", true):GetVertexColor() }, 0xd3 / 255, 0xb5 / 255, 0x74 / 255)
-	assert(math.abs(Drawn(raptor.flare, "Raptor.png", false).units - 41.4) < 1e-6, "at 41.4 units (the 36-unit flash at the orb look's 1.15), so the painted emblem shows round it")
+	assert(math.abs(Drawn(raptor.flare, "Glyphs\\Raptor.png", false).units - 41.4) < 1e-6, "at 41.4 units (the 36-unit flash at the orb look's 1.15), so the painted emblem shows round it")
 	assert(#arcane.flare._regions == 1 and arcane.flare._regions[1]._state.BlendMode[1] == "ADD", "Arcane Shot's flat orb still flashes as one additive texture")
 	Same("in white, not its spell's colour", { arcane.flare._regions[1]:GetVertexColor() }, 1, 1, 1)
 	Clean(env, K)
@@ -270,12 +273,12 @@ do
 	Clean(env, K)
 end
 
--- A forged cooldown sigil must read on its medal's face: a white solid body, never the medal's colour, under the lit pass at 0.6.
+-- A cooldown sigil must read on its medal's face. The KSTY-51 plan makes it the sigil's own aura, burning over its figure in black.
 do
 	local env, K, ns = New("HUNTER", { known = { 3045 } })
 	local volley = Piece(ns, "crestCooldowns").sigils[1]
-	Same("Rapid Fire's forged sigil has a white body", { Drawn(volley, "Volley.png", false):GetVertexColor() }, 1, 1, 1)
-	assert(Drawn(volley, "Volley.png", true):GetAlpha() == 0.6, "its lit pass stays at 0.6")
+	Same("Rapid Fire's sigil stands in black under its light", { Drawn(volley, "Sigils\\Volley.png", false):GetVertexColor() }, 0, 0, 0)
+	assert(Aura(Drawn(volley, "Auras\\Sigils\\Volley.png", true), "Sigils\\Volley"), "and burns as its aura")
 	Clean(env, K)
 end
 

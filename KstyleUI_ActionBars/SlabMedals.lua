@@ -23,7 +23,8 @@ local PIP, PIP_GAP, ROW_PIP, ROW_PIP_ARC, GLOW, SPARK_LAP = 16, 2, 4, 22, 0.35, 
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local HELD = FLARE[1][3] + FLARE[2][3]
 local OWNER = "ActionBars.SlabMedals"
-local refreshed, rims, watchers, gates, breaths, NONE = {}, {}, {}, {}, {}, {}
+local AURA_STILL = 0
+local refreshed, rims, auras, watchers, gates, breaths, NONE = {}, {}, {}, {}, {}, {}, {}
 local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
 Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP, Medals.PIP, Medals.SETTING = SIZE, 16, 10, 4, PIP, SETTING
 
@@ -74,28 +75,66 @@ function Medals.Texture(parent, layer, sublevel, texture, color, size, blend)
 	return t
 end
 
-function Medals.Mark(piece, parent, art, size, color, r, g, b, level)
-	local forged = select(4, Tokens.Texture(art))
-	local host = forged and level and Medals.Layer(parent, level) or parent
-	local t = piece.add(Medals.Texture(host, "ARTWORK", 0, art, color, size, "ADD"))
-	if r then
-		t:SetVertexColor(r, g, b)
+local function Cell(t, token, cell)
+	local rows, columns = Tokens.Flipbook(token)
+	local x, y = cell % columns, floor(cell / columns)
+	t:SetTexCoord(x / columns, (x + 1) / columns, y / rows, (y + 1) / rows)
+	return t
+end
+
+local function Moving()
+	return Effects.Allows("ambient") and not ns.Slab.Resting()
+end
+
+local function Burn(fire, moving)
+	fire:SetAlpha(moving and 1 or 0)
+	fire.still:SetAlpha(moving and 0 or 1)
+	if not moving then
+		fire.loop:Stop()
+	elseif not fire.loop:IsPlaying() then
+		fire.loop:Play()
 	end
-	if not forged then
-		return t, t
+end
+
+local function Aura(piece, host, token, size)
+	local span = select(5, Tokens.Flipbook(token))
+	local fire = piece.add(Cell(Medals.Texture(host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, 0))
+	fire.still = piece.add(Cell(Medals.Texture(host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, AURA_STILL))
+	fire.loop = Medals.Flip(fire, token, 1)
+	auras[#auras + 1] = fire
+	Burn(fire, Moving())
+	return fire, span > 1
+end
+
+function Medals.Mark(piece, parent, art, size, color, r, g, b, level)
+	local _, _, _, forged, aura = Tokens.Texture(art)
+	local host = forged and level and Medals.Layer(parent, level) or parent
+	local t, bare
+	if aura then
+		t, bare = Aura(piece, host, aura, size)
+	else
+		t = piece.add(Medals.Texture(host, "ARTWORK", 0, art, color, size, "ADD"))
+		if r then
+			t:SetVertexColor(r, g, b)
+		end
+		if not forged then
+			return t, t
+		end
 	end
 	local gold = size >= FORGED
-	local body = piece.add(Medals.Texture(host, "ARTWORK", -1, art, gold and "coinGold" or color, size))
+	local body = piece.add(Medals.Texture(host, "ARTWORK", -1, aura and not bare and "auraSocket" or art, bare and "black" or gold and "coinGold" or color, size))
 	local tint = body
 	if gold then
 		piece.add(Medals.Texture(host, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(HALO_LIT)
 		tint = piece.add(Medals.Texture(host, "BACKGROUND", 1, "glow", color, size * HALO, "ADD"))
 		tint:SetAlpha(HALO_LIT)
-	elseif r then
+	elseif r and not bare then
 		body:SetVertexColor(r, g, b)
 	end
-	t:SetAlpha(gold and SHEEN or SHEEN_SMALL)
-	return t, host ~= parent and host or t, tint, gold
+	if not aura then
+		t:SetAlpha(gold and SHEEN or SHEEN_SMALL)
+	end
+	return t, host ~= parent and host or t, tint, gold, aura ~= nil
 end
 
 function Medals.Layer(holder, level)
@@ -118,10 +157,7 @@ function Medals.Cloud(parent, token, cell)
 	t:SetTexture((Tokens.Texture(token)))
 	t:SetBlendMode("ADD")
 	t:SetAllPoints(parent)
-	local rows, columns = Tokens.Flipbook(token)
-	local x, y = cell % columns, floor(cell / columns)
-	t:SetTexCoord(x / columns, (x + 1) / columns, y / rows, (y + 1) / rows)
-	return t
+	return Cell(t, token, cell)
 end
 
 function Medals.Flip(texture, token, stretch)
@@ -1003,6 +1039,9 @@ function Medals.Rest()
 	local still = not Effects.Allows("ambient") or ns.Slab.Resting()
 	for _, r in ipairs(rims) do
 		Medals.Still(r, still, 1)
+	end
+	for _, fire in ipairs(Medals.Restricted() and NONE or auras) do
+		Burn(fire, not still)
 	end
 	local dark, mode = not Effects.Allows("flare") or ns.Slab.Resting(), Effects.Allows("ambient") or Effects.Allows("flare") and "calm" or false
 	for _, gate in ipairs(gates) do
