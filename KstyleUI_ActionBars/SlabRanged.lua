@@ -145,9 +145,8 @@ local function Swell(flare, host, from)
 	local grow = host:CreateAnimationGroup()
 	ns.Slab.Grow(grow, from, 1, 0.5)
 	Medals.Arbitrate(flare.play, true, flare.gate)
-	flare.play:HookScript("OnPlay", function() grow:Play() end)
 	flare.play:HookScript("OnStop", function() grow:Stop() end)
-	flare.swell = grow
+	flare.swell, flare.play.follow = grow, grow
 end
 
 local function Light(p, each, level, look)

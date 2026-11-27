@@ -229,6 +229,8 @@ do
 	local function Lit(f, s)
 		return Read(function() return fire:GetEffectiveAlpha() == f and fire.still:GetEffectiveAlpha() == s end)
 	end
+	-- The hunter keeps the kit's rule for a fed fire (the owner's choice in the review of the hunter's hidden playback): its loop stays bound
+	-- behind the dark copy at rest, Calm and Off, so Full shows at once under hidden values; the masked loop's cost is accepted.
 	assert(Engine(fire, flame) and burning:GetAlpha() == 0 and resting:GetAlpha() == 1, "the crest resting: the fire's copy goes dark with its loop still bound and the still shows")
 	env.SetTarget(true)
 	env.RunTimers()

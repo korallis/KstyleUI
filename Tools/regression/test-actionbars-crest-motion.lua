@@ -1091,11 +1091,14 @@ do
 	Auras(true, true)
 	assert(Engine(function() return bloom:IsPlaying() end) and gate:GetAlpha() == 0, "the Aspect's bloom shows at once and the older flare's layer hides")
 	assert(Alphas() == "1,0", "the bloom plays on the flame copy, which shows alone (" .. Alphas() .. ")")
+	local swell = assert(burning.flare.swell, "the bloom grows the Aspect's socket")
+	assert(not Engine(function() return swell:IsPlaying() end), "under hidden values the bloom leaves its socket still, as Lua could not stop that growth once a newer flare hides the bloom")
 	armed = {}
 	local other = ns.SlabMedals.Arbitrate(ns.Slab.hub:CreateAnimationGroup())
 	other:Play()
 	assert(other:IsPlaying() and Engine(function() return bloom:IsPlaying() end), "a newer flare shows at once, and Lua may not stop the bloom")
 	assert(Alphas() == "0,1", "so the flame copy is hidden and the still copy shows the aura in its place (" .. Alphas() .. ")")
+	assert(not Engine(function() return swell:IsPlaying() end), "and the socket holds still under the still copy instead of growing with the hidden bloom")
 	assert(#armed > 0, "a timer waits out the bloom")
 	for _, fn in ipairs(armed) do fn() end
 	env.C_Timer.After = after

@@ -161,6 +161,11 @@ do
 		return group._anims[1]._type == "Scale" and group._anims[1]._state.ScaleFrom[1]
 	end
 	copy.flare.play:Play()
+	assert(copy.flare.swell ~= nil and not copy.flare.swell:IsPlaying(), "while the crest rests the ignition is hidden, so its socket holds still")
+	K.Options.Write("Medallions", "restingCrest", false)
+	env.RunTimers()
+	copy.flare.play:Stop()
+	copy.flare.play:Play()
 	assert(copy.flare.swell ~= nil and copy.flare.swell:IsPlaying() and copy.flare.swell:GetParent() == whole and Peak(copy.flare.swell) == 1.5 and Peak(copy.flare.play) == 1.5, "the ignition grows the Sting's socket with its light from the same 1.5 peak")
 	copy.flare.play:Stop()
 	assert(not copy.flare.swell:IsPlaying(), "and stopping the ignition stops the socket's growth with it")
