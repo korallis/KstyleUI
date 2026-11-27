@@ -18,6 +18,7 @@ ignore:
   - .pre-commit-config.yaml
   - AGENTS.md
   - CLAUDE.md
+  - VISION.md
   - scripts
   - verify
   - README.md
