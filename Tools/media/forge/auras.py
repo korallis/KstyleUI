@@ -36,10 +36,11 @@ ROOT = HERE.parents[2]
 sys.path[:0] = [str(HERE), str(HERE.parent)]
 
 import designs_casters as casters
+import designs_healers
 import melee_effects
 import sigils
 from finish import load, outline, resize, save, to_lin, to_srgb
-from relief import N, Emblem, forge_lineart
+from relief import N, Emblem, forge_lineart, from_image
 
 FRAMES, MASTER, CELL, GRID = 16, 512, 128, 4
 PAD = 410                 # field padding in map pixels, so warped flame lookups past the box still read distance
@@ -58,6 +59,8 @@ EDGE = 3                  # cell pixels over which a bare figure's light fades b
 # adds its marks as it takes the kit. A mark in "white" bakes a neutral light the game tints: a racial, a potion or Sprint is
 # on every class's rail in that class's colour, and an object takes its piece's colour, which a seal's school or a picked
 # weapon changes. Every other mark's colour is the one its seat draws it in.
+# A design that returns a drawing (white on black) instead is flat line art traced where it sits, so the aura lies over
+# the flat art (designs_healers); its mark is named "Folder/Name" and bakes to Folder/Name.png.
 MARKS = {}
 NEUTRAL = "white"
 
@@ -115,6 +118,10 @@ MARKS.update({
     "Gust": ("trackers", "jewelHawk", casters.D["Gust"]),
 })
 BANDS = {"Gust": 4}  # mark: its strip's length over its height
+
+# Priest, druid and shaman: Tools/media/forge/designs_healers.py.
+MARKS.update(designs_healers.MARKS)
+
 # the amber spell fire of the approved hawk mock: dark ember to the crest's gilt to white heat
 GILT = [[0.0, "000000"], [0.06, "2a0a02"], [0.18, "a8320a"], [0.34, "f26a12"], [0.52, "ffb22e"], [0.72, "ffe39a"], [1.0, "fffdf4"]]
 
@@ -138,7 +145,7 @@ def palette(hexv):
 
 def figure(name, kind, design, work):
     """The mark's figure mask and relief height in its own unit box, and whether it sits on a plate."""
-    if kind == "sigils":
+    if kind == "sigils" and design is None:
         pen = sigils.Pen()
         sigils.GLYPHS[name](pen)
         e = forge_lineart(name, pen.image, work / "maps")
@@ -151,6 +158,10 @@ def figure(name, kind, design, work):
         mask = alpha > threshold
         return mask, np.where(mask, 0.3 + tone, 0), False
     e = design()
+    if isinstance(e, Image.Image):
+        flat = Emblem(name)
+        flat.add(from_image(e), h=1.0, r=0.022, base=0.27)
+        return flat.M, flat.H, False
     if e.figure is not None:
         return e.figure, np.where(e.figure, e.H, 0), True
     lit = e.M if e.dark is None else e.M & ~e.dark  # a shaded mouth stays dark metal, not light
@@ -261,6 +272,7 @@ def main(argv=None):
     env = dict(os.environ)
     env.setdefault("BLENDER_USER_RESOURCES", str(work / "blender-user"))
     hexes = colours()
+    hexes.update({c: c[1:] for _, c, _ in MARKS.values() if c.startswith("#")})
     if not only or "Socket" in only:
         path = socket(work, args.blender, env, args.out)
         print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest())

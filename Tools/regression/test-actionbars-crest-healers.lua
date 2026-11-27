@@ -317,9 +317,45 @@ do
 	local seats = 0
 	for _ in pairs(placed) do seats = seats + 1 end
 	assert(#bloom.ring == 8 and seats == 8, "eight leaves at eight places round the ring, not " .. seats)
+	-- Every leaf, moving and still, burns Leaf's sheet with its fire, still and black body turned to the leaf's own angle;
+	-- only the unfurling copy's slot plays the loops, so the still copy never animates.
+	env.SetTarget(true)
+	local sheet, loops = K.Tokens.Texture("auraTrackerLeaf"), {}
+	for _, group in ipairs(moving._shownAnimations or {}) do loops[group] = true end
+	for _, group in ipairs(calm._shownAnimations or {}) do
+		assert(group == bloom.unfurl or not loops[group], "the still copy's slot shares no loop with the moving copy")
+	end
+	for k, leaf in ipairs(bloom.ring) do
+		for _, copy in ipairs({ leaf, leaf.twin }) do
+			local what, turn, burning = "leaf " .. k .. (copy == leaf and "" or " (still)"), -math.rad((k - 0.5) * 45), {}
+			for _, region in ipairs(copy._regions or {}) do
+				local rotation = region._state.Rotation
+				assert(rotation and math.abs(rotation[1] - turn) < 1e-9, what .. ": every part turns to " .. (k - 0.5) * 45 .. " degrees")
+				if region._state.Texture and region._state.Texture[1] == sheet then burning[#burning + 1] = region end
+			end
+			assert(#burning == 2 and copy._regions and #copy._regions == 3, what .. ": a fire and a still of Leaf's sheet over a black body")
+			local fire = burning[1].loop and burning[1] or burning[2]
+			assert(fire.loop and (loops[fire.loop] == true) == (copy == leaf), what .. (copy == leaf and ": its loop plays on the unfurling copy's slot" or ": its loop is bound nowhere"))
+			for _, group in ipairs(calm._shownAnimations or {}) do
+				assert(group ~= fire.loop, what .. ": the still copy's slot never plays a leaf loop")
+			end
+		end
+	end
+	-- The still copy shows only Leaf's still frame, whatever the level: its fire stays dark.
+	local function Still(at)
+		for k, leaf in ipairs(bloom.ring) do
+			for _, region in ipairs(leaf.twin._regions) do
+				if region.loop then
+					assert(region._state.Alpha[1] == 0 and region.still._state.Alpha[1] == 1, at .. ": still leaf " .. k .. " shows its still frame, not its fire")
+				end
+			end
+		end
+	end
+	Still("Full")
 	Slots.Set(env, "player", nil)
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "Calm shows the still copy")
+	Still("Calm")
 	K.Options.Write("Medallions", "motion", "full")
 	env._aurasSecret = true
 	env.SetCombat(true)
@@ -335,6 +371,7 @@ do
 	env._engine = nil
 	K.Options.Write("Medallions", "motion", "full")
 	assert(bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "Off to Full inside the unfurl: the still leaves stay and the half-grown copy stays dark")
+	Still("Off to Full inside the unfurl")
 	env._now = env._now + 1
 	for _, fn in ipairs(armed) do fn() end
 	assert(bloom.moving:GetAlpha() == 1 and bloom.calm:GetAlpha() == 0, "and the moving copy takes over once the unfurl is over")
@@ -344,6 +381,57 @@ do
 	env.C_Timer.After = after
 	env._aurasSecret = false
 	env.SetCombat(false)
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- The moving leaves are a prepared fire: their loops stay bound and their fire frame selected at every level, under a
+-- layer Calm and Off darken, so Full chosen under hidden values after a readable Calm shows all eight leaves moving with
+-- no write to the aura slots (review of 68c5e7e1, clearcasting-full-from-readable-calm).
+do
+	local env, K, ns = New("DRUID", DRUID)
+	local bloom = Tracker(ns, "DRUID").built.bloom
+	local moving, writes = bloom.moving.lit, 0
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	Slots.Set(env, "player", { { id = 16870, count = 1, start = 0, duration = 15 } })
+	K.Options.Write("Medallions", "motion", "calm")
+	env.RunTimers()
+	assert(bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "readable Calm shows the still leaves")
+	for _, verb in ipairs({ "AddAuraShownAnimation", "RemoveAuraShownAnimation" }) do
+		local real = moving[verb]
+		moving[verb] = function(...) writes = writes + 1 return real(...) end
+	end
+	env._aurasSecret = true
+	env.SetCombat(true)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	-- The clock moves past any unfurl that began unseen, so the handoff completes and the leaves' own binding decides.
+	env.GetTime = function() return env._now end
+	local after, armed = env.C_Timer.After, {}
+	env.C_Timer.After = function(_, fn) armed[#armed + 1] = fn end
+	K.Options.Write("Medallions", "motion", "full")
+	env._now = env._now + 1
+	for _, fn in ipairs(armed) do fn() end
+	env.C_Timer.After = after
+	assert(bloom.moving:GetAlpha() == 1 and bloom.calm:GetAlpha() == 0, "Full chosen under hidden values shows the moving leaves")
+	local bound = {}
+	for _, group in ipairs(moving._shownAnimations or {}) do bound[group] = true end
+	for k, leaf in ipairs(bloom.ring) do
+		local fire
+		for _, region in ipairs(leaf._regions or {}) do
+			if region.loop and region.still then fire = region end
+		end
+		assert(fire, "moving leaf " .. k .. " burns a fire")
+		assert(fire._state.Alpha[1] == 1 and fire.still._state.Alpha[1] == 0, "moving leaf " .. k .. " shows its fire frame, not the still one")
+		assert(bound[fire.loop] and Engine(function() return fire.loop:IsPlaying() end), "moving leaf " .. k .. "'s loop is bound and plays")
+	end
+	assert(writes == 0, "no level choice under hidden values writes to the leaves' aura slot, got " .. writes)
+	env._aurasSecret = false
+	env.SetCombat(false)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -478,6 +566,26 @@ do
 	assert(math.abs(vr - r) + math.abs(vg - g) + math.abs(vb - b) < 1e-6, "Windfury lights the rune in air's colour")
 	assert(main.lit:IsShown() and not main.rim:IsShown() and not main.pulse:IsPlaying(), "an imbue lights the stone and stops the pulse")
 	assert(off.gutter:IsPlaying() and not main.gutter:IsPlaying(), "the last five minutes gutter")
+	-- The stone's light and its rune are the imbue's animated auras, in its element's colour; with no imbue the light
+	-- hides, and its loops stop with it rather than play unseen.
+	local stone, rune = main.runes[1], main.runes[3]
+	assert(stone._state.Texture[1] == Tokens.Texture("auraTrackerStone") and rune._state.Texture[1] == Tokens.Texture("auraTrackerRune"), "the stone's light and its rune burn their own sheets")
+	local sr, sg, sb = stone:GetVertexColor()
+	assert(math.abs(sr - r) + math.abs(sg - g) + math.abs(sb - b) < 1e-6, "the stone's light burns in the imbue's colour too")
+	assert(stone.loop:IsPlaying() and rune.loop:IsPlaying() and stone:GetAlpha() == 1, "both loop at Full with the crest awake")
+	local function Hidden(frame)
+		local hide = frame:GetScript("OnHide")
+		if hide then hide(frame) end -- the game runs OnHide down the tree as it hides a frame; the stub's Hide does not
+		for _, kid in ipairs(frame._kids or {}) do Hidden(kid) end
+	end
+	local imbue = env._enchants[16]
+	env._enchants[16] = nil
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	Hidden(main.light)
+	assert(not main.light:IsShown() and not stone.loop:IsPlaying() and not rune.loop:IsPlaying(), "no imbue hides the light and stops both loops")
+	env._enchants[16] = imbue
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	assert(main.light:IsShown() and stone.loop:IsPlaying() and rune.loop:IsPlaying(), "the imbue back plays them again")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(not off.gutter:IsPlaying() and off.gutter.still and off.gutter.still:IsPlaying() and not (main.gutter.still and main.gutter.still:IsPlaying()),
 		"Calm does not gutter: the stone in its last five minutes holds its light still, at the flicker's low alpha")
@@ -495,6 +603,12 @@ do
 	env._ankhs = 0
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(ankh.lit.bar:GetAlpha() < 1, "no Ankh in the bags: the ankh greys")
+	for _, light in ipairs({ ankh.lit.aura, ankh.lit.aura.still }) do
+		assert(light._state.Desaturated and light._state.Desaturated[1] == true, "its burning light greys too, moving or still")
+	end
+	env._ankhs = 1
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(ankh.lit.aura._state.Desaturated[1] == false and ankh.lit.aura.still._state.Desaturated[1] == false, "and an Ankh back lights it gold again")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -551,10 +665,10 @@ do
 	env._enchants[16] = { enchantID = 9999, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
 	Slots.Enchant(env, 1, { start = 0, duration = 3600 })
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	assert(main.light:GetAlpha() == 0 and main.rim:IsShown() and main.pulse:IsPlaying(), "an enchant that is no imbue leaves the stone dark under the pulsing rim")
+	assert(not main.light:IsShown() and main.rim:IsShown() and main.pulse:IsPlaying(), "an enchant that is no imbue leaves the stone dark under the pulsing rim")
 	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 200000, chargesRemaining = 0, hasExpirationTime = true }
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	assert(main.light:GetAlpha() == 1 and not main.rim:IsShown() and main.gutter:IsPlaying(), "Windfury in combat with auras secret lights the rune, drops the rim and gutters its last minutes")
+	assert(main.light:IsShown() and not main.rim:IsShown() and main.gutter:IsPlaying(), "Windfury in combat with auras secret lights the rune, drops the rim and gutters its last minutes")
 	env._enchants[16].remainingTimeMs = 1800000
 	env._enchants[17] = { enchantID = 1666, remainingTimeMs = 200000, chargesRemaining = 0, hasExpirationTime = true }
 	Slots.Enchant(env, 2, { start = 0, duration = 3600 })
@@ -568,7 +682,7 @@ do
 	local function Lit(row, token)
 		local r, g, b = Tokens.Color(token)
 		local vr, vg, vb = row.rune:GetVertexColor()
-		return row.light:GetAlpha() == 1 and math.abs(vr - r) + math.abs(vg - g) + math.abs(vb - b) < 1e-6
+		return row.light:IsShown() and math.abs(vr - r) + math.abs(vg - g) + math.abs(vb - b) < 1e-6
 	end
 	assert(Lit(mainRow, "totemAir") and Lit(offRow, "totemFire"), "Windfury and Flametongue each light the rune in their element's colour")
 	assert(AB.W.LastCall(mainRow.lit._cooldown, "SetCooldownFromDurationObject"), "each weapon's stone drains a gilt ring with the enchant's own timer")
@@ -577,7 +691,7 @@ do
 	assert(Lit(mainRow, "totemFire"), "Flametongue over Windfury in combat with auras secret turns the rune to fire at once")
 	env._enchants[16] = { enchantID = 9999, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
-	assert(mainRow.light:GetAlpha() == 0 and mainRow.rim:IsShown(), "an enchant that is no imbue leaves the stone dark under its rim")
+	assert(not mainRow.light:IsShown() and mainRow.rim:IsShown(), "an enchant that is no imbue leaves the stone dark under its rim")
 	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
 	assert(offRow.gutter:IsPlaying() and not mainRow.gutter:IsPlaying(), "the off hand's last five minutes gutter in the row too")
@@ -831,7 +945,7 @@ do
 	end
 	assert(At(b.seedLeft, -62, 40, 30) and At(b.seedRight, 62, 40, 30) and At(b.third, 0, 92, 30), "the moon and the swarm perch on the ring, the sparkle above the crown")
 	assert(At(b.rake, -44, 6, 60) and At(b.rip, 44, 6, 56) and At(b.roar, 0, 88, 40), "the rakes and the tear cross the crest, the roar rises over the crown")
-	assert(At(b.growl, -30, -60, 22) and At(b.charge, 30, -60, 22), "the fang and the chevrons stand at the feet")
+	assert(At(b.growl, -30, -60, 22) and At(b.charge, 30, -60, 22), "the fang and the charging bear head stand at the feet")
 	local moon = b.seedLeft.lits[1]
 	local function Breathing()
 		for _, group in ipairs(moon._shownAnimations or {}) do
@@ -876,8 +990,9 @@ do
 end
 
 -- Every piece stays inside the crest's footprint at four screens: within 78 units of the centre across, from 78 below
--- to 110 above (under the cast bar), and off the level badge; blooms, sparks and flares are soft glow and may spill,
--- and the five-second ring is the badge's own.
+-- to 110 above (under the cast bar), and off the level badge; blooms, sparks and flares are soft glow and may spill, as
+-- may an aura sheet's margin round the figure it lights: the sheet is its figure's size times the kit's span, so the
+-- figure inside it is held like any other part, and the five-second ring is the badge's own.
 for _, size in ipairs(SIZES) do
 	for _, case in ipairs({ { "PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 } }, { "PRIEST", { 10952, 10947, 15473, 15334, 15286, 19280, 1309636, 15487 }, 28 },
 		{ "DRUID", DRUID }, { "DRUID", DRUID, 1 }, { "DRUID", DRUID, 8 }, { "SHAMAN", { 16362, 10414, 20608, 16166, 29228 } } }) do
@@ -896,11 +1011,20 @@ for _, size in ipairs(SIZES) do
 			end
 			return unpack(e)
 		end
+		local span = select(5, K.Tokens.Flipbook("auraFigureLance"))
 		for key, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
 			if piece:IsVisible() and not piece.sigils and piece.spec.seat ~= "plaque" then
+				local sheets = {}
+				for _, part in ipairs(piece.parts) do
+					if part.loop then sheets[part], sheets[part.still] = true, true if part.bare then sheets[part.bare] = true end end
+				end
 				for n, part in ipairs(piece.parts) do
 					local texture = part._state and part._state.Texture and part._state.Texture[1]
 					local pl2, pr2, pb2, pt2 = Edges(part)
+					if pl2 and sheets[part] then
+						local mx, my, hw, hh = (pl2 + pr2) / 2, (pb2 + pt2) / 2, (pr2 - pl2) / 2 / span, (pt2 - pb2) / 2 / span
+						pl2, pr2, pb2, pt2 = mx - hw, mx + hw, my - hh, my + hh
+					end
 					if not (type(texture) == "string" and (texture:find("Glow", 1, true) or texture:find("Burst", 1, true))) and pl2 then
 						local l, r, bo, t = (pl2 - cx) / u, (pr2 - cx) / u, (pb2 - cy) / u, (pt2 - cy) / u
 						assert(l >= -78.5 and r <= 78.5 and bo >= -78.5 and t <= 110.5, at .. key .. " part " .. n .. " leaves the crest's footprint: " .. string.format("%.0f %.0f %.0f %.0f", l, r, bo, t))
@@ -1074,6 +1198,261 @@ do
 	Slots.Set(env, "target", { { id = 17364, count = 0, harmful = true, start = 0, duration = 12 } })
 	assert(foot.lits[2]:IsShown() and foot.lits[2].spec.figure == "figureStrike", "Stormstrike's bolt shows there")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A priest's fed figures and Inner Fire's flames burn their auras on their slots' own moving and still copies, so a
+-- motion level chosen in combat under hidden values shows the moving fire or the still at once, with no write to the
+-- aura buttons' animations (review of 69906ab1, healer-instant-motion; the rule in test-actionbars-crest-motion.lua).
+-- Each flame's light sits under a bar the engine shows only while that flame holds a charge, so a spent flame hides its
+-- light and its loop while Inner Fire lasts (review of 3aee7bda, charge-owner-stays-shown).
+do
+	local env, K, ns = New("PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 })
+	local b = Tracker(ns, "PRIEST").built
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	local function Shows(region)
+		return Engine(function() return region:IsVisible() and region:GetEffectiveAlpha() > 0 end)
+	end
+	local flames, renew = {}, b.renew.lits[1].aura
+	local writes = 0
+	for k = 1, 4 do
+		local lit = b.innerFire.lits[k + 1]
+		flames[k] = assert(lit.aura, "flame " .. k .. " burns an aura")
+		assert(flames[k]:GetParent():GetParent():GetParent() == lit.lights.flame and flames[k].still:GetParent():GetParent():GetParent() == lit.lights.calm,
+			"flame " .. k .. "'s fire and still burn on their own copies of its slot")
+		local o = rawget(lit.lights.flame, "_applicationBar")[2]
+		assert(o.minApplications == (k - 1) * 5 + 1 and o.maxApplications == k * 5, "flame " .. k .. "'s light shows only while it holds a charge")
+	end
+	for _, each in ipairs({ flames[1], flames[2], flames[3], flames[4], renew }) do
+		local copy = each:GetParent():GetParent():GetParent()
+		for _, verb in ipairs({ "AddAuraShownAnimation", "RemoveAuraShownAnimation" }) do
+			local real = copy[verb]
+			copy[verb] = function(...) writes = writes + 1 return real(...) end
+		end
+	end
+	-- Lit(n, burning, why, off): flames 1 to n and Renew show the moving fire (burning) or the still; spent flames show neither.
+	-- At Off (off) Renew's still is its bare copy, which carries no refresh cue.
+	local function Lit(n, burning, why, off)
+		for k, fire in ipairs(flames) do
+			local on = k <= n
+			assert(Shows(fire) == (on and burning) and Shows(fire.still) == (on and not burning), why .. " (flame " .. k .. ")")
+			assert(not on or Engine(function() return fire.loop:IsPlaying() end), why .. ": a lit flame's loop plays (flame " .. k .. ")")
+		end
+		assert(Shows(renew) == burning and Shows(renew.still) == not (burning or off) and (renew.bare ~= nil and Shows(renew.bare)) == (off == true), why .. " (Renew)")
+	end
+	local inner = { id = 10952, count = 20, start = 0, duration = 600 }
+	Slots.Set(env, "player", { inner })
+	Slots.Set(env, "target", { { id = 25315, count = 0, start = 0, duration = 15 } })
+	env.SetCombat(true)
+	env.RunTimers()
+	Lit(4, true, "twenty charges at Full burn four moving flames")
+	inner.count = 11
+	Slots.Set(env, "player", { inner })
+	Lit(3, true, "eleven charges: three flames burn, the spent one is dark")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	writes = 0
+	for _, level in ipairs({ "calm", "full", "off", "full" }) do
+		K.Options.Write("Medallions", "motion", level)
+		env.RunTimers()
+		Lit(3, level == "full", level .. " chosen under hidden values shows at once", level == "off")
+	end
+	inner.count = 10
+	Slots.Set(env, "player", { inner })
+	Lit(2, true, "a charge spent under hidden values darkens its flame")
+	assert(writes == 0, "no level choice under hidden values writes to the aura buttons, got " .. writes)
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+	Slots.Set(env, "player", nil)
+	for k, fire in ipairs(flames) do
+		assert(not Shows(fire) and not Shows(fire.still) and not fire.loop:IsPlaying(), "Inner Fire gone: flame " .. k .. "'s light and loop stop")
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A figure's light on its moving and still copies keeps the figure's own opacity and cues: the shield's dome reads at
+-- its translucent alpha, Renew's light fades in as it lands and flickers in its pandemic window on the moving copy (held
+-- still on the still copy), and Inner Fire's last flame flickers its light with its seat (review of 68c5e7e1,
+-- gated-figure-loses-opacity).
+do
+	local env, K, ns = New("PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 })
+	local b = Tracker(ns, "PRIEST").built
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	local function Has(list, group)
+		for _, g in ipairs(list or {}) do
+			if g == group then return true end
+		end
+		return false
+	end
+	local function Under(region, frame)
+		while region do
+			if region == frame then return true end
+			region = region:GetParent()
+		end
+		return false
+	end
+	local dome, renew = b.mend.lits[1], b.renew.lits[1]
+	env.SetTarget(true)
+	env.SetCombat(true)
+	env.RunTimers()
+	Slots.Set(env, "target", { { id = 10901, count = 0, start = 0, duration = 30 }, { id = 25315, count = 0, start = 0, duration = 15 } })
+	assert(dome.bar:GetAlpha() < 1, "the dome is translucent")
+	assert(math.abs(Engine(function() return dome.aura:GetEffectiveAlpha() end) - dome.bar:GetAlpha()) < 1e-9, "the dome's burning light reads at the dome's own alpha")
+	local flame, calm = renew.lights.flame, renew.lights.calm
+	assert(flame.loops and Has(flame._shownAnimations, flame.loops[1]) and Engine(function() return flame.loops[1]:IsPlaying() end),
+		"Renew's moving light fades in as it lands")
+	assert(flame.flicker and Has(flame._pandemicAnimations, flame.flicker) and Under(renew.aura, flame.flicker:GetParent()),
+		"the engine flickers Renew's moving light in its pandemic window")
+	assert(calm.flicker and not Has(calm._pandemicAnimations, calm.flicker) and Has(calm._pandemicAnimations, ns.Slab.Still(calm.flicker))
+		and Under(renew.aura.still, calm.flicker:GetParent()), "and holds its still light still")
+	Slots.Set(env, "target", { { id = 10901, count = 0, start = 0, duration = 30 }, { id = 25315, count = 0, start = 0, duration = 15, pandemic = true } })
+	assert(Engine(function() return flame.flicker:IsPlaying() end), "inside the pandemic window Renew's light flickers")
+	-- Off removes the refresh cue: under hidden values, Calm shows the still copy, holding the flicker still, and Off its bare copy,
+	-- which no pandemic cue reaches (review of a1c85ca7, figure-refresh-dim-at-off).
+	local bare = renew.lights.bare
+	assert(bare and renew.aura.bare and Under(renew.aura.bare, bare) and not bare.flicker and #(bare._pandemicAnimations or {}) == 0,
+		"Renew's bare still copy carries no refresh cue")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	local function Shows(region)
+		return Engine(function() return region:IsVisible() and region:GetEffectiveAlpha() > 0 end)
+	end
+	K.Options.Write("Medallions", "motion", "calm")
+	env.RunTimers()
+	assert(Shows(renew.aura.still) and not Shows(renew.aura.bare) and not Shows(renew.aura), "Calm under hidden values shows Renew's still light, its flicker held still")
+	K.Options.Write("Medallions", "motion", "off")
+	env.RunTimers()
+	assert(Shows(renew.aura.bare) and not Shows(renew.aura.still) and not Shows(renew.aura), "Off under hidden values shows Renew's bare light, with no refresh dimming")
+	assert(Engine(function() return renew.aura.bare:GetEffectiveAlpha() end) == 1, "and at Renew's full alpha")
+	K.Options.Write("Medallions", "motion", "full")
+	env.RunTimers()
+	assert(Shows(renew.aura) and not Shows(renew.aura.bare), "Full brings Renew's moving light back")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+	local seat = b.innerFire.ring[1]
+	local last = b.innerFire.lits[2].aura
+	assert(Under(last, seat) and Under(last.still, seat) and b.innerFire.flicker:GetParent() == seat, "Inner Fire's last flame flickers its moving and still light with its seat")
+	env.SetCombat(false)
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Every mark a priest's, druid's or shaman's crest draws in light is an animated aura from the shared kit (the crest
+-- marks become animated spell-effect auras, never static icons), and a sheet loads only once its spell is known (a
+-- picture loads only when it is needed). For each character below, in both HUD styles, the shown pieces hold exactly
+-- these sheets, each owned by something that plays its loop: an engine aura button that has it among its shown
+-- loops, or the frame whose show and hide start and stop it. No mark of these classes' own is left a flat additive
+-- drawing; the sigils every class shares (race spells, potions and Dash) belong to the melee auras' test.
+do
+	local COMMON = { Axe = true, Eye = true, Gear = true, Grave = true, Potion = true, Regen = true, Shatter = true, Star = true, Stone = true, Tusks = true, Dash = true }
+	local HOLY = "Figures\\Dome Figures\\Fiend Figures\\Lance Figures\\Mending Figures\\Renew Sigils\\Infusion Trackers\\Flame"
+	local SHADOW = "Figures\\Fangs Figures\\MindOrb Figures\\Plague Figures\\Reaper Trackers\\Flame"
+	local CASTER = "Figures\\Bud Figures\\Faerie Figures\\Moon Figures\\Sprout Figures\\Swarm Sigils\\Bark Trackers\\Leaf"
+	local CAT, BEAR = "Figures\\Rake Figures\\Rip Sigils\\Bark Trackers\\Leaf", "Figures\\Faerie Figures\\Roar Sigils\\Bark Trackers\\Leaf"
+	local SHAMAN_CREST = "Figures\\Ankh Sigils\\Bolt Trackers\\Flame Trackers\\Rune Trackers\\Stone"
+	local CASES = {
+		{ "PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 }, nil, HOLY, HOLY },
+		{ "PRIEST", { 10952, 10947, 15473, 15334, 15286, 19280, 1309636, 15487 }, 28, SHADOW, SHADOW .. " Figures\\Shroud" },
+		{ "DRUID", DRUID, nil, CASTER, CASTER }, { "DRUID", DRUID, 1, CAT, CAT }, { "DRUID", DRUID, 8, BEAR, BEAR },
+		{ "SHAMAN", { 16362, 10414, 20608, 16166, 29228 }, nil, SHAMAN_CREST, SHAMAN_CREST .. " Figures\\Shock" },
+	}
+	local function Walk(frame, fn)
+		for _, region in ipairs(frame._regions or {}) do fn(region) end
+		for _, kid in ipairs(frame._kids or {}) do Walk(kid, fn) end
+	end
+	local function Has(list, item)
+		for _, each in ipairs(list or {}) do
+			if each == item then return true end
+		end
+	end
+	local function Owned(fire)
+		local host = fire:GetParent()
+		-- A still copy's fire (the Clearcasting leaves' still layer) is held still by its owner on purpose.
+		return fire.quiet or fire.fed and Has(fire.fed.auraLoops, fire.loop) or Has(host.fires, fire)
+	end
+	-- Sheets(ns) -> the shown pieces' loaded aura sheets, sorted and joined, and the own marks still flat.
+	local function Sheets(ns, at)
+		local seen, flat = {}, {}
+		for _, form in pairs(ns.SlabTrackers.state.forms) do
+			for key, piece in pairs(form.pieces) do
+				if piece:IsVisible() then
+					Walk(piece, function(t)
+						local file = t._state and t._state.Texture and t._state.Texture[1]
+						if type(file) ~= "string" then return end
+						local sheet = file:match("Textures\\Auras\\(.+)%.png$")
+						if sheet and t.loop then
+							assert(Owned(t), at .. key .. "'s " .. sheet .. " loop has no owner")
+							assert(t.still._state.Texture[1] == file, at .. key .. "'s " .. sheet .. " still is its own sheet")
+							seen[sheet] = not COMMON[sheet:match("^Sigils\\(%a+)$") or ""] or nil
+						elseif not sheet and (t._state.BlendMode or {})[1] == "ADD" then
+							local kind, name = file:match("\\(%a+)\\(%a+)%.png$")
+							if (kind == "Figures" or kind == "Sigils" and not COMMON[name] or file:find("Trackers\\[FLRS][a-z]+%.png$") and not file:find("Swing"))
+								and not file:find("Medallions\\Trackers\\Stone") then
+								flat[#flat + 1] = key .. " " .. file
+							end
+						end
+					end)
+				end
+			end
+		end
+		local list = {}
+		for sheet in pairs(seen) do list[#list + 1] = sheet end
+		table.sort(list)
+		return table.concat(list, " "), flat
+	end
+	for _, case in ipairs(CASES) do
+		local env, K, ns = New(case[1], case[2])
+		env._form = case[3]
+		env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+		for i, style in ipairs({ "medallions", "frames" }) do
+			K.Options.Write("HudStyle", "style", style)
+			env.RunTimers()
+			local at = case[1] .. " form " .. tostring(case[3] or 0) .. " " .. style .. ": "
+			local sheets, flat = Sheets(ns, at)
+			local want = {}
+			for sheet in case[3 + i]:gmatch("%S+") do want[#want + 1] = sheet end
+			table.sort(want)
+			want = table.concat(want, " ")
+			assert(sheets == want, at .. "the shown marks burn " .. want .. ", got " .. sheets)
+			assert(#flat == 0, at .. "no own mark is left a flat additive drawing: " .. table.concat(flat, ", "))
+		end
+		assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+	end
+
+	-- A shaman who knows only Flame Shock loads only the flame; learning Stormstrike loads its bolt, and Riptide's wave
+	-- stays unloaded, under either HUD style.
+	for _, style in ipairs({ "medallions", "frames" }) do
+		local env, K, ns = New("SHAMAN", { 29228 })
+		K.Options.Write("HudStyle", "style", style)
+		env.RunTimers()
+		local figure = Tracker(ns, "SHAMAN").built[style == "frames" and "flameShockRow" or "flameShock"]
+		-- Each timed feed's moving, still and bare Off copies load together: a copy left unloaded is dark at its level.
+		local function Loaded(i)
+			local fire = figure.lits[i].aura
+			assert(fire.bare, style .. " feed " .. i .. " has the bare copy Off shows")
+			local function File(t) return t._state.Texture and t._state.Texture[1] end
+			local sheet = File(fire)
+			for name, t in pairs({ still = fire.still, bare = fire.bare }) do
+				assert(File(t) == sheet, style .. " feed " .. i .. "'s " .. name .. " copy loads the moving copy's sheet, "
+					.. tostring(sheet) .. ", got " .. tostring(File(t)))
+			end
+			return sheet ~= nil
+		end
+		assert(Loaded(1) and not Loaded(2) and not Loaded(3), style .. ": only the known spell's figure loads its sheet")
+		env._known[17364] = true
+		env.FireEvent("SPELLS_CHANGED")
+		env.RunTimers()
+		assert(Loaded(2) and not Loaded(3), style .. ": learning Stormstrike loads its bolt; Riptide's wave still waits")
+		assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+	end
 end
 
 print("actionbars crest healers ok")

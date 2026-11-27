@@ -133,6 +133,10 @@ local function Warnings(ns, class)
 			for _, copy in ipairs(lit.mirrors or {}) do
 				check(copy.flicker, key .. " fire copy")
 			end
+			-- A figure's burning light sits on a moving and a still copy of its slot, each flickering with it.
+			for _, copy in ipairs(lit.bar and lit.bar.copies or {}) do
+				check(copy.button.flicker, key .. " light's refresh cue")
+			end
 			-- The looks that burn with the one flicker while their aura shows: a fuse's head, and a flame or a crackle on a warrior's or paladin's hip.
 			if lit.loop and rawget(lit.loop, "low") then check(lit.loop, key .. " burn") end
 			for _, group in ipairs(lit.awake and lit.awake.lit.loops or {}) do

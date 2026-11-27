@@ -141,7 +141,10 @@ do
 	local state = ns.SlabStorm.state
 	local seats = state.seats
 	assert(#seats == 3 and state.holder:IsShown() and state.listening, "a shaman who knows any rank gets three orbs over three studs")
-	assert(#state.containers == 12 and state.fed == true, "twelve aura containers: the halo's moving and still copies, an orb and a spark's two copies on each seat, and Rising heat, all feeding")
+	assert(#state.containers == 9 and state.fed == true, "nine aura containers of the orbs' own: the halo's moving and still copies, a spark's two copies on each seat, and Rising heat, all feeding")
+	for i, s in ipairs(seats) do
+		assert(state.orbs[i] == s.slot and s.slot.container._enabled == true, "and each orb's own container, which the crest's medal engine feeds, feeding too")
+	end
 	assert(#state.moving == 4 and #state.still == 4, "the halo and each of the three sparks have a moving and a still copy")
 	for i, s in ipairs(seats) do
 		local options = s.orb:GetParent()._applicationBar[2]
@@ -475,6 +478,98 @@ do
 	env._now = 210
 	Shield(env, 1, RANK1)
 	assert(Effects.Holder("crestFlare") == nil and not Fired(state.seats[3].strike) and not Fired(state.crackle), "two charges gone at once play nothing and take no place")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Each orb is the storm orb's animated aura (the shaman's crest marks take the aura kit, the KSTY-51 plan): its sheet burns
+-- over the orb's fill turned black, the fire on the orb slot's own moving copy and the still on its still copy, each
+-- clipped to the orb's fill under a bar the engine feeds that orb's own charge, so a spent charge hides its light and
+-- its loop with it while the shield holds the others (review of 3aee7bda, charge-owner-stays-shown). A motion level
+-- chosen in combat under hidden values shows the moving fire or the still at once, with no write to the aura buttons'
+-- animations (review of 69906ab1, healer-instant-motion; the rule in test-actionbars-crest-motion.lua).
+do
+	local env, K, ns = New("SHAMAN", { [RANK7] = true })
+	local state = ns.SlabStorm.state
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	local function Shows(region)
+		return Engine(function() return region:IsVisible() and region:GetEffectiveAlpha() > 0 end)
+	end
+	local writes = 0
+	for i, s in ipairs(state.seats) do
+		local file = s.fire._state.Texture[1]
+		assert(file == K.Tokens.Texture("auraStormOrb") and s.fire.still._state.Texture[1] == file, "each orb draws the storm orb's aura sheet")
+		assert(s.orb:GetStatusBarTexture()._state.BlendMode[1] == "BLEND", "over the orb's fill, its black body")
+		local lights = assert(s.slot.lights, "orb " .. i .. " has a moving and a still copy of its slot")
+		for _, part in ipairs({ { s.fire, lights.flame, "fire" }, { s.fire.still, lights.calm, "still" } }) do
+			local clip = part[1]:GetParent()
+			local under = clip:GetParent()
+			assert(under:GetParent() == part[2], "orb " .. i .. "'s " .. part[3] .. " burns on its own copy of the orb slot")
+			local bound = assert(rawget(part[2], "_applicationBar"), "orb " .. i .. "'s " .. part[3] .. " copy feeds a charge bar")
+			assert(bound[1] == under and bound[2].minApplications == i and bound[2].maxApplications == i,
+				"orb " .. i .. "'s " .. part[3] .. " sits under a bar the engine shows only while charge " .. i .. " holds")
+			for k = 1, clip:GetNumPoints() do
+				local _, to = clip:GetPoint(k)
+				assert(to == s.orb:GetStatusBarTexture(), "orb " .. i .. "'s " .. part[3] .. " is clipped to the orb's fill")
+			end
+		end
+		for _, verb in ipairs({ "AddAuraShownAnimation", "RemoveAuraShownAnimation" }) do
+			local real = lights.flame[verb]
+			lights.flame[verb] = function(...) writes = writes + 1 return real(...) end
+		end
+	end
+	-- Burning(n, burning, why): orbs 1 to n show the moving fire (burning) or the still, and the spent ones show neither.
+	local function Burning(n, burning, why)
+		for i, s in ipairs(state.seats) do
+			local on = i <= n
+			assert(Shows(s.fire) == (on and burning) and Shows(s.fire.still) == (on and not burning), why .. " (orb " .. i .. ")")
+			assert(not on or Engine(function() return s.fire.loop:IsPlaying() end), why .. ": a lit orb's loop plays (orb " .. i .. ")")
+		end
+	end
+	K.Options.Write("Medallions", "motion", "full")
+	Shield(env, 3)
+	Cast(env, RANK7)
+	env.SetTarget(true)
+	Burning(3, true, "three charges at Full burn three moving orbs")
+	Shield(env, 2)
+	Burning(2, true, "a struck charge hides its orb's light")
+	Shield(env, 1)
+	Burning(1, true, "one charge left burns one orb")
+	env._aurasSecret = true
+	env.SetCombat(true)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	writes = 0
+	for _, level in ipairs({ "calm", "full", "off", "full" }) do
+		K.Options.Write("Medallions", "motion", level)
+		env.RunTimers()
+		Burning(1, level == "full", level .. " chosen under hidden values shows at once")
+	end
+	assert(writes == 0, "no level choice under hidden values writes to the orbs' aura buttons, got " .. writes)
+	env._aurasSecret = false
+	env.SetCombat(false)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+	Shield(env, nil)
+	for i, s in ipairs(state.seats) do
+		assert(not Shows(s.fire) and not Shows(s.fire.still) and not s.fire.loop:IsPlaying(), "the shield gone: orb " .. i .. "'s light and loop stop")
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- The first build sizes the orbs' art under the engine's own buttons, which combat forbids even while auras read:
+-- learning Lightning Shield in readable combat builds nothing until combat ends.
+do
+	local env, K, ns = New("SHAMAN", {})
+	local state = ns.SlabStorm.state
+	env.SetCombat(true)
+	env._known[RANK7] = true
+	ns.SlabStorm.Recheck()
+	assert(state.holder == nil and not state.failed and #env._slotContainers == 0, "learning Lightning Shield in readable combat builds nothing yet")
+	env.SetCombat(false)
+	assert(state.holder:IsShown() and state.listening and state.fed == true, "and the orbs build when combat ends")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

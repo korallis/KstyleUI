@@ -12,7 +12,7 @@ local function New(class, opts)
 		width = size[1],
 		height = size[2],
 		setup = function(e)
-			e._totems, e._known = {}, { [66842] = true, [36936] = true }
+			e._totems, e._known = {}, opts.known or { [66842] = true, [36936] = true }
 			e.C_ActionBar.GetMultiCastBarIndex = function() return 12 end
 			e.GetMultiCastTotemSpells = function(slot) return unpack(KNOWN[slot] or {}) end
 			e.GetTotemInfo = function(slot)
@@ -647,4 +647,68 @@ do
 	env.RunTimers()
 	assert(Effects.Holder("crestFlare") == nil, "the place frees itself afterwards")
 	Clean(env, K, "flare arbiter")
+end
+
+-- The medals' element runes and spirit wolf are animated auras (the shaman's crest marks take the aura kit): each burns
+-- its own sheet over its figure drawn black, the runes tinted in their element's colour, and the medal owns the loop:
+-- it plays at Full while the medal shows and the crest is awake, stops when the medal hides and holds the still at Calm.
+do
+	local env, K, ns = New("SHAMAN")
+	local state, Tokens = ns.Totems.state, K.Tokens
+	K.Options.Write("Medallions", "motion", "full")
+	env.SetTarget(true)
+	env.RunTimers()
+	ns.SlabMedals.Rest()
+	for i, fire in ipairs(state.call.runes) do
+		local name = ({ "Earth", "Fire", "Water", "Air" })[i]
+		local r, g, b = fire:GetVertexColor()
+		local er, eg, eb = Tokens.Color("totem" .. name)
+		assert(fire._state.Texture[1] == Tokens.Texture("auraTotemRune" .. name) and r == er and g == eg and b == eb, name .. "'s rune burns its own aura sheet in the element's colour")
+		local body = state.call.marks[i][3]
+		local br, bg, bb = body:GetVertexColor()
+		assert(body._state.Texture[1] == Tokens.Texture("totemRune" .. name) and br == 0 and bg == 0 and bb == 0, "over the rune drawn black")
+		assert(fire.loop:IsPlaying() and fire:GetAlpha() == 1, name .. "'s rune loops at Full while the medal shows")
+	end
+	local wolf = state.wolf.figure
+	assert(wolf._state.Texture[1] == Tokens.Texture("auraFigureWolf") and wolf.loop:IsPlaying(), "the spirit wolf burns its own aura sheet")
+	state.call:Hide()
+	state.call:GetScript("OnHide")(state.call) -- the game runs OnHide as it hides the medal; the stub's Hide does not
+	assert(not state.call.runes[1].loop:IsPlaying(), "a hidden medal stops its runes")
+	state.call:Show()
+	assert(state.call.runes[1].loop:IsPlaying(), "and shown again plays them")
+	-- The medals own their loops, so a motion change reaches them with nothing else on the crest changing.
+	K.Options.Write("Medallions", "motion", "calm")
+	assert(not wolf.loop:IsPlaying() and wolf.still:GetAlpha() == 1 and wolf:GetAlpha() == 0, "Calm holds the wolf's still")
+	for i, fire in ipairs(state.call.runes) do
+		assert(not fire.loop:IsPlaying() and fire.still:GetAlpha() == 1, "and each rune's (" .. i .. ")")
+	end
+	K.Options.Write("Medallions", "motion", "full")
+	assert(wolf.loop:IsPlaying() and wolf:GetAlpha() == 1 and state.call.runes[4].loop:IsPlaying(), "Full plays them again")
+	Clean(env, K, "totem auras")
+
+	-- Under Frames no crest rests or wakes the medals, so their own motion callback is all that reaches them.
+	env, K, ns = New("SHAMAN")
+	state = ns.Totems.state
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	wolf = state.wolf.figure
+	for _, level in ipairs({ "calm", "full" }) do
+		K.Options.Write("Medallions", "motion", level)
+		local full = level == "full"
+		assert(wolf.loop:IsPlaying() == full and wolf.still:GetAlpha() == (full and 0 or 1), "under Frames " .. level .. " reaches the wolf")
+		assert(state.call.runes[2].loop:IsPlaying() == full, "and the runes")
+	end
+	Clean(env, K, "totem auras under Frames")
+
+	-- A medal's sheets load only once its spell is known: Call of the Elements' runes wait for the spell, and learning
+	-- it loads them.
+	env, K, ns = New("SHAMAN", { known = {} })
+	state = ns.Totems.state
+	assert(not state.call:IsShown() and state.call.runes[1]._state.Texture == nil, "an unknown Call loads no rune sheet")
+	assert(state.wolf.figure._state.Texture[1] == Tokens.Texture("auraFigureWolf"), "while the known Ghost Wolf has its own")
+	env._known[66842] = true
+	env.FireEvent("SPELLS_CHANGED")
+	env.RunTimers()
+	assert(state.call:IsShown() and state.call.runes[3]._state.Texture[1] == Tokens.Texture("auraTotemRuneWater"), "learning Call loads its runes")
+	Clean(env, K, "totem auras on learning")
 end

@@ -65,7 +65,9 @@ end
 
 function Medals.Texture(parent, layer, sublevel, texture, color, size, blend)
 	local t = parent:CreateTexture(nil, layer, nil, sublevel)
-	t:SetTexture(texture:find("\\", 1, true) and texture or (Tokens.Texture(texture)))
+	if texture then
+		t:SetTexture(texture:find("\\", 1, true) and texture or (Tokens.Texture(texture)))
+	end
 	t:SetVertexColor(Tokens.Color(color))
 	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
 	if blend then
@@ -82,13 +84,14 @@ local function Cell(t, token, cell)
 	return t
 end
 
-local function Moving()
-	return Effects.Allows("ambient") and not ns.Slab.Resting()
+local function Moving(fire)
+	return Effects.Allows("ambient") and not (ns.Slab.Resting() and not (fire and fire.restless))
 end
 
 local function Burn(fire, moving)
+	moving = moving and not fire.quiet
 	fire:SetAlpha((moving or fire.gated) and 1 or 0)
-	fire.still:SetAlpha((moving and not fire.calm) and 0 or 1)
+	fire.still:SetAlpha((fire.calm or not (fire.gated or moving)) and 1 or 0)
 	if fire.fed then
 		return
 	elseif not (moving and fire:IsVisible()) then
@@ -108,6 +111,26 @@ local function Rearm(containers)
 	end
 end
 
+function Medals.Load(fire)
+	if fire.sheet then
+		local file = (Tokens.Texture(fire.sheet))
+		fire:SetTexture(file)
+		fire.still:SetTexture(file)
+		Cell(fire, fire.token, 0)
+		Cell(fire.still, fire.token, AURA_STILL)
+		if fire.bare then
+			fire.bare:SetTexture(file)
+			Cell(fire.bare, fire.token, AURA_STILL)
+		end
+		fire.sheet = nil
+	end
+end
+
+function Medals.Burn(fire, restless)
+	fire.restless = restless
+	Burn(fire, Moving(fire))
+end
+
 local function Fed(frame)
 	while frame do
 		if frame.container then
@@ -119,7 +142,7 @@ end
 
 local function Showing(host)
 	for _, fire in ipairs(host.fires) do
-		Burn(fire, Moving())
+		Burn(fire, Moving(fire))
 	end
 end
 
@@ -131,13 +154,19 @@ end
 
 function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 	local _, _, _, _, span, tint = Tokens.Flipbook(token)
+	local lazy = piece.lazy
+	local quiet = piece.quiet
+	local file = not lazy and token
 	local flame, calm = lights and lights.flame, lights and lights.calm
-	local fire = piece.add(Cell(Medals.Texture(flame or host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, 0))
-	fire.still = piece.add(Cell(Medals.Texture(calm or host, "ARTWORK", 0, token, "white", size * span, "ADD"), token, AURA_STILL))
+	local fire = piece.add(Cell(Medals.Texture(flame or host, "ARTWORK", 0, file, "white", size * span, "ADD"), token, 0))
+	fire.still = piece.add(Cell(Medals.Texture(calm or host, "ARTWORK", 0, file, "white", size * span, "ADD"), token, AURA_STILL))
 	fire.gated, fire.calm = flame ~= nil, calm ~= nil
+	if lights and lights.bare then
+		fire.bare = piece.add(Cell(Medals.Texture(lights.bare, "ARTWORK", 0, file, "white", size * span, "ADD"), token, AURA_STILL))
+	end
 	host = flame or host
 	if tint then
-		for _, t in ipairs({ fire, fire.still }) do
+		for _, t in ipairs({ fire, fire.still, fire.bare }) do
 			if r then
 				t:SetVertexColor(r, g, b)
 			else
@@ -146,9 +175,19 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 		end
 	end
 	fire.loop = Medals.Flip(fire, token, 1)
+	if lazy then
+		fire.sheet, fire.token = token, token
+		if lazy ~= true then
+			fire.wants = lazy
+			piece.lazies = piece.lazies or {}
+			piece.lazies[#piece.lazies + 1] = fire
+		end
+	end
 	auras[#auras + 1] = fire
 	local fed = Fed(host)
-	if fed then
+	if quiet then
+		fire.fed, fire.quiet = quiet, true
+	elseif fed then
 		fire.fed = fed
 		fed.auraLoops = fed.auraLoops or {}
 		fed.auraLoops[#fed.auraLoops + 1] = fire.loop
@@ -165,7 +204,7 @@ function Medals.Aura(piece, host, token, size, color, r, g, b, lights)
 		end
 		host.fires[#host.fires + 1] = fire
 	end
-	Burn(fire, Moving())
+	Burn(fire, Moving(fire))
 	return fire, span > 1
 end
 
@@ -387,27 +426,47 @@ local function Mirror(piece, lit, level, key)
 end
 Medals.Mirror, Medals.Timer = Mirror, Timer
 
-local function Gate(piece, lit, level, key, calm)
+local function Shade(gate)
+	local still, off = not Effects.Allows("ambient") or ns.Slab.Resting(), not Effects.Allows("flare")
+	if gate.burning then
+		return still and 0 or 1
+	elseif gate.bare then
+		return off and 1 or 0
+	end
+	return (still and not (gate.bared and off)) and 1 or 0
+end
+
+local BURNS = { flame = true, calm = "calm", bare = "off" }
+
+local function Gate(piece, lit, level, key, kind)
 	local shared = lit.share and lit.share[key]
 	local gate = Mirror(piece, lit, level, key)
-	gate.lit.burns = not calm
+	gate.lit.burns = BURNS[kind]
 	if not shared then
-		gate.burning, gate.calm = not calm, calm
-		Medals.Gate(gate, Moving() == not calm and 1 or 0)
+		gate.burning, gate.calm, gate.bare = kind == "flame", kind == "calm", kind == "bare"
 		gates[#gates + 1] = gate
 	end
 	lit[key] = gate
 	return gate.lit
 end
 
-function Medals.Gates(piece, lit, level, still)
+function Medals.Gates(piece, lit, level, still, bare)
 	if not lit.lights then
-		lit.lights = { flame = Gate(piece, lit, level, "flames", false), calm = still and Gate(piece, lit, level, "stills", true) or nil }
+		lit.lights = { flame = Gate(piece, lit, level, "flames", "flame"), calm = still and Gate(piece, lit, level, "stills", "calm") or nil,
+			bare = bare and Gate(piece, lit, level, "bares", "bare") or nil }
+		if lit.bares then
+			lit.stills.bared = true
+		end
 		if still and lit.stills.flame == nil then
-			lit.flames.gates, lit.stills.flame = { lit.flames, lit.stills }, lit.flames
+			lit.flames.gates, lit.stills.flame = { lit.flames, lit.stills, lit.bares }, lit.flames
+		end
+		for _, key in ipairs({ "flames", "stills", "bares" }) do
+			if lit[key] then
+				Medals.Gate(lit[key], Shade(lit[key]))
+			end
 		end
 	end
-	return lit.lights.flame, lit.lights.calm
+	return lit.lights.flame, lit.lights.calm, lit.lights.bare
 end
 
 function Medals.Cue(piece, lit, level, at, art, fire, size, from)
@@ -750,6 +809,61 @@ function Medals.Medal(parent, spec, level)
 	return m
 end
 
+function Medals.Fill(piece, bar, aura, size, color, bare, plain)
+	if not aura then
+		return nil
+	end
+	local fill = bar:GetStatusBarTexture()
+	fill:SetBlendMode("BLEND")
+	bar:SetStatusBarColor(Tokens.Color("black"))
+	local pad = size * (select(5, Tokens.Flipbook(aura)) - 1) / 2
+	local function Clip(parent)
+		local clip = CreateFrame("Frame", nil, parent)
+		clip:SetClipsChildren(true)
+		clip:SetPoint("TOPLEFT", fill, "TOPLEFT", -pad, 0)
+		clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", pad, -pad)
+		return clip
+	end
+	local lit, lights = Fed(bar)
+	if lit and lit.spec then
+		bar.copies = {}
+		lights = {}
+		local flame, calm, still = Medals.Gates(piece, lit, bar:GetFrameLevel() + 1, true, bare)
+		for name, copy in pairs({ flame = flame, calm = calm, bare = still }) do
+			local under = copy
+			if not plain then
+				under = CreateFrame("StatusBar", nil, copy)
+				under:SetAllPoints(bar)
+				under:SetStatusBarTexture(fill:GetTexture())
+				under:GetStatusBarTexture():SetAlpha(0)
+			end
+			lights[name] = Clip(under)
+			bar.copies[#bar.copies + 1] = { button = copy, bar = plain and lights[name] or under }
+		end
+	end
+	local clip = lights and lights.calm or Clip(bar)
+	local fire = Medals.Aura(piece, clip, aura, size, color, nil, nil, nil, lights)
+	for _, t in ipairs({ fire, fire.still, fire.bare }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", bar, "CENTER", 0, 0)
+		t:SetVertexColor(Tokens.Color(color or "white"))
+	end
+	fire.clip = lights and lights.flame or clip
+	return fire
+end
+
+function Medals.Charges(lit, bar, options)
+	lit:SetApplicationBar(bar, options)
+	local spent = {}
+	for k, v in pairs(options) do
+		spent[k] = v
+	end
+	spent.minApplications = options.minApplications + 1
+	for _, copy in ipairs(bar.copies or NONE) do
+		copy.button:SetApplicationBar(copy.bar, spent)
+	end
+end
+
 function Medals.Figure(parent, spec, level)
 	local size = spec.size or SIZE
 	local f = Medals.Piece(parent, level, size)
@@ -777,13 +891,16 @@ function Medals.Figure(parent, spec, level)
 		bar:SetStatusBarColor(Tokens.Color(each.color or "white"))
 		bar:SetMinMaxValues(0, 1)
 		bar:SetValue(1)
+		f.lazy = each.learn and function() return Medals.Known(each.learn) ~= nil end
+		lit.aura = Medals.Fill(f, bar, select(5, Tokens.Texture(each.figure)), size, each.color, lit.container and not (each.charges or each.steady), not each.charges)
+		f.lazy = nil
 		local alpha = each.alpha or 1
 		bar:SetAlpha(alpha)
 		local spark = f.add(Medals.Texture(bar, "OVERLAY", 0, "glow", each.color or "white", size * SPARK, "ADD"))
 		spark:ClearAllPoints()
 		spark:SetPoint("CENTER", bar:GetStatusBarTexture(), "TOP", 0, 0)
 		if each.charges and lit.container then
-			lit:SetApplicationBar(bar, { minApplications = 0, maxApplications = each.charges })
+			Medals.Charges(lit, bar, { minApplications = 0, maxApplications = each.charges })
 		elseif lit.container and not each.steady then
 			local timer = Enum and Enum.StatusBarTimerDirection
 			lit:SetDurationBar(bar, { direction = timer and timer.RemainingTime or 1 })
@@ -795,6 +912,11 @@ function Medals.Figure(parent, spec, level)
 		end
 		if lit.container then
 			lit.loops = { Medals.Steps(lit, FADE_IN), lit.loop }
+		end
+		for _, copy in ipairs(bar.copies or NONE) do
+			copy.bar:SetAlpha(alpha)
+			copy.button.loops = { Medals.Steps(copy.button, FADE_IN) }
+			copy.button.flicker = lit.flicker and copy.button.burns ~= "off" and ns.Slab.Flicker(copy.bar, alpha) or nil
 		end
 		lit.bar = bar
 		if not each.alpha then
@@ -849,6 +971,14 @@ function Medals.Rim(parent, spec, level)
 	end
 	r.spec = spec
 	return r
+end
+
+local function Learned(f)
+	return f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
+end
+
+local function Seated(r, f)
+	return Learned(f) and not (r.spec.railed and r.spec.railed(f.spells))
 end
 
 local function Sigil(r, lit, key, family, color, size, bloom)
@@ -1073,8 +1203,7 @@ end
 local function Arrange(r)
 	local n = 0
 	for _, b in ipairs(r.sigils) do
-		local f = b.family
-		local on = (f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil) and not (r.spec.railed and r.spec.railed(f.spells))
+		local on = Seated(r, b.family)
 		b.container:SetAuraSlotEnabled(b.key, on)
 		for _, slot in ipairs({ b.flashed or false, b.flame or false, b.calm or false }) do
 			if slot then
@@ -1099,7 +1228,15 @@ function Medals.Place(piece, anchor, x, y)
 	piece:ClearAllPoints()
 	piece:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, x), Widgets.Snap(anchor, y))
 	Medals.Size(piece)
-	if piece.sigils and not Medals.Locked() then
+	if Medals.Locked() then
+		return
+	end
+	for _, fire in ipairs(piece.lazies or NONE) do
+		if fire.sheet and fire.wants() then
+			Medals.Load(fire)
+		end
+	end
+	if piece.sigils then
 		Arrange(piece)
 	end
 end
@@ -1294,7 +1431,7 @@ function Medals.Rest()
 	local restricted = Medals.Restricted()
 	for _, fire in ipairs(auras) do
 		if not (restricted and fire.fed) then
-			Burn(fire, not still)
+			Burn(fire, Moving(fire))
 		end
 	end
 	for _, button in ipairs(restricted and NONE or feds) do
@@ -1319,10 +1456,8 @@ function Medals.Rest()
 			end
 		elseif gate.moving then
 			Medals.Reveal(gate, mode == true and 1 or 0)
-		elseif gate.burning then
-			Medals.Reveal(gate, still and 0 or 1)
-		elseif gate.calm then
-			Medals.Reveal(gate, still and 1 or 0)
+		elseif gate.burning or gate.calm or gate.bare then
+			Medals.Reveal(gate, Shade(gate))
 		else
 			Medals.Reveal(gate, (dark or bound ~= nil and bound ~= mode) and 0 or 1)
 		end

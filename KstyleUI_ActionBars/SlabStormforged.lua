@@ -43,7 +43,9 @@ local function Stone(parent, spec, level, form)
 	end
 	s.light = Medals.Layer(s, level + 1)
 	s.glow = s.add(Medals.Texture(s.light, "ARTWORK", 0, "glow", "white", SETTING * 1.6 * k, "ADD"))
-	s.rune = s.add(Medals.Texture(s.light, "OVERLAY", 0, "trackerRune", "white", STONE * k, "ADD"))
+	local stone = Medals.Mark(s, s.light, "trackerStone", STONE * k, "white")
+	local rune = Medals.Mark(s, Medals.Layer(s.light, level + 2), "trackerRune", STONE * k, "white")
+	s.rune, s.runes = rune, { stone, stone.still, rune, rune.still }
 	s.rim = Medals.Layer(s, level + 2)
 	s.add(Medals.Texture(s.rim, "OVERLAY", 0, "ring", "gilt", RIM * k, "ADD"))
 	s.pulse = Medals.Steps(s.rim, PULSE, true)
@@ -99,8 +101,10 @@ local function Stones()
 		end
 		local element = ELEMENTS[id]
 		local r, g, b = Tokens.Color(element or "gilt")
-		s.light:SetAlpha(element and 1 or 0)
-		s.rune:SetVertexColor(r, g, b)
+		s.light:SetShown(element ~= nil)
+		for _, rune in ipairs(s.runes) do
+			rune:SetVertexColor(r, g, b)
+		end
 		s.glow:SetVertexColor(r, g, b, GLOW)
 		s.rim:SetShown(not element)
 		if shown and not element and moving then
@@ -122,7 +126,9 @@ local function Charm()
 	local count = item and type(item.GetItemCount) == "function" and item.GetItemCount(ANKH)
 	local stocked = not IsSecret(count) and type(count) == "number" and count > 0
 	for _, a in ipairs(ankhs) do
-		a.lit.bar:GetStatusBarTexture():SetDesaturated(not stocked)
+		for _, t in ipairs({ a.lit.bar:GetStatusBarTexture(), a.lit.aura, a.lit.aura and a.lit.aura.still }) do
+			t:SetDesaturated(not stocked)
+		end
 		a.lit.bar:SetAlpha(stocked and 1 or 0.55)
 		a.lit.bloom:SetShown(stocked)
 	end
@@ -141,9 +147,9 @@ ns.SlabTrackers.Register("SHAMAN", {
 	{ key = "crestAnkh", seat = { 30, -60 }, size = 22, feed = "cooldown", known = REINCARNATION, build = Ankh, figure = "figureAnkh", bloom = "gilt" },
 	{ key = "crestFlameShock", seat = { -30, -60 }, size = 22, spells = FLAME, known = function() return Medals.Known(FLAME) or Medals.Known(STORMSTRIKE) or Medals.Known(RIPTIDE) end,
 		build = Medals.Figure, feeds = {
-			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FLAME, figure = "trackerFlame", color = "totemFire", bloom = "totemFire" },
-			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = STORMSTRIKE, figure = "figureStrike", bloom = "totemAir" },
-			{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = RIPTIDE, figure = "figureTide", bloom = "totemWater" },
+			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FLAME, learn = FLAME, figure = "trackerFlame", color = "totemFire", bloom = "totemFire" },
+			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = STORMSTRIKE, learn = STORMSTRIKE, figure = "figureStrike", bloom = "totemAir" },
+			{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = RIPTIDE, learn = RIPTIDE, figure = "figureTide", bloom = "totemWater" },
 		} },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipStormGlow", bloom = "pipStormGlow", families = { { spells = { 16166 }, sigil = "Bolt", major = true }, { spells = { 16188 }, sigil = "Swift", major = true },
 			{ spells = { 425336 }, sigil = "Farseer", major = true } } },

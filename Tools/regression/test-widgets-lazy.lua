@@ -312,9 +312,19 @@ do
 	-- the tracking mark's still glyphs (4 each), the range ring and the pet's focus bar, less the forged bodies the tracking mark gave up.
 	-- Tranquilizing Shot's glyph on the lower left foot is part of that total.
 	-- With the crest rail and its second rail on top of those auras and homes, the lit hunter comes to 5,377, the mage to 5,024 and the warlock, with Soulstone and Ritual of Doom on its second rail, to 5,254.
+	-- The priest's, druid's and shaman's marks burn as auras too: each draws a fire and a still light over its figure in
+	-- black in place of one flat texture, with Clearcasting's leaves, Inner Fire's flames, the storm orbs and the imbue
+	-- stones' lights among them (priest 36, druid 124, shaman 36 against staging at 5995d2c2). A motion level chosen in
+	-- combat under hidden aura values has to show at once, so each lit figure also keeps a moving and a still copy of its
+	-- slot. Those copies are frames, not regions, and a figure without charges clips them straight from its slot; only a
+	-- charged piece keeps a hidden bar the game fills per charge (Inner Fire's: priest 8). A timed figure adds a bare copy
+	-- that alone shows at Off, with no refresh cue: one texture each (priest 3, druid 36, shaman 9). That takes the
+	-- priest from 4,942 to 4,989, the druid from 5,280 to 5,440 and the shaman from 4,919 to 4,964,
+	-- less the sigils of spells the lit fixture does not know, which are drawn only once learned (`Medals.Later`):
+	-- 18, 9 and 6, so 4,971, 5,431 and 4,958.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5377, MAGE = 5024, WARLOCK = 5254 }) do
+	for class, limit in pairs({ PRIEST = 4971, DRUID = 5431, SHAMAN = 4958, HUNTER = 5377, MAGE = 5024, WARLOCK = 5254 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")

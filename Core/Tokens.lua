@@ -568,6 +568,24 @@ for _, name in ipairs({ "auraGlyphFacet", "auraGlyphHealthstone", "auraSigilArca
 	TEXTURES[name].span = 1.25
 end
 TEXTURES.auraTrackerGust = { file = "Textures\\Auras\\Trackers\\Gust.png", rows = 8, columns = 2, frames = 16, seconds = 1.44 }
+for _, mark in ipairs({
+	{ "sigil", "Sigil", "Sigils\\", { "Bark", "Bolt", "Brave", "Fang", "Farseer", "Feedback", "Focus", "Infusion", "Innervate", "Lifeline",
+		"Mend", "Moon", "Roots", "Sacrifice", "Swift", "Veil" } },
+	{ "figure", "Figure", "Figures\\", { "Ankh", "Bud", "Charge", "Dome", "Faerie", "Fangs", "Fiend", "Growl", "Growth", "Lance", "Mending",
+		"MindOrb", "Moon", "Plague", "Rake", "Reaper", "Renew", "Rip", "Roar", "Shock", "Shroud", "Sprout", "Strike", "Swarm", "Tide", "Wolf" } },
+	{ "tracker", "Tracker", "Trackers\\", { "Flame", "Leaf", "Rune", "Stone" } },
+	{ "totemRune", "TotemRune", "Totems\\Rune", { "Earth", "Fire", "Water", "Air" } },
+	{ nil, "Storm", "Storm\\Storm", { "Orb" } },
+}) do
+	local prefix, kind, path, names = mark[1], mark[2], mark[3], mark[4]
+	for _, name in ipairs(names) do
+		local token = "aura" .. kind .. name
+		TEXTURES[token] = { file = "Textures\\Auras\\" .. path .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25 }
+		if prefix then
+			TEXTURES[prefix .. name].aura = token
+		end
+	end
+end
 TEXTURES.auraSocket = { file = "Textures\\Auras\\Socket.png" }
 TEXTURES.railAuraAimed = { file = "Textures\\Medallions\\Rail\\AuraAimed.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 TEXTURES.railAuraCharm = { file = "Textures\\Medallions\\Rail\\AuraCharm.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }

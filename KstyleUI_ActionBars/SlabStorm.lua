@@ -26,8 +26,10 @@ local CLAIM = 0.72
 local CAST = {}
 for _, id in ipairs(RANKS) do CAST[id] = true end
 local SLOT = { candidateFilters = { includeSpellIDs = CAST } }
+local ORB_SPEC = { feed = "aura", spells = RANKS }
 
-local state = { seats = {}, parts = {}, loops = {}, containers = {}, feeds = {}, flares = {} }
+local state = { seats = {}, parts = {}, loops = {}, containers = {}, feeds = {}, flares = {}, orbs = {} }
+state.medal = { lits = state.orbs }
 Storm.state = state
 
 local function Active()
@@ -68,11 +70,13 @@ local function Fire(frame)
 	frame.play:Play()
 end
 
-local function Container(parent)
+local function Container(parent, medal)
 	local container = CreateFrame("AuraContainer", nil, parent, "CustomAuraContainerTemplate")
 	Widgets.KeepOut(container)
 	container:SetUnit("player")
-	state.containers[#state.containers + 1] = container
+	if not medal then
+		state.containers[#state.containers + 1] = container
+	end
 	return container
 end
 
@@ -103,6 +107,11 @@ local function Orbit(seat, angle)
 		t:SetOrder(k)
 	end
 	return group
+end
+
+local function Sized(part)
+	part:SetSize(part.units, part.units)
+	return part
 end
 
 local function Build(hub)
@@ -137,7 +146,15 @@ local function Build(hub)
 		seat:SetAllPoints(pin)
 		seat:SetFrameLevel(base + 3)
 		local s = { frame = seat, pin = pin, orbit = Orbit(seat, angle) }
-		s.orb = select(2, Slot(Container(seat), "orb", seat, i - 1, "stormOrb", true))
+		local box = Container(seat, true)
+		s.slot, s.orb = Slot(box, "orb", seat, i - 1, "stormOrb", true)
+		s.slot.container, s.slot.spec = box, ORB_SPEC
+		seat.add = Sized
+		s.fire = Medals.Fill(seat, s.orb, "auraStormOrb", ORB)
+		for _, copy in ipairs(s.orb.copies or {}) do
+			state.feeds[#state.feeds + 1] = { button = copy.button, bar = copy.bar, low = i, high = i }
+		end
+		state.orbs[i] = s.slot
 		for n, set in ipairs({ state.moving, state.still }) do
 			set[#set + 1] = Medals.Layer(seat, base + 4)
 			local spark, bar = Slot(Container(set[#set]), "spark", seat, i - 1, "stormOrbSpark", false)
@@ -188,11 +205,12 @@ local function Engine(on, loops, eased)
 	if Restricted() then
 		return
 	end
+	Medals.Engine({ state.medal }, on, loops or false)
 	if state.eased ~= eased then
 		local modes = Enum and Enum.StatusBarInterpolation or {}
 		for _, f in ipairs(state.feeds) do
 			f.button:SetApplicationBar(f.bar, {
-				minApplications = f.low, maxApplications = f.low + 1,
+				minApplications = f.low, maxApplications = f.high or f.low + 1,
 				interpolation = f.ease and eased and (modes.ExponentialEaseOut or 1) or (modes.Immediate or 0),
 			})
 		end
@@ -334,7 +352,7 @@ function Storm.Update()
 		return Stop()
 	end
 	if not (state.holder or state.failed) then
-		if Restricted() then
+		if Medals.Locked() then
 			state.listening = nil
 			K.Events.Register(OWNER, "ADDON_RESTRICTION_STATE_CHANGED", Storm.Update)
 			return K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Storm.Update)
