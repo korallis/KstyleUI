@@ -623,6 +623,26 @@ for _, build in ipairs({
 	for key, count in pairs(want) do
 		assert(burning[key] == count, class .. ": " .. key .. " burns " .. count .. " fires on its flame copies (" .. tostring(burning[key]) .. ")")
 	end
+	-- Under hidden values the addon writes nothing to these slots' containers: a level is chosen by the layers alone, so a container switched off and on again
+	-- inside the pull, which would end in the same picture, is caught here.
+	local writes, watched = {}, {}
+	local function Watch(container)
+		if not container or watched[container] then return end
+		watched[container] = true
+		for _, name in ipairs({ "SetEnabled", "SetAuraSlotEnabled", "SetUnit", "AddAuraSlot", "UpdateAllAuras" }) do
+			local write = container[name]
+			container[name] = function(...)
+				if env._aurasSecret then writes[#writes + 1] = name end
+				return write(...)
+			end
+		end
+	end
+	for _, each in ipairs(lits) do
+		Watch(each.lit.container)
+		for _, copy in ipairs(each.lit.mirrors) do
+			Watch(copy.container)
+		end
+	end
 	local function Shows(region)
 		return region:IsVisible() and region:GetEffectiveAlpha() > 0
 	end
@@ -668,6 +688,7 @@ for _, build in ipairs({
 			env._engine = nil
 			Feed(true)
 		end
+		assert(#writes == 0, class .. ": from the " .. start .. " start the pull wrote to a fed slot's container (" .. table.concat(writes, ", ") .. ")")
 		Restrict(false)
 		if start == "rest" then
 			K.Options.Write("Medallions", "restingCrest", false)
