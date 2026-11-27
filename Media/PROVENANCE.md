@@ -1389,3 +1389,5 @@ The band art the ranged crest's break-out pieces draw (`KstyleUI_ActionBars/Slab
 ## Class renders page
 
 The nine stills in `docs/renders/media/` were rendered on 2026-11-27 with Blender 5.3.0 using `docs/renders/render.py`. Each displays an existing class crest texture on a flat plane; the stills do not depict animated auras or new three-dimensional models. `docs/renders/build.py` embeds those stills in the portable gallery pages.
+
+To refresh one class: (1) update its status in `docs/renders/build.py` from current staging and the task records; (2) set its source texture in `docs/renders/render.py` if it changed, then run `blender --background --factory-startup --python-exit-code 1 --python docs/renders/render.py -- --only hunter`, substituting the lowercase class name, or replace only that class's named PNG with its new render; (3) record the class, source, method and date here; (4) run `python3 docs/renders/build.py` to rebuild both pages. The single-class command leaves the other eight stills untouched; the builder refuses a phone copy over 35,000,000 bytes before writing either page. Check the rendered pages and phone copy after an update.

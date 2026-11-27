@@ -4,9 +4,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 CLASSES = [
-    ('Hunter', 'The aura kit is on staging; further hunter conversion is in progress.'),
-    ('Mage', 'Mage glyph and sigil auras are on staging; some rail spells still need auras.'),
-    ('Warlock', 'Warlock glyph and sigil auras are on staging; some rail spells still need auras.'),
+    ('Hunter', 'The cooldown rail and aura kit are on staging; further hunter aura conversion is in progress.'),
+    ('Mage', 'The cooldown rail and glyph and sigil auras are on staging; some rail spells still need auras.'),
+    ('Warlock', 'The cooldown rail and glyph and sigil auras are on staging; some rail spells still need auras.'),
     ('Warrior', 'Warrior crest object and sigil aura work is on staging.'),
     ('Paladin', 'Paladin crest object and sigil aura work is on staging.'),
     ('Rogue', 'Rogue crest object and sigil aura work is on staging.'),
@@ -31,6 +31,11 @@ for name, status in CLASSES:
     cards.append(f'<article id="{name.lower()}"><img src="data:image/png;base64,{data}" alt="Static {name} crest texture rendered in Blender"><div><h2>{name}</h2><p>{status}</p><p>Image: static crest texture, not an animated aura.</p></div></article>')
 nav = ''.join(f'<a href="#{name.lower()}">{name}</a>' for name, _ in CLASSES)
 page = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KstyleUI class crest renders</title><style>{style}</style></head><body><header><span class="eyebrow">KstyleUI · Artwork</span><h1>Class crest renders</h1><p>Nine class crests from the current project. These are new Blender renders of existing flat crest textures, not new three-dimensional crest models or demonstrations of animated auras.</p><p>Artwork status reflects staging at the time this page was made; in-progress changes are not a claim of completed classes.</p><nav aria-label="Jump to a class">{nav}</nav></header><main><div class="grid">{''.join(cards)}</div></main><footer><p>These stills do not show movement or prove in-game behaviour. The standalone phone copy includes its images.</p></footer></body></html>'''
-for filename, heading in (('index.html', 'Class crest renders'), ('phone.html', 'Class crest renders — phone')):
-    (HERE / filename).write_text(page.replace('<h1>Class crest renders</h1>', f'<h1>{heading}</h1>'), encoding='utf-8')
-print('Standalone page bytes:', len(page.encode('utf-8')))
+pages = {filename: page.replace('<h1>Class crest renders</h1>', f'<h1>{heading}</h1>').encode('utf-8')
+         for filename, heading in (('index.html', 'Class crest renders'), ('phone.html', 'Class crest renders — phone'))}
+phone_bytes = len(pages['phone.html'])
+if phone_bytes > 35_000_000:
+    raise SystemExit(f'Phone copy exceeds 35 MB: {phone_bytes} bytes')
+for filename, content in pages.items():
+    (HERE / filename).write_bytes(content)
+print('Phone copy bytes:', phone_bytes)

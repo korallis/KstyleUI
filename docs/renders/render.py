@@ -5,6 +5,7 @@ blender --background --factory-startup --python-exit-code 1 --python docs/render
 These are renders of flat existing texture art, not new crest models or aura animation.
 """
 from pathlib import Path
+import sys
 import bpy
 
 root = Path(__file__).resolve().parents[2]
@@ -13,6 +14,11 @@ out.mkdir(parents=True, exist_ok=True)
 sources = {'hunter': 'skyborne', 'mage': 'human', 'warlock': 'human',
            'warrior': 'dwarf', 'paladin': 'human', 'rogue': 'human',
            'priest': 'human', 'druid': 'nightelf', 'shaman': 'dwarf'}
+args = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
+if args:
+    if len(args) != 2 or args[0] != '--only' or args[1] not in sources:
+        raise SystemExit('Use -- --only <class> with a known lowercase class name')
+    sources = {args[1]: sources[args[1]]}
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
 scene = bpy.context.scene
