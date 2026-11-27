@@ -297,7 +297,7 @@ do
 	K.Options.Write("ActionBars", "crestRail", false)
 	local volley = Piece(ns, "crestCooldowns").sigils[1]
 	Same("Rapid Fire's sigil stands in black under its light", { Drawn(volley, "Sigils\\Volley.png", false):GetVertexColor() }, 0, 0, 0)
-	assert(Aura(Drawn(volley, "Auras\\Sigils\\Volley.png", true), "Sigils\\Volley"), "and burns as its aura")
+	assert(Aura(volley.fire, "Sigils\\Volley") and Aura(volley.fire.still, "Sigils\\Volley"), "and burns as its aura")
 	Clean(env, K)
 end
 

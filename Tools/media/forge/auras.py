@@ -136,13 +136,14 @@ def picture(path, mirror=False):
     return design
 
 
-# the hunter: seven Aspects, six Stings, the two openings, Raptor Strike and the pet's haunch; the three cooldown sigils
+# the hunter: seven Aspects, six Stings, the two openings, Raptor Strike, the pet's haunch and lost hound, Trueshot Aura and
+# Improved Tracking's compass; the three cooldown sigils
 # and the rail's six more; the hawk perches' bird and the ready shots' arrows at their three angles
 MARKS.update({name: ("glyphs", colour, designs_hunter.D[name]) for name, colour in {
     "Hawk": "gilt", "Monkey": "neutral", "Cheetah": "steelLit", "Pack": "steelLit", "Wild": "schoolNature", "Beast": "hostile",
     "Viper": "magic", "Serpent": "schoolNature", "ViperSting": "magic", "Scorpid": "neutral", "Wyvern": "schoolFire",
     "Lacerate": "hostile", "BlackArrow": "schoolShadow", "Counter": "hostile", "Mongoose": "hostile", "Raptor": "gilt",
-    "Haunch": "neutral",
+    "Haunch": "neutral", "Hound": "hostile", "Trueshot": "gilt", "Compass": "gilt",
 }.items()})
 MARKS.update({name: ("sigils", "jewelHawk", None) for name in (
     "Volley", "Deflect", "Paw", "Intimidate", "FireTrap", "Sniper", "Aimed", "Strider", "Charm")})
