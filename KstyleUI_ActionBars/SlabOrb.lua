@@ -17,11 +17,12 @@ local COLORS = { Arcane = "schoolArcane", Fire = "schoolFire", Frost = "schoolFr
 local GREAT = { { 12042 }, { 11129 }, { 12472, 11958 } }
 local EVOCATION = { 12051 }
 local FIREBALL = { 25306, 10151, 10150, 10149, 10148, 8402, 8401, 8400, 3140, 145, 143, 133 }
+local IDLE = 3
 local PROCS = {
 	{ token = "orbClear", spells = { 12536 } },
 	{ token = "orbBarrage", spells = { 400589, 1326083 } },
-	{ token = "orbHeat", spells = { 400625 }, stacks = 3, bands = true },
-	{ token = "orbRime", spells = { 400670 }, stacks = 2 },
+	{ token = "orbHeat", spells = { 400625 }, stacks = 3, bands = true, school = "Fire" },
+	{ token = "orbRime", spells = { 400670 }, stacks = 2, school = "Frost" },
 }
 Orb.RACES, Orb.GREAT, Orb.PROCS = RACES, GREAT, PROCS
 
@@ -33,8 +34,31 @@ function Orb.Spell()
 	return Medals.Known(GREAT[ns.SlabRail.Tree()] or GREAT[1]) or Medals.Known(EVOCATION) or Medals.Known(FIREBALL)
 end
 
-function Orb.Held()
+function Orb.Want()
 	return ns.SlabRail.form == "crest" and ns.Config("crestOrb") ~= false and Orb.Spell() or nil
+end
+
+function Orb.Held()
+	return Orb.held
+end
+
+function Orb.Commit()
+	if Medals.Locked() then
+		return false
+	end
+	local p = Orb.piece
+	local held = p and p:IsShown() and p.school == Orb.School() and Orb.Want() or nil
+	local changed = held ~= Orb.held
+	Orb.held = held
+	return changed
+end
+
+function Orb.Choices()
+	local choices = {}
+	for i, school in ipairs(SCHOOLS) do
+		choices[i] = { school = school, known = function() return Orb.School() == school and Orb.Want() or nil end }
+	end
+	return choices
 end
 
 function Orb.Holds(spells)
@@ -111,20 +135,6 @@ local function Proc(p, each, level)
 	return lit
 end
 
-local function Paint(p)
-	local school = Orb.School()
-	if p.school == school then
-		return
-	end
-	p.school = school
-	for _, part in ipairs({ { p.fill, "orbLight" }, { p.core, "orbCore" } }) do
-		local path = Path(part[2] .. school)
-		part[1]:SetTexture(path)
-		part[1].still:SetTexture(path)
-	end
-	p.meniscus:SetTexture(Path("orbMeniscus" .. school))
-	p.glow:SetVertexColor(Tokens.Color(COLORS[school]))
-end
 
 function Orb.Build(parent, spec, level)
 	local race = Race()
@@ -136,11 +146,14 @@ function Orb.Build(parent, spec, level)
 	local lit = Medals.Lit(p, spec, level + 1)
 	p.bar = Band(p, lit, level + 1, units)
 	p.bar:SetValue(1)
-	local school = Orb.School()
+	local school = spec.school or Orb.School()
+	p.school = school
 	p.fill = Medals.Aura(p, Clip(lit, p.bar, p), "orbLight" .. school, p.light, "white")
+	p.fill.slow = Medals.Flip(p.fill, "orbLight" .. school, IDLE)
 	p.spent = Medals.Layer(lit, level + 3)
 	p.spent:Hide()
 	p.meniscus = p.spent:CreateTexture(nil, "ARTWORK")
+	p.meniscus:SetTexture(Path("orbMeniscus" .. school))
 	p.meniscus:SetBlendMode("ADD")
 	p.meniscus:SetSize(Widgets.Snap(p, p.light), Widgets.Snap(p, p.light / MENISCUS))
 	p.meniscus:SetPoint("CENTER", p.bar:GetStatusBarTexture(), "TOP", 0, 0)
@@ -152,7 +165,9 @@ function Orb.Build(parent, spec, level)
 	p.ready = Medals.Layer(lit, level + 3)
 	p.glow = p.add(Medals.Texture(p.ready, "BACKGROUND", 0, "glow", "white", p.light * GLOW, "ADD"))
 	p.glow:SetAlpha(GLOW_ALPHA)
+	p.glow:SetVertexColor(Tokens.Color(COLORS[school]))
 	p.core = Medals.Aura(p, p.ready, "orbCore" .. school, units * CORE, "white")
+	p.core.slow = Medals.Flip(p.core, "orbCore" .. school, IDLE)
 	p.timer = p.add(Medals.Timer(lit, level + 3, "orbRing", "white"), 8)
 	p.timer:SetDrawSwipe(false)
 	p.timer:SetScript("OnCooldownDone", function()
@@ -163,17 +178,16 @@ function Orb.Build(parent, spec, level)
 	Medals.Flare(p, lit, level + 4, "medBurstMage", p.light * BURST)
 	p.procs = {}
 	for i, each in ipairs(PROCS) do
-		p.procs[i] = Proc(p, each, level + 5 + 5 * (i - 1))
+		if not each.school or each.school == school then
+			p.procs[#p.procs + 1] = Proc(p, each, level + 5 + 5 * (i - 1))
+		end
 	end
 	local glass = Medals.Layer(p, level + 26)
 	p.add(Medals.Texture(glass, "OVERLAY", 0, "orbGlass", "white", p.light, "ADD"))
-	Paint(p)
 	return p
 end
 
 function Orb.Place(p, anchor)
 	Medals.Place(p, anchor, 0, 0)
-	if not Medals.Locked() then
-		Paint(p)
-	end
+	Orb.piece = p
 end

@@ -1469,6 +1469,10 @@ if CLASS == "MAGE" then
 	local function Shown(spells, slot)
 		return ns.SlabRail.Holds(spells, slot) or ns.SlabOrb.Holds(spells)
 	end
+	local function Commit()
+		local rail, orb = ns.SlabRail.Commit(), ns.SlabOrb.Commit()
+		return rail or orb
+	end
 
 	local FIRE_BLAST = { 10199, 10197, 8413, 8412, 2138, 2137, 2136, 400623, 400622, 400621, 400620, 400616, 400619, 400618 }
 	ns.SlabRail.Register("MAGE", {
@@ -1530,10 +1534,10 @@ if CLASS == "MAGE" then
 			{ spells = { 11958, 27619 }, known = { 11958 }, sigil = "Crystal", major = true } }, railed = Shown },
 		{ key = "crestWard", seat = "rim", build = Ward, place = Ring, feed = "aura", spells = WARDS, color = "rim", ward = true },
 		{ key = "crestClearcasting", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 12536 },
-			known = function() return not ns.SlabOrb.Held() and Medals.Known(CLEARCASTING) or nil end, color = "schoolArcane", proc = "schoolArcane" },
-		{ key = "crestOrb", seat = "rim", build = ns.SlabOrb.Build, place = ns.SlabOrb.Place, feed = "cooldown", known = ns.SlabOrb.Held, crestOnly = true },
+			known = CLEARCASTING, color = "schoolArcane", proc = "schoolArcane" },
+		{ key = "crestOrb", seat = "rim", build = ns.SlabOrb.Build, place = ns.SlabOrb.Place, feed = "cooldown", choices = ns.SlabOrb.Choices(), crestOnly = true },
 		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
-	}, { burst = "medBurstMage", pick = ns.SlabRail.Pick, commit = ns.SlabRail.Commit, rail = Shown, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" },
+	}, { burst = "medBurstMage", pick = ns.SlabRail.Pick, commit = Commit, rail = Shown, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" },
 		events = { { "UNIT_POWER_UPDATE", "player" }, "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } }, paint = Paint, motion = Motion,
 		figures = true })
 end

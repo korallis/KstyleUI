@@ -595,7 +595,7 @@ do
 end
 
 do
-	-- With the power orb on, Clearcasting lights inside the orb (test-actionbars-crest-orb.lua); switched off, the ring carries it.
+	-- Clearcasting's ring carries it with the power orb switched off too; the orb adds its own glitter (test-actionbars-crest-orb.lua).
 	local env, K, ns = New("MAGE", { before = function(_, K) K.Options.Write("ActionBars", "crestOrb", false) end })
 	local gem, ward, clear = Piece(ns, "crestManaGem"), Piece(ns, "crestWard"), Piece(ns, "crestClearcasting")
 	assert(gem:IsShown() and not gem.lit:IsShown(), "no gem: nothing hangs from the band")

@@ -4256,7 +4256,7 @@ ns.Locale.Add({
 	["Standard: the slab in Medallions, bars under a cap in Frames. Plate: a panel."] = "Standard : la dalle en M\195\169daillons, des barres sous un chapeau en Cadres. Plaque : un panneau.",
 	["Standing"] = "Niveau de r\195\169putation",
 	["Standing or reaction"] = "Niveau de r\195\169putation ou r\195\169action",
-	["Stands your tree's cooldowns, trinket and a mage's racials over the crest; buffs rise to the crown."] = "Place les temps de recharge de votre arbre, votre bijou et les techniques raciales d'un mage au-dessus du blason ; les renforcements montent \195\160 la couronne.",
+	["Stands your tree's cooldowns, trinket and a mage's racials over the crest; a hunter's buffs rise to the crown."] = "Place les temps de recharge de votre arbre, votre bijou et les techniques raciales d'un mage au-dessus du blason ; les renforcements d'un chasseur montent \195\160 la couronne.",
 	["Start collapsed"] = "Commencer repli\195\169",
 	["Start point"] = "Point de d\195\169part",
 	["Start the combat log as you enter an instance and stop it as you leave."] = "Lance le journal de combat en entrant en instance et l'arr\195\170te en sortant.",

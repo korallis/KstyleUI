@@ -88,14 +88,21 @@ end
 
 local function Burn(fire, moving)
 	moving = moving and not fire.settled
+	local idle = fire.slow and not moving and Effects.Allows("ambient")
+	local loop = idle and fire.slow or fire.loop
+	moving = moving or idle
 	fire:SetAlpha((moving or fire.gated) and 1 or 0)
 	fire.still:SetAlpha((moving and not fire.calm) and 0 or 1)
 	if fire.fed then
 		return
-	elseif not (moving and fire:IsVisible()) then
-		fire.loop:Stop()
-	elseif not fire.loop:IsPlaying() then
-		fire.loop:Play()
+	end
+	if fire.slow then
+		(idle and fire.loop or fire.slow):Stop()
+	end
+	if not (moving and fire:IsVisible()) then
+		loop:Stop()
+	elseif not loop:IsPlaying() then
+		loop:Play()
 	end
 end
 
@@ -127,6 +134,9 @@ end
 local function Hiding(host)
 	for _, fire in ipairs(host.fires) do
 		fire.loop:Stop()
+		if fire.slow then
+			fire.slow:Stop()
+		end
 	end
 end
 
@@ -1365,10 +1375,18 @@ end
 
 local function Cooling(m, id, event)
 	m.cooling = m.cooling or {}
-	if event == "SPELL_UPDATE_COOLDOWN" or event == nil and m.cooling[id] == nil then
+	local fresh = event == "SPELL_UPDATE_COOLDOWN"
+	if fresh or event == nil or m.cooling[id] == nil then
 		local get = C_Spell and C_Spell.GetSpellCooldown
 		local cd = type(get) == "function" and get(id)
-		m.cooling[id] = type(cd) == "table" and cd.isActive == true and (event == nil or IsSecret(cd.isOnGCD) or cd.isOnGCD ~= true)
+		local active = type(cd) == "table" and cd.isActive
+		if IsSecret(active) then
+			return m.cooling[id] == true
+		elseif not fresh or active ~= true then
+			m.cooling[id] = active == true
+		elseif not IsSecret(cd.isOnGCD) then
+			m.cooling[id] = cd.isOnGCD ~= true
+		end
 	end
 	return m.cooling[id] == true
 end
@@ -1433,11 +1451,12 @@ function Medals.Refresh(m, event)
 			end
 			cooling = (m.bar or m.ready) and duration and Cooling(m, spec.spell, event) or false
 		end
+		local refill = m.bar and (cooling ~= m.cooled or cooling and (event == nil or event == "SPELL_UPDATE_COOLDOWN"))
+		if refill then
+			Refill(m.bar, cooling and duration)
+		end
 		if cooling ~= m.cooled then
 			m.cooled = cooling
-			if m.bar then
-				Refill(m.bar, cooling and duration)
-			end
 			if m.ready then
 				m.ready:SetShown(not cooling)
 			end
