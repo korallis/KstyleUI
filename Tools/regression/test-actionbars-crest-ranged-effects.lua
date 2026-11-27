@@ -197,8 +197,8 @@ do
 	local mend = pet.lits[#pet.lits]
 	assert(mend.loops[1]:GetParent():GetAlpha() > 0, "Mend Pet's motes show with no animation running")
 	for _, each in ipairs(aspect.lits) do
-		local burning = each.art:GetParent():GetParent()
-		assert(#each._regions == 0 and not each.awake and Shown(burning, burning.flare.play), "each Aspect's sigil blooms itself on its burning copy as it lands, with no extra glow or flare")
+		local held = each.art:GetParent():GetParent()
+		assert(#each._regions == 0 and not each.awake and Shown(held, held.flare.play), "each Aspect's sigil blooms itself on its burning copy as it lands, with no extra glow or flare")
 	end
 	K.Options.Write("ActionBars", "crestSting", false)
 	assert(not sting:IsShown() and mark.lit:IsShown(), "Your Sting off puts the fuse out alone")
