@@ -135,7 +135,7 @@ local function Form()
 end
 
 local function Resolve(p, row)
-	if row and p.crestOnly or not row and p.railed and ns.Config(p.railed) ~= false then
+	if row and p.crestOnly or not row and p.railed and p.railed(nil, p.slot) then
 		return nil
 	end
 	local spec = setmetatable({ burst = HOOKS[ns.class] and HOOKS[ns.class].burst }, { __index = p })
@@ -494,6 +494,10 @@ end
 
 function Trackers.Update()
 	local name, seat = Form()
+	local pick = HOOKS[ns.class] and HOOKS[ns.class].pick
+	if pick then
+		pick(name)
+	end
 	local specs, order, rows, forms = {}, {}, {}, false
 	for i, p in ipairs(name and CLASSES[ns.class] or {}) do
 		if ns.Config(p.key) ~= false then

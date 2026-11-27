@@ -430,6 +430,7 @@ end
 -- A hunter's pet aura is watched on the pet.
 do
 	local env, K, ns = New("HUNTER", { 3045, 19574, 75 })
+	K.Options.Write("ActionBars", "crestRail", false)
 	local cooldowns = Piece(ns, "crestCooldowns")
 	local pet = Watched(ns, cooldowns, "pet")
 	assert(pet, "the pet's cooldown slot is watched on the pet")

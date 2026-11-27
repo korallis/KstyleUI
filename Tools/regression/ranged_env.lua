@@ -57,6 +57,7 @@ local function New(class, opts)
 			e.GetInventoryItemID = function(_, slot) return opts.trinket and slot == 13 and 5002 or nil end
 			e.GetInventoryItemCooldown = function() return 0, 0, 1, false end
 			e.C_Item.GetItemSpell = function(id) if id == 5002 then return "Use", 9002 end end
+			e.C_SpecializationInfo = opts.tree and { GetSpecialization = function() return opts.tree end }
 			e._slotGroups = true
 			e.AuraContainerSortMethod = { Default = 0, AuraInstanceIDOnly = 8 }
 			e.AuraContainerSortDirection = { Normal = 0, Reverse = 1 }
@@ -83,7 +84,7 @@ end
 
 -- Seated(ns, key) -> the piece showing in the switch's seat, whichever choice it is.
 local function Seated(ns, key)
-	for c = 1, 4 do
+	for c = 1, 8 do
 		local p, shows = Piece(ns, key, c)
 		if shows then return p end
 	end

@@ -1,20 +1,25 @@
--- SlabRail.lua: the hunter's five-seat crest rail (docs/medallions-effects.md#hunter-crest-rail): up to four of the talent tree's own abilities and the on-use trinket stand as forged medals on an arc above the crest, built only for the seats the hunter knows; a ready medal lights gold and breathes, a press dips it and bursts, a buffed major lifts a medal to the crown that the engine shows from the aura's own slot while the seat's ring drains, the medal cools to steel and folds back to its seat as the buff ends, a dark sweep and a refilling steel ring count the cooldown and the medal relights with a flare when it is ready again; Calm lights in place with no lift, burst or breathing, Off shows only lit, cooling and ready, and Lua never reads or compares a secret.
+-- SlabRail.lua: the hunter's five-seat crest rail (docs/medallions-effects.md#hunter-crest-rail): up to four abilities of the talent tree the game names and the on-use trinket stand as forged medals on an arc above the crest (a flat row between the cooldown rows while the centred cast bars show), built only for the seats the hunter has; a ready seat burns with its sigil's animated Blender aura, breathes and is crossed by a glint, a press dips it, bursts and flashes its ring, a buffed major rises to the crown, where the engine shows the aura's own slot burning with a draining ring, a bead, a last-fifth notch and a countdown, the newest running buff owns the crown (handed off by the engine's aura-shown signal), an ended one cools to steel and folds home, a dark sweep and a refilling steel ring count the cooldown and the medal relights with a flare; Calm lights in place with still auras and no lift, burst or breathing, Off shows only lit, cooling and ready, a motion change or hiding stops what is in flight, and Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
 local Effects, Widgets = K.Effects, K.Widgets
 local IsSecret = Widgets.IsSecret
 local Medals = ns.SlabMedals
+local rad = math.rad
 
 local Rail = {}
 ns.SlabRail = Rail
 
 local SEAT, CROWN, PITCH, PEAK, BOW, CROWN_Y = 28, 34, 31, 126, 10, 90
+local LOW_Y, LOW_CROWN = 227, 6
 local SPAN = 2 * PITCH
-local SIGIL, ICON, SHADE, PAD, REFILL = 0.86, 0.74, 1.9, 5, 0.6
+local SIGIL, ICON, SHADE, PAD, REFILL, AURA = 0.86, 0.74, 1.9, 5, 0.6, 0.86 / 0.62
 local BREATH, BREATH_RUN, GLOW, READY_GLOW, READY_RING, READY_RUN, RELIGHT = { 0.1, 0.2 }, 1.2, 1.6, 44, 34, 0.3, 0.18
+local GLINT, GLINT_RUN, FLASH_RUN, NOTCH, FIFTH = 6, 0.18, 0.27, 4, 0.2
 local DIP, DIP_RUN, BURST, BURST_RUN = 0.86, 0.12, { 0.85, 1.45 }, 0.4
 local LIFT_RUN, TURN, POP, POP_RUN, SETTLE_RUN, FOLD_RUN, HOME_RUN = 0.28, 16, 1.29 / 1.21, 0.2, 0.16, 0.35, 0.3
+local CASTS = { "unitframes.castbar.player", "unitframes.castbar.target" }
+local OWNER, NONE = "ActionBars.SlabRail", {}
 local FIRE_TRAP = { 13795, 14302, 14303, 14304, 14305, 13813, 14316, 14317 }
 local ABILITIES = {
 	rapid = { spells = { 3045 }, sigil = "Volley", unit = "player" },
@@ -25,6 +30,7 @@ local ABILITIES = {
 	sniper = { spells = { 1310786, 1310785, 1310687 }, sigil = "Sniper" },
 	aimed = { spells = { 20904, 20903, 20902, 20901, 20900, 19434 }, sigil = "Aimed" },
 	strider = { spells = { 1317257 }, sigil = "Strider" },
+	trinket = { sigil = "Charm" },
 }
 local TREES = {
 	{ "wrath", "rapid", "intimidate", "trap" },
@@ -33,6 +39,11 @@ local TREES = {
 }
 local SIGNS = { { "wrath", "intimidate" }, { "sniper", "aimed" }, { "deter", "strider" } }
 Rail.ABILITIES, Rail.TREES = ABILITIES, TREES
+Rail.picked = NONE
+
+local function Full()
+	return Effects.Allows("ambient") and not ns.Slab.Resting()
+end
 
 local function Trinket()
 	if ns.Config("crestTrinkets") == false or type(GetInventoryItemID) ~= "function" then
@@ -43,13 +54,28 @@ local function Trinket()
 		local item = GetInventoryItemID("player", slot)
 		local spell = not IsSecret(item) and item and type(get) == "function" and select(2, get(item))
 		if spell and not IsSecret(spell) then
-			return slot
+			return slot, spell
 		end
 	end
 end
 
-function Rail.Seats()
-	local best, most = 1, 0
+function Rail.Tree()
+	local info = C_SpecializationInfo
+	local index = info and type(info.GetSpecialization) == "function" and info.GetSpecialization()
+	if not IsSecret(index) and TREES[index] then
+		return index
+	end
+	local best, most = nil, 0
+	for i in ipairs(info and type(info.GetSpecializationInfo) == "function" and TREES or NONE) do
+		local points = select(7, info.GetSpecializationInfo(i, false, false))
+		if not IsSecret(points) and type(points) == "number" and points > most then
+			best, most = i, points
+		end
+	end
+	if best then
+		return best
+	end
+	best, most = 1, 0
 	for i, sign in ipairs(SIGNS) do
 		local n = 0
 		for _, key in ipairs(sign) do
@@ -59,22 +85,46 @@ function Rail.Seats()
 			best, most = i, n
 		end
 	end
+	return best
+end
+
+function Rail.Seats()
 	local seats = {}
-	for _, key in ipairs(TREES[best]) do
+	for _, key in ipairs(TREES[Rail.Tree()]) do
 		local id = Medals.Known(ABILITIES[key].spells)
 		if id then
 			seats[#seats + 1] = { key = key, spell = id }
 		end
 	end
-	local slot = Trinket()
+	local slot, spell = Trinket()
 	if slot then
-		seats[#seats + 1] = { key = "trinket", slot = slot }
+		seats[#seats + 1] = { key = "trinket", slot = slot, press = spell }
 	end
 	return seats
 end
 
+function Rail.Pick(form)
+	Rail.picked = form == "crest" and ns.Config("crestRail") ~= false and Rail.Seats() or NONE
+end
+
 function Rail.Known()
-	return #Rail.Seats() > 0 and 3045 or nil
+	return #Rail.picked > 0 and 3045 or nil
+end
+
+function Rail.Holds(spells, slot)
+	for _, at in ipairs(Rail.picked) do
+		if slot and at.slot == slot then
+			return true
+		end
+		for _, id in ipairs(spells or NONE) do
+			for _, own in ipairs(ABILITIES[at.key].spells or NONE) do
+				if id == own then
+					return true
+				end
+			end
+		end
+	end
+	return false
 end
 
 local function Grow(g, from, to, run, order)
@@ -99,15 +149,27 @@ local function Turn(g, degrees, run, order, smoothing)
 	return t
 end
 
-local function Face(piece, parent, size, art, gold, level)
+local function Face(piece, parent, size, art)
 	piece.add(Medals.Texture(parent, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(0.7)
 	piece.add(Medals.Texture(parent, "BORDER", 0, "medEnamel", "steel", size))
-	if gold then
-		Medals.Mark(piece, parent, art, size * SIGIL, "jewelHawk", nil, nil, nil, level)
-	else
+	if art then
 		piece.add(Medals.Texture(parent, "ARTWORK", -1, art, "steel", size * SIGIL))
 	end
 	piece.add(Medals.Texture(parent, "OVERLAY", 0, "medRing", "white", size))
+end
+
+local function Aura(piece, parent, size, sigil)
+	local token = "railAura" .. sigil
+	local still = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, "white", size * AURA, "ADD"))
+	still:SetTexCoord(0, 0.25, 0, 0.25)
+	local moving = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, "white", size * AURA, "ADD"))
+	moving:SetAlpha(0)
+	return { still = still, moving = moving, loop = Medals.Flip(moving, token, 1) }
+end
+
+local function Burning(aura, on)
+	aura.still:SetAlpha(on and 0 or 1)
+	aura.moving:SetAlpha(on and 1 or 0)
 end
 
 local function Timer(seat, level, texture, color, alpha, units)
@@ -116,18 +178,27 @@ end
 
 local function Seat(r, at)
 	local level = r:GetFrameLevel() + 2
+	local ability = ABILITIES[at.key]
 	local seat = Medals.Piece(r, level, SEAT)
-	local art = "sigil" .. (ABILITIES[at.key] and ABILITIES[at.key].sigil or "Charm")
-	seat.key, seat.ability = at.key, ABILITIES[at.key]
-	Face(seat, seat, SEAT, art, false)
+	seat.key, seat.ability = at.key, ability
+	Face(seat, seat, SEAT, "sigil" .. ability.sigil)
 	seat.lit = Medals.Layer(seat, level + 1)
 	seat.glow = seat.add(Medals.Texture(seat.lit, "BACKGROUND", 1, "glow", "jewelHawk", SEAT * GLOW, "ADD"))
 	seat.glow:SetAlpha(BREATH[1])
 	seat.breath = ns.Slab.Group(seat.glow, "BOUNCE")
 	ns.Slab.Fade(seat.breath, BREATH[1], BREATH[2], BREATH_RUN)
-	Medals.Mark(seat, seat.lit, art, SEAT * SIGIL, "jewelHawk", nil, nil, nil, level + 1)
+	seat.add(Medals.Texture(seat.lit, "BORDER", 1, "dot", "black", SEAT * ICON)):SetAlpha(0.55)
+	seat.aura = Aura(seat, seat.lit, SEAT, ability.sigil)
 	seat.relight = ns.Slab.Group(seat.lit)
 	ns.Slab.Fade(seat.relight, 0, 1, RELIGHT)
+	seat.glint = seat.add(Medals.Texture(seat.lit, "OVERLAY", 2, "diamond", "white", GLINT, "ADD"))
+	seat.glint:SetPoint("CENTER", seat, "CENTER", -SEAT * 0.4, SEAT * 0.2)
+	seat.glint:SetAlpha(0)
+	seat.glinting = ns.Slab.Group(seat.glint)
+	for order, fade in ipairs({ { 0, 0.9 }, { 0.9, 0 } }) do
+		Move(seat.glinting, SEAT * 0.4, -SEAT * 0.2, GLINT_RUN, order, "NONE")
+		ns.Slab.Fade(seat.glinting, fade[1], fade[2], GLINT_RUN, order)
+	end
 	seat.sweep = Timer(seat, level + 3, "dot", "black", 0.7, SEAT * ICON)
 	seat.refill = Timer(seat, level + 3, "orbRing", "steel", REFILL, SEAT + PAD)
 	seat.refill:SetReverse(true)
@@ -150,10 +221,67 @@ local function Seat(r, at)
 	seat.bursting = ns.Slab.Group(seat.burst)
 	Grow(seat.bursting, BURST[1], BURST[2], BURST_RUN)
 	ns.Slab.Fade(seat.bursting, 1, 0, BURST_RUN)
+	seat.ring = seat.add(Medals.Texture(flare, "OVERLAY", 4, "medRing", "gilt", SEAT, "ADD"))
+	seat.ring:SetAlpha(0)
+	seat.flash = ns.Slab.Group(seat.ring)
+	ns.Slab.Fade(seat.flash, 1, 0, FLASH_RUN)
 	seat.dip = ns.Slab.Group(seat)
 	Grow(seat.dip, 1, DIP, DIP_RUN, 1)
 	Grow(seat.dip, DIP, 1, DIP_RUN, 2)
 	return seat
+end
+
+local function Has(list, seat)
+	for _, each in ipairs(list) do
+		if each == seat then
+			return true
+		end
+	end
+	return false
+end
+
+local function Running(r, seat, on)
+	for i = #r.running, 1, -1 do
+		if r.running[i] == seat then
+			table.remove(r.running, i)
+		end
+	end
+	if on then
+		r.running[#r.running + 1] = seat
+	end
+end
+
+local function Crown(r)
+	local up, full = Effects.Allows("flare"), Full()
+	local owner
+	for i = #r.running, 1, -1 do
+		owner = owner or r.running[i]:IsShown() and r.running[i] or nil
+	end
+	local top = r.rising or owner
+	for _, seat in ipairs(r.majors) do
+		seat.gate:SetAlpha(up and (top == nil or seat == top) and 1 or 0)
+		seat.hold:SetAlpha(up and 1 or 0)
+		local crowned = seat == top
+		local aura, burning = seat.crowned.aura, full and crowned
+		seat.burn:SetAlpha(crowned and 1 or 0)
+		Burning(aura, burning)
+		if not burning then
+			aura.loop:Stop()
+		elseif not aura.loop:IsPlaying() then
+			aura.loop:Play()
+		end
+	end
+	local was = r.owner
+	r.owner = owner
+	if was and was ~= owner and not Has(r.running, was) and full then
+		was.home:Stop()
+		was.home:Play()
+	end
+end
+
+function Rail.Fold(r, seat)
+	Running(r, seat, false)
+	Crown(r)
 end
 
 local function Major(r, seat, ability)
@@ -170,77 +298,143 @@ local function Major(r, seat, ability)
 	local top = crown:GetFrameLevel() + 2
 	seat.gate = Medals.Layer(crown, top)
 	seat.lift = Medals.Layer(seat.gate, top)
+	seat.lift.add = crown.add
 	local lit = Medals.Feed(seat.lift, spec, top)
 	lit.hold = seat.gate
-	Face(crown, lit, CROWN, "sigil" .. ability.sigil, true, top + 1)
+	Face(crown, lit, CROWN)
+	seat.burn = Medals.Layer(seat.lift, top + 2)
+	lit.aura = Aura(crown, seat.burn, CROWN, ability.sigil)
 	lit.timer = crown.add(Medals.Timer(lit, top + 3, "orbRing", "jewelHawk"), CROWN + PAD)
+	local turned = lit.timer.SetRotation ~= nil and pcall(lit.timer.SetRotation, lit.timer, rad(90))
+	ns.SlabRings.Head(lit.timer, 1.4)
+	lit.timer:SetHideCountdownNumbers(false)
+	local tag = lit.timer.GetCountdownFontString and lit.timer:GetCountdownFontString()
+	if tag then
+		tag:ClearAllPoints()
+		tag:SetPoint("TOP", lit.timer, "BOTTOM", 0, -1)
+	end
 	lit:SetDurationCooldown(lit.timer)
 	lit.timer:SetScript("OnCooldownDone", function()
 		Rail.Fold(r, seat)
 	end)
+	local at = rad((turned and 270 or 0) + 360 * (1 - FIFTH))
+	local notch = crown.add(Medals.Texture(lit, "OVERLAY", 2, "diamond", "gilt", NOTCH))
+	notch:SetPoint("CENTER", lit, "CENTER", (CROWN + PAD) / 2 * math.sin(at), (CROWN + PAD) / 2 * math.cos(at))
+	crown.add(Medals.Ember(seat.lift, lit, lit.timer, "Band", top + 4, CROWN))
+	local mark = crown.add(Medals.Texture(lit, "BACKGROUND", 0, "dot", "black", 1))
+	mark:SetAlpha(0)
+	local signal = ns.Slab.Group(mark, "REPEAT")
+	ns.Slab.Fade(signal, 0, 0, 3600)
+	signal:SetScript("OnPlay", function()
+		if not Has(r.running, seat) then
+			Running(r, seat, true)
+		end
+		if r.rising == seat then
+			r.rising = nil
+		end
+		Crown(r)
+	end)
+	signal:SetScript("OnStop", function()
+		Rail.Fold(r, seat)
+	end)
+	lit:AddAuraShownAnimation(signal)
+	seat.signal = signal
 	r.lits[#r.lits + 1] = lit
 	seat.crowned = lit
 	seat.ghost = Medals.Layer(crown, top)
 	crown.add(Medals.Texture(seat.ghost, "ARTWORK", 0, "sigil" .. ability.sigil, "steel", CROWN * SIGIL))
 	seat.ghost:SetAlpha(0)
-end
-
-local function Aim(seat, crown)
-	local _, _, _, sx, sy = seat:GetPoint(1)
-	local _, _, _, cx, cy = crown:GetPoint(1)
-	return (sx or 0) - (cx or 0), (sy or 0) - (cy or 0)
-end
-
-local function Motions(r, seat)
-	local dx, dy = Aim(seat, r.crown)
-	if seat.aim and seat.aim[1] == dx and seat.aim[2] == dy then
-		return
-	end
-	seat.aim = { dx, dy }
-	local from = SEAT * DIP / CROWN
 	seat.rise = ns.Slab.Group(seat.lift)
-	Move(seat.rise, dx, dy, 0.001, 1, "NONE")
+	local from = SEAT * DIP / CROWN
+	seat.out = Move(seat.rise, 0, 0, 0.001, 1, "NONE")
 	Grow(seat.rise, from, from, 0.001, 1)
-	Move(seat.rise, -dx, -dy, LIFT_RUN, 2, "OUT")
-	Grow(seat.rise, from, POP, POP_RUN, 2)
-	Turn(seat.rise, TURN, LIFT_RUN, 2, "OUT")
-	Grow(seat.rise, POP, 1, SETTLE_RUN, 3)
-	Turn(seat.rise, -TURN, SETTLE_RUN, 3, "IN_OUT")
+	seat.back = Move(seat.rise, 0, 0, LIFT_RUN, 2, "OUT")
+	seat.pop = Grow(seat.rise, from, POP, POP_RUN, 2)
+	seat.turns = { Turn(seat.rise, TURN, LIFT_RUN, 2, "OUT") }
+	seat.settle = Grow(seat.rise, POP, 1, SETTLE_RUN, 3)
+	seat.turns[2] = Turn(seat.rise, -TURN, SETTLE_RUN, 3, "IN_OUT")
+	seat.rise:SetScript("OnFinished", function()
+		if r.rising == seat then
+			r.rising = nil
+			Crown(r)
+		end
+	end)
 	seat.home = ns.Slab.Group(seat.ghost)
 	ns.Slab.Fade(seat.home, 1, 1, FOLD_RUN, 1)
-	Move(seat.home, dx, dy, HOME_RUN, 2, "IN_OUT")
+	seat.away = Move(seat.home, 0, 0, HOME_RUN, 2, "IN_OUT")
 	Grow(seat.home, 1, SEAT / CROWN, HOME_RUN, 2)
 	ns.Slab.Fade(seat.home, 1, 0, HOME_RUN, 2)
+	r.majors[#r.majors + 1] = seat
 end
 
-function Rail.Build(parent, spec, level)
-	local r = Medals.Piece(parent, level, 2 * (SPAN + SEAT))
-	r.rail, r.order, r.made = true, {}, {}
-	r.crown = Medals.Piece(r, level + 12, CROWN)
-	r.add(r.crown)
-	r.spec = spec
-	return r
+local function Aim(r, seat)
+	local _, _, _, sx, sy = seat:GetPoint(1)
+	local _, _, _, cx, cy = r.crown:GetPoint(1)
+	local dx, dy = (sx or 0) - (cx or 0), (sy or 0) - (cy or 0)
+	if seat.aim and seat.aim[1] == dx and seat.aim[2] == dy and seat.aim[3] == r.low then
+		return
+	end
+	seat.aim = { dx, dy, r.low }
+	seat.out:SetOffset(dx, dy)
+	seat.back:SetOffset(-dx, -dy)
+	seat.away:SetOffset(dx, dy)
+	local pop, turn = r.low and 1 or POP, r.low and 0 or TURN
+	seat.pop:SetScaleTo(pop, pop)
+	seat.settle:SetScaleFrom(pop, pop)
+	seat.turns[1]:SetDegrees(turn)
+	seat.turns[2]:SetDegrees(-turn)
+end
+
+local function Settle(r, all)
+	local full, calm = not all and Full(), not all and Effects.Allows("flare")
+	for _, seat in pairs(r.made) do
+		if not full then
+			for _, g in ipairs({ seat.dip, seat.bursting, seat.flash, seat.glinting, seat.flare[1], seat.flare[2], seat.rise, seat.home }) do
+				g:Stop()
+			end
+			seat.breath:Stop()
+			seat.aura.loop:Stop()
+			Burning(seat.aura, false)
+		end
+		if not calm then
+			seat.relight:Stop()
+		end
+	end
+	if not full then
+		r.rising = nil
+	end
 end
 
 local function Light(seat, ready, flare)
 	local was = seat.ready
 	seat.ready = ready
-	local full, calm = Effects.Allows("ambient") and not ns.Slab.Resting(), Effects.Allows("flare")
+	local full, calm = Full(), Effects.Allows("flare")
 	seat.relight:Stop()
 	seat.lit:SetAlpha(ready and 1 or 0)
 	if ready and was == false and flare and calm then
 		seat.relight:Play()
-		for i = 1, full and 2 or 0 do
-			seat.flare[i]:Stop()
-			seat.flare[i]:Play()
+		if full then
+			for i, g in ipairs({ seat.flare[1], seat.flare[2], seat.glinting }) do
+				g:Stop()
+				if i == 1 then
+					Medals.Arbitrate(g)
+				end
+				g:Play()
+			end
 		end
 	end
-	if ready and full then
+	local burning = ready and full
+	Burning(seat.aura, burning)
+	if burning then
 		if not seat.breath:IsPlaying() then
 			seat.breath:Play()
 		end
+		if not seat.aura.loop:IsPlaying() then
+			seat.aura.loop:Play()
+		end
 	else
 		seat.breath:Stop()
+		seat.aura.loop:Stop()
 	end
 end
 
@@ -250,14 +444,15 @@ function Rail.Ready(seat)
 	end
 end
 
-local function Cool(seat)
+local function Cool(seat, flare)
 	local cooling
 	if seat.slot then
-		local start, length, enable = 0, 0, 0
+		local start, length, enable, gcd = 0, 0, 0, nil
 		if type(GetInventoryItemCooldown) == "function" then
-			start, length, enable = GetInventoryItemCooldown("player", seat.slot)
+			start, length, enable, gcd = GetInventoryItemCooldown("player", seat.slot)
 		end
-		cooling = not (IsSecret(start) or IsSecret(length) or IsSecret(enable)) and type(length) == "number" and length > 0 and enable ~= 0
+		cooling = not (IsSecret(start) or IsSecret(length) or IsSecret(enable) or IsSecret(gcd)) and type(length) == "number" and length > 0
+			and enable ~= 0 and gcd ~= true
 		for _, t in ipairs({ seat.sweep, seat.refill }) do
 			if cooling then
 				t:SetCooldown(start, length)
@@ -283,87 +478,102 @@ local function Cool(seat)
 			cooling = active == true and gcd ~= true
 		end
 	end
-	Light(seat, not cooling, false)
-end
-
-local function Crown(r)
-	local up = Effects.Allows("flare")
-	local owner = r.owner
-	if not (owner and owner:IsShown()) then
-		owner = nil
-		for _, seat in ipairs(r.order) do
-			owner = owner or seat.crowned and seat:IsShown() and seat or nil
-		end
-	end
-	for _, seat in pairs(r.made) do
-		if seat.crowned then
-			seat.gate:SetAlpha(up and seat == owner and 1 or 0)
-			seat.hold:SetAlpha(up and 1 or 0)
-		end
-	end
-	return owner
+	Light(seat, not cooling, flare)
 end
 
 local function Press(r, seat)
-	local full = Effects.Allows("ambient") and not ns.Slab.Resting()
+	local full = Full()
 	if full then
-		seat.dip:Stop()
-		seat.dip:Play()
-		seat.bursting:Stop()
-		seat.bursting:Play()
+		for i, g in ipairs({ seat.bursting, seat.dip, seat.flash }) do
+			g:Stop()
+			if i == 1 then
+				Medals.Arbitrate(g)
+			end
+			g:Play()
+		end
 	end
 	if seat.crowned then
-		r.owner = seat
-		Crown(r)
+		if Has(r.running, seat) then
+			Running(r, seat, true)
+		end
 		if full then
-			Motions(r, seat)
+			r.rising = seat
 			seat.home:Stop()
-			seat.ghost:SetAlpha(0)
 			seat.rise:Stop()
 			seat.rise:Play()
 		end
+		Crown(r)
 	end
 end
 
-function Rail.Fold(r, seat)
-	if r.owner == seat and Effects.Allows("ambient") and not ns.Slab.Resting() and seat.home then
-		seat.home:Stop()
-		seat.home:Play()
-	end
+local function Low()
+	local Layout = K.Layout
+	return Layout ~= nil and type(Layout.Live) == "function" and (Layout.Live(CASTS[1]) or Layout.Live(CASTS[2])) or false
+end
+Rail.Low = Low
+
+function Rail.Build(parent, spec, level)
+	local r = Medals.Piece(parent, level, 2 * (SPAN + SEAT))
+	r.rail, r.order, r.made, r.majors, r.running = true, {}, {}, {}, {}
+	r.crown = Medals.Piece(r, level + 12, CROWN)
+	r.add(r.crown)
+	r.spec = spec
+	r:SetScript("OnHide", function()
+		Settle(r, true)
+	end)
+	K.Callbacks.Register("LayoutChanged", OWNER, function(_, key)
+		if (key == CASTS[1] or key == CASTS[2]) and r.anchor and r.low ~= Low() and not Medals.Locked() then
+			Rail.Place(r, r.anchor)
+		end
+	end)
+	return r
 end
 
 function Rail.Place(r, anchor)
+	r.anchor = anchor
 	Medals.Place(r, anchor, 0, 0)
 	if Medals.Locked() then
 		return
 	end
-	local seats = Rail.Seats()
-	r.order = {}
+	local seats, low = Rail.picked, Low()
+	r.order, r.low = {}, low
 	for _, seat in pairs(r.made) do
 		seat:Hide()
 	end
-	Medals.Place(r.crown, r, 0, CROWN_Y)
+	Medals.Place(r.crown, r, low and -#seats / 2 * PITCH - LOW_CROWN or 0, low and LOW_Y or CROWN_Y)
 	for i, at in ipairs(seats) do
 		local seat = r.made[at.key]
 		if not seat then
 			seat = Seat(r, at)
 			r.made[at.key] = seat
-			if seat.ability and seat.ability.unit then
+			if seat.ability.unit then
 				Major(r, seat, seat.ability)
 			end
 		end
-		seat.spell, seat.slot = at.spell, at.slot
-		local x = (i - (#seats + 1) / 2) * PITCH
-		Medals.Place(seat, r, x, PEAK - BOW * (x / SPAN) ^ 2)
+		seat.spell, seat.slot, seat.press = at.spell, at.slot, at.press
+		local x = low and (i - #seats / 2) * PITCH or (i - (#seats + 1) / 2) * PITCH
+		Medals.Place(seat, r, x, low and LOW_Y or PEAK - BOW * (x / SPAN) ^ 2)
 		seat:Show()
 		r.order[i] = seat
-	end
-	for _, seat in pairs(r.made) do
-		seat.aim = nil
+		if seat.crowned then
+			Aim(r, seat)
+		end
 	end
 	r.crown.sized = nil
 	Medals.Size(r.crown)
 	Rail.Paint(r)
+end
+
+local function Pressed(seat, spell)
+	if seat.press == spell then
+		return true
+	end
+	for _, id in ipairs(seat.ability.spells or NONE) do
+		if id == spell then
+			return true
+		end
+	end
+	return false
 end
 
 function Rail.Paint(r, event, _, _, spell)
@@ -372,16 +582,22 @@ function Rail.Paint(r, event, _, _, spell)
 			return
 		end
 		for _, seat in ipairs(r.order) do
-			for _, id in ipairs(seat.ability and seat.ability.spells or {}) do
-				if id == spell then
-					return Press(r, seat)
-				end
+			if Pressed(seat, spell) then
+				return Press(r, seat)
 			end
 		end
-		return
+	elseif event == "SPELL_UPDATE_COOLDOWN" or event == "BAG_UPDATE_COOLDOWN" then
+		local item = event == "BAG_UPDATE_COOLDOWN"
+		for _, seat in ipairs(r.order) do
+			if (seat.slot ~= nil) == item then
+				Cool(seat, true)
+			end
+		end
+	elseif event == nil then
+		Settle(r)
+		for _, seat in ipairs(r.order) do
+			Cool(seat)
+		end
+		Crown(r)
 	end
-	for _, seat in ipairs(r.order) do
-		Cool(seat)
-	end
-	Crown(r)
 end

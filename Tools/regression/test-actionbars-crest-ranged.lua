@@ -35,7 +35,7 @@ do
 	assert(aspect.lits[7]:IsShown() and not aspect.lits[1]:IsShown() and Tint(aspect.lits[7].art, K, "magic", 0.1), "Aspect of the Viper lights its coil mana blue")
 	assert(Shown(aspect.lits[7], aspect.lits[7].loop), "at Full the glyph breathes as the engine's shown animation")
 	Slots.Set(env, "target", { { id = 1130, icon = 132212, harmful = true, start = 0, duration = 120 }, { id = 24131, icon = 135125, harmful = true, mine = true, start = 2, duration = 12 } })
-	assert(mark.lit:IsShown() and Shown(mark.lit, mark.lit.loops[2]) and Shown(mark.lit, mark.lit.loops[1]), "the Mark's reticle closes in over the emblem and gleams")
+	assert(mark.lit:IsShown() and Shown(mark.lit, mark.lit.loops[2]) and Shown(mark.lit, mark.lit.loops[1]), "the Mark's reticle closes in on the left band and gleams")
 	assert(sting.lits[4]:IsShown() and sting.lits[4]._durationBar[1] == sting.lits[4].art, "any of your Stings, Wyvern Sting's poison too, burns its own mark down with its time")
 	local _, fill, at = sting.lits[4].head:GetPoint()
 	assert(fill == sting.lits[4].art:GetStatusBarTexture() and at == "TOP" and sting.lits[4].mark:GetTexture():find("Wyvern"), "the fuse's head, Wyvern Sting's own mark in a flame, rides the top of what is left")
@@ -322,10 +322,11 @@ do
 	Clean(env, K)
 end
 
-for class, keys in pairs({ HUNTER = { "crestShot", "crestAspect", "crestPet", "crestMark", "crestSting", "crestAutoShot", "crestGust", "crestCooldowns" },
+for class, keys in pairs({ HUNTER = { "crestShot", "crestAspect", "crestPet", "crestMark", "crestSting", "crestAutoShot", "crestGust", "crestCooldowns", "crestRail" },
 	MAGE = { "crestArmor", "crestManaGem", "crestCounterspell", "crestSchool", "crestFrozen", "crestYourSpell", "crestWard", "crestClearcasting", "crestCooldowns" },
 	WARLOCK = { "crestTorments", "crestWisps", "crestDemon", "crestHealthstone", "crestStone", "crestConflagrate", "crestCurse", "crestSpellLock", "crestTrance", "crestCooldowns" } }) do
-	local env, K, ns = New(class, { bags = { [6265] = 2, [5512] = 1, [5514] = 1 }, pet = { max = 100, missing = 0 } })
+	local deterrence = class == "HUNTER" and { 13165, 883, 1130, 1978, 19552, 3045, 19574, 75, 2643, 19263 } or nil
+	local env, K, ns = New(class, { known = deterrence, tree = deterrence and 1, bags = { [6265] = 2, [5512] = 1, [5514] = 1 }, pet = { max = 100, missing = 0 } })
 	for _, key in ipairs(keys) do
 		K.Options.Write("ActionBars", key, false)
 		assert(not Seated(ns, key), class .. ": " .. key .. " off hides its seat")
