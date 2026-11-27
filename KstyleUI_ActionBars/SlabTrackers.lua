@@ -97,7 +97,7 @@ function Trackers.Register(class, rows, hooks)
 		cooldowns = row.seat == "cooldowns" and row or cooldowns
 	end
 	HOOKS[class] = hooks or HOOKS[class]
-	local at = hooks and hooks.armory and ARMORY_TRINKET or TRINKET
+	local at = hooks and (hooks.armory or hooks.lowTrinkets) and ARMORY_TRINKET or TRINKET
 	for slot = 13, cooldowns and 14 or 0 do
 		table.insert(CLASSES[class], { key = "crestTrinkets", seat = { slot == 13 and -at[1] or at[1], at[2] }, slot = slot, feed = "item", known = Trinket, color = cooldowns.color,
 			build = hooks and (hooks.figures or hooks.armory) and Medals.Socket or nil })
@@ -252,6 +252,15 @@ local function Shape(name, seat)
 end
 
 local function Lay(form, name, seat, shown, order, specs)
+	order, form.claims, form.refused = ns.SlabSeats.Claim(order, specs, name == "crest")
+	for _, line in ipairs(form.refused) do
+		K.DevTest.Log("ActionBars", line)
+	end
+	local kept = {}
+	for _, key in ipairs(order) do
+		kept[key] = shown[key]
+	end
+	shown = kept
 	for key, piece in pairs(form.pieces) do
 		piece:SetShown(shown[key] ~= nil)
 		for _, twin in ipairs(piece.twins or {}) do

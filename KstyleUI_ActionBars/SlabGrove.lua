@@ -146,4 +146,4 @@ ns.SlabTrackers.Register("DRUID", {
 		{ families = { { spells = { 29166 }, sigil = "Innervate", major = true }, { spells = { 17116 }, sigil = "Swift", major = true }, BARKSKIN, DASH,
 				{ spells = { 16689, 16810, 16811, 16812, 16813, 17329 }, sigil = "Roots" } } },
 	} },
-}, { figures = true, burst = "medBurstDruid", fiveSecondForms = Join(CASTER, MOONKIN), events = { "CURRENT_SPELL_CAST_CHANGED" }, update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" }, paint = Queued, motion = Unfurl })
+}, { figures = true, lowTrinkets = true, burst = "medBurstDruid", fiveSecondForms = Join(CASTER, MOONKIN), events = { "CURRENT_SPELL_CAST_CHANGED" }, update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" }, paint = Queued, motion = Unfurl })

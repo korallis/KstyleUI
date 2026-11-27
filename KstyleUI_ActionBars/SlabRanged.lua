@@ -992,14 +992,14 @@ if CLASS == "HUNTER" then
 		{ key = "crestAspect", seat = PERCH_LEFT, size = PERCH, build = Effect, choices = {
 			{ feed = "aura", look = "glyph", glyph = "glyphHawk", spells = Trackers.Joined(ASPECTS[1].spells, ASPECTS[2].spells, ASPECTS[3].spells, ASPECTS[4].spells,
 				ASPECTS[5].spells, ASPECTS[6].spells, ASPECTS[7].spells), feeds = ASPECTS },
-			{ build = Flash, seat = EMBLEM, size = FLASH, feed = "cooldown", look = "orb", glyph = "glyphRaptor", color = "gilt",
+			{ build = Flash, seat = EMBLEM, overlay = true, size = FLASH, feed = "cooldown", look = "orb", glyph = "glyphRaptor", color = "gilt",
 				known = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 } },
 		} },
 		{ key = "crestPet", seat = At(BAND.pet), choices = {
 			{ build = Pet, band = "pet", light = "giltLit", known = { 883 }, mood = true, mend = { 136, 3111, 3661, 3662, 13542, 13543, 13544 } },
-			{ build = Flash, seat = EMBLEM, size = FLASH, feed = "cooldown", look = "orb", color = "schoolArcane", known = { 14287, 14286, 14285, 14284, 14283, 14282, 14281, 3044 } },
+			{ build = Flash, seat = EMBLEM, overlay = true, size = FLASH, feed = "cooldown", look = "orb", color = "schoolArcane", known = { 14287, 14286, 14285, 14284, 14283, 14282, 14281, 3044 } },
 		} },
-		{ key = "crestMark", seat = EMBLEM, build = Mark, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile",
+		{ key = "crestMark", seat = EMBLEM, overlay = true, build = Mark, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile",
 			spells = { 1130, 14323, 14324, 14325 } },
 		{ key = "crestSting", seat = At(BAND.right), build = Fuse, glyph = "glyphSerpent", feed = "aura", unit = "target",
 			filter = "HARMFUL|PLAYER", color = "schoolNature", known = { 1978, 3034, 3043, 24118, 3674 }, feeds = STINGS },

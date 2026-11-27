@@ -17,7 +17,7 @@ local FORGED, HALO, HALO_LIT, SHEEN, SHEEN_SMALL = 24, 1.7, 0.7, 0.15, 0.6
 local FLASH, BREATH, FADE_IN = { { 0, 0.25, 0.05 }, { 0.25, 0, 0.4 } }, { { 0.75, 1, 0.8 }, { 1, 0.75, 0.8 } }, { { 0, 1, 0.12 } }
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
-	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
+	footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
 }
 local PIP, PIP_ARC, GLOW, SPARK_LAP = 4, 22, 0.35, 1.6
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }

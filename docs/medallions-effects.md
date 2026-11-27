@@ -139,7 +139,7 @@ Tested by `test-actionbars-medallions-glyphs`; rendered with `RENDER_FX=tide` (`
 | `Round(frame)`, `Texture(parent, layer, sublevel, token, color, units, blend)`, `Layer(holder, level)`, `Even(region)`, `Steps(target, steps, looping)`, `Cloud(parent, token, cell)`, `Flip(texture, token, stretch)` | The parts the hawk perches and storm orbs were built from |
 | `Mark(piece, parent, art, size, color, r, g, b, level)` | One crest mark: a flat texture is drawn additive in `color` (or `r, g, b`), as before. A texture flagged `forged` in `Core/Tokens.lua` (the fourth value of `Tokens.Texture`; a Blender render in neutral metal) is drawn solid under a thin additive sheen: at 24 units and over, gold (`coinGold`) on a soft shadow with a halo 1.7 times its size in the spell's colour behind it; under 24 units, solid in the colour the caller passes, where a tint reads better than a halo: the spell's colour for a Sting in the Frames row, white for a forged cooldown sigil so it reads on its medal's dark face. `level` puts a forged mark on a layer of its own so one bloom scales every part. Returns the additive texture and the region to animate |
 | `Dress(m, cover)` | The Ghost Wolf and Call medals' dressing: shade, round masked `m.icon`, enamel and ring (on `cover` when given) |
-| `Seat(name)` | `x, y` of a named seat: `leftArm` and `rightArm` (61 out on the ring's arms, level with the centre: the melee effects' shoulders), `left` and `right` (the shoulders, 75.9 at 24.8 degrees: the study's 65 px out and 30 up at 1080), `top` (96 above, the reliquary), `topGem` (60 above, on the band; not with jewels), `lowerLeft` and `lowerRight` (the band 125 degrees from the top; a hip on the same side overlaps), `leftHip` and `rightHip` (76 at 218 and 322 degrees), `footLeft` and `footRight` (67.5 at 247 and 293 degrees, on the band beside the level plaque; `Medals.FOOT` = 15 is their size, and a medal smaller than `Medals.SIZE` draws its timer ring 2 units out, so a timed foot clears the cooldown band and stays inside the rim). Seat medals draw above the rings |
+| `Seat(name)` | `x, y` of a named seat: `left` and `right` (the shoulders, 75.9 at 24.8 degrees: the study's 65 px out and 30 up at 1080), `top` (96 above, the reliquary), `topGem` (60 above, on the band; not with jewels), `lowerLeft` and `lowerRight` (the band 125 degrees from the top; a hip on the same side overlaps), `footLeft` and `footRight` (67.5 at 247 and 293 degrees, on the band beside the level plaque; `Medals.FOOT` = 15 is their size, and a medal smaller than `Medals.SIZE` draws its timer ring 2 units out, so a timed foot clears the cooldown band and stays inside the rim). Seat medals draw above the rings |
 | `Feed(parent, spec, level, share)` | The lit layer (with `share`, another slot of that lit layer's container): an aura slot (`spec.feed = "aura"`, `unit`, `filter`, `spells`; `target`, `focus` and `pet` slots refresh themselves on `PLAYER_TARGET_CHANGED`, `PLAYER_FOCUS_CHANGED` and `UNIT_PET`) or a weapon enchant (`"enchant"`, `slot` = `MainHand` or `OffHand`) in its own container, else a plain frame (`"cooldown"`, `"usable"`) |
 | `Pips(m, lit, each, size, level)` | `each.pips` small pips round a piece, one aura slot and application bar each, lit from the first stack up |
 | `Medal(parent, spec, level)` | A round medal (`spec.size`, default 26) whose steel icon is `spec.texture`; an aura lights it with its own icon, an enchant or cooldown with `spec.texture`; `spec.color` adds a timer ring the engine drains; `"cooldown"` (`spec.spell`) sweeps a dark swipe and flares when ready; `"usable"` (`spec.candidates`, in priority order) lights the first usable spell not on a real cooldown; `spec.newest` shows the most recent matching aura rather than the first; `spec.count` writes the aura's stacks in the corner (`SetApplicationCount`); `spec.pips = n` adds `n` small pips under the medal, one aura slot and application bar each; `"item"` (`spec.items`, in priority order) shows the first item in the bags, greyed under a draining `spec.color` ring (default gilt) while it cools, and an empty setting with no steel icon when the bags hold none (`C_Item.GetItemCount`, `GetItemCooldown`, never secret); with `spec.slot` it shows the item equipped in that inventory slot instead, its cooldown from `GetInventoryItemCooldown` (`Camelot/PaperDollFrame.lua:2196`), ignoring the global cooldown (its fourth return, `CooldownViewer.lua:1017`), a disabled cooldown and secret values; `spec.feeds = { {...}, {...} }` builds one aura layer per entry, each with its own icon and ring, under one shade, steel and cover |
@@ -159,6 +159,26 @@ Tested by `test-actionbars-medallions-glyphs`; rendered with `RENDER_FX=tide` (`
 | `Rest()`, `OnRest(fn)` | `Slab.Resting()` is true while Calm crest at rest settles the hub; when it changes (and on a motion change) `Rest()` holds every rim's fire still or lets it burn and calls each `OnRest` function with `still` |
 | `Still(piece, still)` | Holds one rim's fire still or lets it burn |
 
+## Seats
+
+`SlabSeats.lua` is the crest's seat registry: every point a piece sits on has one name, and a seat holds one owner at a time. `Seats.Name(seat)` turns a tracker's `seat` into a name: a `Medals.Seat` name stays itself, and an `{ x, y }` seat takes the named seat within 12 hub units of it, so the warrior's groove and the warlock's socket on the lower left are the same seat. `Seats.Claim(order, specs, crest)` walks the shown pieces in row order before the trackers lay them out: the first piece on a seat holds it, and a later one is left off the crest with a developer log line naming the seat and its holder. Ring layers (`"rim"`, `"cooldowns"`, `"plaque"`), pieces with their own `place` and pieces marked `overlay` claim nothing: an overlay draws over its seat's owner, such as the hunter's Mark reticle and the low-level strike flashes over the emblem the Shot holds. The Frames row claims no seats. `test-actionbars-crest-seats.lua` boots every class in every form with every spell known and checks that no piece is left off and every point seat has a name.
+
+| Seat | Hub units | Owners |
+| --- | --- | --- |
+| `emblem` | 0, 0 | Hunter Shot, the warrior's and paladin's wards, the shaman's Shock |
+| `upper` | 0, 80 | Paladin Seal, a bear's seed |
+| `top`, `topGem` | 0, 96 and 0, 60 | The reliquary and a druid's third seed; the top gem (threat, Shadow Word: Pain, Swiftmend) |
+| `left`, `right` | ∓68.9, 31.8 | Priest Penance and Shadowfiend, druid seeds |
+| `armLeft`, `armRight` | ∓48, 6 | Melee shoulders, Judgement and Judged, Rupture, a cat's seeds, and the hunter's, mage's, warlock's, priest's and shaman's trinkets |
+| `bandLeft`, `bandRight` | ∓64, 0 | Mage school and your spell, the warlock's demon and curse, the hunter's Sting |
+| `armor`, `lowerBand` | -37, 51 and 0, -39 | Mage armor and Frost Nova's frost |
+| `pet` | 42, -46 | The hunter's pet light |
+| `trinketLeft`, `trinketRight` | ∓33, -24 | Warrior, paladin, rogue and druid trinkets |
+| `lowerLeft`, `lowerRight` | ∓50.8, -35.6 | Grooves, sockets, imbue stones and poisons on the lower band |
+| `perchLeft`, `perchRight` | -48.8, -54.2 and 49.5, -55 | The Aspect and interrupts; the mana gem, Healthstone and Arcane Intellect |
+| `footLeft`, `footRight` | ∓26.4, -62.1 | Foot grooves and medals beside the level plaque |
+| `rail` | none | Claimed by name for the hunter's rail of medals above the crest |
+
 ## Crest trackers
 
 `KstyleUI_ActionBars/SlabTrackers.lua` (`ns.SlabTrackers`) is the one tracker lifecycle for every class. A class file loaded after it registers its rows:
@@ -173,7 +193,8 @@ Each row is one seat, built only while its switch (`key`, a saved ActionBars set
 | --- | --- |
 | `key` | The Options switch; several rows may share one |
 | `figure`, `steady`, `charges`, `bloom`, `alpha` | For `build = Medals.Figure`: the figure's token, a permanent aura shown full, an application count that burns it down, the bloom's colour and a dimmed figure; `bloom` on a `seat = "cooldowns"` row gives its sigils the bloom and flash |
-| `seat` | A `Medals.Seat` name, `"rim"` (a `Rim`), `"cooldowns"` (a `CooldownRim`) or `{ x, y }` in hub units |
+| `seat` | A `Medals.Seat` name, `"rim"` (a `Rim`), `"cooldowns"` (a `CooldownRim`) or `{ x, y }` in hub units; a point seat claims its named seat (see [Seats](#seats)) |
+| `overlay` | `true` for a piece drawn over its seat's owner; it claims no seat |
 | `feed`, `unit`, `filter`, `spells`, `slot`, `color`, `ambient`, `size`, `texture` | Passed to the default builder: `Medal`, or on the crest `Rim`, `CooldownRim` or, for `feed = "enchant"`, `Socket` |
 | `look` | A [crest effect](#melee-crest-effects) (`SlabArmory.Build`) instead of `Medal`, wherever `Rim`, `CooldownRim`, `Socket` or `Threat` does not take the seat (so a rim's look is its Frames object) |
 | `ring`, `ringSize` | For a `rim` seat: its timer's swipe art (a path) and size, instead of `ringLine16` at 112 |

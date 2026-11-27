@@ -14,6 +14,7 @@
 	<Script file="TravelData.lua"/>
 	<Script file="Travel.lua"/>
 	<Script file="SlabMedals.lua"/>
+	<Script file="SlabSeats.lua"/>
 	<Script file="SlabUnleashed.lua"/>
 	<Script file="SlabHeat.lua"/>
 	<Script file="SlabArmory.lua"/>
