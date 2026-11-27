@@ -174,7 +174,7 @@ do
 	local alpha, w = Png.Alpha(Art(mark.lit.art):gsub("\\", "/"):match("Media/.+$"))
 	assert(alpha(w / 2, w / 2) > 128, "the reticle has an eye at its centre")
 	env.FireEvent("UNIT_PET", "player")
-	assert(pet.pet:IsShown() and Tint(pet.mood, K, "friendly"), "a happy pet's ember glows green at the end of its light")
+	assert(pet.pet:IsShown() and not pet.feed, "a happy pet's light shows no mark at its end")
 	local mend = pet.lits[#pet.lits]
 	assert(mend.loops[1]:GetParent():GetAlpha() > 0, "Mend Pet's motes show with no animation running")
 	for _, each in ipairs(aspect.lits) do

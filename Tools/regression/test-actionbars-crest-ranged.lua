@@ -1,4 +1,4 @@
--- test-actionbars-crest-ranged.lua: a hunter's, mage's and warlock's crest trackers (KstyleUI_ActionBars/SlabRanged.lua) through the one tracker lifecycle: no other class registers them; every seat has a choice for each build, pet state and level band (Raptor Strike and Arcane Shot before the Aspect and the pet, a melee hunter's strike for the Mark, Arcane Intellect before the mana gem, the mage's school debuff by talent, armor for a warlock with no demon); aura pieces light through Blizzard's aura slots and Lua reads no aura; the pet's light along the band is its health as a bar fed the engine's values with a happiness ember, which goes with the pet, and Mend Pet's motes; the fuse's head rides its fill and the Mark's reticle closes in; the gem and Healthstone are lit, cooling or empty from bag counts and item cooldowns; each spire stands alone once known and drains through duration bars; the soul wisps count Soul Shards up to five with a faint rim at five or more, fly in, burst and circle only at Full off rest, the first one too, and replace the shard jewels; Rapid Fire alone gusts; only your own school debuff lights its embers; cooldown rims stack the class's cooldowns, a pet's Bestial Wrath among them; moments hand the engine their flares and fires only at Full; secret auras build nothing until combat ends; each switch hides its seat alone; Frames stands the seats in the row; a mana update asks the bags nothing and every shot reuses one duration object; nothing loads for any other class; nothing runs OnUpdate; every crest part is an even number of pixels at four screen sizes and the spires stay under the cooldown row.
+-- test-actionbars-crest-ranged.lua: a hunter's, mage's and warlock's crest trackers (KstyleUI_ActionBars/SlabRanged.lua) through the one tracker lifecycle: no other class registers them; every seat has a choice for each build, pet state and level band (Raptor Strike and Arcane Shot before the Aspect and the pet, a melee hunter's strike for the Mark, Arcane Intellect before the mana gem, the mage's school debuff by talent, armor for a warlock with no demon); aura pieces light through Blizzard's aura slots and Lua reads no aura; the pet's light along the band is its health as a bar fed the engine's values, with a forged haunch only below Happy (amber light and halo at Content, red at Unhappy, gilt and no haunch at Happy, none for a secret value), moved by UNIT_HAPPINESS alone, landing, breathing, blinking for 3 s and fading green by the motion level, gone with the pet, and Mend Pet's motes; the fuse's head rides its fill and the Mark's reticle closes in; the gem and Healthstone are lit, cooling or empty from bag counts and item cooldowns; each spire stands alone once known and drains through duration bars; the soul wisps count Soul Shards up to five with a faint rim at five or more, fly in, burst and circle only at Full off rest, the first one too, and replace the shard jewels; Rapid Fire alone gusts; only your own school debuff lights its embers; cooldown rims stack the class's cooldowns, a pet's Bestial Wrath among them; moments hand the engine their flares and fires only at Full; secret auras build nothing until combat ends; each switch hides its seat alone; Frames stands the seats in the row; a mana update asks the bags nothing and every shot reuses one duration object; nothing loads for any other class; nothing runs OnUpdate; every crest part is an even number of pixels at four screen sizes and the spires stay under the cooldown row.
 local R = dofile("Tools/regression/ranged_env.lua")
 local AB, Slots, SIZES, New, Piece, Seated, Shown, Updating, Clean, Tint, Learn = R.AB, R.Slots, R.SIZES, R.New, R.Piece, R.Seated, R.Shown, R.Updating, R.Clean, R.Tint, R.Learn
 
@@ -41,9 +41,9 @@ do
 	assert(fill == sting.lits[4].art:GetStatusBarTexture() and at == "TOP" and sting.lits[4].mark:GetTexture():find("Wyvern"), "the fuse's head, Wyvern Sting's own mark in a flame, rides the top of what is left")
 	Slots.Set(env, "target", { { id = 1978, icon = 132204, harmful = true, mine = false, start = 0, duration = 15 } })
 	assert(not sting.lits[1]:IsShown() and not mark.lit:IsShown(), "another hunter's Sting leaves your fuse dark")
-	assert(not pet.pet:IsShown() and not pet.mood:IsShown(), "no pet: only the dark groove on the band, no happiness ember")
+	assert(not pet.pet:IsShown() and not pet.feed, "no pet: only the dark groove on the band, and no haunch is made")
 	assert(not (ns.SlabTrackers.CLASSES.MAGE or ns.SlabTrackers.CLASSES.WARLOCK), "a hunter loads only the hunter's rows")
-	env._pet = { max = 1800, missing = 600, mood = 2 }
+	env._pet = { max = 1800, missing = 600, mood = 3 }
 	env.FireEvent("UNIT_PET", "player")
 	assert(pet.pet:IsShown() and pet.health:GetOrientation() == "HORIZONTAL" and pet.health:GetReverseFill(), "a pet lights its band from the right")
 	local writes = #AB.W.Calls(pet.health, "SetValue")
@@ -52,17 +52,48 @@ do
 	env.FireEvent("UNIT_HEALTH", "pet")
 	local _, high = pet.health:GetMinMaxValues()
 	assert(env.issecretvalue(high) and env.Reveal(high) == 1800 and env.Reveal(pet.health:GetValue()) == 1200, "the light is the engine's health over its maximum, never compared")
-	local r, g, b = K.Tokens.Color("neutral")
-	local mr, mg, mb = pet.mood:GetVertexColor()
-	assert(pet.mood:IsShown() and math.abs(mr - r) + math.abs(mg - g) + math.abs(mb - b) < 1e-3, "a content pet's ember glows amber")
+	-- the pet mood plan's part 1 (docs/medallions-effects.md, Pet mood haunch): a haunch on the hunter crest below Happy, amber at Content, red at Unhappy, gone at Happy
+	local function Light(token)
+		local r, g, b = K.Tokens.Color(token)
+		local lr, lg, lb = pet.health:GetStatusBarColor()
+		return math.abs(lr - (0.3 + 0.7 * r)) + math.abs(lg - (0.3 + 0.7 * g)) + math.abs(lb - (0.3 + 0.7 * b)) < 1e-3
+	end
+	assert(not pet.feed and Light("giltLit"), "a happy pet: no haunch is made and its light stays gilt")
+	env._pet.mood = 2
+	env.FireEvent("UNIT_HAPPINESS", "pet")
+	local feed = pet.feed
+	assert(feed and feed.seat:IsShown() and feed.gold and Tint(feed.tint, K, "neutral") and Light("neutral"), "Content: the haunch lands, its halo and the pet's light amber")
+	local body = feed.seat._regions[2]
+	assert(body:GetTexture():find("Haunch", 1, true) and Tint(body, K, "coinGold"), "the haunch's body is the forged gold Haunch")
+	local sheen = table.concat({ feed.sheen:GetVertexColor() }, ",")
+	assert(feed.land:IsPlaying() and not feed.breath:IsPlaying() and not feed.blink:IsPlaying(), "at Full the drop lands with one flare; the crest at rest holds Content's halo still")
+	env.SetTarget(true)
+	assert(feed.breath:IsPlaying(), "awake, Content's halo breathes")
+	env._pet.mood = 1
+	env.FireEvent("UNIT_HAPPINESS", "pet")
+	assert(feed.seat:IsShown() and Tint(feed.tint, K, "hostile") and Light("hostile"), "Unhappy: the haunch and the pet's light turn red")
+	assert(Tint(body, K, "coinGold") and table.concat({ feed.sheen:GetVertexColor() }, ",") == sheen, "the mood colours only the halo: the haunch itself stays gold")
+	assert(feed.blink:IsPlaying() and not feed.breath:IsPlaying(), "reaching Unhappy blinks the halo and stops the breath")
+	local steps = 0
+	for _, a in ipairs(feed.blink._anims) do steps = steps + a._state.Duration[1] end
+	assert(feed.blink:GetLooping() ~= "REPEAT" and math.abs(steps - 3) < 1e-6, "the blink runs at the crest's warning rate for 3 s and ends, held, rather than loop")
+	env._pet.mood = 3
+	env.FireEvent("UNIT_HAPPINESS", "pet")
+	assert(Tint(feed.tint, K, "friendly") and feed.flash:IsPlaying() and feed.leave:IsPlaying() and Light("giltLit"), "fed to Happy: the halo flashes green and the haunch fades as the light turns gilt")
+	feed.leave:GetScript("OnFinished")(feed.leave)
+	assert(not feed.seat:IsShown(), "the faded haunch is gone")
+	env._pet.mood = 2
+	env.FireEvent("UNIT_HAPPINESS", "pet")
+	assert(feed.seat:IsShown() and pet.feed == feed, "a second drop shows the same haunch again")
 	env._pet = nil
 	env.FireEvent("UNIT_PET", "player")
-	assert(not pet.mood:IsShown(), "a dismissed pet takes its happiness ember with it")
+	assert(not pet.pet:IsVisible() and not feed.seat:IsVisible(), "a dismissed pet takes its haunch with it")
 	env._pet = { max = 1800, missing = 600, mood = 2 }
 	env.FireEvent("UNIT_PET", "player")
-	env._pet.mood = env.Secret(3)
+	assert(feed.seat:IsVisible() and not feed.land:IsPlaying(), "a pet called back at Content shows the haunch with no landing")
+	env._pet.mood = env.Secret(1)
 	env.FireEvent("UNIT_HAPPINESS", "pet")
-	assert(not pet.mood:IsShown(), "a secret happiness hides the ember rather than guess")
+	assert(not feed.seat:IsShown() and Light("giltLit"), "a secret happiness hides the haunch rather than guess")
 	env._pet.dead = true
 	env.FireEvent("UNIT_HEALTH", "pet")
 	assert(not pet.pet:IsShown(), "a dead pet puts its light out")
@@ -327,7 +358,7 @@ for _, size in ipairs(SIZES) do
 	local at = size[1] .. "x" .. size[2] .. ": "
 	for _, class in ipairs({ "HUNTER", "MAGE", "WARLOCK" }) do
 		local env, K, ns = New(class, { size = size, known = class == "WARLOCK" and { 172, 980, 348, 18265, 688, 6201, 1120, 18094, 706, 702, 17962, 2362, 6789 } or nil,
-			bags = { [6265] = 2, [5512] = 1, [5514] = 1 }, pet = { max = 100, missing = 0 } })
+			bags = { [6265] = 2, [5512] = 1, [5514] = 1 }, pet = { max = 100, missing = 0, mood = 1 } })
 		local k = size[2] / 768
 		local function Even(region)
 			local s = region:GetEffectiveScale() * k

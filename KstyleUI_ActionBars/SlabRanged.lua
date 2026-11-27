@@ -1,4 +1,4 @@
--- SlabRanged.lua: a hunter's, mage's and warlock's crest trackers, registered as rows with the one tracker lifecycle (SlabTrackers.lua; docs/medallions-effects.md#ranged-crest-trackers lists every seat): each seat's choices cover every build, pet state and level band, and each breaks out of the medal into the crest in additive light (a hunter's forged marks solid under a sheen, Medals.Mark), never a spell or item icon and never a socket: your damage over time a fuse burning down the right band with its own mark at its head, the pet's or demon's health light along the band, an Aspect, armor or demon sigil perched on the ring, a mage's armor as crystals that thaw along the upper left band and Frost Nova's frost over the inner ring, Hunter's Mark and the ready shots over the emblem, a bag gem hanging from the lower right, an interrupt's blade through the lower left, a school's stacks as embers and a cooldown as an arc filling on the left band, the warlock's spires with their glyphs at their feet and its soul wisps, the Auto Shot ring and the class moments (Quick Shots, Clearcasting, Shadow Trance); the same effects free-standing in a row under Frames (Effect and its LOOKS, Well and Trinket); Blizzard's aura slots light every aura piece and blink it in its pandemic window, so Lua never reads or compares a secret.
+-- SlabRanged.lua: a hunter's, mage's and warlock's crest trackers, registered as rows with the one tracker lifecycle (SlabTrackers.lua; docs/medallions-effects.md#ranged-crest-trackers lists every seat): each seat's choices cover every build, pet state and level band, and each breaks out of the medal into the crest in additive light (a hunter's forged marks solid under a sheen, Medals.Mark), never a spell or item icon and never a socket: your damage over time a fuse burning down the right band with its own mark at its head, the pet's or demon's health light along the band (a hunter's pet below Happy also lands a forged haunch on the lower right and tints its light amber or red), an Aspect, armor or demon sigil perched on the ring, a mage's armor as crystals that thaw along the upper left band and Frost Nova's frost over the inner ring, Hunter's Mark and the ready shots over the emblem, a bag gem hanging from the lower right, an interrupt's blade through the lower left, a school's stacks as embers and a cooldown as an arc filling on the left band, the warlock's spires with their glyphs at their feet and its soul wisps, the Auto Shot ring and the class moments (Quick Shots, Clearcasting, Shadow Trance); the same effects free-standing in a row under Frames (Effect and its LOOKS, Well and Trinket); Blizzard's aura slots light every aura piece and blink it in its pandemic window, so Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -18,7 +18,8 @@ end
 local SIZE, BASE, SPIRE, WISP, LIFT, BAR, NECK = 26, 17, 24, 16, 1, 3, 8
 local SOCKETS, ORBIT, PERIOD, STEPS, WISPS, HALO, INNER, LOW_AMMO, FAINT = 67, 46, 12, 24, 5, 1.6, 112, 200, 0.35
 local STEEL, LIGHT, GROOVE, PERCH, GEM, SHOT, FLASH, HEAD = 0.45, 0.8, 0.35, 28, 26, 80, 36, 1
-local MOODS, NONE = { "hostile", "neutral", "friendly" }, {}
+local MOODS, NONE = { "hostile", "neutral" }, {}
+local HAUNCH, HAUNCH_HALO, HAUNCH_BLINK, HAUNCH_HOLD, HAUNCH_FADE = 28, 1.65, 3, 0.15, 0.45
 local BREATH = { { 0.6, 1, 0.9 }, { 1, 0.6, 0.9 } }
 local GLEAM = { { 0.8, 1, 0.7 }, { 1, 0.8, 0.7 } }
 local MARK, MARK_IN, MARK_BACK, REST_FORGED, SHOT_FLAT, SHOT_FORGED = 24, 14, 2.6, 0.85, 0.82, 0.45
@@ -363,6 +364,39 @@ local function Shot(parent, spec, level, form)
 	return p
 end
 
+local function Haunch(m, level, k, x, y)
+	local size, first = HAUNCH * k, #m.parts + 1
+	local seat = m.add(Medals.Layer(m.pet, level), size)
+	seat:ClearAllPoints()
+	seat:SetPoint("CENTER", m, "CENTER", x, y)
+	seat:Hide()
+	local sheen, _, tint, gold = Medals.Mark(m, seat, "glyphHaunch", size, "neutral", Lift("coinGold", 0.2))
+	if gold then
+		tint.units = size * HAUNCH_HALO
+	end
+	local a, f = tint:GetAlpha(), Tokens.Flicker
+	local feed = { seat = seat, sheen = sheen, tint = tint, gold = gold }
+	feed.land = Medals.Steps(seat, { { 0, 1, HAUNCH_HOLD } })
+	ns.Slab.Grow(feed.land, 1.35, 1, 0.35)
+	feed.appear = Medals.Steps(seat, { { 0, 1, HAUNCH_HOLD } })
+	feed.leave = Medals.Steps(seat, { { 1, 1, HAUNCH_HOLD }, { 1, 0, HAUNCH_FADE } })
+	feed.leave:SetScript("OnFinished", function() seat:Hide() end)
+	feed.flash = Medals.Steps(tint, { { a, 1, HAUNCH_HOLD }, { 1, a, HAUNCH_FADE } })
+	feed.breath = Medals.Steps(tint, { { a, a * f.low, 0.9 }, { a * f.low, a, 0.9 } }, true)
+	local blinks = {}
+	for _ = 1, HAUNCH_BLINK / (2 * f.step) do
+		blinks[#blinks + 1] = { a, a * f.low, f.step }
+		blinks[#blinks + 1] = { a * f.low, a, f.step }
+	end
+	feed.blink = Medals.Steps(tint, blinks)
+	if m.sized then
+		for i = first, #m.parts do
+			Medals.Even(m.parts[i])
+		end
+	end
+	return feed
+end
+
 local function Pet(parent, spec, level, form)
 	local band = BAND[spec.band]
 	local m, k = Window(parent, level, band, form)
@@ -377,7 +411,7 @@ local function Pet(parent, spec, level, form)
 	m.health:SetReverseFill(true)
 	m.health:SetPoint("CENTER", m, "CENTER", 0, 0)
 	if spec.mood then
-		m.mood = Spot(m, m.pet, "glow", "friendly", 14 * k, Off(67, 335))
+		m.haunch = { level + 5, k, Off(80, 312) }
 	end
 	if spec.mend then
 		local mend = Medals.Feed(m.pet, { feed = "aura", unit = "pet", spells = spec.mend }, level + 2)
@@ -714,6 +748,72 @@ local function Sigil(m)
 	end
 end
 
+local function Breathe(m)
+	local f = m.feed
+	if not (m.moody == 2 and Effects.Allows("pulse") and not m.still) then
+		f.breath:Stop()
+	elseif not f.breath:IsPlaying() then
+		f.breath:Play()
+	end
+	if not Effects.Allows("pulse") then
+		f.blink:Stop()
+	end
+end
+
+local function Tint(f, color)
+	if f.gold then
+		f.tint:SetVertexColor(Tokens.Color(color))
+	else
+		local r, g, b = Lift(color, 0.2)
+		f.sheen:SetVertexColor(r, g, b)
+		f.tint:SetVertexColor(r, g, b)
+	end
+end
+
+local function Mood(m, mood, changed, happy)
+	local was = m.moody
+	m.moody = mood
+	m.health:SetStatusBarColor(Lift(mood and MOODS[mood] or m.spec.light, 0.3))
+	if mood == was then
+		return
+	end
+	m.feed = m.feed or mood and Haunch(m, unpack(m.haunch))
+	local f = m.feed
+	if not f then
+		return
+	end
+	local level = ns.Slab.Level()
+	local moving = changed and level ~= "off"
+	f.breath:Stop()
+	f.blink:Stop()
+	if mood then
+		Tint(f, MOODS[mood])
+		f.leave:Stop()
+		f.flash:Stop()
+		f.seat:Show()
+		if moving and (was == nil or mood < was) then
+			if level == "full" then
+				Medals.Arbitrate(f.land):Play()
+			else
+				f.appear:Play()
+			end
+			if mood == 1 and level == "full" then
+				f.blink:Play()
+			end
+		end
+	elseif was and moving and happy then
+		Tint(f, "friendly")
+		if level == "full" then
+			f.flash:Play()
+		end
+		f.leave:Play()
+	else
+		f.leave:Stop()
+		f.seat:Hide()
+	end
+	Breathe(m)
+end
+
 local function PaintPet(m, event)
 	local dead = UnitIsDead and UnitIsDead("pet")
 	local up = Out() and not (not IsSecret(dead) and dead == true)
@@ -734,14 +834,11 @@ local function PaintPet(m, event)
 	if m.glyph and up then
 		Sigil(m)
 	end
-	if m.mood then
+	if m.haunch then
 		local info = C_PetInfo
 		local mood = up and info and type(info.GetPetHappiness) == "function" and info.GetPetHappiness()
-		local color = not IsSecret(mood) and MOODS[mood] or nil
-		m.mood:SetShown(color ~= nil)
-		if color then
-			m.mood:SetVertexColor(Tokens.Color(color))
-		end
+		mood = not IsSecret(mood) and mood
+		Mood(m, MOODS[mood] and mood or nil, event == "UNIT_HAPPINESS", mood == 3)
 	end
 end
 
@@ -854,6 +951,11 @@ local function Motion(form, _, still)
 		elseif p.bob then
 			p.still = still
 			Bob(p)
+		elseif p.haunch then
+			p.still = still
+			if p.feed then
+				Breathe(p)
+			end
 		end
 	end
 end
@@ -907,7 +1009,7 @@ if CLASS == "HUNTER" then
 		{ key = "crestGust", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 6150, 1299448, 469144, 3045 }, known = { 3045, 19552, 19553, 19554, 19555, 19556 },
 			color = "jewelHawk", ambient = "medAmbientHunter", gust = true },
 	}, { burst = "medBurstHunter", events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" } },
-		paint = Paint, figures = true })
+		paint = Paint, motion = Motion, figures = true })
 end
 
 if CLASS == "MAGE" then

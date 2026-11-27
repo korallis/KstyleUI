@@ -11,7 +11,8 @@
 -- spell's window and the pet's health steps and leaving time play out on the clock. RENDER_TRACKERS_OFF=1 turns the class's
 -- tracker switches off first, for a pixel diff against a build without them. RENDER_TRACKERS_SWAP=from:to[,from:to] plays the
 -- story with other aura spell IDs, so one seat shows each of its choices: 13165:13163 perches Aspect of the Monkey for
--- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting.
+-- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
+-- Content, Happy) in place of the story's own, so the haunch shows or goes.
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
 local Ranged = {}
@@ -226,7 +227,8 @@ function Ranged.Install(env, class)
 			return 100 * (1 - missing)
 		end
 		env.UnitHealthMax = function(unit, ...) if unit == "pet" then return 100 end return most and most(unit, ...) end
-		env.C_PetInfo = { GetPetHappiness = function() return pet.mood end }
+		local mood = tonumber(os.getenv("RENDER_PET_MOOD") or "")
+		env.C_PetInfo = { GetPetHappiness = function() return mood or pet.mood end }
 	end
 end
 

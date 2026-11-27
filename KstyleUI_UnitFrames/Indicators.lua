@@ -605,12 +605,15 @@ local function ExtraAtlas(view, unit, sample)
 	local s = view.s
 	if view.kind == "pet" then
 		local info = C_PetInfo
-		if not s.happiness or not (sample or info and info.GetPetHappiness) then
+		if s.happiness == "off" or not (sample or info and info.GetPetHappiness) then
 			return nil
 		end
 		local hunter = HasPetUI and select(2, HasPetUI())
 		local mood = sample or not issecretvalue(hunter) and hunter and info.GetPetHappiness()
-		return not issecretvalue(mood) and MOOD[mood] or nil
+		if issecretvalue(mood) or mood == 3 and s.happiness ~= "always" then
+			return nil
+		end
+		return MOOD[mood]
 	end
 	if not s.elite or view.kind == "player" or not s.eliteInstances and InGroupInstance() then
 		return nil

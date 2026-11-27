@@ -232,7 +232,7 @@ local function PaintIndicators(view, s, sample)
 		icons.pvp:Show()
 	end
 	ns.Indicators.PvPTimer(view, badge and PREVIEW_PVP or false)
-	ns.Indicators.Extra(view, nil, view.kind == "pet" and 3 or sample.classification or "normal")
+	ns.Indicators.Extra(view, nil, view.kind == "pet" and (s.happiness == "always" and 3 or 2) or sample.classification or "normal")
 	ns.Frames.Edge(view, true)
 	if s.raidMarker and sample.marker then
 		view.marker:SetSpriteSheetCell(SKULL, 4, 4)

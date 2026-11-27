@@ -72,7 +72,7 @@ clean("marker")
 
 -- Happiness position: the resting slot by default, each other place on choice, back on reset.
 U.SetUnit(env, "pet", { name = "Wolf", level = 58, health = 1460, healthMax = 2000, power = 80, powerMax = 100, reaction = 5 })
-write("pet.happiness", true)
+write("pet.happiness", "always")
 local badge = assert(pet.extraIcon, "happiness on makes the badge")
 local function resting() return select(2, badge:GetPoint(1)) == pet.icons.resting end
 local spot, gap
@@ -106,7 +106,7 @@ if frames then
 else
 	assert(resting(), "Standard on a slab restores the resting slot")
 end
-write("pet.happiness", false)
+write("pet.happiness", "unhappy")
 clean("happiness")
 
 -- Pet cast bar: made on first use, under the frame, its width and height, its casts, and Blizzard's bar.
@@ -257,7 +257,7 @@ clean("simple")
 
 -- The preview shows each option.
 write("edit", "pet")
-write("pet.happiness", true)
+write("pet.happiness", "always")
 write("pet.happinessPosition", "RIGHT")
 write("pet.castbarWidth", 150)
 local pane = ns.Preview.Build(env.UIParent)
@@ -307,7 +307,7 @@ env.FireEvent("UNIT_SPELLCAST_STOP", "pet", "Cast-4", 17253)
 env.RunTimers()
 assert(not cb.bar.fillCursor:IsShown(), "and the idle track drops it again")
 write("pet.castbarHideIdle", true)
-write("pet.happiness", true)
+write("pet.happiness", "always")
 write("pet.happinessPosition", "LEFT")
 spot = W.LastCall(pet.extraIcon, "SetPoint")
 assert(spot[1] == "RIGHT" and spot[3] == "LEFT" and spot[4] <= medal.x - 1.5, "Left clears the medallion")
@@ -315,7 +315,7 @@ write("pet.happinessPosition", "TOPLEFT")
 spot = W.LastCall(pet.extraIcon, "SetPoint")
 assert(spot[1] == "BOTTOMLEFT" and spot[5] >= -medal.y + 1.5, "Above the left end clears the medallion's top")
 write("pet.happinessPosition", "")
-write("pet.happiness", false)
+write("pet.happiness", "unhappy")
 if frames then K.Options.Write("HudStyle", "style", "frames") end
 env.RunTimers()
 clean("medallions")
