@@ -562,7 +562,7 @@ Lee plays an undead (Forsaken) warlock, so that case is checked first: `hud_warl
 
 ## In-game checks
 
-The render harness cannot draw models or run the client, so sixteen things wait for Lee's single test. Each says what to look for and what happens when it fails; none of them can break the HUD, because every one already has its fallback in code.
+The render harness cannot draw models or run the client, so seventeen things wait for Lee's single test. Each says what to look for and what happens when it fails; none of them can break the HUD, because every one already has its fallback in code.
 
 1. **PNG filtering at 2:1.** Look at the hub's rune ring and a slot's ready flash at 1920x1080 and 5120x1440. Works: the 1 px edges stay crisp and the glow has no stair steps. Fails (soft or shimmering edges): the textures ship at the size they draw, and M3 redraws the affected ones procedurally (KSTY-87 5.3).
 2. **Model file IDs and their frame cost.** Turn Medallions motion to Full, level up or use a spell with a proc (`/run KstyleUI.Effects.Burst("hub", 2, KstyleUI.Effects.playerMedallion, "levelUp", 150, 1.2)` also works). Works: golden level-up rays at the hub and the class model behind the medallion, with `/run print(KstyleUI.Effects.LiveModels())` never above 3 and the frame rate steady. Fails (nothing shows, or a model is huge, tiny or off-centre): the 2D burst plays instead after 0.5 s; tell Capy which class, and the camera distance or the ID changes in one table.
