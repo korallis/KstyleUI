@@ -150,6 +150,7 @@ function Orb.Build(parent, spec, level)
 	p.add(Medals.Texture(p, "BORDER", 0, "orbVessel" .. race, "white", OPENING * VESSEL))
 	local lit = Medals.Lit(p, spec, level + 1)
 	p.bar = Band(p, lit, level + 1, units)
+	p.keeps = true
 	p.bar:SetValue(1)
 	local school = spec.school or Orb.School()
 	p.school = school
@@ -176,6 +177,10 @@ function Orb.Build(parent, spec, level)
 	p.timer = p.add(Medals.Timer(lit, level + 3, "orbRing", "white"), 8)
 	p.timer:SetDrawSwipe(false)
 	p.timer:SetScript("OnCooldownDone", function()
+		if not p.armed then
+			return
+		end
+		p.armed = nil
 		p.ready:Show()
 		p.spent:Hide()
 		Medals.Fire(p)

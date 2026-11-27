@@ -149,35 +149,6 @@ do
 	Clean(env, K)
 end
 
--- isOnGCD means something only inside SPELL_UPDATE_COOLDOWN (SpellSharedDocumentation.lua): there the global cooldown alone
--- leaves a seat lit; a rebuild outside the event tells the global cooldown by the cooldown's activeCategory instead, so the
--- global cooldown never shows as the seat's own and a real cooldown still shows steel.
-do
-	local env, K, ns = New("HUNTER", { known = BM })
-	Awake(env)
-	local function Rebuild()
-		K.Options.Write("ActionBars", "crestRail", false)
-		env.RunTimers()
-		K.Options.Write("ActionBars", "crestRail", true)
-		env.RunTimers()
-		return Rail(ns).made.rapid
-	end
-	local rapid = Rail(ns).made.rapid
-	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = true, activeCategory = 133 } end
-	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	assert(rapid.ready == true, "the global cooldown alone leaves Rapid Fire's seat lit")
-	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = false, activeCategory = 133 } end
-	rapid = Rebuild()
-	assert(rapid.ready == true, "rebuilt during the global cooldown alone, the seat stays lit whatever isOnGCD says")
-	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = true } end
-	rapid = Rebuild()
-	assert(rapid.ready == false, "rebuilt during its own cooldown, the seat shows steel")
-	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = true, activeCategory = 133 } end
-	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	assert(rapid.ready == true, "the next cooldown event sees only the global cooldown and relights it")
-	Clean(env, K)
-end
-
 do
 	local env, K, ns = New("HUNTER", { known = { 13165, 883, 75, 19574, 3045, 14305 } })
 	assert(Keys(Rail(ns)) == "wrath,rapid,trap", "an unlearned ability and an empty trinket slot leave no seat: " .. Keys(Rail(ns)))

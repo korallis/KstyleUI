@@ -181,6 +181,72 @@ do
 	Clean(env, K)
 end
 
+-- The reviewer's finding on the shared cooldown read: an active cooldown whose global cooldown marker is secret is not a
+-- confirmed spend, so it neither empties the orb nor arms a flare, while the orb keeps a spend it already confirmed; a real
+-- completion flares once, whether the completion timer or the cooldown event reads it over first.
+do
+	local env, K, ns = New("MAGE", { known = ARCANE })
+	env.SetTarget(true)
+	env.RunTimers()
+	local orb = Seated(ns, "crestOrb")
+	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = env.Secret(true), activeCategory = env.Secret(133) } end
+	env.C_Spell.GetSpellCooldownDuration = function() return { start = env._now, finish = env._now + 1.5 } end
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(orb.ready:IsShown() and not orb.spent:IsShown(), "a hidden global cooldown marker leaves the known-ready orb full")
+	orb.flare.play:Stop()
+	Elapse(env, orb, 2)
+	assert(orb.ready:IsShown() and not orb.flare.play:IsPlaying(), "the global cooldown's timer running out plays no flare")
+	env.C_Spell.GetSpellCooldown = function() return { isActive = false, isOnGCD = false } end
+	env.C_Spell.GetSpellCooldownDuration = function() return { start = 0, finish = 0 } end
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(not orb.flare.play:IsPlaying(), "the next readable event after a global cooldown alone plays no flare")
+	K.Options.Write("ActionBars", "crestOrb", false)
+	env.RunTimers()
+	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = false, activeCategory = env.Secret(133) } end
+	K.Options.Write("ActionBars", "crestOrb", true)
+	env.RunTimers()
+	orb = Seated(ns, "crestOrb")
+	assert(orb.ready:IsShown() and not orb.spent:IsShown(), "rebuilt while the recovery category is secret, the orb is not emptied on a guess")
+	Cooling(env, 12042, 30)
+	assert(orb.spent:IsShown(), "a cooldown event that reads the global cooldown flag false confirms the spend")
+	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = env.Secret(false) } end
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(orb.spent:IsShown() and not orb.ready:IsShown(), "a hidden marker on a later event keeps the confirmed spend")
+	orb.flare.play:Stop()
+	env.C_Spell.GetSpellCooldown = function() return { isActive = false, isOnGCD = false } end
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(orb.ready:IsShown() and not orb.spent:IsShown() and orb.flare.play:IsPlaying(), "the event that reads the cooldown over first flares the orb")
+	orb.flare.play:Stop()
+	Elapse(env, orb, 31)
+	assert(not orb.flare.play:IsPlaying(), "and the completion timer after it does not flare a second time")
+	Clean(env, K)
+end
+
+-- The reviewer's finding on the rail settings: while the orb is due to show, the list offers no seat for the orb's cooldown,
+-- and a saved pick of it waits, taking its seat again once the orb is off.
+do
+	local env, K, ns = New("MAGE", { known = ARCANE })
+	env.C_Spell.GetSpellName = function(id) return "spell " .. id end
+	local function Offered()
+		local values = {}
+		for _, option in ipairs(ns.SlabRail.Choices()) do values[#values + 1] = option.value end
+		return "," .. table.concat(values, ",") .. ","
+	end
+	K.Options.Write("ActionBars", "crestRailSeat1", "power")
+	env.SetTarget(true)
+	env.RunTimers()
+	assert(not Offered():find(",power,", 1, true) and Offered():find(",presence,", 1, true),
+		"with the orb on, Arcane Power is not offered for a seat: " .. Offered())
+	assert(not Seats(ns):find(",power,", 1, true), "the saved Arcane Power pick does not seat beside the orb: " .. Seats(ns))
+	assert(K.Options.Read("ActionBars", "crestRailSeat1") == "power", "the saved pick is kept")
+	K.Options.Write("ActionBars", "crestOrb", false)
+	env.RunTimers()
+	assert(Offered():find(",power,", 1, true), "with the orb off, Arcane Power is offered again: " .. Offered())
+	local rail = Seated(ns, "crestRail")
+	assert(rail.order[1].key == "power", "and the saved pick takes the first seat again (" .. tostring(rail.order[1].key) .. ")")
+	Clean(env, K)
+end
+
 -- Each tree builds only its own procs, and each lights inside the orb only while its own buff is up; Heating Up fills a third
 -- of the rim per stack and Fingers of Frost has a rime per charge.
 local function Heat(orb, proc)

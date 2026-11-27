@@ -1384,16 +1384,25 @@ function Medals.Spent(cd, fresh)
 	local gcd, global = cd.isOnGCD, consts and consts.GLOBAL_RECOVERY_CATEGORY
 	if not fresh then
 		gcd = cd.activeCategory
-		gcd = not IsSecret(gcd) and type(global) == "number" and gcd == global
+		if IsSecret(gcd) or type(global) ~= "number" then
+			return nil, true
+		end
+		gcd = gcd == global
 	end
-	return IsSecret(gcd) or gcd ~= true
+	if IsSecret(gcd) then
+		return nil, true
+	end
+	return gcd ~= true
 end
 
 local function Cooling(m, id, event)
 	m.cooling = m.cooling or {}
 	if event == "SPELL_UPDATE_COOLDOWN" or event == nil or m.cooling[id] == nil then
 		local get = C_Spell and C_Spell.GetSpellCooldown
-		local spent = Medals.Spent(type(get) == "function" and get(id), event == "SPELL_UPDATE_COOLDOWN")
+		local spent, active = Medals.Spent(type(get) == "function" and get(id), event == "SPELL_UPDATE_COOLDOWN")
+		if spent == nil and active and not m.keeps then
+			spent = true
+		end
 		if spent ~= nil then
 			m.cooling[id] = spent
 		end
@@ -1467,6 +1476,12 @@ function Medals.Refresh(m, event)
 		end
 		if cooling ~= m.cooled then
 			m.cooled = cooling
+			if m.keeps and cooling then
+				m.armed = true
+			elseif m.armed and not cooling then
+				m.armed = nil
+				Medals.Fire(m)
+			end
 			if m.ready then
 				m.ready:SetShown(not cooling)
 			end

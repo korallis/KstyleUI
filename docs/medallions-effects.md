@@ -397,9 +397,9 @@ Before the tree's great cooldown is known the orb holds Evocation 12051, and bef
 | State | What shows | Full | Calm | Off |
 | --- | --- | --- | --- | --- |
 | Ready | The orb full of light, the star's core burning and its rays turning, a soft glow in the school's colour | Light and core loop; at rest, out of combat and with no target, the same flip-books play at a third of the speed | Still frames | Still frames |
-| Spent | Your cast of the cooldown (`SPELL_UPDATE_COOLDOWN`, `C_Spell.GetSpellCooldown`'s `isActive`, read only when it is not secret; `isOnGCD` is trusted only inside that event, so the global cooldown alone never empties the orb): the core goes out and the light drops to empty | Yes | Yes | Yes |
+| Spent | Your cast of the cooldown (`SPELL_UPDATE_COOLDOWN`, `C_Spell.GetSpellCooldown`'s `isActive`, read only when it is not secret; `isOnGCD` is trusted only inside that event and `activeCategory` outside it; a secret marker keeps the orb's last confirmed state, so the global cooldown alone never empties the orb): the core goes out and the light drops to empty | Yes | Yes | Yes |
 | Refilling | The light rises from the bottom as the cooldown returns, a status bar fed the cooldown's own duration (`SetTimerDuration`, elapsed time), so the game advances it and Lua runs nothing per frame; every cooldown event while spent, and each rebuild, feeds it the duration again, so a cooldown cut short moves the light; a bright meniscus rides the light's surface | Loops | Still | Still |
-| Ready again | The orb timer's `OnCooldownDone`: the core relights and the mage's burst flares | Flare | Still flare | Nothing |
+| Ready again | The end of a confirmed spend, the orb timer's `OnCooldownDone` or the cooldown event that reads it over, whichever comes first: the core relights and the mage's burst flares once | Flare | Still flare | Nothing |
 
 The tree's procs light inside the glass (Clearcasting and Missile Barrage on every tree, Heating Up only on Fire and Fingers of Frost only on Frost, so no other art is built), each only while its own buff shows (aura slots on `"player"`, `"HELPFUL"`, fed by the engine, so nothing reads an aura in combat):
 

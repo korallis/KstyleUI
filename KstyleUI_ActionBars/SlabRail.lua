@@ -227,7 +227,7 @@ function Rail.Choices()
 	local out, data, seen = { { value = "", label = L["Tree's choice"] } }, Data(), {}
 	local get = C_Spell and C_Spell.GetSpellName
 	local function add(key)
-		local id = not seen[key] and Learned(key)
+		local id = not seen[key] and not Taken(data, key) and Learned(key)
 		seen[key] = true
 		local name = id and type(get) == "function" and get(id)
 		if name and not IsSecret(name) then
