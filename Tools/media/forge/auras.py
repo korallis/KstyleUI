@@ -1,7 +1,8 @@
 """Bake the crest's animated auras into Media/Textures/Auras/: one looping flip-book sheet per mark, and the empty socket they burn in.
 
-An aura is a mark's own figure made of moving spell light. Its design (designs_<class>.py, Tools/media/sigils.py) gives
-the silhouette and relief; this writes a signed distance field and a ridge map from them, has Blender render 16
+An aura is a mark's own figure made of moving spell light. Its design (designs_<class>.py, Tools/media/sigils.py, or
+a shipped picture's alpha and shading for a figure that has no design, such as the hawk perches' bird) gives the
+silhouette and relief; this writes a signed distance field and a ridge map from them, has Blender render 16
 frames at 512 px with EEVEE (aura.py), reduces each frame to a 128 px cell in linear light, fades the light before the
 socket's gilt rim (a mark seated on a plate) or the cell's edge (a bare figure or a sigil), and packs a 4x4 sheet of
 512x512, the shape of the class ambient sheets; a mark in BANDS is a strip, its frames cut to their middle band and
@@ -37,6 +38,7 @@ sys.path[:0] = [str(HERE), str(HERE.parent)]
 
 import designs_casters as casters
 import melee_effects
+import designs_hunter
 import sigils
 from finish import load, outline, resize, save, to_lin, to_srgb
 from relief import N, Emblem, forge_lineart
@@ -48,7 +50,8 @@ RIM_INNER = 0.49 - 0.045  # the socket plate's radius as a share of the box (rel
 SPAN = 1.25               # a bare figure's cell is this much wider than the figure, so its flames have room
 EDGE = 3                  # cell pixels over which a bare figure's light fades before the cell's edge
 
-# mark: (kind, Core/Tokens.lua colour, design). A "glyphs" or "trackers" mark's design is its factory in the class's
+# mark: (kind, Core/Tokens.lua colour, design). A "figures" mark is the silhouette of a shipped picture where it stands
+# in its box (picture()). A "glyphs" or "trackers" mark's design is its factory in the class's
 # designs module (designs_hunter.D["Hawk"]), whose emblem seats on the socket when it has a seated figure; a "sigils"
 # mark draws Tools/media/sigils.py's figure of its name and takes None; an "effects" mark (named Effects/<Art>) is a crest
 # object of Tools/media/melee_effects.py, its design the function drawing it, lit in place in its own box so the crest can
@@ -115,6 +118,37 @@ MARKS.update({
     "Gust": ("trackers", "jewelHawk", casters.D["Gust"]),
 })
 BANDS = {"Gust": 4}  # mark: its strip's length over its height
+
+
+def picture(path, mirror=False):
+    """A shipped picture's silhouette (alpha) raised by its own shading (luminance), left where it stands in its box;
+    mirror turns it left for right, since a flip-book cannot mirror its cells by texture coordinates."""
+    def design():
+        im = Image.open(ROOT / path).convert("RGBA").resize((N, N), Image.LANCZOS)
+        if mirror:
+            im = im.transpose(Image.FLIP_LEFT_RIGHT)
+        px = np.asarray(im, np.float32) / 255
+        e = Emblem(Path(path).stem)
+        e.M = ndi.binary_opening(px[..., 3] > 0.35, iterations=2)
+        luma = px[..., :3] @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+        e.H = np.where(e.M, 0.35 + 0.65 * ndi.gaussian_filter(luma, 2.0), 0).astype(np.float32)
+        return e
+    return design
+
+
+# the hunter: seven Aspects, six Stings, the two openings, Raptor Strike and the pet's haunch; the three cooldown sigils
+# and the rail's six more; the hawk perches' bird and the ready shots' arrows at their three angles
+MARKS.update({name: ("glyphs", colour, designs_hunter.D[name]) for name, colour in {
+    "Hawk": "gilt", "Monkey": "neutral", "Cheetah": "steelLit", "Pack": "steelLit", "Wild": "schoolNature", "Beast": "hostile",
+    "Viper": "magic", "Serpent": "schoolNature", "ViperSting": "magic", "Scorpid": "neutral", "Wyvern": "schoolFire",
+    "Lacerate": "hostile", "BlackArrow": "schoolShadow", "Counter": "hostile", "Mongoose": "hostile", "Raptor": "gilt",
+    "Haunch": "neutral",
+}.items()})
+MARKS.update({name: ("sigils", "jewelHawk", None) for name in (
+    "Volley", "Deflect", "Paw", "Intimidate", "FireTrap", "Sniper", "Aimed", "Strider", "Charm")})
+MARKS["HawkPerch"] = ("figures", "gilt", picture("Media/Textures/Medallions/Hawks/HawkSigil.png"))
+MARKS["HawkPerchMirror"] = ("figures", "gilt", picture("Media/Textures/Medallions/Hawks/HawkSigil.png", True))
+MARKS.update({f"Arrow{angle}": ("figures", "giltLit", picture(f"Media/Textures/Pips/PipArrow{angle}.png")) for angle in (105, 90, 75)})
 # the amber spell fire of the approved hawk mock: dark ember to the crest's gilt to white heat
 GILT = [[0.0, "000000"], [0.06, "2a0a02"], [0.18, "a8320a"], [0.34, "f26a12"], [0.52, "ffb22e"], [0.72, "ffe39a"], [1.0, "fffdf4"]]
 

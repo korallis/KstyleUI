@@ -301,6 +301,10 @@ do
 	-- so together they take the hunter's limit from 5,168 to 5,222. The rail then came to the mage and the warlock, and every
 	-- class's rail gained a second rail of smaller medals for the long cooldowns past the four seats and the racial (27
 	-- regions on the lit hunter).
+	-- Each hunter mark that burns an aura sheet in a coin (KstyleUI_ActionBars/SlabMedals.lua's Medals.Mark) keeps a burning and a still
+	-- frame of the sheet over a dark socket, one region more than the old sheen over its solid body (40 marks across the crest and its
+	-- copies). The arrows' burning figures add six regions and drop a pip and seven glows, the rail's seats drawn from the shared sheets
+	-- add three, and the shot faces built only when they first come up save four, which takes the hunter's limit to 5,259.
 	-- The potion sigil every class's rail carries burns as an aura (a fire, a still and its figure drawn black beneath, in
 	-- place of one flat texture): 2 more for each class, and the druid's Dash sigil does the same on each of its form rails: 12.
 	-- The mage's and warlock's marks, cooldown sigils and soul wisps burn as auras the same way, as the captain asked: a fire and a

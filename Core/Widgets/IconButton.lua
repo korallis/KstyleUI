@@ -1,4 +1,4 @@
--- IconButton.lua: the square socket icon button with hover, pressed, cooldown, ready, proc, selected and disabled states, and the icon chrome every square icon shares.
+-- IconButton.lua: the square socket icon button with hover, pressed, cooldown, ready, proc, selected and disabled states, and the icon chrome every square icon shares, with the Medallions round medal's proc aura and spell aura face.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -174,6 +174,10 @@ function IconButton:Paint(rim)
 	end
 	local tint = self.tint
 	Widgets.ShadeIcon(self.icon, v * tint[1], v * tint[2], v * tint[3], desaturated)
+	if self.medFace then
+		self.medFace.still:SetVertexColor(v, v, v)
+		self.medFace.moving:SetVertexColor(v, v, v)
+	end
 	self.hoverGlow:SetIntensity(usable and hover or 0)
 	PlaceIcon(self)
 end
@@ -290,6 +294,19 @@ function Widgets.MedallionsFrame(button, on, overlay, round)
 end
 
 local auras = setmetatable({}, { __mode = "k" })
+local Burn
+
+local function Track(button)
+	if not next(auras) then
+		ns.Callbacks.Register("EffectsLevelChanged", "IconButtonProcAura", function()
+			for each in pairs(auras) do
+				Widgets.MedallionsProc(each)
+				if each.medFace then Burn(each) end
+			end
+		end)
+	end
+	auras[button] = true
+end
 
 local function ProcAura(button)
 	local rows, columns, frames, seconds = Tokens.Flipbook("procAura")
@@ -315,12 +332,7 @@ local function ProcAura(button)
 	flip:SetFlipBookFrames(frames)
 	flip:SetDuration(seconds)
 	Motion.TrackGroup(aura.loop, function() Widgets.MedallionsProc(button) end)
-	if not next(auras) then
-		ns.Callbacks.Register("EffectsLevelChanged", "IconButtonProcAura", function()
-			for each in pairs(auras) do Widgets.MedallionsProc(each) end
-		end)
-	end
-	auras[button] = true
+	Track(button)
 	return aura
 end
 
@@ -337,6 +349,71 @@ function Widgets.MedallionsProc(button)
 	elseif not aura.loop:IsPlaying() then
 		aura.loop:Play()
 	end
+end
+
+local function Moving()
+	return ns.Effects and ns.Effects.Allows("ambient") or not ns.Effects and Motion.Slides()
+end
+
+function Burn(button)
+	local face = button.medFace
+	local on = face.token ~= nil and button.medRound == true and button.medFaceShown ~= false
+	local moving = on and Moving() and button:IsVisible()
+	face.cover:SetShown(on)
+	face.still:SetShown(on and not moving)
+	face.moving:SetShown(moving)
+	if not moving then
+		face.loop:Stop()
+	elseif not face.loop:IsPlaying() then
+		face.loop:Play()
+	end
+end
+
+local function Face(button)
+	local face = {}
+	face.cover = button:CreateTexture(nil, "ARTWORK", nil, 5)
+	face.cover:SetTexture((Tokens.Texture("dot")))
+	face.cover:SetVertexColor(Tokens.Color("medSocket"))
+	face.cover:SetAllPoints(button.icon)
+	face.still = button:CreateTexture(nil, "ARTWORK", nil, 6)
+	face.moving = button:CreateTexture(nil, "ARTWORK", nil, 6)
+	for _, t in ipairs({ face.still, face.moving }) do
+		t:SetBlendMode("ADD")
+	end
+	face.loop = face.moving:CreateAnimationGroup()
+	face.loop:SetLooping("REPEAT")
+	face.flip = face.loop:CreateAnimation("FlipBook")
+	Motion.TrackGroup(face.loop, function() Burn(button) end)
+	button:HookScript("OnShow", Burn)
+	button:HookScript("OnHide", Burn)
+	Track(button)
+	return face
+end
+
+function Widgets.MedallionsFace(button, token, shown)
+	if not (token or button.medFace) then return end
+	button.medFace = button.medFace or Face(button)
+	local face = button.medFace
+	button.medFaceShown = shown
+	if face.token ~= token and token then
+		local rows, columns, frames, seconds, span = Tokens.Flipbook(token)
+		local file = Tokens.Texture(token)
+		face.still:SetTexture(file)
+		face.moving:SetTexture(file)
+		face.still:SetTexCoord(0, 1 / columns, 0, 1 / rows)
+		face.flip:SetFlipBookRows(rows)
+		face.flip:SetFlipBookColumns(columns)
+		face.flip:SetFlipBookFrames(frames)
+		face.flip:SetDuration(seconds)
+		local pad = Widgets.Snap(button, (button.opts.size or Tokens.Size("actionButton")) * (1 - 2 * ROUND_INSET) * ((span or 1) - 1) / 2)
+		for _, t in ipairs({ face.still, face.moving }) do
+			t:ClearAllPoints()
+			t:SetPoint("TOPLEFT", button.icon, "TOPLEFT", -pad, pad)
+			t:SetPoint("BOTTOMRIGHT", button.icon, "BOTTOMRIGHT", pad, -pad)
+		end
+	end
+	face.token = token
+	Burn(button)
 end
 
 function Widgets.MedallionsIcon(button, on, round)
@@ -357,6 +434,7 @@ function Widgets.MedallionsIcon(button, on, round)
 	button.opts.iconInset = round and (button.opts.size or Tokens.Size("actionButton")) * ROUND_INSET or on and 3 or nil
 	button.placedOffset = nil
 	PlaceIcon(button)
+	if button.medFace then Burn(button) end
 end
 
 local function SetRealCooldown(self, real)

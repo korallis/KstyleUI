@@ -1,4 +1,4 @@
--- SlabHawks.lua: the Medallions hub's hawk perches for hunters who know Summon Hawk: two gilt hawk sigils on the rune ring's shoulders, one per hawk the game keeps in totem slots 2 and 3, each ringed by a timer that drains over the hawk's life, with the rune ring glowing while both are out; at Full a summon lifts its gilt hawk off the perch and settles it back while the timer stays seated, an expiry sinks it, and the empty steel hawk shows only on an empty perch (docs/medallions-effects.md#hawk-perch-motion); the engine draws them from the slot itself (alpha from haveTotem, the swipe from GetTotemDuration), so Lua never reads or compares a secret.
+-- SlabHawks.lua: the Medallions hub's hawk perches for hunters who know Summon Hawk: two hawks on the rune ring's shoulders, each its sigil drawn black under its own looping spell-light aura (Medals.Aura, a mirrored sheet on the right), one per hawk the game keeps in totem slots 2 and 3, each ringed by a timer that drains over the hawk's life, with the rune ring glowing while both are out; at Full a summon lifts its burning hawk off the perch and settles it back while the timer stays seated, an expiry sinks it, and the aura loops only on a lit perch, and the empty steel hawk shows only on an empty perch (docs/medallions-effects.md#hawk-perch-motion); the engine draws them from the slot itself (alpha from haveTotem, the swipe from GetTotemDuration), so Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -76,6 +76,16 @@ local function Lit(add, slot, frame, size, glow)
 	return sigil
 end
 
+local function Burning(add, slot, frame, size)
+	add(Texture(frame, "BACKGROUND", 0, "glow", "jewelHawk", GLOW, "ADD")):SetAlpha(GLOW_ALPHA)
+	local body = add(Texture(frame, "ARTWORK", -1, "hawkSigil", "black", size))
+	if slot == 3 then
+		body:SetTexCoord(1, 0, 0, 1)
+	end
+	local fire = Medals.Aura({ add = add }, frame, slot == 3 and "auraFigureHawkPerchMirror" or "auraFigureHawkPerch", size)
+	return { Pop(body), Pop(fire), Pop(fire.still) }, fire
+end
+
 local function Build(hub, slot)
 	local holder = CreateFrame("Frame", nil, hub.top)
 	holder.units = TRACK
@@ -115,9 +125,8 @@ local function Build(hub, slot)
 	rise:SetSmoothing(Tokens.Smoothing.enter)
 	Move(p.lift, dx, dy, LIFT_UP, 1, "OUT")
 	Move(p.lift, -dx, -dy, SETTLE, 2, "IN_OUT")
-	p.pops = {}
 	p.lit = Layer(p.pop, base + 3)
-	p.pops[1] = Pop(Lit(add, slot, p.lit, SIGIL, true))
+	p.pops, p.fire = Burning(add, slot, p.lit, SIGIL)
 	p.glint = add(Texture(p.lit, "OVERLAY", 0, "diamond", "white", GLINT, "ADD"))
 	p.wasGate = Layer(holder, base + 3)
 	p.was = Layer(p.wasGate, base + 3)
@@ -140,7 +149,7 @@ local function Build(hub, slot)
 	p.flareGate = Layer(p.pop, base + 4)
 	p.flare = Layer(p.flareGate, base + 4)
 	add(Texture(p.flare, "ARTWORK", 0, "glow", "jewelHawkCore", BURST, "ADD")):SetAlpha(BURST_ALPHA)
-	p.pops[2] = Pop(Lit(add, slot, p.flare, SIGIL * POP, false))
+	p.pops[#p.pops + 1] = Pop(Lit(add, slot, p.flare, SIGIL * POP, false))
 	Fade(p.flare, 0, 1, FLARE_RISE)
 	Fade(p.flare, 1, 0, FLARE_FALL, 2)
 	for _, frame in ipairs({ p.was, p.flare }) do

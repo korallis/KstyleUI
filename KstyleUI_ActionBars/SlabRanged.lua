@@ -1,4 +1,4 @@
--- SlabRanged.lua: a hunter's, mage's and warlock's crest trackers, registered as rows with the one tracker lifecycle (SlabTrackers.lua; docs/medallions-effects.md#ranged-crest-trackers lists every seat): each seat's choices cover every build, pet state and level band, and each breaks out of the medal into the crest in additive light (a hunter's forged marks solid under a sheen, Medals.Mark), never a spell or item icon and never a round socket frame (a mage's or warlock's seated aura mark burns over its own small empty socket plate): your damage over time a fuse burning down the right band with its own mark at its head, the pet's or demon's health light along the band (a hunter's pet below Happy also lands a forged haunch on the lower right and tints its light amber or red), an Aspect, armor or demon sigil perched on the ring, a mage's armor as crystals that thaw along the upper left band and Frost Nova's frost over the inner ring, Hunter's Mark, the ready shots and the hunter's range ring over the emblem, the hunter pet's focus within its light, its family ability, Growl's orders and a potion on the hunter's trinket and lower band seats, a bag gem hanging from the lower right, an interrupt's blade through the lower left, a school's stacks as embers and a cooldown as an arc filling on the left band, the warlock's spires with their glyphs at their feet and its soul wisps, the Auto Shot ring and the class moments (Quick Shots, Clearcasting, Shadow Trance); the same effects free-standing in a row under Frames (Effect and its LOOKS, Well and Trinket); Blizzard's aura slots light every aura piece and blink it in its pandemic window, so Lua never reads or compares a secret.
+-- SlabRanged.lua: a hunter's, mage's and warlock's crest trackers, registered as rows with the one tracker lifecycle (SlabTrackers.lua; docs/medallions-effects.md#ranged-crest-trackers lists every seat): each seat's choices cover every build, pet state and level band, and each breaks out of the medal into the crest in additive light (a hunter's marks as looping spell-light auras in their sockets or over their dark figures, Medals.Mark), never a spell or item icon and never a round socket frame (a mage's or warlock's seated aura mark burns over its own small empty socket plate): your damage over time a fuse burning down the right band with its own mark at its head, the pet's or demon's health light along the band (a hunter's pet below Happy also lands a burning haunch on the lower right and tints its light amber or red), an Aspect, armor or demon sigil perched on the ring, a mage's armor as crystals that thaw along the upper left band and Frost Nova's frost over the inner ring, Hunter's Mark, the ready shots (each shot's layer drawn the first time it comes up) and the hunter's range ring over the emblem, the hunter pet's focus within its light, its family ability, Growl's orders and a potion on the hunter's trinket and lower band seats, a bag gem hanging from the lower right, an interrupt's blade through the lower left, a school's stacks as embers and a cooldown as an arc filling on the left band, the warlock's spires with their glyphs at their feet and its soul wisps, the Auto Shot ring and the class moments (Quick Shots, Clearcasting, Shadow Trance); the same effects free-standing in a row under Frames (Effect and its LOOKS, Well and Trinket); Blizzard's aura slots light every aura piece and blink it in its pandemic window, so Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -429,6 +429,30 @@ local function Charge(parent, spec, level, form)
 	return p
 end
 
+local function Look(p, look, level)
+	local layer = Medals.Layer(p.lit, level + 2)
+	layer:Hide()
+	p.add(Medals.Texture(layer, "BACKGROUND", 0, "glow", look.color, p.units * 0.9, "ADD")):SetAlpha(FAINT)
+	for _, art in ipairs(look.arrows or { look.glyph }) do
+		if look.arrows then
+			p.add(Medals.Texture(layer, "ARTWORK", -1, "pipArrow" .. art, "black", p.units))
+			Medals.Aura(p, layer, "auraFigureArrow" .. art, p.units)
+		else
+			Medals.Mark(p, layer, art, p.units * (select(4, Tokens.Texture(art)) and SHOT_FORGED or SHOT_FLAT), look.color, Lift(look.color, 0.2))
+		end
+	end
+	layer.play = Medals.Steps(layer, look.arrows and { { 0, 1, 0.15 } } or OPENING)
+	if look.arrows then
+		local jump, move = layer.play:CreateAnimation("Translation"), layer.play:CreateAnimation("Translation")
+		jump:SetOffset(0, -p.units * 0.15)
+		jump:SetDuration(0)
+		move:SetOffset(0, p.units * 0.15)
+		move:SetDuration(0.35)
+		move:SetSmoothing("OUT")
+	end
+	p.shots[look] = layer
+end
+
 local function Shot(parent, spec, level, form)
 	local p = Medals.Piece(parent, level, spec.size or SIZE)
 	if form ~= "crest" then
@@ -436,29 +460,7 @@ local function Shot(parent, spec, level, form)
 	end
 	Medals.Lit(p, spec, level + 1)
 	p.lit:Hide()
-	p.shots = {}
-	for _, look in ipairs(spec.looks) do
-		local layer = Medals.Layer(p.lit, level + 2)
-		layer:Hide()
-		p.add(Medals.Texture(layer, "BACKGROUND", 0, "glow", look.color, p.units * 0.9, "ADD")):SetAlpha(FAINT)
-		for _, art in ipairs(look.arrows or { look.glyph }) do
-			if look.arrows then
-				p.add(Medals.Texture(layer, "ARTWORK", 0, "pipArrow" .. art, "white", p.units))
-			else
-				Medals.Mark(p, layer, art, p.units * (select(4, Tokens.Texture(art)) and SHOT_FORGED or SHOT_FLAT), look.color, Lift(look.color, 0.2))
-			end
-		end
-		layer.play = Medals.Steps(layer, look.arrows and { { 0, 1, 0.15 } } or OPENING)
-		if look.arrows then
-			local jump, move = layer.play:CreateAnimation("Translation"), layer.play:CreateAnimation("Translation")
-			jump:SetOffset(0, -p.units * 0.15)
-			jump:SetDuration(0)
-			move:SetOffset(0, p.units * 0.15)
-			move:SetDuration(0.35)
-			move:SetSmoothing("OUT")
-		end
-		p.shots[look] = layer
-	end
+	p.shots, p.looks = {}, level
 	return p
 end
 
@@ -468,12 +470,12 @@ local function Haunch(m, level, k, x, y)
 	seat:ClearAllPoints()
 	seat:SetPoint("CENTER", m, "CENTER", x, y)
 	seat:Hide()
-	local sheen, _, tint, gold = Medals.Mark(m, seat, "glyphHaunch", size, "neutral", Lift("coinGold", 0.2))
+	local sheen, _, tint, gold, aura = Medals.Mark(m, seat, "glyphHaunch", size, "neutral", Lift("coinGold", 0.2))
 	if gold then
 		tint.units = size * HAUNCH_HALO
 	end
 	local a, f = tint:GetAlpha(), Tokens.Flicker
-	local feed = { seat = seat, sheen = sheen, tint = tint, gold = gold }
+	local feed = { seat = seat, sheen = sheen, tint = tint, gold = gold, aura = aura }
 	feed.land = Medals.Steps(seat, { { 0, 1, HAUNCH_HOLD } })
 	ns.Slab.Grow(feed.land, 1.35, 1, 0.35)
 	feed.appear = Medals.Steps(seat, { { 0, 1, HAUNCH_HOLD } })
@@ -953,7 +955,9 @@ local function Tint(f, color)
 		f.tint:SetVertexColor(Tokens.Color(color))
 	else
 		local r, g, b = Lift(color, 0.2)
-		f.sheen:SetVertexColor(r, g, b)
+		if not f.aura then
+			f.sheen:SetVertexColor(r, g, b)
+		end
 		f.tint:SetVertexColor(r, g, b)
 	end
 end
@@ -1166,6 +1170,10 @@ end
 
 local function PaintShot(m)
 	local shot = m.spec.shots[m.usable]
+	if shot and not m.shots[shot] then
+		Look(m, shot, m.looks)
+		Medals.Size(m)
+	end
 	if shot ~= m.shot then
 		if m.shot then
 			m.shots[m.shot]:Hide()

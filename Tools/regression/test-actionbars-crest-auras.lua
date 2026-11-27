@@ -15,25 +15,9 @@ AB.Enable(env, K)
 env.RunTimers()
 local Medals, Tokens = ns.SlabMedals, K.Tokens
 
--- No class takes the kit in this change, so a real forged glyph borrows a real 4x4 ambient sheet as its aura: the
--- shape every aura sheet has (Core/Tokens.lua medAmbient*), with span 1.25 for the bare variant.
-local SHEET = "medAmbientWarrior"
-local texture, flipbook = Tokens.Texture, Tokens.Flipbook
-Tokens.Texture = function(name)
-	if name == "glyphHawk" or name == "sigilVolley" then
-		local file, slice, units, forged = texture(name)
-		return file, slice, units, forged, name == "glyphHawk" and SHEET or SHEET .. "Bare"
-	end
-	return texture(name == SHEET .. "Bare" and SHEET or name)
-end
-Tokens.Flipbook = function(name)
-	if name == SHEET .. "Bare" then
-		local rows, columns, frames, seconds = flipbook(SHEET)
-		return rows, columns, frames, seconds, 1.25
-	end
-	return flipbook(name)
-end
-local FILE = texture(SHEET)
+-- The hunter's marks take the kit: Hawk's glyph burns seated in its socket, Volley's sigil burns bare over its figure.
+local texture = Tokens.Texture
+local FILE, BARE = texture("auraGlyphHawk"), texture("auraSigilVolley")
 
 local function Draws(region, file)
 	local state = region._state or {}
@@ -65,7 +49,7 @@ do
 	local body = piece._regions and piece._regions[3]
 	assert(body and (body._state.Texture or {})[1] == texture("auraSocket"), "a seated aura burns over the empty socket")
 	local flip = fire.loop._anims and fire.loop._anims[1]
-	local rows, columns, frames, seconds = flipbook(SHEET)
+	local rows, columns, frames, seconds = 4, 4, 16, 1.44
 	assert(fire.loop:GetLooping() == "REPEAT" and flip and flip._type == "FlipBook", "the fire is a repeating FlipBook")
 	assert(flip:GetFlipBookRows() == rows and flip:GetFlipBookColumns() == columns and flip:GetFlipBookFrames() == frames and flip:GetDuration() == seconds, "playing the sheet's grid, frames and seconds")
 
@@ -90,7 +74,7 @@ do
 
 	local bare = Medals.Piece(parent, 5, 30)
 	local flame = Medals.Mark(bare, bare, "sigilVolley", 20, "jewelHawk")
-	assert(flame.units == 20 * 1.25 and bare._regions[3].units == 20, "a bare aura's cell is its span wider than the figure")
+	assert(Draws(flame, BARE) and flame.units == 20 * 1.25 and bare._regions[3].units == 20, "a bare aura's cell is its span wider than the figure")
 	local figure = bare._regions[3]
 	local r, g, b = figure:GetVertexColor()
 	assert((figure._state.Texture or {})[1] == texture("sigilVolley") and r + g + b == 0, "and burns over its own figure drawn black")
@@ -116,8 +100,8 @@ end
 
 do
 	local plain = Medals.Piece(parent, 5, 30)
-	local t, _, _, _, aura = Medals.Mark(plain, plain, "glyphCheetah", 30, "gilt")
-	assert(not aura and (t._state.Texture or {})[1] == texture("glyphCheetah") and not plain.fires, "a mark with no aura draws as before, with no loop and no hooks")
+	local t, _, _, _, aura = Medals.Mark(plain, plain, "glyphEye", 30, "gilt")
+	assert(not aura and (t._state.Texture or {})[1] == texture("glyphEye") and not plain.fires, "a mark with no aura draws as before, with no loop and no hooks")
 end
 
 do

@@ -461,6 +461,7 @@ end
 
 local function RefreshCooldownIcon(row, icon)
 	Texture(icon.icon, icon.entry)
+	Style.Face(icon, icon.entry)
 	Usable(row, icon)
 	Charges(icon)
 	Proc(row, icon)
@@ -587,6 +588,7 @@ local function ShowAuraIcon(row, icon, entry)
 	end
 	Style.SetReady(icon, entry.auraID and icon.rule.activeGlow)
 	Texture(icon.icon, entry)
+	Style.Face(icon, entry)
 	local id = entry.auraID
 	if id then
 		local duration, err = Auras.Duration(entry.auraUnit, id)
@@ -1247,6 +1249,7 @@ end
 
 local function TextureIcon(_, icon)
 	Texture(icon.icon, icon.entry)
+	Style.Face(icon, icon.entry)
 end
 
 local function ItemIcon(row, icon)

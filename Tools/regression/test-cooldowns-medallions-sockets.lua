@@ -50,4 +50,30 @@ local row = ns.Row.New(env.UIParent, "utility", ns.Settings.current.utility)
 local utility = row:Icon(1)
 assert(C.W.LastCall(utility.cooldown, "SetCountdownFormatter")[1]:Format(4) == "4s", "off restores the previous seconds suffix")
 assert(#env._errors == 0, tostring(env._errors[1]))
+
+do
+	-- A hunter's rail medal shows the spell's Blender aura in place of its icon (the aura plan: the round game icons on
+	-- the rails are replaced by auras class by class); a spell with no aura keeps its icon.
+	local sample = C.Sample()
+	sample[101].spellID = 19263
+	local henv, HK, hns = C.New({ setup = C.Game, cooldowns = sample })
+	C.Enable(henv, HK)
+	henv.RunTimers()
+	local deter, plain = hns.Mirror.Row("essential").icons[1], hns.Mirror.Row("essential").icons[2]
+	local face = deter.medFace
+	assert(face and face.moving:GetTexture() == HK.Tokens.Texture("auraSigilDeflect") and face.cover:IsShown(), "Deterrence's medal covers its icon with the Deflect aura")
+	assert(face.moving:IsShown() and face.loop:IsPlaying() and not face.still:IsShown(), "at full motion the aura loops")
+	local flip = face.loop._anims[1]
+	assert(flip._type == "FlipBook" and flip:GetFlipBookRows() == 4 and flip:GetFlipBookColumns() == 4 and flip:GetFlipBookFrames() == 16 and flip:GetDuration() == 1.44, "playing the sheet's 4x4 grid of 16 frames over 1.44 s")
+	assert(not plain.medFace, "a spell with no aura keeps its icon and makes nothing")
+	HK.Motion.SetLevel("reduced")
+	assert(not face.loop:IsPlaying() and face.still:IsShown() and not face.moving:IsShown(), "calm motion holds the aura still")
+	HK.Motion.SetLevel("full")
+	assert(face.loop:IsPlaying(), "and full motion plays it again")
+	HK.Options.Write("Cooldowns", "medallionsIcons", false)
+	assert(not face.cover:IsShown() and not face.still:IsShown() and not face.moving:IsShown() and not face.loop:IsPlaying(), "off brings the square icon back with no aura")
+	HK.Options.Write("Cooldowns", "medallionsIcons", true)
+	assert(face.loop:IsPlaying() and face.cover:IsShown(), "on again burns it again")
+	assert(#henv._errors == 0, tostring(henv._errors[1]))
+end
 print("ok cooldown Medallions sockets: mirror, native tracked buffs and previous choices")

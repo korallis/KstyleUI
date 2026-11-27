@@ -15,7 +15,7 @@ local SEAT, SPARE, CROWN, PITCH, SPARE_PITCH, PEAK, BOW, CROWN_Y = 28, 22, 34, 3
 local LOW_Y, LOW_CROWN, SPARE_Y, SPARE_GAP, SPARES, SEATS, GCD = 227, 6, 127, 8, 6, 4, 1.5
 local SPARK, LEGS, LANE, LOW_LANE = 4, 3, 8, -22
 local SPAN = 2 * PITCH
-local SIGIL, ICON, SHADE, PAD, REFILL, AURA = 0.86, 0.74, 1.9, 5, 0.6, 0.86 / 0.62
+local SIGIL, ICON, SHADE, PAD, REFILL = 0.86, 0.74, 1.9, 5, 0.6
 local BREATH, BREATH_RUN, GLOW, READY_GLOW, READY_RING, READY_RUN, RELIGHT = { 0.1, 0.2 }, 1.2, 1.6, 44 / 28, 34 / 28, 0.3, 0.18
 local GLINT, GLINT_RUN, FLASH_RUN, NOTCH, FIFTH, CLAIM_PAD = 6 / 28, 0.18, 0.27, 4, 0.2, 0.05
 local MARK, MARK_RISE, MARK_DROP = 0.42, 0.2, 0.2
@@ -366,10 +366,6 @@ end
 local function Baked(sigil)
 	if not sigil then
 		return nil
-	end
-	local ok, _, _, frames = pcall(Tokens.Flipbook, "railAura" .. sigil)
-	if ok and frames then
-		return "railAura" .. sigil, AURA
 	end
 	local found, _, _, _, _, aura = pcall(Tokens.Texture, "sigil" .. sigil)
 	if found and aura then

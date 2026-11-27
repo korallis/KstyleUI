@@ -569,15 +569,6 @@ for _, name in ipairs({ "auraGlyphFacet", "auraGlyphHealthstone", "auraSigilArca
 end
 TEXTURES.auraTrackerGust = { file = "Textures\\Auras\\Trackers\\Gust.png", rows = 8, columns = 2, frames = 16, seconds = 1.44 }
 TEXTURES.auraSocket = { file = "Textures\\Auras\\Socket.png" }
-TEXTURES.railAuraAimed = { file = "Textures\\Medallions\\Rail\\AuraAimed.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraCharm = { file = "Textures\\Medallions\\Rail\\AuraCharm.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraDeflect = { file = "Textures\\Medallions\\Rail\\AuraDeflect.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraFireTrap = { file = "Textures\\Medallions\\Rail\\AuraFireTrap.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraIntimidate = { file = "Textures\\Medallions\\Rail\\AuraIntimidate.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraPaw = { file = "Textures\\Medallions\\Rail\\AuraPaw.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraSniper = { file = "Textures\\Medallions\\Rail\\AuraSniper.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraStrider = { file = "Textures\\Medallions\\Rail\\AuraStrider.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-TEXTURES.railAuraVolley = { file = "Textures\\Medallions\\Rail\\AuraVolley.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 for _, set in ipairs({
 	{ kind = "Sigil", names = { "Crossed", "Skull", "Wall", "Heart", "Sweep", "Thorns", "Bubble", "Aegis", "Sun", "Hand", "Wing", "Bulwark", "Voice",
 		"Flurry", "Rush", "Evade", "Drop", "Smoke", "Ghost" } },
@@ -591,6 +582,22 @@ for _, set in ipairs({
 		}
 		if set.kind == "Sigil" then
 			TEXTURES["sigil" .. name].aura = token
+		end
+	end
+end
+local BARE_AURAS = { Counter = true, Mongoose = true, Raptor = true }
+for kind, names in pairs({
+	Glyph = { "Beast", "BlackArrow", "Cheetah", "Counter", "Haunch", "Hawk", "Lacerate", "Mongoose", "Monkey", "Pack", "Raptor", "Scorpid",
+		"Serpent", "Viper", "ViperSting", "Wild", "Wyvern" },
+	Sigil = { "Aimed", "Charm", "Deflect", "FireTrap", "Intimidate", "Paw", "Sniper", "Strider", "Volley" },
+	Figure = { "Arrow75", "Arrow90", "Arrow105", "HawkPerch", "HawkPerchMirror" },
+}) do
+	for _, name in ipairs(names) do
+		local token = "aura" .. kind .. name
+		TEXTURES[token] = { file = "Textures\\Auras\\" .. kind .. "s\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44,
+			span = (kind ~= "Glyph" or BARE_AURAS[name]) and 1.25 or nil }
+		if kind ~= "Figure" then
+			TEXTURES[kind:lower() .. name].aura = token
 		end
 	end
 end

@@ -163,6 +163,9 @@ do
 	-- 0 -> 1: the left perch lights and flares.
 	Hawk(env, 2, 100)
 	assert(Seen(env, left.lit) and not Seen(env, right.lit), "one hawk lights one perch")
+	local file = (left.fire._state.Texture or {})[1]
+	assert(file == K.Tokens.Texture("auraFigureHawkPerch") and (right.fire._state.Texture or {})[1] == K.Tokens.Texture("auraFigureHawkPerchMirror"), "each perch's hawk is an aura sheet, the right one mirrored")
+	assert(not left.fire.loop:IsPlaying() and left.fire.still:GetAlpha() == 1, "the resting crest shows the lit hawk's aura still")
 	assert(Timer(left) and Timer(left).start == 100 and Timer(left).finish == 118, "the timer is the slot's own duration object")
 	assert(Drawn(env, left, "flare") and left.flare.fade:IsPlaying(), "a summon flares")
 	assert(not Drawn(env, left, "was"), "nothing was there to fade")
@@ -473,3 +476,31 @@ do
 end
 
 print("actionbars medallions hawks ok")
+
+do
+	-- The perched hawks burn the aura kit's sheet (KstyleUI_ActionBars/SlabMedals.lua Medals.Aura) only while their perch is lit.
+	local env, K, ns = New("HUNTER", { [RANK3] = true })
+	local left, right = ns.SlabHawks.state.perches[1], ns.SlabHawks.state.perches[2]
+	env.SetTarget(true)
+	env.RunTimers()
+	Hawk(env, 2, 100)
+	assert(left.fire.loop:IsPlaying() and left.fire:GetAlpha() == 1 and not right.fire.loop:IsPlaying(), "awake at Full the lit hawk's aura burns; the empty perch's plays nothing")
+	Hawk(env, 3, 101)
+	assert(right.fire.loop:IsPlaying(), "a second hawk burns on its own perch")
+	Gone(env, 2)
+	-- The stub's Hide runs no OnHide script, so this runs the one the game would.
+	left.lit:GetScript("OnHide")(left.lit)
+	assert(not left.fire:IsVisible() and not left.fire.loop:IsPlaying() and right.fire.loop:IsPlaying(), "an expired hawk's aura hides and stops with it")
+	K.Options.Write("Medallions", "motion", "off")
+	env.RunTimers()
+	ns.SlabMedals.Rest()
+	assert(not right.fire.loop:IsPlaying() and right.fire.still:GetAlpha() == 1, "motion Off shows the hawk's aura still")
+	K.Options.Write("Medallions", "motion", "full")
+	env.RunTimers()
+	ns.SlabMedals.Rest()
+	assert(right.fire.loop:IsPlaying(), "back at Full it burns again")
+	K.Options.Write("ActionBars", "crestHawks", false)
+	env.RunTimers()
+	right.lit:GetScript("OnHide")(right.lit)
+	assert(not right.fire:IsVisible() and not right.fire.loop:IsPlaying(), "Hawk perches off hides the aura and stops its loop")
+end

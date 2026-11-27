@@ -108,6 +108,7 @@ function Row:Look(icon)
 	if (icon.countOnly or false) ~= bare then
 		icon.countOnly = bare
 		icon.icon:SetAlpha(bare and 0 or 1)
+		Style.Face(icon, icon.entry)
 	end
 	Countdown(cooldown, group, rule)
 	Style.TextColour(icon.countdown, rule.timerColour, "slotNumber")
