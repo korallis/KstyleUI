@@ -109,17 +109,26 @@ do
 	assert(ns.SlabSeats.Name(classes[1][2][1].seat) == "emblem" and ns.SlabSeats.Name(classes[1][2][2].seat) == "perchRight", "Ice Block's shell sits over the emblem and Evocation over the mana gem's seat")
 end
 
--- The hunter's two moments belong to its cooldown rail (SlabRail.lua), which crowns Bestial Wrath from the pet and Deterrence from the hunter
--- while they run: a hunter who knows both, with both auras up, builds no pop-off of its own.
+-- The hunter's two moments belong to its crest rail (SlabRail.lua): Beast Mastery seats Bestial Wrath, read from the pet, and Survival seats
+-- Deterrence, read from the hunter. With either buff running the rail's seat owns the crown and shows the aura there, and no pop-off is built.
 do
-	local henv, hK, hns = New("HUNTER", { 19574, 19263 })
-	henv.SetTarget(true)
-	henv.RunTimers()
-	assert(hns.SlabRail.ABILITIES.wrath.spells[1] == 19574 and hns.SlabRail.ABILITIES.deter.spells[1] == 19263, "the rail carries Bestial Wrath and Deterrence")
-	Gain(henv, "pet", 19574)
-	Gain(henv, "player", 19263)
-	assert(#Pops(hns) == 0, "the hunter builds no pop-off; the rail shows its moments")
-	Clean(henv, hK, "hunter")
+	local R = dofile("Tools/regression/ranged_env.lua")
+	for _, case in ipairs({
+		{ tree = 1, known = { 13165, 883, 75, 19574, 3045, 19577, 14305 }, key = "wrath", spell = 19574, unit = "pet" },
+		{ tree = 3, known = { 13165, 883, 75, 3045, 19263, 14305, 1317257 }, key = "deter", spell = 19263, unit = "player" },
+	}) do
+		local henv, hK, hns = R.New("HUNTER", { known = case.known, tree = case.tree })
+		henv.SetTarget(true)
+		henv.RunTimers()
+		local rail = assert(R.Seated(hns, "crestRail"), "the hunter's rail is seated")
+		local seat = assert(rail.made[case.key], "the rail seats " .. case.key)
+		henv.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-" .. case.spell, case.spell)
+		R.Slots.Set(henv, case.unit, { { id = case.spell, auraInstanceID = 9, start = henv._now, duration = 10 } })
+		henv.RunTimers()
+		assert(rail.owner == seat and seat.gate:GetAlpha() == 1 and seat.crowned:IsShown(), case.key .. ": the running buff owns the rail's crown and shows there")
+		assert(#Pops(hns) == 0, case.key .. ": the hunter builds no pop-off; the rail shows the moment")
+		R.Clean(henv, hK)
+	end
 end
 
 -- Every class: each pop-off lights from its own aura on its own unit and goes when it goes; another unit, another class's aura or another
