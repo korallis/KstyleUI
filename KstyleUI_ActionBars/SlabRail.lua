@@ -364,20 +364,30 @@ local function Face(piece, parent, size, seat)
 end
 
 local function Baked(sigil)
-	local ok, _, _, frames = pcall(Tokens.Flipbook, "railAura" .. (sigil or ""))
-	return ok and frames ~= nil
+	if not sigil then
+		return nil
+	end
+	local ok, _, _, frames = pcall(Tokens.Flipbook, "railAura" .. sigil)
+	if ok and frames then
+		return "railAura" .. sigil, AURA
+	end
+	local found, _, _, _, _, aura = pcall(Tokens.Texture, "sigil" .. sigil)
+	if found and aura then
+		local _, _, _, _, span = Tokens.Flipbook(aura)
+		return aura, SIGIL * span
+	end
 end
 
 local function Aura(piece, parent, size, seat)
 	local sigil = seat.ability.sigil
-	if not Baked(sigil) then
+	local token, span = Baked(sigil)
+	if not token then
 		Mark(piece, parent, "ARTWORK", 1, seat, "white", size * (sigil and SIGIL or ICON))
 		return { still = false, moving = false, loop = false }
 	end
-	local token = "railAura" .. sigil
-	local still = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, "white", size * AURA, "ADD"))
+	local still = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, "white", size * span, "ADD"))
 	still:SetTexCoord(0, 0.25, 0, 0.25)
-	local moving = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, "white", size * AURA, "ADD"))
+	local moving = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, "white", size * span, "ADD"))
 	moving:SetAlpha(0)
 	return { still = still, moving = moving, loop = Medals.Flip(moving, token, 1) }
 end

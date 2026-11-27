@@ -582,6 +582,27 @@ do
 	Clean(env, K)
 end
 
+-- A racial whose sigil already has a published aura (Blood Fury's axe) burns that sheet on the second rail when the rail has
+-- no aura of its own for it: the sheet spans 1.25 times its sigil and loops at its own 1.44 s.
+do
+	local env, K, ns = New("MAGE", { known = { 12042, 20572 }, tree = 1 })
+	Awake(env)
+	local fury = Rail(ns).spare[1]
+	assert(fury and fury.key == "bloodFury", "Blood Fury stands on the second rail")
+	assert(fury.aura.loop, "Blood Fury's medal has an aura to burn")
+	local file = fury.aura.moving._state.Texture[1]
+	assert(file:find("Auras\\Sigils\\Axe.png", 1, true) and fury.aura.loop:IsPlaying(), "ready at Full: Blood Fury burns its axe aura")
+	assert(fury.aura.loop._anims[1]:GetDuration() == 1.44, "the axe sheet loops at its own 1.44 s")
+	local still
+	for _, region in ipairs(fury._regions) do
+		local texture = region._state and region._state.Texture
+		if texture and texture[1]:find("Textures\\Sigils\\Axe.png", 1, true) then still = region end
+	end
+	local w, mark = fury.aura.moving:GetWidth(), still:GetWidth()
+	assert(math.abs(w - mark * 1.25) <= 2, "the sheet spans 1.25 times the sigil (" .. w .. " against " .. mark .. ")")
+	Clean(env, K)
+end
+
 -- A cooldown the game hides mid-fight keeps the seat as it stood, with no error.
 do
 	local env, K, ns = New("MAGE", { known = { 12042, 11958 }, tree = 1 })
