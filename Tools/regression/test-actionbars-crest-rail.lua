@@ -284,6 +284,74 @@ do
 	Clean(env, K)
 end
 
+-- KSTY-103: Forever documents isOnGCD as trustworthy only while answering SPELL_UPDATE_COOLDOWN
+-- (SpellSharedDocumentation.lua, docs/FOREVER_API_AUDIT.md), so a rebuild must never light a cooling seat from it.
+-- Each spell's cooldown is { start, duration } and its flag what the game would answer at that moment.
+local function Readings(env)
+	local cds, flag = {}, {}
+	env.C_Spell.GetSpellCooldown = function(spell)
+		local c = cds[spell]
+		return { isActive = c ~= nil, isOnGCD = flag[spell] or false, startTime = c and c[1] or 0, duration = c and c[2] or 0, isEnabled = true }
+	end
+	return cds, flag
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = BM })
+	Awake(env)
+	local rail = Rail(ns)
+	local rapid, intimidate = rail.made.rapid, rail.made.intimidate
+	local cds, flag = Readings(env)
+	cds[3045], cds[19577], flag[19577] = { env._now, 300 }, { env._now, 1.5 }, true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(rapid.lit:GetAlpha() == 0 and intimidate.lit:GetAlpha() == 1, "the cooldown event reads Rapid Fire's 5 minutes as cooling and Intimidation's 1.5 s as the global cooldown")
+	flag[3045], flag[19577] = true, false
+	env.FireEvent("PET_BAR_UPDATE")
+	assert(rapid.lit:GetAlpha() == 0 and rapid.cold:GetAlpha() == 1 and not Burning(rapid), "a rebuild while the flag reads a stale true keeps Rapid Fire's cooling seat steel")
+	assert(intimidate.lit:GetAlpha() == 1 and Burning(intimidate) and not intimidate.relight:IsPlaying() and not intimidate.flare[1]:IsPlaying(),
+		"a rebuild in the same global cooldown keeps Intimidation gold and burning, with no flare, whatever the flag reads then")
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = BM })
+	Awake(env)
+	local rail = Rail(ns)
+	local rapid = rail.made.rapid
+	local cds, flag = Readings(env)
+	cds[3045], flag[3045] = { env._now, 1.5 }, true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(rapid.lit:GetAlpha() == 1, "Rapid Fire in the global cooldown stays ready")
+	K.Options.Write("ActionBars", "crestRail", false)
+	env._now = env._now + 2
+	cds[3045], flag[3045] = { env._now, 300 }, false
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	flag[3045] = true
+	K.Options.Write("ActionBars", "crestRail", true)
+	assert(rail.made.rapid == rapid and rapid:IsShown(), "the rail comes back with the same Rapid Fire seat")
+	assert(rapid.lit:GetAlpha() == 0 and rapid.cold:GetAlpha() == 1,
+		"Rapid Fire used while the rail was off shows steel when it returns, though the flag reads true and the seat's last reading was a global cooldown")
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = BM })
+	Awake(env)
+	local rail = Rail(ns)
+	local intimidate = rail.made.intimidate
+	local cds, flag = Readings(env)
+	K.Options.Write("ActionBars", "crestRail", false)
+	cds[19577], flag[19577] = { env._now, 1.5 }, true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	K.Options.Write("ActionBars", "crestRail", true)
+	assert(intimidate.lit:GetAlpha() == 0, "a rebuild in a global cooldown no event read for the rail cannot tell it from Intimidation's own, so the seat shows steel")
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(intimidate.lit:GetAlpha() == 1 and Burning(intimidate), "the next cooldown event reads only the global cooldown and lights the seat")
+	assert(not intimidate.relight:IsPlaying() and not intimidate.flare[1]:IsPlaying() and not intimidate.flare[2]:IsPlaying() and not intimidate.glinting:IsPlaying(),
+		"with no relight, flare or glint, as no cooldown of its own ended")
+	Clean(env, K)
+end
+
 do
 	local env, K, ns = New("HUNTER", { known = BM })
 	Awake(env)
