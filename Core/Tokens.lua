@@ -542,6 +542,9 @@ for _, name in ipairs({
 	TEXTURES[name].forged = true
 end
 TEXTURES.auraSocket = { file = "Textures\\Auras\\Socket.png" }
+for _, name in ipairs({ "Aimed", "Charm", "Deflect", "FireTrap", "Intimidate", "Paw", "Sniper", "Strider", "Volley" }) do
+	TEXTURES["railAura" .. name] = { file = "Textures\\Medallions\\Rail\\Aura" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+end
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do
