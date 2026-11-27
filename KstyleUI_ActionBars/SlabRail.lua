@@ -1,4 +1,4 @@
--- SlabRail.lua: the hunter's five-seat crest rail (docs/medallions-effects.md#hunter-crest-rail): up to four abilities of the talent tree the game names and the on-use trinket stand as forged medals on an arc above the crest (a flat row between the cooldown rows while the centred cast bars show), built only for the seats the hunter has; a ready seat burns with its sigil's animated Blender aura, breathes and is crossed by a glint, a press dips it, bursts and flashes its ring, a buffed major rises to the crown, where the engine shows the aura's own slot burning with a draining ring, a bead, a last-fifth notch and a countdown, the newest running buff, by your cast or its readable start, owns the crown (handed off by the engine's aura-shown signal), an ended one cools to steel and folds home, a dark sweep and a refilling steel ring count the cooldown under a small steel sigil and the medal relights with a flare; each flare or press claims the crest's one flare as a whole; the seats are chosen afresh only while the crest can be rebuilt, so the other trackers stand down only for the seats a shown rail placed, and a switched-off rail stays while locked until they can take their cues back; a hidden rail plays nothing, and no aura is read while auras are secret, an unseen buff dated once they read; Calm lights in place with still auras and no lift, burst or breathing, Off shows only lit, cooling and ready, a motion change or hiding stops what is in flight, and Lua never reads or compares a secret.
+-- SlabRail.lua: the hunter's five-seat crest rail (docs/medallions-effects.md#hunter-crest-rail): up to four abilities of the talent tree the game names and the on-use trinket stand as forged medals on an arc above the crest (a flat row between the cooldown rows while the centred cast bars show), built only for the seats the hunter has; a ready seat burns with its sigil's animated Blender aura, breathes and is crossed by a glint, a press dips it, bursts and flashes its ring, a buffed major rises to the crown, where the engine shows the aura's own slot burning with a draining ring, a bead, a last-fifth notch and a countdown, the newest running buff, by your cast or its readable start, owns the crown (handed off by the engine's aura-shown signal), an ended one cools to steel and folds home, a dark sweep and a refilling steel ring count the cooldown under a small steel sigil and the medal relights with a flare; each flare or press claims the crest's one flare as a whole; the seats are chosen afresh only while the crest can be rebuilt, so the other trackers stand down for the seats picked out of lockdown, take back at once the cues of any the rail could not show, and a switched-off rail stays while locked until they can take their cues back; a hidden rail plays nothing, and no aura is read while auras are secret, an unseen buff dated once they read; Calm lights in place with still auras and no lift, burst or breathing, Off shows only lit, cooling and ready, a motion change or hiding stops what is in flight, and Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -104,9 +104,21 @@ function Rail.Seats()
 	return seats
 end
 
+local function Named(seats)
+	local keys = {}
+	for i, at in ipairs(seats) do
+		keys[i] = at.key
+	end
+	return table.concat(keys, ",")
+end
+
 function Rail.Pick(form)
 	if not Medals.Locked() then
+		local was = Named(Rail.picked)
 		Rail.picked = form == "crest" and ns.Config("crestRail") ~= false and Rail.Seats() or NONE
+		if Named(Rail.picked) ~= was then
+			Rail.held = Rail.picked
+		end
 	end
 end
 
@@ -116,14 +128,6 @@ end
 
 function Rail.Holding()
 	return #Rail.held > 0 and Medals.Locked()
-end
-
-local function Named(seats)
-	local keys = {}
-	for i, at in ipairs(seats) do
-		keys[i] = at.key
-	end
-	return table.concat(keys, ",")
 end
 
 function Rail.Commit()
