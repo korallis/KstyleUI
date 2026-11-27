@@ -28,13 +28,13 @@ Twenty-four major cooldowns in the sets had no crest piece matched by spell ID w
 | Warrior | Intimidating Shout 5246 | 180 s | Row candidate | Crowd control aimed at enemies; it puts no buff on the player for a sigil to show |
 | Warrior | Disarm 676 | 60 s | Row candidate | As above |
 | Paladin | Repentance 20066 | 60 s | Row candidate | As above |
-| Hunter | Intimidation 19577 | 60 s | Hunter rail | A Beast Mastery seat on the hunter's crest rail, its cooldown counted on the medal |
+| Hunter | Intimidation 19577 | 60 s | Dedicated crest | A Beast Mastery seat on the crest rail, its cooldown counted on the medal; the second rail for the other trees |
 | Rogue | Blind 2094 | 300 s | Row candidate | As above |
 | Priest | Chastise 1277331 | 120 s | Row candidate | As above |
 | Priest | Confounding Flash 1277455 | 120 s | Row candidate | As above |
 | Druid | Challenging Roar 5209 | 600 s | Row candidate | A taunt on enemies; no buff on the player |
 | Paladin | Holy Wrath 2812 | 60 s | Row candidate | An attack with no lasting effect on the player |
-| Warlock | Soul Fire 6353 | 60 s | Row candidate | A cast attack; the cast ring shows it while it casts |
+| Warlock | Soul Fire 6353 | 60 s | Dedicated crest | A Demonology seat on the crest rail, filling a free seat; the cast ring shows it while it casts |
 | Warlock | Inferno 1122 | 3600 s | Row candidate | A summon used once an hour; the pet's own frame carries it |
 | Paladin | Lay on Hands 633 | 1200 s | Row candidate | An instant emergency heal with no buff to time |
 | Paladin | Divine Intervention 19752 | 3600 s | Row candidate | A sacrifice on another player, used once an hour |
@@ -43,7 +43,7 @@ Twenty-four major cooldowns in the sets had no crest piece matched by spell ID w
 | Druid | Rebirth 20484 | 1800 s | Row candidate | A resurrection on another player, out of the combat rotation |
 | Rogue | Preparation 14185 | 600 s | Row candidate | Its effect is a reset, which the crest shows on the cooldowns it resets |
 | Rogue | Premeditation 14183 | 120 s | Row candidate | Adds combo points, which the crest's combo pips already show |
-| Mage | Cold Snap 12472 | 600 s | Row candidate | Its effect is a reset, which the crest shows on the cooldowns it resets |
+| Mage | Cold Snap 12472 | 600 s | Dedicated crest | A Frost seat on the crest rail (the second rail for the other trees); its reset also shows on the cooldowns it resets |
 
 Matched by hand rather than by spell ID:
 
@@ -172,13 +172,28 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 | 60 | Ammo | The Auto Shot ring turns amber below 200 and red with none |
 | 61 | Potion and consumable cooldowns | A gem pendant on the left trinket seat (-33, -24) holding the first potion the bags carry from a best-first list of healing and mana potions, steel under a charging ring while potions cool down and ready again once they recharge, an empty bail with none (`C_Item.GetItemCount`, `GetItemCooldown`); the shared Potion sigil while the potion's buff runs |
 
+## Crest rail
+
+The crest rail ([medallions-effects.md](medallions-effects.md#crest-rail)) seats each talent tree's long cooldowns, then its rotation cooldowns, for the hunter, the mage and the warlock, from Forever class guides checked against Forever's spell data; the other classes have no rail yet. Long cooldowns beyond the four seats and the racials above stand on its second rail. These abilities have no rail medal, each for a recorded reason:
+
+| Class | Ability | Why it has no rail medal |
+| --- | --- | --- |
+| Hunter | Readiness | Not confirmed for any Forever tree by the guides or the client's spell data |
+| Mage | Icy Veins | As above |
+| Mage | Arcane Wrath | Already the crest's own charge piece (`crestSchool`); a medal would show it twice |
+| Mage | Cone of Cold | A Frost rotation cooldown past the tree's four seats; free seats take fills, the second rail takes long cooldowns only |
+| Warlock | Metamorphosis, Demonic Howl | Not confirmed for any Forever tree by the guides or the client's spell data |
+| Warlock | Conflagrate | Already the crest's own socket (`crestConflagrate`) |
+| Warlock | Inferno, Ritual of Doom | Summons used once an hour, out of every tree's rotation in the guides |
+| Warlock | Soulstone | A resurrection placed on the player before a fight, whose cooldown needs its own piece; not railed yet |
+
 ## Conditional racials
 
 Some racial spells sit in every class's set but only for the race that owns them. Those with a buff the player times are shared crest sigils (Blood Fury, Berserking, Stoneform, Perception, Will of the Forsaken, Shatter Curse, Elune's Light, Eureka!, Rapid Regeneration). The rest, Walk on Air 1259416, War Stomp, Escape Artist, Cannibalize, Shadowmeld, Will to Survive, Read Leyline and Skysight, are movement, escape or utility spells with no buff to time, so they are row candidates.
 
 ## Shorter cooldowns not classified here
 
-The ledger covers majors of 60 s or more and procs. Rotational spells under 60 s without a crest piece are not classified yet; the role-critical ones need the same review. The hunter's Strider Kick 1317257 (8 s cooldown, a 3 s buff), Sniper Shot, Aimed Shot and the fire traps now have seats on the hunter's crest rail (`KstyleUI_ActionBars/SlabRail.lua`).
+The ledger covers majors of 60 s or more and procs. Rotational spells under 60 s without a crest piece are not classified yet; the role-critical ones need the same review. The rotation cooldowns that fill a tree's free rail seats have seats on the crest rail (`KstyleUI_ActionBars/SlabRail.lua`): the hunter's Strider Kick 1317257 (8 s cooldown, a 3 s buff), Sniper Shot, Aimed Shot and the fire traps, the mage's Fire Blast, Blast Wave and Ice Barrier, and the warlock's Soul Fire and Shadowburn.
 
 ## Not yet proved
 

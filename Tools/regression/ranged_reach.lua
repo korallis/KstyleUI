@@ -1,4 +1,4 @@
--- ranged_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The hunter's cooldown rail is measured at its widest, four abilities and the trinket, with the pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out.
+-- ranged_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Reach = {}
@@ -120,6 +120,15 @@ local function Textures(frame, list)
 	return list
 end
 
+-- Each class's widest rail: four seats, the trinket and a full second rail of six, with the racials standing in for a
+-- character's one or two so every class fills it.
+local WIDEST = {
+	HUNTER = { 1293241, 19574, 3045, 19577, 14305, 19263, 20572, 20554, 20594, 1259799, 20600, 1260270, 13795, 24579, 14916, 19801 },
+	MAGE = { 12042, 12043, 12051, 11129, 11958, 12472, 2136, 20572, 20554, 1260270 },
+	WARLOCK = { 603, 18288, 6789, 18708, 6353, 17877, 20572, 20554, 1259821, 1299026, 7744, 1260270 },
+}
+local SPARES = 6
+
 function Reach.Check(sizes, classes)
 	local original, measured = dofile, nil
 	_G.dofile = function(path)
@@ -134,7 +143,7 @@ function Reach.Check(sizes, classes)
 		return result
 	end
 	_G.RENDER_SCENE_LIB, _G.RENDER_TRACKERS = true, "lit"
-	for _, run in ipairs({ { sizes = sizes }, { sizes = classes and classes[1] ~= "HUNTER" and {} or sizes, low = true } }) do
+	for _, run in ipairs({ { sizes = sizes }, { sizes = sizes, low = true } }) do
 	for _, size in ipairs(run.sizes) do
 		local low = run.low == true
 		_G.RENDER_CAST_ON_FRAME = low and "off" or nil
@@ -160,22 +169,20 @@ function Reach.Check(sizes, classes)
 			local x, y = (cast[1] + cast[3]) / 2 + (place.x - from.x) * k, cast[2] + (place.y - from.y) * k
 			rail[#rail + 1] = { x - box.width * k / 2, y, x + box.width * k / 2, y + box.height * k }
 		end
-		for _, class in ipairs(low and { "HUNTER" } or classes or { "HUNTER", "MAGE", "WARLOCK" }) do
+		for _, class in ipairs(classes or { "HUNTER", "MAGE", "WARLOCK" }) do
 			SAMPLES = {}
 			local _, ns = Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
-			if class == "HUNTER" then
-				local known = measured.C_SpellBook.IsSpellKnown
-				local widest = { [1293241] = true, [19574] = true, [3045] = true, [19577] = true, [14305] = true, [13795] = true, [24579] = true, [14916] = true, [19801] = true }
-				measured.C_SpellBook.IsSpellKnown = function(id, ...) return widest[id] or known(id, ...) end
-				measured.GetTotemInfo = measured.GetTotemInfo or function() return false, "", 0, 0, 0, 1, 0 end
-				measured.GetInventoryItemID = function(_, slot) return slot == 13 and 5002 or nil end
-				measured.C_Item.GetItemSpell = function(id) if id == 5002 then return "Use", 9002 end end
-				for i = 3, low and 4 or 0 do
-					measured.KstyleUI.Layout.Register(measured.CreateFrame("Frame"), FRAMES[i], measured.KstyleUI.Setup.Layouts.Default(FRAMES[i]))
-				end
-				ns.SlabHawks.Update()
-				ns.SlabTrackers.Update()
+			local known, widest = measured.C_SpellBook.IsSpellKnown, {}
+			for _, id in ipairs(WIDEST[class]) do widest[id] = true end
+			measured.C_SpellBook.IsSpellKnown = function(id, ...) return widest[id] or known(id, ...) end
+			measured.GetInventoryItemID = function(_, slot) return slot == 13 and 5002 or nil end
+			measured.C_Item.GetItemSpell = function(id) if id == 5002 then return "Use", 9002 end end
+			measured.GetTotemInfo = measured.GetTotemInfo or function() return false, "", 0, 0, 0, 1, 0 end
+			for i = 3, low and 4 or 0 do
+				measured.KstyleUI.Layout.Register(measured.CreateFrame("Frame"), FRAMES[i], measured.KstyleUI.Setup.Layouts.Default(FRAMES[i]))
 			end
+			if ns.SlabHawks then ns.SlabHawks.Update() end
+			ns.SlabTrackers.Update()
 			local solver = Scene.RectSolver(measured)
 			local hub = solver:rect(ns.Slab.hub)
 			local cx, unit = (hub[1] + hub[3]) / 2, (hub[3] - hub[1]) / ns.Slab.RING
@@ -201,8 +208,9 @@ function Reach.Check(sizes, classes)
 			local seated = ns.SlabTrackers.state.forms.crest.pieces
 			local railPiece
 			for _, p in pairs(seated) do railPiece = p.spec.key == "crestRail" and p or railPiece end
-			assert(class ~= "HUNTER" or railPiece and railPiece:IsShown() and #railPiece.order == 5 and #rail >= #ROW, at .. ": the hunter's rail is measured against the cooldown row")
-			assert(class ~= "HUNTER" or railPiece.low == low, at .. ": the rail takes its own flat row exactly while the centred cast bars show")
+			assert(railPiece and railPiece:IsShown() and #railPiece.order == 5 and #railPiece.spare == SPARES and #rail >= #ROW,
+				at .. " " .. class .. ": the rail's five seats and full second rail are measured against the cooldown row")
+			assert(railPiece.low == low, at .. ": the rail takes its own flat row exactly while the centred cast bars show")
 			for _, p in ipairs(pieces) do
 				for _, region in ipairs(p.regions) do
 					local texture = (region._barOwner and region or region)._state.Texture

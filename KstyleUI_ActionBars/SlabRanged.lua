@@ -1337,6 +1337,28 @@ if CLASS == "HUNTER" then
 		for _, id in ipairs(shot[1]) do SHOTS[id] = shot[2] end
 	end
 
+	ns.SlabRail.Register("HUNTER", {
+		color = "jewelHawk",
+		burst = "medBurstHunter",
+		abilities = {
+			rapid = { spells = { 3045 }, sigil = "Volley", unit = "player" },
+			wrath = { spells = { 19574 }, sigil = "Paw", unit = "pet" },
+			deter = { spells = { 19263 }, sigil = "Deflect", unit = "player" },
+			intimidate = { spells = { 19577 }, sigil = "Intimidate" },
+			trap = { spells = { 14305, 14304, 14303, 14302, 13795, 14317, 14316, 13813 }, sigil = "FireTrap" },
+			sniper = { spells = { 1310786, 1310785, 1310687 }, sigil = "Sniper" },
+			aimed = { spells = AIMED, sigil = "Aimed" },
+			strider = { spells = { 1317257 }, sigil = "Strider" },
+		},
+		majors = { "rapid", "wrath", "deter", "intimidate" },
+		trees = {
+			{ majors = { "wrath", "rapid", "intimidate" }, fill = { "trap" } },
+			{ majors = { "rapid" }, fill = { "sniper", "aimed", "trap" } },
+			{ majors = { "rapid" }, fill = { "trap", "strider" } },
+		},
+		signs = { { { 19574 }, { 19577 } }, { { 1310786, 1310785, 1310687 }, AIMED }, { { 19263 }, { 1317257 } } },
+	})
+
 	Trackers.Register("HUNTER", {
 		{ key = "crestShot", seat = EMBLEM, size = SHOT, feed = "usable", build = Shot, color = "giltLit", shots = SHOTS, looks = SHOWS,
 			groups = { COUNTER, MONGOOSE, AIMED, MULTI } },
@@ -1400,6 +1422,31 @@ if CLASS == "MAGE" then
 	local FIRE = { 412538, 11366, 12505, 12522, 12523, 12524, 12525, 12526, 18809, 133, 143, 145, 3140, 8400, 8401, 8402, 10148, 10149, 10150, 10151, 25306 }
 	local WINTERS = { 11180, 28592, 28593, 28594, 28595 }
 
+	local FIRE_BLAST = { 10199, 10197, 8413, 8412, 2138, 2137, 2136, 400623, 400622, 400621, 400620, 400616, 400619, 400618 }
+	ns.SlabRail.Register("MAGE", {
+		color = "pipMageGlow",
+		burst = "medBurstMage",
+		abilities = {
+			power = { spells = { 12042 }, sigil = "Arcane", unit = "player" },
+			presence = { spells = { 12043 }, sigil = "Hourglass", unit = "player" },
+			combustion = { spells = { 11129 }, buffs = { 11129, 28682 }, sigil = "Flame", unit = "player" },
+			block = { spells = { 11958 }, buffs = { 11958, 27619 }, sigil = "Crystal", unit = "player" },
+			evocation = { spells = { 12051 }, sigil = "Vortex", unit = "player" },
+			snap = { spells = { 12472 } },
+			blast = { spells = FIRE_BLAST },
+			wave = { spells = { 13021, 13020, 13019, 13018, 11113 } },
+			cone = { spells = { 10161, 10160, 10159, 8492, 120 } },
+			barrier = { spells = { 13033, 13032, 13031, 11426 } },
+		},
+		majors = { "power", "presence", "combustion", "block", "snap", "evocation" },
+		trees = {
+			{ majors = { "power", "presence" }, fill = { "blast" } },
+			{ majors = { "combustion" }, fill = { "blast", "wave" } },
+			{ majors = { "block", "snap", "evocation" }, fill = { "barrier", "cone" } },
+		},
+		signs = { { { 12042 }, { 12043 } }, { { 11129 }, { 11113 } }, { { 12472 }, { 11426 } } },
+	})
+
 	Trackers.Register("MAGE", {
 		{ key = "crestArmor", seat = At(BAND.armor), build = Armor, feed = "aura", spells = Trackers.Joined(FROST_ARMOR, MAGE_ARMOR),
 			feeds = { { spells = FROST_ARMOR, color = "schoolFrost", art = "glyphArmorFrost" },
@@ -1433,11 +1480,13 @@ if CLASS == "MAGE" then
 		} },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "pipMageGlow", families = { { spells = { 12042 }, sigil = "Arcane", major = true },
 			{ spells = { 12043 }, sigil = "Hourglass", major = true }, { spells = { 11129, 28682 }, known = { 11129 }, sigil = "Flame", major = true }, { spells = { 12051 }, sigil = "Vortex", major = true },
-			{ spells = { 11958, 27619 }, known = { 11958 }, sigil = "Crystal", major = true } } },
+			{ spells = { 11958, 27619 }, known = { 11958 }, sigil = "Crystal", major = true } }, railed = ns.SlabRail.Holds },
 		{ key = "crestWard", seat = "rim", build = Ward, place = Ring, feed = "aura", spells = WARDS, color = "rim", ward = true },
 		{ key = "crestClearcasting", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 12536 }, known = { 11213, 12574, 12575, 12576, 12577 },
 			color = "schoolArcane", proc = "schoolArcane" },
-	}, { burst = "medBurstMage", events = { { "UNIT_POWER_UPDATE", "player" } }, paint = Paint, figures = true })
+		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
+	}, { burst = "medBurstMage", pick = ns.SlabRail.Pick, commit = ns.SlabRail.Commit, rail = ns.SlabRail.Holds, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" },
+		events = { { "UNIT_POWER_UPDATE", "player" }, "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } }, paint = Paint, motion = Motion, figures = true })
 end
 
 if CLASS == "WARLOCK" then
@@ -1476,6 +1525,26 @@ if CLASS == "WARLOCK" then
 		end
 	end
 
+	ns.SlabRail.Register("WARLOCK", {
+		color = "jewelShard",
+		burst = "medBurstWarlock",
+		abilities = {
+			amplify = { spells = { 18288 }, sigil = "Curse", unit = "player" },
+			domination = { spells = { 18708 }, sigil = "Horns", unit = "player" },
+			doom = { spells = { 603 } },
+			coil = { spells = { 17926, 17925, 6789 } },
+			soulfire = { spells = { 17924, 6353 } },
+			shadowburn = { spells = { 18871, 18870, 18869, 18868, 18867, 17877 } },
+		},
+		majors = { "doom", "amplify", "coil", "domination" },
+		trees = {
+			{ majors = { "doom", "amplify", "coil" } },
+			{ majors = { "doom", "coil" }, fill = { "soulfire" } },
+			{ majors = { "doom", "amplify", "coil" }, fill = { "shadowburn" } },
+		},
+		signs = { { { 18288 } }, { { 18708 } }, { { 1293818, 1293817, 18932, 18931, 18930, 17962 }, { 18871, 18870, 18869, 18868, 18867, 17877 } } },
+	})
+
 	Trackers.Register("WARLOCK", {
 		{ key = "crestDemon", seat = At(BAND.left), choices = {
 			{ build = Pet, band = "left", light = "schoolNature", demons = SIGILS, known = DEMONS, active = Demon, feed = "aura", color = "jewelShard",
@@ -1499,7 +1568,7 @@ if CLASS == "WARLOCK" then
 		} },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelShard", families = { { spells = { 18288 }, sigil = "Curse", major = true },
 			{ spells = { 18708 }, sigil = "Horns", major = true }, { spells = { 6229, 11739, 11740, 28610 }, sigil = "Shade" },
-			{ spells = { 7812, 19438, 19440, 19441, 19442, 19443 }, known = {}, art = { 697 }, sigil = "Void" } } },
+			{ spells = { 7812, 19438, 19440, 19441, 19442, 19443 }, known = {}, art = { 697 }, sigil = "Void" } }, railed = ns.SlabRail.Holds },
 		{ key = "crestWisps", seat = "rim", build = Wisps, place = PlaceWisps, items = { 6265 },
 			known = function() return Medals.Known({ 1120, 8288, 8289, 11675 }) or Count(6265) > 0 and 1120 end },
 		{ key = "crestTorments", seat = "rim", build = Spires, place = PlaceSpires, spires = {
@@ -1515,10 +1584,14 @@ if CLASS == "WARLOCK" then
 		end },
 		{ key = "crestTrance", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 17941 }, known = { 18094, 18095 },
 			color = "jewelShard", proc = "jewelShard" },
+		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
 	}, {
 		burst = "medBurstWarlock",
-		events = { PET_EVENTS[1], PET_EVENTS[2], "BAG_UPDATE_DELAYED", "PLAYER_TARGET_CHANGED" },
-		update = { "UNIT_PET" },
+		pick = ns.SlabRail.Pick,
+		commit = ns.SlabRail.Commit,
+		rail = ns.SlabRail.Holds,
+		events = { PET_EVENTS[1], PET_EVENTS[2], "BAG_UPDATE_DELAYED", "PLAYER_TARGET_CHANGED", "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } },
+		update = { "UNIT_PET", "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" },
 		paint = Paint,
 		motion = Motion,
 		figures = true,

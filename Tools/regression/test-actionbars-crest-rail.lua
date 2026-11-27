@@ -1,4 +1,4 @@
--- test-actionbars-crest-rail.lua: the hunter's five-seat crest rail (KstyleUI_ActionBars/SlabRail.lua), as the crest plan (KSTY-60, KSTY-97) asks: the tree the game names stands its own known abilities, the trinket fifth; seven states driven by the game's own events at Full, Calm and Off (ready, pressed, active, about to end, ended, cooling, ready again), each ready seat burning with its animated aura; the newest running buff owns the crown; a motion change stops what is in flight; auras turning secret mid-fight raise no error; the rail holds its abilities back from the cooldown row and the trinket seat; the captain's choice moves it to its own flat row while the centred cast bars show; nothing runs OnUpdate.
+-- test-actionbars-crest-rail.lua: every class's five-seat crest rail (KstyleUI_ActionBars/SlabRail.lua), as the crest plan (KSTY-60, KSTY-97) asks: the tree the game names stands its own known abilities, its rotation cooldowns and then the class's other long cooldowns in any free seat, the trinket fifth, the long cooldowns beyond the seats as round medals on a second rail that rise to the crown like a seat, and the seats a player picks in the settings list; seven states driven by the game's own events at Full, Calm and Off (ready, pressed, active, about to end, ended, cooling, ready again), each ready seat burning with its animated aura; the newest running buff owns the crown; a motion change stops what is in flight; auras turning secret mid-fight raise no error; the rail holds its abilities back from the cooldown row and the trinket seat; the captain's choice moves it to its own flat row while the centred cast bars show; nothing runs OnUpdate.
 local R = dofile("Tools/regression/ranged_env.lua")
 local Slots, New, Seated, Updating, Clean = R.Slots, R.New, R.Seated, R.Updating, R.Clean
 
@@ -14,6 +14,12 @@ end
 local function Keys(rail)
 	local keys = {}
 	for i, seat in ipairs(rail.order) do keys[i] = seat.key end
+	return table.concat(keys, ",")
+end
+
+local function Spares(rail)
+	local keys = {}
+	for i, seat in ipairs(rail.spare) do keys[i] = seat.key end
 	return table.concat(keys, ",")
 end
 
@@ -76,14 +82,14 @@ local function Auras(env, list)
 	Slots.Set(env, "player", #auras > 0 and auras or nil)
 end
 
-for _, case in ipairs({ { 1, "wrath,rapid,intimidate,trap" }, { 2, "rapid,trap,sniper,aimed" }, { 3, "rapid,deter,trap,strider" } }) do
+for _, case in ipairs({ { 1, "wrath,rapid,intimidate,trap" }, { 2, "rapid,sniper,aimed,trap" }, { 3, "rapid,trap,strider,wrath" } }) do
 	local env, K, ns = New("HUNTER", { known = ALL, tree = case[1], trinket = true })
 	local rail = assert(Rail(ns), "a hunter who knows a rail ability sees the rail")
 	assert(Keys(rail) == case[2] .. ",trinket", "the tree the game names stands its own four abilities, then the trinket: " .. Keys(rail))
 	Clean(env, K)
 end
 
-for _, case in ipairs({ { BM, "wrath,rapid,intimidate,trap" }, { MM, "rapid,trap,sniper,aimed" }, { SV, "rapid,deter,trap,strider" } }) do
+for _, case in ipairs({ { BM, "wrath,rapid,intimidate,trap" }, { MM, "rapid,sniper,aimed,trap" }, { SV, "rapid,trap,strider,deter" } }) do
 	local env, K, ns = New("HUNTER", { known = case[1] })
 	assert(Keys(Rail(ns)) == case[2], "with no tree from the game, the tree's signature spells choose it: " .. Keys(Rail(ns)))
 	Clean(env, K)
@@ -94,10 +100,10 @@ do
 	local most = 3
 	env.C_SpecializationInfo = { GetSpecializationInfo = function(i) return i, "tree", "", 0, "DAMAGER", nil, i == most and 31 or 5 end }
 	env.FireEvent("PLAYER_TALENT_UPDATE")
-	assert(Keys(Rail(ns)) == "rapid,deter,trap,strider", "with no primary tree, the tree with the most points spent is chosen: " .. Keys(Rail(ns)))
+	assert(Keys(Rail(ns)) == "rapid,trap,strider,wrath", "with no primary tree, the tree with the most points spent is chosen: " .. Keys(Rail(ns)))
 	most = 2
 	env.FireEvent("PLAYER_TALENT_UPDATE")
-	assert(Keys(Rail(ns)) == "rapid,trap,sniper,aimed", "respending the points re-seats the rail with the same spells known: " .. Keys(Rail(ns)))
+	assert(Keys(Rail(ns)) == "rapid,sniper,aimed,trap", "respending the points re-seats the rail with the same spells known: " .. Keys(Rail(ns)))
 	Clean(env, K)
 end
 
@@ -118,7 +124,7 @@ do
 	wrath.home:SetScript("OnPlay", function() folded = true end)
 	tree = 2
 	env.FireEvent("ACTIVE_TALENT_GROUP_CHANGED")
-	assert(Keys(rail) == "rapid,trap,sniper,aimed", "switching trees re-seats the rail with the same spells known: " .. Keys(rail))
+	assert(Keys(rail) == "rapid,sniper,aimed,trap", "switching trees re-seats the rail with the same spells known: " .. Keys(rail))
 	assert(not wrath:IsShown() and not wrath.aura.loop:IsPlaying() and not wrath.breath:IsPlaying(), "the dropped seat stops its aura and breathing")
 	assert(not folded and rail.owner ~= wrath, "the dropped seat gives up the crown without starting a fold home")
 	Clean(env, K)
@@ -474,8 +480,9 @@ end
 
 do
 	local env, K, ns = New("HUNTER", { known = { 13165, 883, 75, 19574, 3045, 19263, 14305, 1317257 }, tree = 3 })
-	local row = Seated(ns, "crestCooldowns")
-	assert(row and Hunter(row) == "Paw", "a survival rail leaves Bestial Wrath on the cooldown row")
+	local rail, row = Rail(ns), Seated(ns, "crestCooldowns")
+	assert(rail and Keys(rail) == "rapid,trap,strider,wrath" and Spares(rail) == "deter" and not (row and Hunter(row) ~= ""),
+		"a survival rail seats its own tree, Bestial Wrath in its free seat and Deterrence on the second rail, so no cooldown row is left")
 	Clean(env, K)
 end
 
@@ -506,6 +513,175 @@ end
 do
 	local env, K, ns = New("HUNTER", { known = BM, frames = true })
 	assert(not Rail(ns), "Frames builds no rail")
+	Clean(env, K)
+end
+
+-- The mage's and warlock's rails, per tree from the Forever guides read for the crest plan (KSTY-97): the tree's long cooldowns,
+-- its rotation cooldowns in any free seat, then the class's other long cooldowns; a long cooldown beyond the four seats stands as a
+-- round medal on the second rail.
+local MAGE = { 12042, 12043, 12051, 11129, 11958, 12472, 2136, 11113, 120, 11426 }
+local WARLOCK = { 603, 18288, 6789, 18708, 6353, 17877 }
+for _, case in ipairs({
+	{ "MAGE", MAGE, 1, "power,presence,blast,combustion", "block,snap,evocation" },
+	{ "MAGE", MAGE, 2, "combustion,blast,wave,power", "presence,block,snap,evocation" },
+	{ "MAGE", MAGE, 3, "block,snap,evocation,barrier", "power,presence,combustion" },
+	{ "WARLOCK", WARLOCK, 1, "doom,amplify,coil,domination", "" },
+	{ "WARLOCK", WARLOCK, 2, "doom,coil,soulfire,amplify", "domination" },
+	{ "WARLOCK", WARLOCK, 3, "doom,amplify,coil,shadowburn", "domination" },
+}) do
+	local env, K, ns = New(case[1], { known = case[2], tree = case[3], trinket = true })
+	local rail = assert(Rail(ns), case[1] .. ": a caster who knows a rail ability sees the rail")
+	local at = case[1] .. " tree " .. case[3]
+	assert(Keys(rail) == case[4] .. ",trinket", at .. ": the tree's seats, then the trinket: " .. Keys(rail))
+	assert(Spares(rail) == case[5], at .. ": the other long cooldowns stand on the second rail: " .. Spares(rail))
+	for _, seat in ipairs(rail.spare) do
+		assert(seat.small and seat.size < rail.order[1].size, at .. ": a second-rail medal is smaller than a seat")
+	end
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("MAGE", { known = { 12042, 11958, 116 }, tree = 1 })
+	local rail = Rail(ns)
+	assert(Keys(rail) == "power,block" and Spares(rail) == "", "a mage with only Arcane Power and Ice Block seats both, Ice Block in the free seat")
+	local row = Seated(ns, "crestCooldowns")
+	for _, b in ipairs(row and row.sigils or {}) do
+		assert(not (b.at and (b.family.sigil == "Arcane" or b.family.sigil == "Crystal")), "the railed cooldowns leave the cooldown row")
+	end
+	Clean(env, K)
+end
+
+-- Seven states on a seat whose sigil has no baked aura yet: the still sigil stands in, at Full, Calm and Off.
+do
+	local env, K, ns = New("MAGE", { known = { 12042, 12043, 11958 }, tree = 1 })
+	Awake(env)
+	local rail = Rail(ns)
+	local power = rail.made.power
+	assert(power.aura.loop == false and power.lit:GetAlpha() == 1 and power.breath:IsPlaying(), "ready at Full: Arcane Power's seat lights and breathes with its still sigil")
+	Cast(env, 12042)
+	assert(power.dip:IsPlaying() and power.bursting:IsPlaying() and power.rise:IsPlaying() and power.gate:GetAlpha() == 1, "pressed at Full: the seat dips, bursts and rises to the crown")
+	Auras(env, { { 12042, 15 } })
+	assert(power.crowned:IsShown() and power.burn:GetAlpha() == 1, "active: the crown shows the aura's own slot with the sigil")
+	Cooling(env, 12042, true)
+	assert(power.lit:GetAlpha() == 0 and power.cold:GetAlpha() == 1 and not power.breath:IsPlaying(), "cooling: the seat goes steel under its steel mark")
+	Auras(env, {})
+	assert(power.home:IsPlaying(), "ended at Full: the crowned medal folds home")
+	assert(Cooled(env, power) and power.flare[1]:IsPlaying(), "ready again at Full: the seat relights with a flare")
+	Motion(env, K, "calm")
+	assert(power.lit:GetAlpha() == 1 and not power.breath:IsPlaying(), "ready at Calm: lit without breathing")
+	Cast(env, 12042)
+	assert(not power.rise:IsPlaying() and not power.dip:IsPlaying(), "pressed at Calm: no dip or rise")
+	Motion(env, K, "off")
+	Auras(env, { { 12042, 15 } })
+	assert(power.gate:GetAlpha() == 0, "active at Off: no crown")
+	Clean(env, K)
+end
+
+-- A cooldown the game hides mid-fight keeps the seat as it stood, with no error.
+do
+	local env, K, ns = New("MAGE", { known = { 12042, 11958 }, tree = 1 })
+	Awake(env)
+	local power = Rail(ns).made.power
+	Cooling(env, 12042, true)
+	env.C_Spell.GetSpellCooldown = function() return { isActive = env.Secret(true), isOnGCD = env.Secret(false) } end
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(power.lit:GetAlpha() == 0 and power.cold:GetAlpha() == 1, "a hidden cooldown leaves a cooling seat steel")
+	Cooled(env, power)
+	assert(power.lit:GetAlpha() == 1, "and the engine's own sweep end still relights it")
+	Clean(env, K)
+end
+
+-- A second-rail medal whose cooldown buffs takes the crown when pressed, like a seat, popping there in place rather than flying
+-- over the unit frame beside it.
+do
+	local env, K, ns = New("MAGE", { known = { 12042, 12043, 2136, 11129, 11958 }, tree = 1 })
+	Awake(env)
+	local rail = Rail(ns)
+	assert(Keys(rail) == "power,presence,blast,combustion" and Spares(rail) == "block", "Ice Block stands on the second rail")
+	local block = rail.spare[1]
+	Cast(env, 11958)
+	assert(block.struck and block.dip:IsPlaying() and block.rise:IsPlaying() and block.gate:GetAlpha() == 1, "pressed: the small medal dips and its crown pops in place")
+	assert(select(1, block.out:GetOffset()) == 0 and select(2, block.out:GetOffset()) == 0, "the crown's lift starts at the crown, not at the small medal")
+	Auras(env, { { 27619, 10 } })
+	assert(block.crowned:IsShown() and rail.owner == block, "active: its buff, by the aura's own id, owns the crown")
+	Clean(env, K)
+end
+
+-- A spell with no drawn sigil yet shows its own round icon, greyed while it cools.
+do
+	local env, K, ns = New("MAGE", { known = { 12472, 11958, 12051 }, tree = 3 })
+	local rail = Rail(ns)
+	local snap = rail.made.snap
+	local function Icon(frame)
+		for _, region in ipairs(frame._regions) do
+			local texture = region._state and region._state.Texture
+			if texture and texture[1] == 1000000 + 12472 then return region end
+		end
+	end
+	local face, mark = Icon(snap), Icon(snap.cold)
+	local function Grey(region) return (region._state.Desaturated or {})[1] == true end
+	assert(face and not Grey(face), "Cold Snap's seat draws the spell's own icon in colour")
+	assert(mark and Grey(mark), "and greys it for the steel mark over the cooldown")
+	Clean(env, K)
+end
+
+-- The settings list: a known ability the player picks takes its seat, a displaced long cooldown moves to the second rail, and an
+-- unknown or unlearned pick falls back to the tree's choice.
+do
+	local env, K, ns = New("MAGE", { known = MAGE, tree = 1, trinket = true })
+	env.C_Spell.GetSpellName = function(id) return "spell " .. id end
+	local values = {}
+	for _, option in ipairs(ns.SlabRail.Choices()) do values[#values + 1] = option.value end
+	assert(table.concat(values, ",") == ",power,presence,combustion,block,snap,evocation,blast,wave,barrier,cone",
+		"the list offers the tree's choice, then every known ability of the class's lists: " .. table.concat(values, ","))
+	K.Options.Write("ActionBars", "crestRailSeat1", "evocation")
+	env.RunTimers()
+	local rail = Rail(ns)
+	assert(Keys(rail) == "evocation,power,presence,blast,trinket" and Spares(rail) == "combustion,block,snap",
+		"a picked seat takes its place and the rest move along: " .. Keys(rail) .. " | " .. Spares(rail))
+	K.Options.Write("ActionBars", "crestRailSeat3", "cone")
+	env.RunTimers()
+	assert(Keys(rail) == "evocation,power,cone,presence,trinket" and Spares(rail) == "combustion,block,snap",
+		"a picked rotation cooldown takes its seat and the seat it displaced moves along: " .. Keys(rail) .. " | " .. Spares(rail))
+	K.Options.Write("ActionBars", "crestRailSeat1", "nothing")
+	K.Options.Write("ActionBars", "crestRailSeat3", "")
+	env.RunTimers()
+	assert(Keys(rail) == "power,presence,blast,combustion,trinket", "an unknown pick falls back to the tree's choice: " .. Keys(rail))
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("MAGE", { known = { 12042, 11958 }, tree = 1 })
+	K.Options.Write("ActionBars", "crestRailSeat2", "evocation")
+	env.RunTimers()
+	assert(Keys(Rail(ns)) == "power,block", "an unlearned pick falls back to the tree's choice")
+	Clean(env, K)
+end
+
+-- The second rail stands clear of the main rail and the crown on the arc and on the low row.
+do
+	local env, K, ns = New("MAGE", { known = MAGE, tree = 3, trinket = true })
+	local holder = env.CreateFrame("Frame")
+	K.Layout.Register(holder, "unitframes.castbar.player", { anchor = "CENTER", x = 0, y = 0 })
+	local rail = Rail(ns)
+	for _, low in ipairs({ false, true }) do
+		K.Layout.SetLive("unitframes.castbar.player", low)
+		local placed = {}
+		for _, list in ipairs({ rail.order, rail.spare, { rail.crown } }) do
+			for _, f in ipairs(list) do
+				local _, _, _, x, y = f:GetPoint(1)
+				placed[#placed + 1] = { x, y, (f.size or f.units) / 2 }
+			end
+		end
+		for i = 1, #placed do
+			for j = i + 1, #placed do
+				local a, b = placed[i], placed[j]
+				local gap = math.sqrt((a[1] - b[1]) ^ 2 + (a[2] - b[2]) ^ 2) - a[3] - b[3]
+				assert(gap >= 0, (low and "low row" or "arc") .. ": no two medals overlap (" .. i .. ", " .. j .. ")")
+			end
+		end
+	end
+	assert(Updating(rail) == 0, "nothing on either rail runs OnUpdate")
 	Clean(env, K)
 end
 

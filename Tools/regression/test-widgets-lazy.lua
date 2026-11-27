@@ -298,7 +298,9 @@ do
 	-- The hunter's crest rail burns each seat with an animated aura, as the captain asked: a still and a burning copy on each seat, a glint,
 	-- a steel sigil that stays readable while the seat cools, and on each crowned major a signal, a last-fifth notch and the crown's own
 	-- burning aura. The cooldown row keeps one sigil per crowned buff and hides the ones the rail seats (one piece, not one per combination),
-	-- so together they take the hunter's limit from 5,168 to 5,222.
+	-- so together they take the hunter's limit from 5,168 to 5,222. The rail then came to the mage and the warlock, and every
+	-- class's rail gained a second rail of smaller medals for the long cooldowns past the four seats and the racial (27
+	-- regions on the lit hunter).
 	-- The potion sigil every class's rail carries burns as an aura (a fire, a still and its figure drawn black beneath, in
 	-- place of one flat texture): 2 more for each class, and the druid's Dash sigil does the same on each of its form rails: 12.
 	-- The mage's and warlock's marks, cooldown sigils and soul wisps burn as auras the same way, as the captain asked: a fire and a

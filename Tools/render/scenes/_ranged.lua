@@ -5,9 +5,11 @@
 -- change at its own time, so a run of RENDER_TRACKERS_T frames is the story as a clip. RENDER_TRACKERS_BUILD picks
 -- another build or level band, whose fields replace the class's: a hunter's rail (the five-seat cooldown rail: Intimidation
 -- cast at 1 s, a fire trap at 2 s (ready again at 17 s), Rapid Fire at 4 s (its buff to 19 s), the trinket used at 7 s and Bestial Wrath at
--- 9 s (the pet's buff to 27 s), each cooling only from its cast), melee or level 8 build, a mage's arcane,
--- fire (Fire Vulnerability at three stacks), frost (Winter's Chill embers) or level 10 build, a warlock's felhunter (Spell Lock
--- cooling), imp, voidwalker or succubus (that demon out, chosen through the pet's spellbook as the felhunter's Spell Lock
+-- 9 s (the pet's buff to 27 s), each cooling only from its cast), melee or level 8 build, a mage's rail (an Arcane rail: Presence
+-- of Mind at 1 s, Fire Blast at 2 s, Arcane Power at 4 s, the trinket at 7 s and Evocation on the second rail at 9 s), arcane,
+-- fire (Fire Vulnerability at three stacks), frost (Winter's Chill embers) or level 10 build, a warlock's rail (a Destruction rail: Bane of Doom at 1 s,
+-- Shadowburn at 2 s, Amplify Curse at 4 s, Death Coil at 6 s, the trinket at 7 s and Fel Domination on the second rail at 9 s),
+-- felhunter (Spell Lock cooling), imp, voidwalker or succubus (that demon out, chosen through the pet's spellbook as the felhunter's Spell Lock
 -- chooses it), curses (each of the five curses on the target in turn, one at a time as
 -- the game allows: RENDER_TRACKERS=moment at RENDER_TRACKERS_T 1.5, 3.5, 5.5, 7.5 and 9.5), sacrifice (Demonic Sacrifice of the Imp, Death Coil cooling;
 -- every summon known, so RENDER_TRACKERS_SWAP=18789:18790, 18789:18791 or 18789:18792 sacrifices the Voidwalker, Succubus or Felhunter instead), nodemon or level 8 build, each caster's sigils build (every
@@ -24,7 +26,7 @@
 -- compass, a pet that knows Screech (its debuff on the target from 5.5 s) and Growl at 70 focus, and three Healing Potions, one drunk at 5 s.
 -- RENDER_RANGE=far|melee|shot sets what reaches the target: nothing (the emblem rings red), only melee (gilt) or the shot (no ring); each knows Raptor Strike, and the default
 -- when unset reads no answer. RENDER_CAST_ON_FRAME=off gives the action bars the
--- centred cast bars' layout elements the unit frames register in the game, so the hunter's rail takes its own flat row.
+-- centred cast bars' layout elements the unit frames register in the game, so each class's rail takes its own flat row.
 -- RENDER_TRACKERS_MOTION=calm|off sets Medallions motion before the story, so Calm and Off show what each keeps of it. The hunter's
 -- default story keeps the cooldown rail on, so Rapid Fire at 4 s feeds the rail and the crest's gust waits for Quick Shots at 5 s:
 -- a gust still or clip starts after 5 s and reads the strip across the ring's inner band, not the rail. A mage's crest
@@ -102,6 +104,12 @@ local STORIES = {
 				auras = { { unit = "player", id = 12042, icon = 136048, at = 1, duration = 15 }, { unit = "player", id = 12043, icon = 136031, at = 1.5, duration = 30 },
 					{ unit = "player", id = 11129, icon = 135824, at = 2, duration = 15 }, { unit = "player", id = 12051, icon = 136075, at = 2.5, duration = 8 },
 					{ unit = "player", id = 11958, icon = 135865, at = 3, duration = 10 } } },
+			rail = { known = { 7302, 759, 11426, 118, 116, 2139, 122, 12042, 12043, 12051, 2136, 11958 },
+				cooling = { [12043] = { 1, 180 }, [2136] = { 2, 8 }, [12042] = { 4, 180 }, [12051] = { 9, 480 } },
+				casts = { { 1, 12043 }, { 2, 2136 }, { 4, 12042 }, { 7, 9002 }, { 9, 12051 } }, trinket = { item = 5002, spell = 9002, used = 7, cooldown = 120 },
+				icons = { [12043] = 136031, [12051] = 136075, [2136] = 135807 },
+				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "player", id = 12043, icon = 136031, at = 1, duration = 2.5 },
+					{ unit = "player", id = 12042, icon = 136048, at = 4, duration = 15 }, { unit = "player", id = 12051, icon = 136075, at = 9, duration = 8 } } },
 			breakout = { known = { 7302, 759, 118, 116, 2139, 122, 1326079 }, cooling = { [1326079] = { 4.6, 4 }, [2139] = { 5.6, 5.6 } },
 				items = { [5514] = { icon = 134104, steps = { { 0, 1 } }, used = 7.4, cooldown = 120 } },
 				auras = { { unit = "player", id = 7302, icon = 135843, at = 1.4, duration = 9.5, warn = 10 },
@@ -147,6 +155,12 @@ local STORIES = {
 			{ unit = "player", id = 17941, icon = 136200, at = 5, duration = 10 },
 		},
 		builds = {
+			rail = { known = { 172, 980, 348, 18265, 688, 6201, 1120, 706, 702, 1293817, 603, 18288, 6789, 17877, 18708 },
+				cooling = { [603] = { 1, 60 }, [17877] = { 2, 15 }, [18288] = { 4, 180 }, [6789] = { 6, 120 }, [18708] = { 9, 900 } },
+				casts = { { 1, 603 }, { 2, 17877 }, { 4, 18288 }, { 6, 6789 }, { 7, 9002 }, { 9, 18708 } }, trinket = { item = 5002, spell = 9002, used = 7, cooldown = 120 },
+				icons = { [603] = 136122, [6789] = 136145, [17877] = 136191, [18708] = 136082 },
+				auras = { { unit = "target", id = 348, icon = 135817, at = 0.5, duration = 15, harmful = true }, { unit = "target", id = 603, icon = 136122, at = 1, duration = 60, harmful = true },
+					{ unit = "player", id = 18288, icon = 136132, at = 4, duration = 30 }, { unit = "player", id = 18708, icon = 136082, at = 9, duration = 15 } } },
 			felhunter = { known = { 172, 980, 348, 18265, 691, 19244, 6201, 1120, 702, 1293817 }, cooling = { [19244] = { 4, 24 } } },
 			breakout = { known = { 172, 980, 348, 18265, 691, 19244, 18788, 6201, 1120, 702, 1293817, 6789 }, cooling = { [19244] = { 4.8, 24 }, [6789] = { 0, 10.4 } },
 				pet = { gone = 7.4, steps = { { 0, 0 }, { 5, 0.45 } } },
