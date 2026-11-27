@@ -454,7 +454,7 @@ local function BuildCrest(hub)
 	crest:AddMaskTexture(mask)
 	crest.pulse = Group(crest)
 	Grow(crest.pulse, 1, PULSE_SCALE, PULSE_RUN)
-	Grow(crest.pulse, PULSE_SCALE, 1, PULSE_RUN, 2)
+	Grow(crest.pulse, 1, 1 / PULSE_SCALE, PULSE_RUN, 2)
 	hub.crest = crest
 
 	local bloom = Region(hub, "ARTWORK", 1, nil, true)

@@ -14,7 +14,7 @@ local RIM, CORONA, MASK, LINE, ROW_CORONA, ROW_GLOW, EMBERS = 150, 212, 184, 154
 local FLIP, BREATH, BREATH_LOW, TURN = 0.96, 0.7, 0.85, 90 / (2.25 * 1.5)
 local WHITE, WARM = 0.55, 0.6
 local BURST = { 0.85, 1.45, 0.5 }
-local LIFT = { { 1, 1.06, 0.12 }, { 1.06, 1.03, 0.25 }, { 1.03, 1.03, 0.6, "NONE" }, { 1.03, 1, 0.6 } }
+local LIFT = { { 1.06, 0.12 }, { 1.03, 0.25 }, { 1.03, 0.6, "NONE" }, { 1, 0.6 } }
 local FOLD, FOLD_RUN, COOL_RUN = 1.12, 0.4, 0.6
 local GATES = { "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }
 local sets, tints, state, NONE = {}, {}, { ids = {} }, {}
@@ -287,8 +287,10 @@ local function OnCast(_, _, _, spell)
 	end
 	if not hub.crest.lift then
 		hub.crest.lift = hub.crest:CreateAnimationGroup()
+		local was = 1
 		for i, s in ipairs(LIFT) do
-			ns.Slab.Grow(hub.crest.lift, s[1], s[2], s[3], i, s[4])
+			ns.Slab.Grow(hub.crest.lift, 1, s[1] / was, s[2], i, s[3])
+			was = s[1]
 		end
 	end
 	hub.crest.lift:Stop()

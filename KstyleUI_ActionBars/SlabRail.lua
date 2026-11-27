@@ -486,7 +486,7 @@ local function Seat(r, at)
 	ns.Slab.Fade(seat.flash, 1, 0, FLASH_RUN)
 	seat.dip = ns.Slab.Group(seat)
 	Grow(seat.dip, 1, DIP, DIP_RUN, 1)
-	Grow(seat.dip, DIP, 1, DIP_RUN, 2)
+	Grow(seat.dip, 1, 1 / DIP, DIP_RUN, 2)
 	seat.welcome = Cue({ seat.flare[1], seat.flare[2], seat.glinting }, 2 * GLINT_RUN + CLAIM_PAD)
 	seat.struck = Cue({ seat.bursting, seat.dip, seat.flash }, BURST_RUN + CLAIM_PAD)
 	return seat
@@ -634,17 +634,18 @@ local function Major(r, seat, ability)
 	local last = first + legs - 1
 	seat.out = Move(seat.rise, 0, 0, 0.001, 1, "NONE")
 	Grow(seat.rise, from, from, 0.001, 1)
+	seat.base = seat.small and spark or from
 	if seat.small then
-		Grow(seat.rise, from, spark, run, 2)
+		Grow(seat.rise, 1, spark / from, run, 2)
 	end
 	seat.legs = {}
 	for i = 1, legs do
 		seat.legs[i] = Move(seat.rise, 0, 0, run, first + i - 1, i == legs and "OUT" or "IN_OUT")
 	end
 	local land = seat.small and last + 1 or last
-	seat.pop = Grow(seat.rise, seat.small and spark or from, POP, POP_RUN, land)
+	seat.pop = Grow(seat.rise, 1, POP / seat.base, POP_RUN, land)
 	seat.turns = { Turn(seat.rise, TURN, seat.small and POP_RUN or run, land, "OUT") }
-	seat.settle = Grow(seat.rise, POP, 1, SETTLE_RUN, land + 1)
+	seat.settle = Grow(seat.rise, 1, 1 / POP, SETTLE_RUN, land + 1)
 	seat.turns[2] = Turn(seat.rise, -TURN, SETTLE_RUN, land + 1, "IN_OUT")
 	seat.rise:SetScript("OnFinished", function()
 		if r.rising == seat then
@@ -662,7 +663,7 @@ local function Major(r, seat, ability)
 	for i = 1, legs do
 		seat.trail[i] = Move(seat.home, 0, 0, run, first + i - 1, "IN_OUT")
 	end
-	Grow(seat.home, seat.small and spark or 1, size / CROWN, run, land)
+	Grow(seat.home, 1, size / CROWN / (seat.small and spark or 1), run, land)
 	ns.Slab.Fade(seat.home, 1, 0, run, land)
 	r.majors[#r.majors + 1] = seat
 end
@@ -689,8 +690,8 @@ local function Aim(r, seat)
 		seat.trail[1]:SetOffset(dx, dy)
 	end
 	local pop, turn = r.low and 1 or POP, r.low and 0 or TURN
-	seat.pop:SetScaleTo(pop, pop)
-	seat.settle:SetScaleFrom(pop, pop)
+	seat.pop:SetScaleTo(pop / seat.base, pop / seat.base)
+	seat.settle:SetScaleTo(1 / pop, 1 / pop)
 	seat.turns[1]:SetDegrees(turn)
 	seat.turns[2]:SetDegrees(-turn)
 end

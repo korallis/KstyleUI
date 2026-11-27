@@ -1,6 +1,7 @@
 -- ranged_reach.lua: Reach.Check(sizes, classes, only) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. With only set to a piece's key (crestRail), only that piece is measured, with no hawk perches, so one class's rail can be checked at a size where another of its pieces is not yet clear. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
+local Pose = dofile("Tools/regression/anim_pose.lua")
 local Reach = {}
 
 local RING = { crestGust = true, crestClearcasting = true, crestTrance = true, crestWard = true, crestAutoShot = true, crestCooldowns = true, crestFiveSecond = true }
@@ -70,60 +71,13 @@ local function Cells(region)
 	return 1, 1
 end
 
--- Eased(anim, at) -> how far the animation has run at time at of its group's pass, 0 to 1, through its smoothing.
-local function Eased(anim, at)
-	local p = math.max(0, math.min(1, (at - anim.from) / math.max(anim.run, 1e-6)))
-	local smoothing = anim.anim._state.Smoothing and anim.anim._state.Smoothing[1] or "NONE"
-	if smoothing == "OUT" then return 1 - (1 - p) ^ 2 end
-	if smoothing == "IN" then return p * p end
-	if smoothing == "IN_OUT" then return p < 0.5 and 2 * p * p or 1 - 2 * (1 - p) ^ 2 end
-	return p
-end
-
--- Passes(group) -> its Translation, Rotation and Scale animations, each with the time it starts and runs for in one pass, and the pass's
--- times worth sampling: each start, end and the instant before each end, where a later animation taking over would hide its peak, and 48 steps between.
-local function Passes(group)
-	local orders, timed, times, start = {}, {}, { 0 }, 0
-	for _, anim in ipairs(group._anims or {}) do
-		local order = anim._state.Order and anim._state.Order[1] or 1
-		orders[order] = orders[order] or {}
-		table.insert(orders[order], anim)
-	end
-	for order = 1, 64 do
-		local longest = 0
-		for _, anim in ipairs(orders[order] or {}) do
-			local delay, run = anim._state.StartDelay and anim._state.StartDelay[1] or 0, anim._state.Duration and anim._state.Duration[1] or 0
-			longest = math.max(longest, delay + run)
-			if anim._type == "Translation" or anim._type == "Rotation" or anim._type == "Scale" then
-				timed[#timed + 1] = { anim = anim, from = start + delay, run = run }
-				times[#times + 1], times[#times + 2], times[#times + 3] = start + delay, start + delay + run, start + delay + run * 0.999
-			end
-		end
-		start = start + longest
-	end
-	for i = 1, 48 do times[#times + 1] = start * i / 48 end
-	return timed, times
-end
-
--- Samples(group) -> the group's offset, turn and scale at each sampled time of its pass, worked out once per group and check.
+-- Samples(group) -> the group's offset, turn and scale at each sampled time of its pass (anim_pose.lua), worked out once per group and check.
 local function Samples(group)
 	if not SAMPLES[group] then
-		local timed, times = Passes(group)
+		local timed, times = Pose.Passes(group)
 		local list = {}
 		for _, time in ipairs(#timed > 0 and times or {}) do
-			local x, y, turn, scale, latest = 0, 0, 0, 1, -1
-			for _, each in ipairs(timed) do
-				local p, state = Eased(each, time), each.anim._state
-				if each.anim._type == "Translation" then
-					local ox, oy = unpack(state.Offset or { 0, 0 })
-					x, y = x + (ox or 0) * p, y + (oy or 0) * p
-				elseif each.anim._type == "Rotation" then
-					turn = turn + (state.Degrees and state.Degrees[1] or 0) * p
-				elseif time >= each.from and each.from >= latest then
-					local from, to = (state.ScaleFrom or { 1 })[1] or 1, (state.ScaleTo or { 1 })[1] or 1
-					scale, latest = from + (to - from) * p, each.from
-				end
-			end
+			local x, y, turn, scale = Pose.At(timed, time)
 			list[#list + 1] = { x, y, math.cos(math.rad(turn)), math.sin(math.rad(turn)), scale }
 		end
 		SAMPLES[group] = list

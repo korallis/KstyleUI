@@ -1,6 +1,7 @@
 -- test-actionbars-crest-rail.lua: every class's five-seat crest rail (KstyleUI_ActionBars/SlabRail.lua), as the crest plan (KSTY-60, KSTY-97) asks: the tree the game names stands its own known abilities, its rotation cooldowns and then the class's other long cooldowns in any free seat, the trinket fifth, the long cooldowns beyond the seats as round medals on a second rail that rise to the crown like a seat, and the seats a player picks in the settings list; seven states driven by the game's own events at Full, Calm and Off (ready, pressed, active, about to end, ended, cooling, ready again), each ready seat burning with its animated aura; the newest running buff owns the crown; a motion change stops what is in flight; auras turning secret mid-fight raise no error; the rail holds its abilities back from the cooldown row and the trinket seat; the captain's choice moves it to its own flat row while the centred cast bars show; nothing runs OnUpdate.
 local R = dofile("Tools/regression/ranged_env.lua")
 local Slots, New, Seated, Updating, Clean = R.Slots, R.New, R.Seated, R.Updating, R.Clean
+local Pose = dofile("Tools/regression/anim_pose.lua")
 
 local BM = { 13165, 883, 75, 19574, 3045, 19577, 14305 }
 local MM = { 13165, 883, 75, 3045, 14305, 1310786, 20904 }
@@ -850,10 +851,14 @@ do
 	local dx, dy = sx - cx, sy - cy
 	assert(dx < -60 and dy > 20, "the medal stands left of and above the crown (" .. dx .. ", " .. dy .. ")")
 	local function at(anim) local x, y = anim:GetOffset() return x .. "," .. y end
+	-- Scales(group) -> each size step's order and the size the group's steps together give when it ends.
 	local function Scales(group)
-		local out = {}
-		for _, anim in ipairs(group._anims or {}) do
-			if anim._type == "Scale" then out[#out + 1] = anim:GetOrder() .. ":" .. string.format("%.3f", (anim._state.ScaleTo or {})[1]) end
+		local timed, out = Pose.Passes(group), {}
+		for _, each in ipairs(timed) do
+			if each.anim._type == "Scale" then
+				local _, _, _, scale = Pose.At(timed, each.from + each.run)
+				out[#out + 1] = each.anim:GetOrder() .. ":" .. string.format("%.3f", scale)
+			end
 		end
 		return table.concat(out, " ")
 	end
@@ -865,10 +870,15 @@ do
 		.. string.format("%.3f", 1.29 / 1.21) .. " 7:1.000", "it shrinks to a 4-unit spark where it stands and pops only once it has landed (" .. Scales(block.rise) .. ")")
 	assert(at(block.trail[1]) == "0,8" and at(block.trail[2]) == dx .. ",0" and at(block.trail[3]) == "0," .. (dy - 8),
 		"the fold home runs the same lane backwards")
+	assert(Scales(block.home) == "2:" .. string.format("%.3f", 4 / 34) .. " 6:" .. string.format("%.3f", 22 / 34),
+		"and shrinks back to the spark for the lane, landing at the small medal's own size (" .. Scales(block.home) .. ")")
 	local seat = rail.order[1]
 	local _, _, _, ax, ay = seat:GetPoint(1)
 	assert(#seat.legs == 1 and at(seat.legs[1]) == (cx - ax) .. "," .. (cy - ay) and at(seat.trail[1]) == (ax - cx) .. "," .. (ay - cy),
 		"a seat on the main rail still flies straight to the crown and back")
+	assert(Scales(seat.rise) == "1:" .. string.format("%.3f", 28 * 0.86 / 34) .. " 2:" .. string.format("%.3f", 1.29 / 1.21) .. " 3:1.000",
+		"it leaves at its dipped size, pops at the crown and settles to the crown's size (" .. Scales(seat.rise) .. ")")
+	assert(Scales(seat.home) == "2:" .. string.format("%.3f", 28 / 34), "and folds home to the seat's own size (" .. Scales(seat.home) .. ")")
 	K.Layout.Register(env.CreateFrame("Frame"), "unitframes.castbar.player", { anchor = "CENTER", x = 0, y = 0 })
 	K.Layout.SetLive("unitframes.castbar.player", false)
 	K.Layout.SetLive("unitframes.castbar.player", true)
@@ -879,6 +889,8 @@ do
 	assert(dx < -20, "on the flat row the first small medal stands left of the crown (" .. dx .. ")")
 	assert(at(block.legs[1]) == "0," .. (-22 - dy) and at(block.legs[2]) == -dx .. ",0" and at(block.legs[3]) == "0,22"
 		and at(block.trail[1]) == "0,-22" and at(block.trail[3]) == "0," .. (dy + 22), "and runs the lane 22 units under the row both ways")
+	assert(Scales(block.rise) == "1:" .. string.format("%.3f", 22 * 0.86 / 34) .. " 2:" .. string.format("%.3f", 4 / 34) .. " 6:1.000 7:1.000",
+		"and lands at the crown's size with no pop (" .. Scales(block.rise) .. ")")
 	Auras(env, { { 27619, 10 } })
 	assert(block.crowned:IsShown() and rail.owner == block, "active: its buff, by the aura's own id, owns the crown")
 	Clean(env, K)
