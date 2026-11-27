@@ -809,7 +809,7 @@ function Medals.Medal(parent, spec, level)
 	return m
 end
 
-function Medals.Fill(piece, bar, aura, size, color, bare)
+function Medals.Fill(piece, bar, aura, size, color, bare, plain)
 	if not aura then
 		return nil
 	end
@@ -830,12 +830,15 @@ function Medals.Fill(piece, bar, aura, size, color, bare)
 		lights = {}
 		local flame, calm, still = Medals.Gates(piece, lit, bar:GetFrameLevel() + 1, true, bare)
 		for name, copy in pairs({ flame = flame, calm = calm, bare = still }) do
-			local under = CreateFrame("StatusBar", nil, copy)
-			under:SetAllPoints(bar)
-			under:SetStatusBarTexture(fill:GetTexture())
-			under:GetStatusBarTexture():SetAlpha(0)
-			bar.copies[#bar.copies + 1] = { button = copy, bar = under }
+			local under = copy
+			if not plain then
+				under = CreateFrame("StatusBar", nil, copy)
+				under:SetAllPoints(bar)
+				under:SetStatusBarTexture(fill:GetTexture())
+				under:GetStatusBarTexture():SetAlpha(0)
+			end
 			lights[name] = Clip(under)
+			bar.copies[#bar.copies + 1] = { button = copy, bar = plain and lights[name] or under }
 		end
 	end
 	local clip = lights and lights.calm or Clip(bar)
@@ -889,7 +892,7 @@ function Medals.Figure(parent, spec, level)
 		bar:SetMinMaxValues(0, 1)
 		bar:SetValue(1)
 		f.lazy = each.learn and function() return Medals.Known(each.learn) ~= nil end
-		lit.aura = Medals.Fill(f, bar, select(5, Tokens.Texture(each.figure)), size, each.color, lit.container and not (each.charges or each.steady))
+		lit.aura = Medals.Fill(f, bar, select(5, Tokens.Texture(each.figure)), size, each.color, lit.container and not (each.charges or each.steady), not each.charges)
 		f.lazy = nil
 		local alpha = each.alpha or 1
 		bar:SetAlpha(alpha)
