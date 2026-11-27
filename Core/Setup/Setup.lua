@@ -1,4 +1,4 @@
--- Setup.lua: the first-run setup's choices, Apply (the HUD style, positions, the layout's module settings, the Look, the controls, the arrangement, the layout's name and its Edit Mode write, which Try again repeats), and when the setup window opens.
+-- Setup.lua: the first-run setup's choices, Apply (the HUD style, positions, the layout's module settings, the Look, the controls, the interface size, the arrangement, the layout's name and its Edit Mode write, which Try again repeats), and when the setup window opens.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -278,28 +278,40 @@ end
 
 local applying = false
 
-local function Restyle()
+local function Restyle(stamped)
 	local layout = ns.Layout
 	local name = layout and layout.Setting and layout.Setting("preset")
 	if applying or not name or Setup.EditMode.ActiveName() ~= name then
 		return
 	end
 	ns.Combat.Queue(function()
-		Setup.EditMode.Restyle(name, Setup.Story(name, GuideLoaded()))
+		Setup.EditMode.Restyle(name, Setup.Story(name, GuideLoaded()), stamped)
 	end)
 end
 
-ns.Callbacks.Register("HudStyleChanged", "Setup", Restyle)
+ns.Callbacks.Register("HudStyleChanged", "Setup", function() Restyle() end)
 ns.Callbacks.Register("SettingChanged", "Setup", function(_, module, key)
 	if Layouts.LiftSetting(module, key) then Restyle() end
 end)
 
-local aspect, band, lane = ns.Scale.Aspect(), ns.Scale.Band()
+local function Screen()
+	if type(GetPhysicalScreenSize) == "function" then return GetPhysicalScreenSize() end
+end
+
+local aspect, band, lane, factor = ns.Scale.Aspect(), ns.Scale.Band(), nil, Setup.EditMode.Factor()
+local rootWidth, rootHeight
+local screenWidth, screenHeight = Screen()
 ns.Callbacks.Register("ScaleChanged", "Setup", function()
-	local width = Setup.EditMode.WarningLane()
-	if ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band or (lane and width ~= lane) then
+	local width, k = Setup.EditMode.WarningLane(), Setup.EditMode.Factor()
+	local rw, rh = Setup.RootSize()
+	local sw, sh = Screen()
+	local rescaled = math.abs(k - factor) > 1e-3 or (rootWidth and (math.abs(rw - rootWidth) > 0.5 or math.abs(rh - rootHeight) > 0.5))
+	local resized = sw ~= screenWidth or sh ~= screenHeight
+	factor, rootWidth, rootHeight, screenWidth, screenHeight = k, rw, rh, sw, sh
+	local scaled = rescaled and not resized
+	if scaled or ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band or (lane and width ~= lane) then
 		aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
-		Restyle()
+		Restyle(scaled)
 	end
 	lane = width
 end)
@@ -339,6 +351,7 @@ function Setup.Apply(picked)
 	local setup = ns.Store.Module("Setup")
 	if setup.looks and picked.look then Setup.Looks.Apply(picked.look) end
 	if setup.controls and picked.controls then Setup.Looks.ApplyControls(picked.controls) end
+	if picked.uiScale then Setup.Looks.ApplySize(picked.uiScale) end
 	if setup.layoutPictures and setup.bigPictures and ns.Scale.ARRANGEMENT[picked.arrangement] and picked.arrangement ~= ns.Scale.Arrangement() then ns.Options.Write("Layout", "arrangement", picked.arrangement) end
 	local hudStyle = ns.HudStyle.Valid(picked.hudStyle) and picked.hudStyle
 	if hudStyle then

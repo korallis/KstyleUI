@@ -139,8 +139,16 @@ do
 		for _, restyle in ipairs({ false, true }) do
 			if restyle then page:Restyle() end
 			W.Settle(env)
-			local want = step == 1 and grown or 540
-			assert(panel.opts.height == want and (step == 1 or panel:GetHeight() < 541), string.format("step %d%s: only the welcome page grows the window; restore 540 units off it (height %.2f)", step, restyle and " after a restyle" or "", panel:GetHeight()))
+			if step == 2 then
+				local top = panel.next:GetTop()
+				for _, region in ipairs({ panel.sizeTabs, panel.sizeNote }) do
+					assert(region:IsShown() and region:GetBottom() >= top, string.format("step 2%s: the Interface size row clears the footer (bottom %.2f, footer top %.2f)", restyle and " after a restyle" or "", region:GetBottom(), top))
+				end
+				assert(panel.opts.height > 540 and panel.opts.height < grown, string.format("step 2%s: the HUD style page grows only by its Interface size row (height %.2f)", restyle and " after a restyle" or "", panel.opts.height))
+			else
+				local want = step == 1 and grown or 540
+				assert(panel.opts.height == want and (step == 1 or panel:GetHeight() < 541), string.format("step %d%s: only the welcome page grows the window; restore 540 units off it (height %.2f)", step, restyle and " after a restyle" or "", panel:GetHeight()))
+			end
 		end
 	end
 end

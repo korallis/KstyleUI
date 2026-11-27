@@ -1,4 +1,4 @@
--- Scale.lua: the KstyleUI_Root canvas (the whole screen, or under the Centred arrangement a centred band on a screen wider than the HUD width setting allows), its layout class (16:9, 21:9 or 32:9), the inset of that band under Spread, where group and boss frames stay, the automatic pixel-perfect size and the whole-physical-pixel maths.
+-- Scale.lua: the KstyleUI_Root canvas (the whole screen, or under the Centred arrangement a centred band on a screen wider than the HUD width setting allows), its layout class (16:9, 21:9 or 32:9), the inset of that band under Spread, where group and boss frames stay, the automatic pixel-perfect size or the size that follows the game's UI scale, and the whole-physical-pixel maths.
 local _, ns = ...
 
 local Scale = {}
@@ -33,6 +33,7 @@ Scale.ASPECTS, Scale.ASPECT_FROM = ASPECTS, ASPECT_FROM
 local state = {
 	user = DEFAULT_USER_SCALE,
 	auto = true,
+	game = false,
 	maximum = MAX_USER_SCALE,
 	effectiveUser = DEFAULT_USER_SCALE,
 	height = REFERENCE_HEIGHT,
@@ -255,7 +256,10 @@ Scale.Nearest, Scale.Auto = Nearest, Auto
 local function Apply()
 	local screen, height = PhysicalSize()
 	local width, band = CanvasWidth(screen, height), BandWidth(screen, height)
-	local parent, user, auto = ParentScale(), state.user, state.auto
+	local parent, user, auto, game = ParentScale(), state.user, state.auto, state.game
+	if game then
+		user, auto = min(MAX_USER_SCALE, max(MIN_USER_SCALE, parent / REFERENCE_SCALE)), false
+	end
 	local last = state.applied
 	if not state.dirty and last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[6] == screen and last[7] == auto and last[8] == band then
 		return
@@ -311,7 +315,7 @@ local function Apply()
 		root:SetAllPoints(UIParent)
 	end
 	Fire("ScaleChanged")
-	if added and not auto and user > maximum and effectiveUser < previous - 1e-9 then
+	if added and not auto and not game and user > maximum and effectiveUser < previous - 1e-9 then
 		ns.Print(string.format(ns.L["HUD resized to %.1f%% to keep enabled elements on screen and apart."], effectiveUser * 100))
 	end
 end
@@ -448,6 +452,21 @@ function Scale.IsAuto()
 	return state.auto
 end
 
+function Scale.IsGame()
+	return state.game
+end
+
+function Scale.SetGame(on)
+	if type(on) ~= "boolean" then
+		return false
+	end
+	if on ~= state.game then
+		state.game = on
+		Request("the game's UI scale setting")
+	end
+	return true
+end
+
 function Scale.SetAuto(on)
 	if type(on) ~= "boolean" then
 		return false
@@ -511,6 +530,7 @@ end)
 ns.Callbacks.Register("ProfileChanged", "Scale", function()
 	state.dirty = true
 	if ns.Appearance then
+		Scale.SetGame(ns.Appearance.Get("uiScaleGame"))
 		Scale.SetAuto(ns.Appearance.Get("uiScaleAuto"))
 		Scale.SetUserScale(ns.Appearance.Get("uiScale"))
 	end

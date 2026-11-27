@@ -33,6 +33,7 @@ Appearance.defaults = {
 	fontScale = 1,
 	uiScale = Scale.DEFAULT_USER_SCALE,
 	uiScaleAuto = true,
+	uiScaleGame = false,
 	snapEdges = true,
 	motion = "full",
 	calmLists = true,
@@ -106,6 +107,11 @@ local CLEAN = {
 		end
 	end,
 	uiScaleAuto = function(v)
+		if type(v) == "boolean" then
+			return v
+		end
+	end,
+	uiScaleGame = function(v)
 		if type(v) == "boolean" then
 			return v
 		end
@@ -211,6 +217,7 @@ local APPLY = {
 	fontScale = Theme.SetFontScale,
 	uiScale = Scale.SetUserScale,
 	uiScaleAuto = Scale.SetAuto,
+	uiScaleGame = Scale.SetGame,
 	motion = Motion.SetLevel,
 	auraEndings = function() ns.Callbacks.Fire("ThemeChanged") end,
 	outline = Theme.SetOutline,
@@ -221,7 +228,7 @@ for _, role in ipairs(ROLES) do
 	APPLY[ROLE_KEY[role]] = ApplyRoleFonts
 end
 for key in pairs(READABILITY) do APPLY[key] = ApplyReadability end
-local ORDER = { "accentColor", "accentSource", "typeSet", "font", "fontScale", "uiScaleAuto", "uiScale", "motion", "outline" }
+local ORDER = { "accentColor", "accentSource", "typeSet", "font", "fontScale", "uiScaleGame", "uiScaleAuto", "uiScale", "motion", "outline" }
 
 function Appearance.Get(key)
 	local clean = CLEAN[key]
@@ -393,15 +400,22 @@ function Appearance.Schema()
 		{ type = "toggle", key = "snapEdges", label = L["Snap hard edges"],
 			help = L["Keep window borders and chat tab underlines on whole pixels. Off restores their original placement."] },
 		{
+			type = "toggle", key = "uiScaleGame", label = L["Follow the game's UI scale"],
+			help = L["Grow and shrink KstyleUI with the UI Scale in the game's options, up to the largest size that fits."],
+		},
+		{
 			type = "toggle", key = "uiScaleAuto", label = L["Interface size: Auto (pixel perfect)"],
 			help = L["Sizes KstyleUI for your screen so every edge lands on a whole pixel."],
+			showWhen = function(settings)
+				return settings.uiScaleGame ~= true
+			end,
 		},
 		{
 			type = "slider", key = "uiScale", label = L["Interface size"],
 			help = L["Makes every KstyleUI element larger or smaller, in whole-pixel steps."],
 			min = Scale.MIN_USER_SCALE, max = Scale.MAX_USER_SCALE, step = SIZE_STEP,
 			showWhen = function(settings)
-				return settings.uiScaleAuto == false
+				return settings.uiScaleAuto == false and settings.uiScaleGame ~= true
 			end,
 		},
 		{ type = "header", label = L["Readability"] },

@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The release workflow hands the packager the tagged version's section of that file, so CurseForge, Wago and the GitHub release each show that version's notes; the zip carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.3.5.3: follow the game's UI Scale (2026-11-27)
+
+KstyleUI sizes itself pixel perfect by default, which cancels the game's UI Scale. Players who use that slider can now turn on Follow the game's UI scale under General > Size, or pick Game's UI scale in setup's HUD style step. KstyleUI then grows and shrinks with the game's UI Scale, up to the largest size that fits the screen. Pixel perfect stays the default, so the HUD's size only changes for players who pick the new choice. Separately, windows that setup placed in Edit Mode, such as the quest tracker and damage meter, now keep their place on screen when the game's UI Scale changes, while cooldown viewers you moved yourself stay where you put them. A damage meter placed by a setup from before this version needs setup applied again before it follows.
+
 ## 0.3.5.2: the HUD keeps its size with any bar shape (2026-11-27)
 
 This hotfix fixes two problems with action bar shapes. A bar shape that overlapped the other bars at every size used to shrink the whole HUD below its usual size; the HUD now keeps its size. When bar 1 or bar 2 takes two rows, the bars used to cover the player frame; now bar 2 (under Frames) and the frames above the bars move up by the added row, while frames you placed by hand in Layout Mode stay where you put them. CurseForge and Wago now show this version's notes with the file, as the GitHub release page does.
