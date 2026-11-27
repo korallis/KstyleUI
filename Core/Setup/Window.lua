@@ -1045,8 +1045,8 @@ FitStyles = function(retried)
 	Place(panel.sizeCaption, panel.sizeTabs, panel.sizeNote, controls and panel.padTabs or looks and panel.lookTabs or panel.styleHint)
 	if page:IsVisible() then
 		local rise = 2 * Widgets.Border(panel)
-		local row = math.ceil((Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing) / rise) * rise
-		local base = HEIGHT + row + (controls and row or 0)
+		local row = Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing
+		local base = HEIGHT + math.ceil((controls and 2 or 1) * row / rise) * rise
 		Widgets.Size(panel, WIDTH, base)
 		local lowest, top = panel.styleHint:GetBottom(), panel.next:GetTop()
 		for _, region in ipairs({ panel.lookTabs, panel.lookNote, panel.padTabs, panel.padNote, panel.sizeTabs, panel.sizeNote }) do
