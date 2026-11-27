@@ -922,15 +922,26 @@ do
 	Clean(env, K)
 end
 -- With every seat held by a long cooldown, a rotation cooldown takes no place, not even on the second rail.
-for class, fill in pairs({ WARRIOR = 12292, PALADIN = 26573, ROGUE = 408 }) do
-	local known = { fill }
+for _, case in ipairs({ { "WARRIOR", 12292, 1 }, { "WARRIOR", 12809, 3 }, { "PALADIN", 26573, 1 }, { "ROGUE", 408, 1 } }) do
+	local class, tree = case[1], case[3]
+	local known = { case[2] }
 	for _, id in ipairs(MELEE[class]) do known[#known + 1] = id end
-	local env, K, ns = New(class, { known = known, tree = 1, trinket = true })
+	local env, K, ns = New(class, { known = known, tree = tree, trinket = true })
 	local keys = Keys(Rail(ns)) .. " | " .. Spares(Rail(ns))
 	Clean(env, K)
-	env, K, ns = New(class, { known = MELEE[class], tree = 1, trinket = true })
+	env, K, ns = New(class, { known = MELEE[class], tree = tree, trinket = true })
 	local without = Keys(Rail(ns)) .. " | " .. Spares(Rail(ns))
-	assert(keys == without, class .. ": a full rail leaves the rotation cooldown out: " .. keys .. " against " .. without)
+	assert(keys == without, class .. " tree " .. tree .. ": a full rail leaves the rotation cooldown out: " .. keys .. " against " .. without)
+	Clean(env, K)
+end
+-- A night elf's Elune's Light burns the Star on the second rail, so a sparse rail's stun fill must not burn the same mark beside it.
+for _, case in ipairs({ { "WARRIOR", { 1719, 12975, 12809, 1259799 }, 3, "concussion" }, { "ROGUE", { 14177, 408, 1259799 }, 1, "kidney" } }) do
+	local env, K, ns = New(case[1], { known = case[2], tree = case[3] })
+	Awake(env)
+	local rail = Rail(ns)
+	local fill, elune = rail.made[case[4]], rail.spare[1]
+	assert(fill and elune and Spares(rail) == "eluneLight", case[1] .. ": the fill seats and Elune's Light stands on the second rail: " .. Keys(rail) .. " | " .. Spares(rail))
+	assert(fill.ability.sigil ~= elune.ability.sigil and fill.aura.loop and elune.aura.loop, case[1] .. ": the fill and Elune's Light burn different marks: " .. tostring(fill.ability.sigil))
 	Clean(env, K)
 end
 

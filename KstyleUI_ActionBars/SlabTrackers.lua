@@ -704,7 +704,7 @@ if CLASS == "WARRIOR" then
 			fear = { spells = { 5246 }, sigil = "Farseer" },
 			challenge = { spells = { 1161 }, sigil = "Brave" },
 			sweeping = { spells = { 12292 }, sigil = "Sweep" },
-			concussion = { spells = { 12809 }, sigil = "Star" },
+			concussion = { spells = { 12809 }, sigil = "Vortex" },
 		},
 		majors = { "reck", "wish", "wall", "stand", "retaliation", "bloodrage", "disarm", "mocking", "fear", "challenge" },
 		trees = {
@@ -873,7 +873,7 @@ if CLASS == "ROGUE" then
 			premeditation = { spells = { 14183 }, sigil = "Focus" },
 			preparation = { spells = { 14185 }, sigil = "Moon" },
 			blind = { spells = { 2094 }, sigil = "Veil" },
-			kidney = { spells = { 8643, 408 }, sigil = "Star" },
+			kidney = { spells = { 8643, 408 }, sigil = "Vortex" },
 		},
 		majors = { "rush", "flurry", "cold", "vanish", "evasion", "sprint", "premeditation", "preparation", "blind" },
 		trees = {
