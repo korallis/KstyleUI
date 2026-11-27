@@ -308,10 +308,10 @@ do
 	-- The hunter's new homes take it from 5,224 to 5,345: the pet's family ability perch lights a cooldown and two ringed aura feeds (the pet's debuff
 	-- on the target and Furious Howl), each aura feed with its two motion copies (114 regions), the potion pendant (12), Growl's orders and
 	-- the tracking mark's still glyphs (4 each), the range ring and the pet's focus bar, less the forged bodies the tracking mark gave up.
-	-- Tranquilizing Shot's glyph on the lower left foot takes it to 5,351 (6).
+	-- Tranquilizing Shot's glyph on the lower left foot takes it to 5,350 (6).
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5351, MAGE = 4953, WARLOCK = 5227 }) do
+	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5350, MAGE = 4953, WARLOCK = 5227 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")
