@@ -163,4 +163,25 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- A resolution change keeps the rule from before this hotfix, as the owner chose: setup re-places an unstamped
+-- viewer too, so older layouts adapt to the new screen (only game UI Scale and Follow changes leave it alone).
+do
+	local state = { saved = { { layoutName = "Mine", layoutType = F.ACCOUNT, systems = F.Modern().systems } }, active = 1 }
+	local screen = { 1920, 1080 }
+	local env, K = W.New({ boot = false, width = 1920, height = 1080, uiScale = DEFAULT_GAME_SCALE, size = "auto", setup = function(e)
+		F.Install(e, state)
+		e.GetPhysicalScreenSize = function() return screen[1], screen[2] end
+	end })
+	CoreEnv.Boot(env)
+	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
+	env.RunTimers()
+	K.Store.Account().editModeRows["KstyleUI DPS"][F.BUFF_BAR] = nil
+	F.Find(F.Named(state, "KstyleUI DPS"), F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX = 100
+	screen[1], screen[2] = 2560, 1440
+	SetGameScale(env, DEFAULT_GAME_SCALE, 2560, 1440)
+	local bars = F.Find(F.Named(state, "KstyleUI DPS"), F.VIEWER, F.BUFF_BAR).anchorInfo
+	assert(not near(bars.offsetX, 100), "a resolution change re-places an unstamped buff bar viewer, as before this hotfix")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("scale game ok")
