@@ -1,12 +1,13 @@
--- anim_pose.lua: what one pass of an animation group's Translation, Rotation and Scale animations applies at a time, by the client's rule:
+-- anim_pose.lua: what one pass of an animation group's Translation, Rotation and Scale animations applies at a time, under the rule Pose.MULTIPLY names:
 -- Pose.Passes(group) -> its timed animations and the times worth sampling; Pose.At(timed, time) -> offset x, y, turn in degrees and scale.
 -- ranged_reach.lua sweeps the crest's pieces through it, and the crest's motion and rail tests check each Scale chain's path with it.
 local Pose = {}
 
--- How the client composes a group's Scale animations once each has started: true multiplies each onto the ones before it, a finished
+-- The rule taken for how the client composes a group's Scale animations once each has started: true multiplies each onto the ones before it, a finished
 -- one holding its end until the group ends; false lets the latest started one replace the others. Offsets and turns always add.
 -- Forever's own interface writes its relative chains for multiplying (the prey widget grows 1 to 1.1, then 1 to 0.909091), so the
--- crest's chains are written that way; docs/TESTING.md's red-square check settles it in the client, and false lists every chain to rewrite.
+-- crest's chains assume it, though the client has not confirmed it; docs/TESTING.md's red-square check tests it there. With false,
+-- test-actionbars-crest-motion stops at the first crest chain written for multiplying.
 Pose.MULTIPLY = true
 
 -- Eased(each, at) -> how far the timed animation has run at time at of its group's pass, 0 to 1, through its smoothing.
