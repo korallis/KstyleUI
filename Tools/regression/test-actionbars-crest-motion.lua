@@ -836,8 +836,9 @@ do
 	bloom:Stop()
 	Slots.Set(env, "target", {})
 
-	-- Calm keeps one still arrival cue, on the still copy, which takes the flare place like any flare while the unseen bloom claims nothing; Off has no cue.
-	local still = assert(lit.mark.still:GetParent():GetParent().flare, "the head's still copy holds a still arrival cue").still
+	-- Calm keeps one still arrival cue, on a copy bound for Calm whose layer only Calm lights, which takes the flare place like any flare while the unseen bloom
+	-- claims nothing; Off has no cue.
+	local still = assert(lit.cues and lit.cues.lit.flare, "the head has a cue copy bound for Calm").still
 	Motion(env, K, "calm")
 	Cast(118)
 	assert(still:IsPlaying() and Effects.Holder("crestFlare") ~= nil, "at Calm a new Polymorph holds the head still for one pass in the flare place")
@@ -848,8 +849,36 @@ do
 	Slots.Set(env, "target", {})
 	Motion(env, K, "off")
 	Cast(118)
-	assert(not still:IsPlaying() and Effects.Holder("crestFlare") == nil and flames:GetAlpha() == 0, "Off shows no arrival cue and claims nothing")
+	assert(lit.cues:GetAlpha() == 0 and Effects.Holder("crestFlare") == nil and flames:GetAlpha() == 0, "Off shows no arrival cue and claims nothing")
 	Slots.Set(env, "target", {})
+
+	-- In a pull the copies keep the bindings made before it, so the level chosen there decides at once whether a fresh aura's cue shows: from Calm, Off shows
+	-- the steady mark with no cue; from Off, Calm shows the cue. Nothing is bound while auras are secret (the slots refuse it).
+	local function Pull(on)
+		env._aurasSecret = on or nil
+		env.SetCombat(on)
+		env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+		env.RunTimers()
+	end
+	for _, path in ipairs({ { "calm", "off" }, { "off", "calm" } }) do
+		Motion(env, K, path[1])
+		Pull(true)
+		Motion(env, K, path[2])
+		env._now = (env._now or 0) + 10
+		Cast(path[2] == "off" and 118 or 12826)
+		local what = path[1] .. " to " .. path[2] .. " in the pull: "
+		env._engine = true
+		if path[2] == "off" then
+			assert(lit.cues:GetAlpha() == 0 and Effects.Holder("crestFlare") == nil and stills:GetAlpha() == 1, what .. "a fresh aura shows its steady mark with no cue")
+		else
+			assert(still:IsPlaying() and lit.cues:GetAlpha() == 1 and Effects.Holder("crestFlare") ~= nil, what .. "a fresh aura's still cue shows at once in the flare place")
+		end
+		env._engine = nil
+		env.RunTimers()
+		Slots.Set(env, "target", {})
+		Pull(false)
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 
 	Motion(env, K, "calm")
 	env._aurasSecret = true

@@ -410,6 +410,33 @@ function Medals.Gates(piece, lit, level, still)
 	return lit.lights.flame, lit.lights.calm
 end
 
+function Medals.Cue(piece, lit, level, at, art, fire, size, from)
+	local token = select(5, Tokens.Texture(art))
+	if Medals.twin or not token or not fire or not fire.still then
+		return nil
+	end
+	local shared = lit.share and lit.share.cues
+	local gate = Mirror(piece, lit, level, "cues")
+	gate.lit.burns = "calm"
+	if not shared then
+		Medals.Gate(gate, not Effects.Allows("ambient") and Effects.Allows("flare") and not ns.Slab.Resting() and 1 or 0)
+		gates[#gates + 1] = gate
+	end
+	lit.cues = gate
+	local seat = CreateFrame("Frame", nil, gate.lit)
+	seat:SetFrameLevel(gate.lit:GetFrameLevel() + 1)
+	seat:SetAllPoints(at)
+	local mark = piece.add(Cell(Medals.Texture(seat, "ARTWORK", 0, token, "white", size * select(5, Tokens.Flipbook(token)), "ADD"), token, AURA_STILL))
+	mark:SetVertexColor(fire.still:GetVertexColor())
+	mark:SetAlpha(0)
+	local cue = mark:CreateAnimationGroup()
+	ns.Slab.Grow(cue, from, from, HELD)
+	ns.Slab.Fade(cue, 1, 1, HELD)
+	cue.held = HELD
+	gate.lit.flare = { still = cue, gate = gate }
+	return mark
+end
+
 function Medals.Lights(piece, lit, level, at, key, filter, options)
 	local hosts = {}
 	if Medals.twin then
