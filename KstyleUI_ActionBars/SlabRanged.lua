@@ -495,6 +495,8 @@ local function Haunch(m, level, k, x, y)
 	return feed
 end
 
+local Mourn
+
 local function Lost(m, level, k, x, y)
 	local size = HAUNCH * k
 	local seat = m.add(Medals.Layer(m, level), size)
@@ -509,6 +511,9 @@ local function Lost(m, level, k, x, y)
 	local l = { seat = seat, halo = halo, hound = hound, breath = Medals.Steps(halo, { { a, low, 0.9 }, { low, a, 0.9 } }, true) }
 	seat:HookScript("OnHide", function()
 		l.breath:Stop()
+	end)
+	seat:HookScript("OnShow", function()
+		Mourn(m)
 	end)
 	return l
 end
@@ -914,7 +919,7 @@ local function Breathe(m)
 	end
 end
 
-local function Mourn(m)
+function Mourn(m)
 	local l = m.lost
 	if l.gone == "dead" and Effects.Allows("pulse") and not m.still and l.seat:IsVisible() then
 		if not l.breath:IsPlaying() then

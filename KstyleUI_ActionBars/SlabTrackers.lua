@@ -366,7 +366,7 @@ local function Paint(event, ...)
 		FiveSecond(form, ...)
 	end
 	for _, piece in ipairs(form and form.lua or {}) do
-		local kind = piece.spec.route or piece.spec.feed
+		local kind = piece.route
 		if kind ~= "fiveSecond" and piece:IsShown() and (not event or ROUTE[kind][event]) then
 			Medals.Refresh(piece, event)
 		end
@@ -547,8 +547,8 @@ function Trackers.Update()
 			Medals.Size(piece)
 			prepared[key] = piece
 			if LUA[spec.route or spec.feed] then
-				piece.spec = spec
-				local list = HOOKED[spec.route or spec.feed] and form.hooked or form.lua
+				piece.spec, piece.route = spec, spec.route or spec.feed
+				local list = HOOKED[piece.route] and form.hooked or form.lua
 				list[#list + 1] = piece
 			end
 		end
@@ -573,7 +573,7 @@ function Trackers.Update()
 	local kinds, seen = {}, {}
 	for _, list in ipairs({ form.lua, form.hooked }) do
 		for _, piece in ipairs(list) do
-			local kind = piece.spec.route or piece.spec.feed
+			local kind = piece.route
 			if not seen[kind] then
 				seen[kind] = true
 				kinds[#kinds + 1] = kind
