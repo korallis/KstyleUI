@@ -522,8 +522,8 @@ do
 			lights.flame[verb] = function(...) writes = writes + 1 return real(...) end
 		end
 	end
-	-- Lit(n, burning, why): orbs 1 to n show the moving fire (burning) or the still, and the spent ones show neither.
-	local function Lit(n, burning, why)
+	-- Burning(n, burning, why): orbs 1 to n show the moving fire (burning) or the still, and the spent ones show neither.
+	local function Burning(n, burning, why)
 		for i, s in ipairs(state.seats) do
 			local on = i <= n
 			assert(Shows(s.fire) == (on and burning) and Shows(s.fire.still) == (on and not burning), why .. " (orb " .. i .. ")")
@@ -534,11 +534,11 @@ do
 	Shield(env, 3)
 	Cast(env, RANK7)
 	env.SetTarget(true)
-	Lit(3, true, "three charges at Full burn three moving orbs")
+	Burning(3, true, "three charges at Full burn three moving orbs")
 	Shield(env, 2)
-	Lit(2, true, "a struck charge hides its orb's light")
+	Burning(2, true, "a struck charge hides its orb's light")
 	Shield(env, 1)
-	Lit(1, true, "one charge left burns one orb")
+	Burning(1, true, "one charge left burns one orb")
 	env._aurasSecret = true
 	env.SetCombat(true)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
@@ -546,7 +546,7 @@ do
 	for _, level in ipairs({ "calm", "full", "off", "full" }) do
 		K.Options.Write("Medallions", "motion", level)
 		env.RunTimers()
-		Lit(1, level == "full", level .. " chosen under hidden values shows at once")
+		Burning(1, level == "full", level .. " chosen under hidden values shows at once")
 	end
 	assert(writes == 0, "no level choice under hidden values writes to the orbs' aura buttons, got " .. writes)
 	env._aurasSecret = false
