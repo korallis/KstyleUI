@@ -136,14 +136,26 @@ def fade(seated):
     return np.clip(edge / EDGE, 0, 1)[..., None]
 
 
+def loop_start(cells):
+    """The cell the sheet starts on. The fields are periodic, so the seam is one more step of the cycle, but any one step
+    can still be the cycle's largest; the game then shows its biggest jump at the wrap. Then the sheet starts after the
+    smallest step instead, the same 16 cells in the same cyclic order."""
+    steps = [float(np.abs(cells[(i + 1) % FRAMES] - cells[i]).mean()) for i in range(FRAMES)]
+    if steps[-1] <= max(steps[:-1]):
+        return 0
+    return (steps.index(min(steps)) + 1) % FRAMES
+
+
 def bake(frames, seated, path):
-    """16 master frames to one 4x4 sheet of 128 px cells; returns the loop's seam step against its median step."""
+    """16 master frames to one 4x4 sheet of 128 px cells; returns the loop's seam step against its largest ordinary step."""
     k = fade(seated)
     cells = []
     for f in frames:
         lin = to_lin(np.asarray(Image.open(f).convert("RGB"), np.float32) / 255)
         small = np.stack([np.asarray(Image.fromarray(lin[..., i]).resize((CELL, CELL), Image.LANCZOS)) for i in range(3)], -1)
         cells.append(to_srgb(np.clip(small, 0, 1)) * k)
+    start = loop_start(cells)
+    cells = cells[start:] + cells[:start]
     sheet = np.zeros((CELL * GRID, CELL * GRID, 3), np.float32)
     for i, cell in enumerate(cells):
         y, x = divmod(i, GRID)
@@ -151,7 +163,7 @@ def bake(frames, seated, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray((np.clip(sheet, 0, 1) * 255 + 0.5).astype(np.uint8), "RGB").save(path, optimize=True)
     steps = [float(np.abs(cells[(i + 1) % FRAMES] - cells[i]).mean()) for i in range(FRAMES)]
-    return steps[-1] / max(float(np.median(steps[:-1])), 1e-9)
+    return steps[-1] / max(max(steps[:-1]), 1e-9)
 
 
 def socket(work, blender, env, out):
@@ -209,7 +221,7 @@ def main(argv=None):
                        check=True, stdout=subprocess.DEVNULL, env=env)
         path = args.out / kind.capitalize() / f"{name.split('/')[-1]}.png"
         seam = bake([frames / f"{stem}_{i:02d}.png" for i in range(FRAMES)], seated, path)
-        print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest(), f"seam {seam:.2f}x median step",
+        print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest(), f"seam {seam:.2f}x largest ordinary step",
               "seated" if seated else "bare")
     if not args.work:
         shutil.rmtree(work)

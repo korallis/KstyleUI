@@ -1,4 +1,4 @@
--- test-actionbars-crest-melee-auras.lua: the warrior's, paladin's and rogue's crest marks as animated auras (the KSTY-51 plan, the captain's ask that everything a player tracks on the crest be an animated spell effect): every cooldown sigil on their rails and every perched or overlaid object with a sheet burns its own Blender aura; a class's own sigil keeps the colour baked into it while the racial and potion sigils every class shares take the rail's colour; a racial the character does not know draws flat and never loads its sheet (direction d-7cyxs7, art loaded only when needed); an object's light burns only inside its lit fill and takes the colour the strike's pick gives it.
+-- test-actionbars-crest-melee-auras.lua: the warrior's, paladin's and rogue's crest marks as animated auras (the KSTY-51 plan, the captain's ask that everything a player tracks on the crest be an animated spell effect): every cooldown sigil on their rails and every perched or overlaid object with a sheet burns its own Blender aura; a class's own sigil keeps the colour baked into it while the racial and potion sigils every class shares take the rail's colour; a racial the character does not know draws flat and never loads its sheet (direction d-7cyxs7, art loaded only when needed); an object's light burns only inside its lit fill and takes the colour the strike's pick gives it; and every feed's light leaves with its piece, stopping when the piece leaves the crest and drawing nothing while a stance swap hides it.
 local F = dofile("Tools/regression/crest_armory_fixture.lua")
 local AB, New, Clean, Find = F.AB, F.New, F.Clean, F.Find
 
@@ -160,6 +160,74 @@ do
 	env.SetCombat(false)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
 	Clean(env, K, "opening")
+end
+
+-- A piece's light leaves with it, for every feed: an object turned off in the settings leaves the crest and its fire's loop stops,
+-- whether the engine plays it (an aura on the player or the target) or the addon does (a usable strike, a cooldown, an item), and
+-- turned back on it burns again. A stance swap only hides a piece, so its light draws nothing until the stance returns (review of
+-- d126cc5a, loop shutdown across feeds).
+local FEEDS = {
+	{ "WARRIOR", { 25289 }, "crestShout", "aura", function(env) F.Slots.Set(env, "player", F.Auras(env, { 25289 })) end },
+	{ "WARRIOR", { 6673, 20662, 11585 }, "crestOpening", "usable", function(env) env._usable[11585] = true env.FireEvent("SPELL_UPDATE_USABLE") end },
+	{ "PALADIN", { 20271 }, "crestJudgement", "cooldown", function(env) env._cooling[20271] = true env.FireEvent("SPELL_UPDATE_COOLDOWN") end },
+	{ "PALADIN", { 20154, 20271, 20473, 10308 }, "crestFootLeft", "item", function(env) env.FireEvent("BAG_UPDATE_DELAYED") end },
+	{ "ROGUE", { 1856, 11275 }, "crestRupture", "aura", function(env) F.Slots.Set(env, "target", F.Auras(env, { 11275 }, true)) end },
+}
+local function Burning(env, piece)
+	env._engine = true
+	local burning = piece:IsVisible() and piece.lit.fire:IsVisible() and piece.lit.fire.loop:IsPlaying()
+	env._engine = nil
+	return burning
+end
+for _, case in ipairs(FEEDS) do
+	local class, key, feed = case[1], case[3], case[4]
+	local env, K, ns = New(class, case[2])
+	env.SetTarget(true)
+	K.Options.Write("Medallions", "motion", "full")
+	env.RunTimers()
+	case[5](env)
+	env.RunTimers()
+	local piece = assert(Find(ns, key), class .. " seats " .. key)
+	assert(piece.spec.feed == feed and piece.lit.fire, key .. " is the " .. feed .. " feed's object, with an aura fire")
+	assert(Burning(env, piece), key .. " (" .. feed .. ") burns its loop while fed")
+	local fire = piece.lit.fire
+	K.Options.Write("ActionBars", key, false)
+	env.RunTimers()
+	env._engine = true
+	assert(not fire:IsVisible() and not fire.loop:IsPlaying(), key .. " (" .. feed .. ") turned off: its light and its loop stop")
+	env._engine = nil
+	K.Options.Write("ActionBars", key, true)
+	env.RunTimers()
+	assert(Burning(env, assert(Find(ns, key))), key .. " (" .. feed .. ") turned back on burns again")
+	Clean(env, K, key .. " off and on")
+end
+do
+	local env, K, ns = New("ROGUE", { 1856, 11275 })
+	env.SetTarget(true)
+	K.Options.Write("Medallions", "motion", "full")
+	env.RunTimers()
+	F.Slots.Set(env, "target", F.Auras(env, { 11275 }, true))
+	env._cooling[1856] = true
+	local function Stance(form)
+		env._form = form
+		env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+		env.FireEvent("SPELL_UPDATE_COOLDOWN")
+		env.RunTimers()
+		-- The client runs OnHide on a hidden piece's descendants, where the light's host stops its loop; the stub runs no OnHide, so
+		-- the next Rest, which stops every light it finds hidden, stands in for it.
+		ns.SlabMedals.Rest()
+	end
+	Stance(0)
+	local rupture = assert(Find(ns, "crestRupture"))
+	assert(rupture.spec.feed == "aura" and Burning(env, rupture), "Rupture's stain burns out of Stealth")
+	Stance(30)
+	local vanish = assert(Find(ns, "crestRupture"))
+	assert(vanish.spec.feed == "cooldown" and Burning(env, vanish), "in Stealth Vanish's stain takes the seat and burns")
+	assert(not rupture.lit.fire:IsVisible(), "and Rupture's light draws nothing while its piece is hidden")
+	Stance(0)
+	assert(Find(ns, "crestRupture") == rupture and Burning(env, rupture), "out of Stealth Rupture's stain burns again")
+	assert(not vanish.lit.fire:IsVisible() and not vanish.lit.fire.loop:IsPlaying(), "and Vanish's light and loop stop")
+	Clean(env, K, "stealth swap")
 end
 
 -- Every sheet a melee token names is on disk.
