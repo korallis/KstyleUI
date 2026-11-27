@@ -84,19 +84,47 @@ do
 	assert(Colour(fire) == Token(K, horn.spec.color), "the horn's light takes its piece's colour")
 	assert(clip:GetParent() == horn.lit.lights.flame, "the fire burns on the aura slot's own copy")
 	assert(fire.still:GetParent():GetParent() == horn.lit.lights.calm, "and the still on another, so each layer can go dark alone")
-	-- A motion level chosen under hidden values swaps the horn's fire for its still at once (review of 071e48df, object-motion-freezes-under-restriction).
+	-- Battle Shout up with the crest already at Calm, then auras hidden: each motion level chosen in the settings swaps what reaches the screen at
+	-- once, the engine playing the fire's loop masked behind the still, with no write to the aura buttons' animations (the instant-motion rule in
+	-- test-actionbars-crest-motion.lua; review of 3349b893, prove-lit-armory-restricted-transition).
+	local flame = horn.lit.lights.flame
+	local writes = 0
+	for _, verb in ipairs({ "AddAuraShownAnimation", "RemoveAuraShownAnimation" }) do
+		local real = flame[verb]
+		flame[verb] = function(...) writes = writes + 1 return real(...) end
+	end
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	local function Shows(region)
+		return region:IsVisible() and region:GetEffectiveAlpha() > 0
+	end
+	env.SetTarget(true)
+	K.Options.Write("Medallions", "motion", "calm")
+	env.RunTimers()
+	F.Slots.Set(env, "player", { { id = horn.spec.spells[1], start = 0, duration = 120 } })
+	assert(Engine(function() return Shows(fire.still) and not Shows(fire) and fire.loop:IsPlaying() end), "Battle Shout up at Calm: the still shows, the fire's loop plays masked behind it")
 	env._aurasSecret = true
 	env.SetCombat(true)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
-	for _, level in ipairs({ { "calm", 0, 1 }, { "full", 1, 0 }, { "off", 0, 1 } }) do
-		K.Options.Write("Medallions", "motion", level[1])
+	writes = 0
+	for _, level in ipairs({ "full", "calm", "full", "off" }) do
+		K.Options.Write("Medallions", "motion", level)
 		env.RunTimers()
-		ns.SlabMedals.Rest()
-		assert(horn.lit.flames:GetAlpha() == level[2] and horn.lit.stills:GetAlpha() == level[3], level[1] .. " under hidden values: the horn's fire " .. level[2] .. ", still " .. level[3])
+		local burning = level == "full"
+		assert(Engine(function() return Shows(fire) == burning and Shows(fire.still) == not burning and fire.loop:IsPlaying() end),
+			level .. " chosen under hidden values: the horn shows its " .. (burning and "moving fire" or "still") .. " at once")
 	end
+	assert(writes == 0, "no level choice under hidden values writes to the aura buttons' animations, got " .. writes)
 	env._aurasSecret = false
 	env.SetCombat(false)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+	-- The prepared loop is masked only while its aura shows: Battle Shout gone, it stops.
+	F.Slots.Set(env, "player", nil)
+	assert(not fire.loop:IsPlaying() and not Shows(fire) and not Shows(fire.still), "Battle Shout gone: the horn's light and its loop stop")
 	Clean(env, K, "horn")
 end
 
