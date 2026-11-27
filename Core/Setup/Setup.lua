@@ -308,9 +308,10 @@ ns.Callbacks.Register("ScaleChanged", "Setup", function()
 	local rescaled = math.abs(k - factor) > 1e-3 or (rootWidth and (math.abs(rw - rootWidth) > 0.5 or math.abs(rh - rootHeight) > 0.5))
 	local resized = sw ~= screenWidth or sh ~= screenHeight
 	factor, rootWidth, rootHeight, screenWidth, screenHeight = k, rw, rh, sw, sh
-	if rescaled or ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band or (lane and width ~= lane) then
+	local scaled = rescaled and not resized
+	if scaled or ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band or (lane and width ~= lane) then
 		aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
-		Restyle(rescaled and not resized)
+		Restyle(scaled)
 	end
 	lane = width
 end)
