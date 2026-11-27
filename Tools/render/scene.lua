@@ -364,7 +364,9 @@ local function animationState(frame, now, active)
 		groups[#groups + 1] = group
 	end
 	for _, pair in ipairs(aimed[frame] or {}) do
-		groups[#groups + 1], only[pair[1]] = pair[1], only[pair[1]] or {}
+		if not only[pair[1]] then
+			groups[#groups + 1], only[pair[1]] = pair[1], {}
+		end
 		only[pair[1]][pair[2]] = true
 	end
 	for _, group in ipairs(groups) do
