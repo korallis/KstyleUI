@@ -44,6 +44,7 @@ local PET_EVENTS = { { "UNIT_HEALTH", "pet" }, { "UNIT_MAXHEALTH", "pet" }, { "U
 local ON = {
 	swing = { PLAYER_SWING = true, UNIT_INVENTORY_CHANGED = true },
 	pet = { UNIT_PET = true, UNIT_HEALTH = true, UNIT_MAXHEALTH = true, UNIT_HAPPINESS = true },
+	tracking = { PLAYER_TARGET_CHANGED = true, MINIMAP_UPDATE_TRACKING = true },
 	wisps = { BAG_UPDATE_DELAYED = true },
 	usable = { SPELL_UPDATE_USABLE = true, SPELL_UPDATE_COOLDOWN = true, PLAYER_TARGET_CHANGED = true },
 	rail = { SPELL_UPDATE_COOLDOWN = true, BAG_UPDATE_COOLDOWN = true, UNIT_SPELLCAST_SUCCEEDED = true },
@@ -461,6 +462,20 @@ local function Haunch(m, level, k, x, y)
 	return feed
 end
 
+local function Lost(m, level, k, x, y)
+	local size = HAUNCH * k
+	local seat = m.add(Medals.Layer(m, level), size)
+	seat:ClearAllPoints()
+	seat:SetPoint("CENTER", m, "CENTER", x, y)
+	seat:Hide()
+	local halo = m.add(Medals.Texture(seat, "BACKGROUND", 1, "glow", "hostile", size * HAUNCH_HALO, "ADD"))
+	local hound = m.add(Medals.Texture(seat, "ARTWORK", 0, "glyphHound", "steel", size))
+	hound:SetDesaturated(true)
+	local a, low = LIGHT, LIGHT * Tokens.Flicker.low
+	halo:SetAlpha(a)
+	return { seat = seat, halo = halo, hound = hound, breath = Medals.Steps(halo, { { a, low, 0.9 }, { low, a, 0.9 } }, true) }
+end
+
 local function Pet(parent, spec, level, form)
 	local band = BAND[spec.band]
 	local m, k = Window(parent, level, band, form)
@@ -476,6 +491,9 @@ local function Pet(parent, spec, level, form)
 	m.health:SetPoint("CENTER", m, "CENTER", 0, 0)
 	if spec.mood then
 		m.haunch = { level + 5, k, Off(80, 312) }
+	end
+	if spec.lost then
+		m.lost = Lost(m, level + 5, k, Off(80, 312))
 	end
 	if spec.mend then
 		local mend = Medals.Feed(m.pet, { feed = "aura", unit = "pet", spells = spec.mend }, level + 2)
@@ -853,6 +871,35 @@ local function Breathe(m)
 	end
 end
 
+local function Mourn(m)
+	local l = m.lost
+	if l.gone == "dead" and Effects.Allows("pulse") and not m.still then
+		if not l.breath:IsPlaying() then
+			l.breath:Play()
+		end
+	else
+		l.breath:Stop()
+	end
+end
+
+local function Gone(m, gone)
+	local l = m.lost
+	if gone == l.gone then
+		return
+	end
+	l.gone = gone
+	l.seat:SetShown(gone ~= nil)
+	l.halo:SetShown(gone == "dead")
+	if gone == "dead" then
+		l.hound:SetVertexColor(Lift("hostile", 0.2))
+		l.hound:SetAlpha(1)
+	else
+		l.hound:SetVertexColor(Tokens.Color("steel"))
+		l.hound:SetAlpha(REST_FORGED)
+	end
+	Mourn(m)
+end
+
 local function Tint(f, color)
 	if f.gold then
 		f.tint:SetVertexColor(Tokens.Color(color))
@@ -908,8 +955,12 @@ local function Mood(m, mood, changed, happy)
 end
 
 local function PaintPet(m, event)
-	local dead = UnitIsDead and UnitIsDead("pet")
-	local up = Out() and not (not IsSecret(dead) and dead == true)
+	local out, dead = Out(), UnitIsDead and UnitIsDead("pet")
+	dead = out and not IsSecret(dead) and dead == true
+	local up = out and not dead
+	if m.lost then
+		Gone(m, not out and "missing" or dead and "dead" or nil)
+	end
 	if up ~= m.up then
 		m.up = up
 		m.pet:SetShown(up)
@@ -933,6 +984,52 @@ local function PaintPet(m, event)
 		mood = not IsSecret(mood) and mood
 		Mood(m, MOODS[mood] and mood or nil, event == "UNIT_HAPPINESS", mood == 3)
 	end
+end
+
+local function Track(parent, spec, level, form)
+	local look = LOOKS[spec.look]
+	local p = Medals.Piece(parent, level, spec.size or SIZE)
+	local size = p.units * look.k
+	Shadow(p, form)
+	p.rest = Medals.Layer(p, level)
+	p.rest:SetAlpha(REST_FORGED)
+	p.add(Medals.Texture(p.rest, "ARTWORK", 0, spec.glyph, "steel", size)):SetDesaturated(true)
+	p.match = Medals.Layer(p, level + 2)
+	local r, g, b = Lift(spec.color, look.white)
+	local art = Medals.Mark(p, p.match, spec.glyph, size, spec.color, r, g, b, level + 2)
+	art:SetDesaturated(true)
+	p.tracking = spec.types
+	p.rest:Hide()
+	p.match:Hide()
+	return p
+end
+
+local function Plain(v)
+	return not IsSecret(v) and v or nil
+end
+
+local function Tracked(types)
+	local map = C_Minimap
+	local n = map and type(map.GetNumTrackingTypes) == "function" and type(map.GetTrackingInfo) == "function" and Plain(map.GetNumTrackingTypes())
+	for i = 1, type(n) == "number" and n or 0 do
+		local info = map.GetTrackingInfo(i)
+		local id = type(info) == "table" and Plain(info.active) == true and Plain(info.spellID)
+		if id and types[id] then
+			return types[id]
+		end
+	end
+end
+
+local function PaintTrack(p)
+	local info, kind = C_CreatureInfo, Tracked(p.tracking)
+	local of = UnitCreatureType and UnitCreatureType("target")
+	local there = IsSecret(of) or of ~= nil
+	of = Plain(of)
+	local want = kind and info and type(info.GetCreatureTypeInfo) == "function" and info.GetCreatureTypeInfo(kind)
+	want = type(want) == "table" and Plain(want.name)
+	local match = type(of) == "string" and type(want) == "string" and of == want
+	p.rest:SetShown(there and not match)
+	p.match:SetShown(match)
 end
 
 local function PaintShot(m)
@@ -1022,6 +1119,10 @@ local function Paint(form, event, ...)
 			if (all or event == "UNIT_POWER_UPDATE") and p:IsShown() then
 				p.lowMana:SetAlpha(UnitPowerPercent("player", Enum and Enum.PowerType and Enum.PowerType.Mana or 0, false, p.curve))
 			end
+		elseif p.tracking then
+			if (all or ON.tracking[event]) and p:IsShown() then
+				PaintTrack(p)
+			end
 		elseif p.shots then
 			if (all or ON.usable[event]) and p:IsShown() then
 				PaintShot(p)
@@ -1048,10 +1149,13 @@ local function Motion(form, _, still)
 		elseif p.bob then
 			p.still = still
 			Bob(p)
-		elseif p.haunch then
+		elseif p.haunch or p.lost then
 			p.still = still
 			if p.feed then
 				Breathe(p)
+			end
+			if p.lost then
+				Mourn(p)
 			end
 		elseif p.rail and p:IsShown() then
 			ns.SlabRail.Paint(p)
@@ -1077,6 +1181,8 @@ if CLASS == "HUNTER" then
 		{ spells = { 24118, 24119, 24120, 1299332 }, color = "hostile", glyph = "glyphLacerate" },
 		{ spells = { 3674, 14296 }, color = "schoolShadow", glyph = "glyphBlackArrow" },
 	}
+	local TRUESHOT, TRUESHOT_SEAT, COMPASS_SEAT = { 19506, 20905, 20906, 1299346, 1299348 }, { Polar(74, 140) }, { Polar(74, 40) }
+	local TRACKS = { [1494] = 1, [19879] = 2, [19878] = 3, [19880] = 4, [19882] = 5, [19884] = 6, [19883] = 7 }
 	local COUNTER, MONGOOSE, AIMED, MULTI = { 20910, 20909, 19306, 1242634 }, { 14271, 14270, 14269, 1495 }, { 20904, 20903, 20902, 20901, 20900, 19434 }, { 2643 }
 	local SHOTS, SHOWS = {}, {}
 	for _, shot in ipairs({ { COUNTER, { glyph = "glyphCounter", color = "hostile" } }, { MONGOOSE, { glyph = "glyphMongoose", color = "hostile" } },
@@ -1095,13 +1201,17 @@ if CLASS == "HUNTER" then
 				known = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 } },
 		} },
 		{ key = "crestPet", seat = At(BAND.pet), choices = {
-			{ build = Pet, band = "pet", light = "giltLit", known = { 883 }, mood = true, mend = { 136, 3111, 3661, 3662, 13542, 13543, 13544 } },
+			{ build = Pet, band = "pet", light = "giltLit", known = { 883 }, mood = true, lost = true, mend = { 136, 3111, 3661, 3662, 13542, 13543, 13544 } },
 			{ build = Flash, seat = EMBLEM, overlay = true, size = FLASH, feed = "cooldown", look = "orb", color = "schoolArcane", known = { 14287, 14286, 14285, 14284, 14283, 14282, 14281, 3044 } },
 		} },
 		{ key = "crestMark", seat = At(BAND.mark), build = Mark, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile",
 			spells = { 1130, 14323, 14324, 14325 } },
 		{ key = "crestSting", seat = At(BAND.right), build = Fuse, glyph = "glyphSerpent", feed = "aura", unit = "target",
 			filter = "HARMFUL|PLAYER", color = "schoolNature", known = { 1978, 3034, 3043, 24118, 3674 }, feeds = STINGS },
+		{ key = "crestTrueshot", seat = TRUESHOT_SEAT, size = PERCH, build = Effect, look = "glyph", glyph = "glyphTrueshot", feed = "aura", color = "gilt",
+			spells = TRUESHOT },
+		{ key = "crestTracking", seat = COMPASS_SEAT, size = PERCH, build = Track, look = "glyph", glyph = "glyphCompass", color = "gilt", known = { 24293 },
+			types = TRACKS },
 		{ key = "crestAutoShot", seat = "rim", build = Swing, color = "steelLit", known = { 75 } },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHawk", families = { { spells = { 3045 }, sigil = "Volley", major = true }, { spells = { 19263 }, sigil = "Deflect", major = true },
 			{ spells = { 19574 }, unit = "pet", sigil = "Paw", major = true } }, railed = ns.SlabRail.Holds },
@@ -1111,7 +1221,8 @@ if CLASS == "HUNTER" then
 		} },
 		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
 	}, { burst = "medBurstHunter", pick = ns.SlabRail.Pick, commit = ns.SlabRail.Commit, rail = ns.SlabRail.Holds, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" }, events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" },
-		"SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } }, paint = Paint, motion = Motion, figures = true })
+		"SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" }, "PLAYER_TARGET_CHANGED", "MINIMAP_UPDATE_TRACKING" }, paint = Paint, motion = Motion,
+		figures = true })
 end
 
 if CLASS == "MAGE" then

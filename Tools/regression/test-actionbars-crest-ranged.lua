@@ -1,4 +1,4 @@
--- test-actionbars-crest-ranged.lua: a hunter's, mage's and warlock's crest trackers (KstyleUI_ActionBars/SlabRanged.lua) through the one tracker lifecycle: no other class registers them; every seat has a choice for each build, pet state and level band (Raptor Strike and Arcane Shot before the Aspect and the pet, a melee hunter's strike for the Mark, Arcane Intellect before the mana gem, the mage's school debuff by talent, armor for a warlock with no demon); aura pieces light through Blizzard's aura slots and Lua reads no aura; the pet's light along the band is its health as a bar fed the engine's values, with a forged haunch only below Happy (amber light and halo at Content, red at Unhappy, gilt and no haunch at Happy, none for a secret value), moved by UNIT_HAPPINESS alone, landing, breathing, blinking for 3 s and fading green by the motion level, gone with the pet, and Mend Pet's motes; the fuse's head rides its fill and the Mark's reticle closes in; the gem and Healthstone are lit, cooling or empty from bag counts and item cooldowns; each spire stands alone once known and drains through duration bars; the soul wisps count Soul Shards up to five with a faint rim at five or more, fly in, burst and circle only at Full off rest, the first one too, and replace the shard jewels; Rapid Fire alone gusts; only your own school debuff lights its embers; cooldown rims stack the class's cooldowns, a pet's Bestial Wrath among them; moments hand the engine their flares and fires only at Full; secret auras build nothing until combat ends; each switch hides its seat alone; Frames stands the seats in the row; a mana update asks the bags nothing and every shot reuses one duration object; nothing loads for any other class; nothing runs OnUpdate; every crest part is an even number of pixels at four screen sizes and the spires stay under the cooldown row.
+-- test-actionbars-crest-ranged.lua: a hunter's, mage's and warlock's crest trackers (KstyleUI_ActionBars/SlabRanged.lua) through the one tracker lifecycle: no other class registers them; every seat has a choice for each build, pet state and level band (Raptor Strike and Arcane Shot before the Aspect and the pet, a melee hunter's strike for the Mark, Arcane Intellect before the mana gem, the mage's school debuff by talent, armor for a warlock with no demon); aura pieces light through Blizzard's aura slots and Lua reads no aura; the pet's light along the band is its health as a bar fed the engine's values, with a forged haunch only below Happy (amber light and halo at Content, red at Unhappy, gilt and no haunch at Happy, none for a secret value), moved by UNIT_HAPPINESS alone, landing, breathing, blinking for 3 s and fading green by the motion level, gone with the pet, and Mend Pet's motes; a hound on the pet's perch while no pet is out, red and breathing at Full while it lies dead, none for a secret death; Trueshot Aura's arrow lit gilt while up and steel while down; Improved Tracking's compass gold when the tracked type is the target's, steel when not, gone with no target, repainted on its own events and blind to a secret type; the fuse's head rides its fill and the Mark's reticle closes in; the gem and Healthstone are lit, cooling or empty from bag counts and item cooldowns; each spire stands alone once known and drains through duration bars; the soul wisps count Soul Shards up to five with a faint rim at five or more, fly in, burst and circle only at Full off rest, the first one too, and replace the shard jewels; Rapid Fire alone gusts; only your own school debuff lights its embers; cooldown rims stack the class's cooldowns, a pet's Bestial Wrath among them; moments hand the engine their flares and fires only at Full; secret auras build nothing until combat ends; each switch hides its seat alone; Frames stands the seats in the row; a mana update asks the bags nothing and every shot reuses one duration object; nothing loads for any other class; nothing runs OnUpdate; every crest part is an even number of pixels at four screen sizes and the spires stay under the cooldown row.
 local R = dofile("Tools/regression/ranged_env.lua")
 local AB, Slots, SIZES, New, Piece, Seated, Shown, Updating, Clean, Tint, Learn = R.AB, R.Slots, R.SIZES, R.New, R.Piece, R.Seated, R.Shown, R.Updating, R.Clean, R.Tint, R.Learn
 
@@ -110,6 +110,87 @@ do
 	local copy = gust.lits[#gust.lits].lights.flame
 	assert(Shown(copy, copy.loop) and gust.gust:GetParent():GetParent() == copy, "at Full the gust is the engine's shown animation on its feed's gated fire copy")
 	assert(gust.gust:GetParent():GetAlpha() > 0, "the gust's streaks stay visible if its tween never runs")
+	Clean(env, K)
+end
+
+do
+	-- The crest homes plan (docs/crest-coverage.md, Hunter homes): the pet's perch shows a missing pet as a steel hound and a dead one in red.
+	local env, K, ns = New("HUNTER")
+	local pet = Piece(ns, "crestPet")
+	local lost = pet.lost
+	assert(lost.seat:IsShown() and not lost.halo:IsShown() and lost.hound:GetTexture():find("Hound", 1, true) and Tint(lost.hound, K, "steel"), "no pet out: a steel hound waits on the pet's perch")
+	env._pet = { max = 1800, missing = 0, mood = 3 }
+	env.FireEvent("UNIT_PET", "player")
+	assert(not lost.seat:IsShown() and pet.pet:IsShown(), "a pet out takes the hound away")
+	env._pet.missing, env._pet.dead = 1800, true
+	env.FireEvent("UNIT_HEALTH", "pet")
+	assert(lost.seat:IsShown() and lost.halo:IsShown() and Tint(lost.hound, K, "hostile", 0.2) and not pet.pet:IsShown(), "a dead pet: the hound turns red with a red halo and the light goes out")
+	assert(not lost.breath:IsPlaying(), "the crest at rest holds the red halo still")
+	env.SetTarget(true)
+	assert(lost.breath:IsPlaying(), "awake at Full, the red halo breathes")
+	K.Options.Write("Medallions", "motion", "calm")
+	assert(not lost.breath:IsPlaying() and lost.halo:IsShown() and Tint(lost.hound, K, "hostile", 0.2), "Calm holds the red halo still and keeps the state")
+	K.Options.Write("Medallions", "motion", "off")
+	assert(not lost.breath:IsPlaying() and lost.seat:IsShown() and lost.halo:IsShown(), "Off still shows the dead hound, unmoving")
+	K.Options.Write("Medallions", "motion", "full")
+	env._pet.dead = env.Secret(true)
+	env.FireEvent("UNIT_HEALTH", "pet")
+	assert(not lost.seat:IsShown() and not lost.breath:IsPlaying(), "a secret death shows no hound rather than guess")
+	env._pet.dead, env._pet.missing = false, 0
+	env.FireEvent("UNIT_HEALTH", "pet")
+	assert(not lost.seat:IsShown() and pet.pet:IsShown(), "a revived pet clears the hound")
+	env._pet = nil
+	env.FireEvent("UNIT_PET", "player")
+	assert(lost.seat:IsShown() and not lost.halo:IsShown() and Tint(lost.hound, K, "steel"), "a dismissed pet leaves the steel hound")
+	K.Options.Write("ActionBars", "crestPet", false)
+	assert(not lost.seat:IsVisible(), "Pet light off hides the hound with the band")
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = { 13165, 883, 1130, 1978, 75 } })
+	assert(not Seated(ns, "crestTrueshot") and not Seated(ns, "crestTracking"), "without Trueshot Aura or Improved Tracking neither seat shows")
+	Clean(env, K)
+end
+
+do
+	-- The crest homes plan (docs/crest-coverage.md, Hunter homes): Trueshot Aura steel while down and gilt while up.
+	local env, K, ns = New("HUNTER", { tracking = 1494 })
+	local aura = Piece(ns, "crestTrueshot")
+	assert(aura:IsShown() and aura.rest:IsShown() and not aura.lit:IsShown(), "Trueshot Aura down: a steel arrow through a ring on the upper left")
+	assert(aura.rest:GetRegions():GetTexture():find("Trueshot", 1, true), "the steel mark is the forged Trueshot arrow")
+	Slots.Set(env, "player", { { id = 20906, icon = 132329, start = 0 } })
+	assert(aura.lit:IsShown() and Tint(aura.lit.art, K, "gilt", 0.1), "Trueshot Aura up lights the arrow gilt")
+	Slots.Set(env, "player", {})
+	assert(not aura.lit:IsShown(), "the aura gone puts the light out")
+	-- The crest homes plan: Improved Tracking's compass gold when the tracked creature type is the target's.
+	local compass = Piece(ns, "crestTracking")
+	assert(compass:IsShown() and not compass.rest:IsShown() and not compass.match:IsShown(), "no target: the compass shows nothing")
+	env._creature = "Beast"
+	env.SetTarget(true)
+	assert(compass.match:IsShown() and not compass.rest:IsShown(), "Track Beasts on a beast lights the compass gold")
+	env._creature = "Humanoid"
+	env.FireEvent("PLAYER_TARGET_CHANGED")
+	assert(compass.rest:IsShown() and not compass.match:IsShown(), "a humanoid while tracking beasts: steel")
+	env._tracking = 19883
+	env.FireEvent("MINIMAP_UPDATE_TRACKING")
+	assert(compass.match:IsShown(), "switching to Track Humanoids lights it")
+	local writes = #AB.W.Calls(compass.match, "SetShown")
+	env._tracking = nil
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(#AB.W.Calls(compass.match, "SetShown") == writes and compass.match:IsShown(), "the compass repaints on its own events only")
+	env.FireEvent("MINIMAP_UPDATE_TRACKING")
+	assert(compass.rest:IsShown() and not compass.match:IsShown(), "no creature tracking: steel")
+	env._herbs, env._tracking = true, 19883
+	env.FireEvent("MINIMAP_UPDATE_TRACKING")
+	assert(compass.match:IsShown(), "Find Herbs beside Track Humanoids still matches the humanoid")
+	env._creature = env.Secret("Humanoid")
+	env.FireEvent("PLAYER_TARGET_CHANGED")
+	assert(compass.rest:IsShown() and not compass.match:IsShown(), "a secret creature type never lights the compass: steel")
+	env.SetTarget(false)
+	assert(not compass.rest:IsShown() and not compass.match:IsShown(), "the target gone hides the compass")
+	K.Options.Write("ActionBars", "crestTrueshot", false)
+	assert(not aura:IsShown() and compass:IsShown(), "Trueshot Aura sigil off hides only its seat")
 	Clean(env, K)
 end
 
@@ -323,10 +404,11 @@ do
 	Clean(env, K)
 end
 
-for class, keys in pairs({ HUNTER = { "crestShot", "crestAspect", "crestPet", "crestMark", "crestSting", "crestAutoShot", "crestGust", "crestCooldowns", "crestRail" },
+for class, keys in pairs({ HUNTER = { "crestShot", "crestAspect", "crestPet", "crestMark", "crestSting", "crestAutoShot", "crestGust", "crestCooldowns", "crestRail", "crestTrueshot",
+	"crestTracking" },
 	MAGE = { "crestArmor", "crestManaGem", "crestCounterspell", "crestSchool", "crestFrozen", "crestYourSpell", "crestWard", "crestClearcasting", "crestCooldowns" },
 	WARLOCK = { "crestTorments", "crestWisps", "crestDemon", "crestHealthstone", "crestStone", "crestConflagrate", "crestCurse", "crestSpellLock", "crestTrance", "crestCooldowns" } }) do
-	local deterrence = class == "HUNTER" and { 13165, 883, 1130, 1978, 19552, 3045, 19574, 75, 2643, 19263 } or nil
+	local deterrence = class == "HUNTER" and { 13165, 883, 1130, 1978, 19552, 3045, 19574, 75, 2643, 19263, 19506, 24293 } or nil
 	local env, K, ns = New(class, { known = deterrence, tree = deterrence and 1, bags = { [6265] = 2, [5512] = 1, [5514] = 1 }, pet = { max = 100, missing = 0 } })
 	for _, key in ipairs(keys) do
 		K.Options.Write("ActionBars", key, false)

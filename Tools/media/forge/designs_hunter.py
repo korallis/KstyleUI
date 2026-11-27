@@ -1,4 +1,4 @@
-"""designs_hunter.py: the hunter's crest marks as layered relief: seven Aspects, six Stings, the two openings, Raptor Strike and the pet's feed mark, a haunch."""
+"""designs_hunter.py: the hunter's crest marks as layered relief: seven Aspects, six Stings, the two openings, Raptor Strike, the pet's feed mark (a haunch) and its lost mark (a hound), Trueshot Aura and Improved Tracking's compass."""
 import math
 
 from relief import Emblem, blob, ellipse, poly, stroke, transform, mask_poly
@@ -363,4 +363,65 @@ def Haunch():
     e.add(blob([(0.52, 0.30), (0.62, 0.16), (0.80, 0.14), (0.88, 0.28), (0.80, 0.44), (0.62, 0.48)], 14), h=1.02, r=0.12, base=0.8)
     for pts in (((0.44, 0.42), (0.58, 0.56), (0.76, 0.58)), ((0.50, 0.22), (0.66, 0.08), (0.84, 0.10))):
         e.cut(stroke(pts, 0.024, 0.01), depth=0.2, r=0.012)
+    return e.seat()
+
+
+@design
+def Hound():
+    """The pet's own mark, for a pet that is missing or dead: a hound's head in profile, ear pricked, long muzzle, a ruff at the neck. A beast's paw already names Aspect of the Beast and the haunch names the pet's mood."""
+    e = Emblem("Hound")
+    e.add(poly([(0.24, 0.36), (0.25, 0.08), (0.40, 0.30)]), h=0.6, r=0.03, base=0.25)
+    # the ruff, its lower edge in shaggy points
+    ruff = blob([(0.20, 0.44), (0.42, 0.58), (0.50, 0.72), (0.44, 0.80), (0.40, 0.94), (0.31, 0.84), (0.24, 0.97), (0.17, 0.85),
+                 (0.08, 0.93), (0.06, 0.74), (0.10, 0.54)], 10)
+    e.add(ruff, h=0.65, r=0.06, base=0.28)
+    head = blob([(0.16, 0.44), (0.24, 0.28), (0.40, 0.22), (0.56, 0.26), (0.68, 0.34), (0.66, 0.56), (0.52, 0.66), (0.32, 0.64),
+                 (0.18, 0.58)], 16)
+    e.add(head, h=0.85, r=0.12, base=0.32)
+    e.add(poly([(0.36, 0.28), (0.42, 0.02), (0.56, 0.26)]), h=0.9, r=0.03, base=0.4)
+    e.add(blob([(0.56, 0.32), (0.76, 0.36), (0.92, 0.42), (0.97, 0.50), (0.92, 0.56), (0.74, 0.58), (0.58, 0.58)], 14), h=0.95, r=0.06,
+          base=0.45)
+    e.add(blob([(0.58, 0.58), (0.80, 0.60), (0.84, 0.66), (0.74, 0.70), (0.58, 0.68)], 12), h=0.75, r=0.03, base=0.35)
+    e.add(ellipse(0.93, 0.47, 0.045, 0.035), h=1.05, r=0.03, base=0.6)
+    e.cut(stroke([(0.60, 0.58), (0.84, 0.59)], 0.016, 0.008), depth=0.22)
+    e.pierce(ellipse(0.53, 0.38, 0.045, 0.028, -12))
+    e.add(stroke([(0.42, 0.32), (0.52, 0.31), (0.62, 0.36)], 0.035, 0.018), h=1.0, r=0.02, base=0.6)
+    for pts in (((0.14, 0.62), (0.13, 0.74), (0.10, 0.84)), ((0.26, 0.68), (0.26, 0.78), (0.24, 0.88)), ((0.38, 0.70), (0.38, 0.78), (0.37, 0.86))):
+        e.cut(stroke(pts, 0.014, 0.005), depth=0.16)
+    return e.seat()
+
+
+@design
+def Trueshot():
+    """Trueshot Aura: an arrow rising through a ring, the aura it carries to the party, with four short rays round the ring."""
+    e = Emblem("Trueshot")
+    ring = [(0.5 + 0.30 * math.cos(math.radians(a)), 0.52 + 0.30 * math.sin(math.radians(a))) for a in range(0, 361, 9)]
+    e.add(stroke(ring, 0.07, 0.07, smooth=False), h=0.7, r=0.03, base=0.3)
+    for a in (45, 135, 225, 315):
+        ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
+        e.add(poly([(0.5 + 0.38 * ca - 0.04 * sa, 0.52 + 0.38 * sa + 0.04 * ca), (0.5 + 0.48 * ca, 0.52 + 0.48 * sa),
+                    (0.5 + 0.38 * ca + 0.04 * sa, 0.52 + 0.38 * sa - 0.04 * ca)]), h=0.75, r=0.02, base=0.35)
+    e.add(stroke([(0.5, 0.94), (0.5, 0.16)], 0.05, 0.045, smooth=False), h=0.95, r=0.02, base=0.5)
+    e.add(poly([(0.5, 0.02), (0.62, 0.22), (0.5, 0.17), (0.38, 0.22)]), h=1.05, r=0.025, base=0.55)
+    for side in (-1, 1):
+        e.add(leaf(0.5, 0.80, 0.5 + side * 0.13, 0.98, 0.035), h=0.85, r=0.02, base=0.45)
+    return e.seat()
+
+
+@design
+def Compass():
+    """Improved Tracking: a tracker's compass, a four-pointed star with a longer north point, small points between, inside a ring."""
+    e = Emblem("Compass")
+    ring = [(0.5 + 0.40 * math.cos(math.radians(a)), 0.5 + 0.40 * math.sin(math.radians(a))) for a in range(0, 361, 9)]
+    e.add(stroke(ring, 0.05, 0.05, smooth=False), h=0.6, r=0.02, base=0.25)
+    for a in (45, 135, 225, 315):
+        ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
+        e.add(poly([(0.5 + 0.08 * sa, 0.5 - 0.08 * ca), (0.5 + 0.30 * ca, 0.5 + 0.30 * sa), (0.5 - 0.08 * sa, 0.5 + 0.08 * ca)]), h=0.7,
+              r=0.02, base=0.3)
+    for a, reach in ((270, 0.50), (0, 0.40), (90, 0.40), (180, 0.40)):
+        ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
+        for side in (-1, 1):
+            e.add(poly([(0.5, 0.5), (0.5 + reach * ca, 0.5 + reach * sa), (0.5 + 0.11 * (ca * 0.3 - side * sa), 0.5 + 0.11 * (sa * 0.3 + side * ca))]),
+                  h=1.0 if side > 0 else 0.8, r=0.015, base=0.45)
+    e.add(ellipse(0.5, 0.5, 0.06), h=1.1, r=0.04, base=0.6)
     return e.seat()

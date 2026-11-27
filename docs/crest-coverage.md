@@ -69,10 +69,10 @@ Forty-four procs in the sets had no crest piece. The Cooldown Manager hides 21 o
 | Paladin | Unsealed Wrath 1310735 | No | Row candidate | Its trigger is not confirmed in the live client |
 | Hunter | Entrapment 19184 | Yes | Deliberately quiet | A passive root chance |
 | Hunter | Improved Concussive Shot 19407 | Yes | Deliberately quiet | A passive stun chance |
-| Hunter | Expose Prey 1310532 | No | Row candidate | Its trigger is not confirmed in the live client |
+| Hunter | Expose Prey 1310532 | No | Row candidate | Its trigger is not confirmed in the live client, and the ability catalog of the supported build (`Tools/data/abilities.json`, 70840) has no such spell |
 | Hunter | Frenzy 19621 | No | Deliberately quiet | A passive on the pet |
-| Hunter | Lacerating Strikes 1310533 | No | Row candidate | Its trigger is not confirmed in the live client |
-| Hunter | Rapid Killing 415405 | No | Row candidate | Its effect lands on Rapid Fire's cooldown, which the crest already tracks |
+| Hunter | Lacerating Strikes 1310533 | No | Row candidate | Its trigger is not confirmed in the live client, and the supported build's ability catalog has no such spell; Lacerate's own bleed burns on the Sting fuse |
+| Hunter | Rapid Killing 415405 | No | Row candidate | Its effect lands on Rapid Fire's cooldown, which the crest already tracks; the supported build's ability catalog has no such spell |
 | Hunter | Rapid Recuperation 1223987 | No | Deliberately quiet | A passive mana return |
 | Priest | Inspiration 14892 | Yes | Deliberately quiet | A passive armor buff on the healed target |
 | Priest | Blackout 15326 | Yes | Deliberately quiet | A passive stun chance |
@@ -103,6 +103,74 @@ Forty-four procs in the sets had no crest piece. The Cooldown Manager hides 21 o
 | Druid | Leader of the Pack 17007 | Yes | Deliberately quiet | A passive party aura |
 | Druid | Eclipse 408248 | No | Row candidate | Changes which spell to press; the buttons' overlay glow can show it, not yet traced in the live client |
 | Druid | Nature's Grace 16880 | No | Deliberately quiet | A passive haste after a critical hit |
+
+## Hunter homes
+
+The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61 hunter rows) proposes a home for every need: the medal rail, the crown and ring, a perch, inside the crest, a pendant, or a rail of round medals. This table gives each hunter row its home today, or the reason it has none. "Short rail" is the Cooldown Manager mirror's Essential or Utility row drawn as round medals (`KstyleUI_Cooldowns`, Match Medallions sockets); it shows a spell only while the game lists it in that set and does not hide it, so a "(hidden)" set entry reaches it only after the player shows it in the game's Cooldown Manager settings. "Hunter rail" is the five-seat crest rail (`SlabRail.lua`), which seats up to four abilities of the talent tree the game names and the trinket.
+
+| # | Need | Home or reason |
+| --- | --- | --- |
+| 1 | Rapid Fire 3045 | Hunter rail seat; its buff rises to the crown |
+| 2 | Bestial Wrath 19574 | Hunter rail seat; the pet's buff rises to the crown |
+| 3 | Deterrence 19263 | Hunter rail seat; its buff rises to the crown |
+| 4 | Intimidation 19577 | Hunter rail seat |
+| 5 | Feign Death 5384 | Short rail (Utility); the hunter rail's per-tree order has no seat for it |
+| 6 | Aimed Shot 19434 | Hunter rail seat, and its ready arrow over the emblem |
+| 7 | Multi-Shot 2643 | Ready arrows over the emblem; its cooldown on the short rail (Essential) |
+| 8 | Arcane Shot 3044 | Short rail (Essential); a flash over the emblem before the hunter has a pet |
+| 9 | Sniper Shot 1310687 | Hunter rail seat |
+| 10 | Raptor Strike 2973 | Short rail (Essential, hidden by the game until shown); a flash over the emblem before the first Aspect |
+| 11 | Strider Kick 1317257 | Hunter rail seat |
+| 12 | Fire trap cooldown 13795, 13813 | Hunter rail seat |
+| 13 | Auto Shot and swing 75 | The Auto Shot ring round the crest |
+| 14 | Summon Hawk 1293241 | The two hawk perches |
+| 15 | Pet health | The light along the lower right band |
+| 16 | Pet dead or missing 982 | A forged hound on the pet's perch: steel while no pet is out, red with a breathing halo while it lies dead; a death the game marks secret shows no hound rather than a guess |
+| 17 | Pet happiness 6991 | The forged haunch on the pet's perch |
+| 18 | Mend Pet 136 | Motes along the pet's band |
+| 19 | Pet Focus | No crest piece yet: the pet frame shows it, and the pet band already carries health, mood and Mend Pet |
+| 20 | Pet family ability cooldowns | No crest piece: each family has different abilities, and the pet action bar times them |
+| 21 | Pet-applied debuffs and buffs | No crest piece yet: the target frame's debuffs show them |
+| 22 | Pet target and Growl | No crest piece: autocast state lives on the pet action bar, which the crest does not mirror |
+| 23 | Armed trap on the ground | Unavailable: the Forever API contracts name no function or event for a placed hunter trap, and a trap is not a totem; the fire trap seat's cooldown starts when it is placed |
+| 24 | Serpent Sting 1978 | The Sting fuse on the right band |
+| 25 | Hunter's Mark 1130 | The reticle on the left band |
+| 26 | Viper Sting 3034 | The Sting fuse; its cooldown on the short rail (Utility) |
+| 27 | Scorpid Sting 3043 | The Sting fuse |
+| 28 | Lacerate bleed | The Sting fuse burns Lacerate 24118 to 24120 and 1299332; Lacerating Strikes 1310533 is not in the supported build's ability catalog |
+| 29 | Immolation Trap burn 13797 | No crest piece yet: a fuse needs a forged mark of its own, and the hunter's marks are being remade as animated auras first |
+| 30 | Mongoose Bite 1495 | Its fangs over the emblem when usable |
+| 31 | Expose Prey 1310532 | Not in the supported build's ability catalog, so no piece is drawn for it |
+| 32 | Counterattack 19306 | Its blades over the emblem when usable |
+| 33 | Deadly Aspects (Quick Shots) 19552 | The feathered gust round the crest |
+| 34 | Sniper Shot range charges | The crown of three arrows |
+| 35 | Rapid Killing 415405 | Not in the supported build's ability catalog; its effect lands on Rapid Fire's cooldown, which the rail seat shows |
+| 36 | Pet Frenzy 19621 | Deliberately quiet: a passive on the pet |
+| 37 | Proc roots and stuns 19184, 19407 | Deliberately quiet: passive control chances |
+| 38 | Active Aspect | The perched Aspect on the lower left |
+| 39 | No Aspect, or Cheetah or Pack in combat | The perch shows grey steel with no Aspect and the animal it names otherwise; no extra warning yet |
+| 40 | Trueshot Aura 19506, 20905, 20906, 1299346, 1299348 | A forged arrow through a ring on the upper left: gold while the aura is up, steel while it is down |
+| 41 | Track type matching the target 24293 | A forged compass on the upper right with Improved Tracking: gold while the active tracking's creature type is the target's, steel while not, hidden with no target; a type the game marks secret stays steel |
+| 42 | Lone Wolf (no pet out) | The steel hound on the pet's perch |
+| 43 | Range and the dead zone | Unavailable on the crest: the game reports range per action slot (`ACTION_RANGE_CHECK_UPDATE`), which tints the buttons, and a spell-range read would have to poll |
+| 44 | Mana and the five-second rule | The five-second ring round the level badge; mana itself on the player frame |
+| 45 | Rapid Recuperation 1223987 | Deliberately quiet: a passive mana return |
+| 46 | Threat on the target | No crest piece: the crest's threat glow is for tanks; nameplates and the role meters show threat |
+| 47 | Freezing Trap 1499 | Short rail (Utility) |
+| 48 | Frost Trap 13809 | Short rail (Utility) |
+| 49 | Tranquilizing Shot 19801 | No crest piece: the game lists it in no Cooldown Manager set and the rail has no seat for it; the action bar times it |
+| 50 | Scatter Shot 19503 | Short rail (Utility) |
+| 51 | Concussive Shot 5116 | Short rail (Utility) |
+| 52 | Wing Clip 2974 | Nothing to time: it has no cooldown, and the game lists it only as a hidden tracked buff |
+| 53 | Disengage 781 | Short rail (Utility) |
+| 54 | Distracting Shot 20736 | Short rail (Utility) |
+| 55 | Flare 1543 | Short rail (Utility, hidden by the game until shown) |
+| 56 | Scare Beast 1513 | Short rail (Utility, hidden by the game until shown) |
+| 57 | Crowd control time, breaks and diminishing returns | Unavailable: breaks and diminishing returns need the combat log, which is closed to addons; the control's own debuff shows on the target frame |
+| 58 | On-use trinket | The hunter rail's trinket seat |
+| 59 | Racial cooldown | The shared racial sigils on the cooldown rim while the buff runs |
+| 60 | Ammo | The Auto Shot ring turns amber below 200 and red with none |
+| 61 | Potion and consumable cooldowns | The shared Potion sigil while the potion's buff runs; no pendant yet, as the crest cannot tell which potion the player will drink next |
 
 ## Conditional racials
 

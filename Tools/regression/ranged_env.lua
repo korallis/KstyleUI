@@ -1,13 +1,16 @@
--- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), a change to the addon before it is enabled (opts.before), pet, ammo, usable strikes, item and spell cooldowns and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error.
+-- ranged_env.lua: the stub game a hunter, mage or warlock crest test boots (KstyleUI_ActionBars/SlabRanged.lua): New builds the class with its known spells, bags, an on-use trinket in slot 13 (opts.trinket), a change to the addon before it is enabled (opts.before), pet, ammo, the minimap's tracking (opts.tracking, a Track spell; env._herbs adds Find Herbs) and the target's creature type (opts.creature), usable strikes, item and spell cooldowns and secret auras behind Blizzard's aura slots; Piece and Seated find a switch's piece, Shown asks whether the engine plays a group, Tint compares a region's colour, Icons lists every spell or item icon under a frame, Clean asserts no error.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
 local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
 local KNOWN = {
-	HUNTER = { 13165, 883, 1130, 1978, 19552, 3045, 19574, 75, 2643 },
+	HUNTER = { 13165, 883, 1130, 1978, 19552, 3045, 19574, 75, 2643, 19506, 24293 },
 	MAGE = { 168, 759, 11426, 12574, 116, 118, 12042, 11958, 2139, 122 },
 	WARLOCK = { 172, 980, 348, 688, 6201, 1120, 18094, 18288, 706, 702, 17962, 2362, 6789 },
 }
+
+-- The creature types by C_CreatureInfo ID, as an English client names them.
+local TYPES = { "Beast", "Dragonkin", "Demon", "Elemental", "Giant", "Undead", "Humanoid" }
 
 -- The shared stub's Hide runs no OnHide. With opts.hiding a shown frame that hides, by Hide or SetShown(false), runs OnHide on
 -- itself and every shown descendant, as the client does, so a test reaches a hide handler only through the code that hides it.
@@ -80,11 +83,21 @@ local function New(class, opts)
 			e._pet = opts.pet
 			local exists = e.UnitExists
 			e.UnitExists = function(unit) if unit == "pet" then return e._pet ~= nil end return exists(unit) end
-			e.UnitIsDead = function(unit) return unit == "pet" and e._pet ~= nil and e._pet.dead == true end
+			e.UnitIsDead = function(unit) return unit == "pet" and e._pet ~= nil and e._pet.dead or false end
 			e.UnitHealthMax = function() return e.Secret(e._pet and e._pet.max or 0) end
 			e.UnitHealth = function() return e.Secret(e._pet and e._pet.max - e._pet.missing or 0) end
 			e.UnitHealthMissing = function() return e.Secret(e._pet and e._pet.missing or 0) end
 			e.C_PetInfo = { GetPetHappiness = function() return e._pet and e._pet.mood end }
+			e._tracking, e._creature = opts.tracking, opts.creature
+			e.C_Minimap = {
+				GetNumTrackingTypes = function() return 2 end,
+				GetTrackingInfo = function(i)
+					if i == 1 then return { name = "Find Herbs", spellID = 2383, active = e._herbs == true } end
+					return { name = "Tracking", spellID = e._tracking or 1494, active = e._tracking ~= nil }
+				end,
+			}
+			e.UnitCreatureType = function(unit) if unit == "target" and e._target then return e._creature end end
+			e.C_CreatureInfo = { GetCreatureTypeInfo = function(id) return TYPES[id] and { name = TYPES[id] } end }
 			e.GetInventoryItemID = function(_, slot) return opts.trinket and slot == 13 and 5002 or nil end
 			e.GetInventoryItemCooldown = function() return 0, 0, 1, false end
 			e.C_Item.GetItemSpell = function(id) if id == 5002 then return "Use", 9002 end end
