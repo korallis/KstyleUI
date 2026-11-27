@@ -202,7 +202,9 @@ class WorkflowsTest(unittest.TestCase):
     def test_which_workflows_run_for_a_pull_request_and_on_a_schedule(self):
         self.assertTrue(set(self.events("release.yml")[1]) <= {"push", "workflow_dispatch"})
         self.assertEqual(self.events("pr-rules.yml")[1], ["pull_request"])
-        self.assertEqual(self.events("nightly.yml")[1], ["schedule", "workflow_dispatch"])
+        on, events = self.events("nightly.yml")
+        self.assertEqual(events, ["schedule", "workflow_dispatch", "pull_request"])
+        self.assertIn("  pull_request:\n    types: [labeled]", on)
         on, events = self.events("checks.yml")
         self.assertEqual(events, ["pull_request", "push", "workflow_dispatch"])
         self.assertIn("    branches: [staging, main]\n", on)
@@ -309,6 +311,14 @@ class WorkflowsTest(unittest.TestCase):
         self.assertIn("""run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py'\n""", jobs["lint-python-package"])
         self.assertIn('--shard "$SHARD/$SHARD_TOTAL" --affected 4b825dc642cb6eb9a060e54bf8d69288fbee4904\n', jobs["lua"])
         self.assertIn("key: lua-deps-${{ github.run_id }}", jobs["lua-deps"])
+
+    def test_a_pull_request_runs_the_full_suite_only_when_it_gets_the_full_suite_label(self):
+        # The captain's choice on this change's review: see the full nightly run pass before merging.
+        jobs = jobs_of((WORKFLOWS / "nightly.yml").read_text(encoding="utf-8"))
+        guard = "    if: github.event_name != 'pull_request' || github.event.label.name == 'full suite'\n"
+        for job in ("lua", "lint-python-package"):
+            self.assertTrue(jobs[job].startswith("\n" + guard), job)
+        self.assertIn("    if: github.ref == 'refs/heads/staging'\n", jobs["lua-deps"], "only staging saves the record")
 
     def test_the_checks_job_passes_only_when_every_job_the_change_needs_passed(self):
         # The checks job is the one status a merge waits on: a failed, cancelled or wrongly skipped job must turn it red.

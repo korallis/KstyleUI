@@ -1,11 +1,14 @@
-# nightly.yml: the full suite on staging each night, and by hand on a release commit: lint on every file, every Lua test file with
-# their budgets, every Python test file with the renders, and a fresh record of what each Lua test loads for checks.yml.
+# nightly.yml: the full suite on staging each night, by hand on a release commit, and on a pull request when it gets the
+# "full suite" label, to see the whole suite pass on that change before it merges: lint on every file, every Lua test file with
+# their budgets, every Python test file with the renders, and on staging a fresh record of what each Lua test loads for checks.yml.
 name: nightly
 
 on:
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
+  pull_request:
+    types: [labeled]
 
 permissions:
   contents: read
@@ -16,6 +19,7 @@ concurrency:
 
 jobs:
   lua:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'full suite'
     name: lua ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -87,6 +91,7 @@ jobs:
           key: lua-deps-${{ github.run_id }}
 
   lint-python-package:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'full suite'
     name: lint, python and package
     runs-on: ubuntu-latest
     timeout-minutes: 30
