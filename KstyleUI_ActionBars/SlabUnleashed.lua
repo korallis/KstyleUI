@@ -58,11 +58,11 @@ local function Fire(piece, parent, level, units, ambient, masked, single)
 	return fire, cloud
 end
 
-local function Lights(piece, lit, spec, crest, awake)
+local function Lights(piece, lit, spec, crest, awake, majors)
 	local ambient = (spec.burst or "medBurstWarrior"):gsub("^medBurst", "medAmbient")
 	local level, hub = lit:GetFrameLevel() + 2, crest and ns.Slab.hub:GetFrameLevel()
 	local gate = Medals.Layer(piece, level)
-	local slot = Medals.Feed(gate, setmetatable({}, { __index = lit.spec }), level)
+	local slot = Medals.Feed(gate, setmetatable({ spells = majors }, { __index = lit.spec }), level)
 	gate.lit = slot
 	local fire, cloud = Fire(piece, slot, hub and hub + 1 or level, crest and CORONA or piece.units * ROW_CORONA, ambient, crest)
 	local glow
@@ -87,7 +87,7 @@ local function Lights(piece, lit, spec, crest, awake)
 			turn:SetDuration(TURN)
 			slot.loops[3] = spin
 			local burst = Medals.Layer(piece, level)
-			burst.lit = Medals.Feed(burst, setmetatable({}, { __index = lit.spec }), level)
+			burst.lit = Medals.Feed(burst, setmetatable({ spells = majors }, { __index = lit.spec }), level)
 			local flare = piece.add(Medals.Texture(burst.lit, "OVERLAY", 1, spec.burst or "glow", "white", RIM, "ADD"))
 			flare:SetAlpha(0)
 			flare.play = flare:CreateAnimationGroup()
@@ -115,6 +115,16 @@ end
 
 local Settle
 
+local function Majors(families)
+	local ids = {}
+	for _, family in ipairs(families) do
+		for _, id in ipairs(family.major and family.spells or NONE) do
+			ids[#ids + 1] = id
+		end
+	end
+	return ids
+end
+
 local function Watch(piece, set)
 	local live = CreateFrame("Frame", nil, set.awake.lit)
 	local watch = live:CreateAnimationGroup()
@@ -138,13 +148,18 @@ local function Watch(piece, set)
 end
 
 function Unleashed.Dress(piece, spec, form)
-	local crest = form == "crest"
-	for i, lit in ipairs(piece.lits) do
-		local set = { piece = piece, crest = crest, lit = lit, awake = Lights(piece, lit, spec, crest, true), still = Lights(piece, lit, spec, crest, false) }
-		set.lits = { set.awake.lit, set.still.lit, set.awake.burst and set.awake.burst.lit }
-		if crest then
-			if i == 1 then
+	local crest, folded = form == "crest", false
+	for _, lit in ipairs(piece.lits) do
+		local majors = Majors(lit.spec.families or NONE)
+		local set = majors[1] and { piece = piece, crest = crest, lit = lit }
+		if set then
+			set.awake, set.still = Lights(piece, lit, spec, crest, true, majors), Lights(piece, lit, spec, crest, false, majors)
+			set.lits = { set.awake.lit, set.still.lit, set.awake.burst and set.awake.burst.lit }
+		end
+		if set and crest then
+			if not folded then
 				set.fold, set.cool = Fold(piece, spec)
+				folded = true
 			end
 			Watch(piece, set)
 			set.awake.timer:SetScript("OnCooldownDone", function()
@@ -161,10 +176,10 @@ function Unleashed.Dress(piece, spec, form)
 			set.awake.lit:AddAuraAssignedAnimation(taken)
 			set.taken = taken
 		end
-		sets[#sets + 1] = set
+		sets[#sets + 1] = set or nil
 	end
 	for _, family in ipairs(spec.families) do
-		for _, list in ipairs({ family.spells, family.known or NONE }) do
+		for _, list in ipairs(family.major and { family.spells, family.known or NONE } or NONE) do
 			for _, id in ipairs(list) do
 				state.ids[id] = family.unit or "player"
 			end

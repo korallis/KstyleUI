@@ -19,8 +19,8 @@ local OMEN, CLEARCASTING = { 16864 }, { 16870, 457342, 467735 }
 local GROWTH, POUNCE = { 1238215, 1238214, 408120 }, { 9826, 9824, 9007 }
 local GROWL, CHARGE, BITE, BASH = { 6795 }, { 1238122 }, { 1238070, 1238069, 407995 }, { 8983, 6798, 5211 }
 local BEAR, CAT, MOONKIN, CASTER = { 5, 8 }, { 1 }, { 31, 35 }, { 0, 3, 4 }
-local LEAVES, LEAF, UNFURL, PERCH, FOOT = 8, 14, 0.35, 30, 22
-local DASH, BARKSKIN = { spells = { 1850, 9821 }, sigil = "Dash" }, { spells = { 22812 }, sigil = "Bark" }
+local LEAVES, LEAF, UNFURL, PERCH, FOOT = 8, 16, 0.35, 30, 22
+local DASH, BARKSKIN = { spells = { 1850, 9821 }, sigil = "Dash" }, { spells = { 22812 }, sigil = "Bark", major = true }
 
 local maul, bloom = {}, nil
 local Oil, Ring = ns.SlabVigil.Oil, ns.SlabVigil.Ring
@@ -34,7 +34,7 @@ local function Bloom(parent, spec, level, form)
 	if form == "row" then
 		return Medals.Figure(parent, { feed = "aura", spells = CLEARCASTING, figure = "trackerLeaf", burst = spec.burst, bloom = "schoolNature" }, level)
 	end
-	local r = Medals.Rim(parent, { feed = "aura", spells = CLEARCASTING, ambient = "medAmbientDruid", burst = spec.burst }, level)
+	local r = Medals.Rim(parent, { feed = "aura", spells = CLEARCASTING, proc = "schoolNature" }, level)
 	r.ring, r.moving, r.calm = {}, Medals.Mirror(r, r.lit, level + 2, false), Medals.Mirror(r, r.lit, level + 2, false)
 	r.leaves = Medals.Layer(r.moving.lit, level + 2)
 	r.unfurl = r.leaves:CreateAnimationGroup()
@@ -141,9 +141,9 @@ ns.SlabTrackers.Register("DRUID", {
 	} },
 	{ key = "crestTankGlow", seat = "rim", feed = "threat", build = Emblem, color = "gilt", forms = BEAR, known = { 9634, 5487 } },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipDruidGlow", bloom = "pipDruidGlow", choices = {
-		{ forms = BEAR, families = { { spells = { 22842 }, sigil = "Mend" }, { spells = { 5229 }, sigil = "Fang" }, BARKSKIN, DASH } },
+		{ forms = BEAR, families = { { spells = { 22842 }, sigil = "Mend", major = true }, { spells = { 5229 }, sigil = "Fang", major = true }, BARKSKIN, DASH } },
 		{ forms = CAT, families = { DASH, BARKSKIN } },
-		{ families = { { spells = { 29166 }, sigil = "Innervate" }, { spells = { 17116 }, sigil = "Swift" }, BARKSKIN, DASH,
+		{ families = { { spells = { 29166 }, sigil = "Innervate", major = true }, { spells = { 17116 }, sigil = "Swift", major = true }, BARKSKIN, DASH,
 				{ spells = { 16689, 16810, 16811, 16812, 16813, 17329 }, sigil = "Roots" } } },
 	} },
-}, { figures = true, burst = "medBurstDruid", fiveSecondForms = Join(CASTER, MOONKIN), events = { "CURRENT_SPELL_CAST_CHANGED" }, update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" }, paint = Queued, motion = Unfurl })
+}, { figures = true, lowTrinkets = true, burst = "medBurstDruid", fiveSecondForms = Join(CASTER, MOONKIN), events = { "CURRENT_SPELL_CAST_CHANGED" }, update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" }, paint = Queued, motion = Unfurl })

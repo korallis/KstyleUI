@@ -10,22 +10,22 @@ local Medals = {}
 ns.SlabMedals = Medals
 
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
-local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
-local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL, ABOVE = 118, 14, 4, 30, 12, 0.86, 20
+local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 22, 18, 16, 3
+local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL, ABOVE = 116, 16, 4, 28, 16, 0.86, 20
 local SPARK, BLOOM, GLOW_LIT, FLARE_MAX = 0.3, 2.4, 0.75, 30
 local FORGED, HALO, HALO_LIT, SHEEN, SHEEN_SMALL = 24, 1.7, 0.7, 0.15, 0.6
 local FLASH, BREATH, FADE_IN = { { 0, 0.25, 0.05 }, { 0.25, 0, 0.4 } }, { { 0.75, 1, 0.8 }, { 1, 0.75, 0.8 } }, { { 0, 1, 0.12 } }
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
-	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
+	footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
 }
-local PIP, PIP_ARC, GLOW, SPARK_LAP = 4, 22, 0.35, 1.6
+local PIP, PIP_GAP, ROW_PIP, ROW_PIP_ARC, GLOW, SPARK_LAP = 16, 2, 4, 22, 0.35, 1.6
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local HELD = FLARE[1][3] + FLARE[2][3]
 local OWNER = "ActionBars.SlabMedals"
 local refreshed, rims, watchers, gates, breaths, NONE = {}, {}, {}, {}, {}, {}
 local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
-Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP = SIZE, 15, 5, 4
+Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP, Medals.PIP, Medals.SETTING = SIZE, 16, 10, 4, PIP, SETTING
 
 function Medals.Cell(n)
 	local pitch = SIZE + Medals.GAP
@@ -434,15 +434,18 @@ local function Lit(piece, spec, level, share)
 end
 Medals.Lit = Lit
 
-function Medals.Pips(m, lit, each, size, level, at)
+function Medals.Pips(m, lit, each, size, level, at, row)
+	local units = row and ROW_PIP or PIP
+	local r = size / 2 + (row and ROW_PIP or units / 2)
+	local step = row and rad(ROW_PIP_ARC) or 2 * math.asin(math.min(1, (PIP + PIP_GAP) / (2 * r)))
 	for n = 1, lit.container and each.pips or 0 do
 		local slot = lit.container:AddAuraSlot("pip" .. n, each.filter or "HELPFUL", each.options)
 		pcall(slot.EnableMouse, slot, false)
 		slot:SetAllPoints(m)
 		slot:SetFrameLevel(level)
-		local pip = m.add(CreateFrame("StatusBar", nil, slot), PIP)
-		local a = rad(270 + (n - (each.pips + 1) / 2) * PIP_ARC)
-		pip:SetPoint("CENTER", m, "CENTER", at and at[n][1] or (size / 2 + 4) * cos(a), at and at[n][2] or (size / 2 + 4) * sin(a))
+		local pip = m.add(CreateFrame("StatusBar", nil, slot), units)
+		local a = rad(270) + (n - (each.pips + 1) / 2) * step
+		pip:SetPoint("CENTER", m, "CENTER", at and at[n][1] or r * cos(a), at and at[n][2] or r * sin(a))
 		pip:SetStatusBarTexture((Tokens.Texture("dot")))
 		pip:SetStatusBarColor(Tokens.Color(each.color or "gilt"))
 		slot:SetApplicationBar(pip, { minApplications = n - 1, maxApplications = n })
@@ -503,7 +506,7 @@ function Medals.Medal(parent, spec, level)
 			lit.count:SetPoint("BOTTOMRIGHT", m.steel, "CENTER", corner, -corner)
 			lit:SetApplicationCount(lit.count)
 		end
-		Medals.Pips(m, lit, each, size, level + 2)
+		Medals.Pips(m, lit, each, size, level + 2, nil, spec.row)
 		m.timer = m.timer or lit.timer
 		if each.feed == "usable" or each.feed == "item" then
 			lit:Hide()
@@ -572,13 +575,19 @@ end
 function Medals.Rim(parent, spec, level)
 	local r = Medals.Piece(parent, level, RIM)
 	local lit = Lit(r, spec, level + 1)
-	if spec.ambient then
+	local ambient = spec.ambient or spec.proc and "procAura"
+	if ambient then
 		r.still = Mirror(r, lit, level + 1)
-		Medals.Cloud(r.still.lit, spec.ambient, spec.cell or 0)
+		local still = Medals.Cloud(r.still.lit, ambient, spec.cell or 0)
 		lit.awake = Mirror(r, lit, level + 1)
 		r.fire = lit.awake
 		r.fire:SetAlpha(0)
-		r.fire.lit.loop = Medals.Flip(Medals.Cloud(r.fire.lit, spec.ambient, spec.cell or 0), spec.ambient, 1)
+		local fire = Medals.Cloud(r.fire.lit, ambient, spec.cell or 0)
+		r.fire.lit.loop = Medals.Flip(fire, ambient, 1)
+		if spec.proc then
+			still:SetVertexColor(Tokens.Color(spec.proc))
+			fire:SetVertexColor(Tokens.Color(spec.proc))
+		end
 		rims[#rims + 1] = r
 	end
 	if spec.color then
@@ -602,7 +611,9 @@ function Medals.Rim(parent, spec, level)
 		ns.Slab.Fade(orbit, 0, 1, 0.03, 1, 0.96)
 		lit.awake.lit.loop = orbit
 	end
-	Medals.Flare(r, lit, level + 3, spec.burst or "glow", RIM, spec.lua)
+	for _, ping in ipairs(Medals.Flare(r, lit, level + 3, spec.proc and "ringLine16" or spec.burst or "glow", RIM, spec.lua)) do
+		ping:SetVertexColor(Tokens.Color(spec.proc or "white"))
+	end
 	r.spec = spec
 	return r
 end

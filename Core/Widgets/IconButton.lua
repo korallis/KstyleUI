@@ -18,6 +18,7 @@ local COUNTDOWN_RISE = 0.25
 local COUNTDOWN_CORNER_X, COUNTDOWN_CORNER_Y = 0.2, 0.1
 local TEXT_INSET = 3
 local ICON_CROP = 0.07
+local ROUND_INSET, PROC_AURA_PAD = 0.09, 0.15
 local OVERLAY_LEVEL = 2
 local READY_ALPHA = 0.35
 
@@ -268,35 +269,92 @@ function Widgets.CountdownFormat(cooldown, tenths, colour, below)
 	cooldown:SetCountdownFormatter(countdownFormatters[key] or nil)
 end
 
-function Widgets.MedallionsFrame(button, on, overlay)
+function Widgets.MedallionsFrame(button, on, overlay, round)
 	if not button.medIconFrame and on then
-		local well = button:CreateTexture(nil, "BACKGROUND", nil, 2)
-		well:SetTexture((Tokens.Texture("medSlotSocket")))
-		well:SetAllPoints(button)
-		button.medIconWell = well
-		local frame = (overlay or button):CreateTexture(nil, "OVERLAY", nil, 2)
-		frame:SetTexture((Tokens.Texture("medSlot")))
-		frame:SetAllPoints(button)
-		button.medIconFrame = frame
+		button.medIconWell = button:CreateTexture(nil, "BACKGROUND", nil, 2)
+		button.medIconWell:SetAllPoints(button)
+		button.medIconFrame = (overlay or button):CreateTexture(nil, "OVERLAY", nil, 2)
+		button.medIconFrame:SetAllPoints(button)
+	end
+	if button.medIconFrame and on then
+		button.medIconWell:SetTexture((Tokens.Texture(round and "dot" or "medSlotSocket")))
+		button.medIconWell:SetVertexColor(Tokens.Color(round and "medSocket" or "white"))
+		button.medIconFrame:SetTexture((Tokens.Texture(round and "medRing" or "medSlot")))
 	end
 	if button.medIconFrame then
 		button.medIconFrame:SetShown(on)
 		button.medIconWell:SetShown(on)
 	end
 	button.chrome:SetShown(not on)
+	Widgets.MedallionsProc(button)
 end
 
-function Widgets.MedallionsIcon(button, on)
+local auras = setmetatable({}, { __mode = "k" })
+
+local function ProcAura(button)
+	local rows, columns, frames, seconds = Tokens.Flipbook("procAura")
+	local pad = Widgets.Snap(button, (button.opts.size or Tokens.Size("actionButton")) * PROC_AURA_PAD)
+	local aura = {}
+	for i = 1, 2 do
+		local t = button.medIconFrame:GetParent():CreateTexture(nil, "OVERLAY", nil, 3)
+		t:SetTexture((Tokens.Texture("procAura")))
+		t:SetVertexColor(Tokens.Color("giltLit"))
+		t:SetBlendMode("ADD")
+		t:SetPoint("TOPLEFT", button, "TOPLEFT", -pad, pad)
+		t:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", pad, -pad)
+		t:Hide()
+		aura[i] = t
+	end
+	aura.still, aura.moving = aura[1], aura[2]
+	aura.still:SetTexCoord(0, 1 / columns, 0, 1 / rows)
+	aura.loop = aura.moving:CreateAnimationGroup()
+	aura.loop:SetLooping("REPEAT")
+	local flip = aura.loop:CreateAnimation("FlipBook")
+	flip:SetFlipBookRows(rows)
+	flip:SetFlipBookColumns(columns)
+	flip:SetFlipBookFrames(frames)
+	flip:SetDuration(seconds)
+	Motion.TrackGroup(aura.loop, function() Widgets.MedallionsProc(button) end)
+	if not next(auras) then
+		ns.Callbacks.Register("EffectsLevelChanged", "IconButtonProcAura", function()
+			for each in pairs(auras) do Widgets.MedallionsProc(each) end
+		end)
+	end
+	auras[button] = true
+	return aura
+end
+
+function Widgets.MedallionsProc(button)
+	local lit = button.medRound and button.proc and button.medIconFrame and button.medIconFrame:IsShown()
+	if lit and not button.medIconProc then button.medIconProc = ProcAura(button) end
+	local aura = button.medIconProc
+	if not aura then return end
+	local moving = lit == true and (ns.Effects and ns.Effects.Allows("ambient") or not ns.Effects and Motion.Slides())
+	aura.still:SetShown(lit == true and not moving)
+	aura.moving:SetShown(moving)
+	if not moving then
+		aura.loop:Stop()
+	elseif not aura.loop:IsPlaying() then
+		aura.loop:Play()
+	end
+end
+
+function Widgets.MedallionsIcon(button, on, round)
 	if not on and not button.medIconFrame then return end
 	if not button.medIconShown then
 		button.medIconShown = {}
 		for _, region in ipairs({ button.well, button.bevelTop, button.bevelBottom }) do button.medIconShown[region] = region:IsShown() end
 	end
-	Widgets.MedallionsFrame(button, on)
+	round = on and round == true
+	button.medRound = round
+	if button.procHalo then button.procHalo.holder:SetShown(not round) end
+	Widgets.MedallionsFrame(button, on, nil, round)
 	for region, shown in pairs(button.medIconShown) do region:SetShown(not on and shown) end
 	Widgets.ShowSlice(button.innerLine, not on)
-	button.mask:SetTexture((Tokens.Texture(on and "medSlotMask" or "iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-	button.opts.iconInset = on and 3 or nil
+	local mask = Tokens.Texture(round and "dot" or on and "medSlotMask" or "iconMask")
+	button.mask:SetTexture(mask, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	button.cooldown:SetSwipeTexture((Tokens.Texture(round and "dot" or "iconMask")))
+	button.opts.iconInset = round and (button.opts.size or Tokens.Size("actionButton")) * ROUND_INSET or on and 3 or nil
 	button.placedOffset = nil
 	PlaceIcon(button)
 end

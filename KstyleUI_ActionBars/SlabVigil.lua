@@ -198,9 +198,9 @@ ns.SlabTrackers.Register("PRIEST", {
 	{ key = "crestSilence", seat = "lowerLeft", feed = "cooldown", known = SILENCE, color = "schoolShadow", build = Medals.Socket },
 	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, color = "jewelHoly", build = Medals.Socket },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", bloom = "pipPriestGlow", families = {
-		{ spells = { 10060 }, sigil = "Infusion" }, { spells = { 14751 }, sigil = "Focus" },
-		{ spells = { 586, 9578, 9579, 9592, 10941, 10942 }, sigil = "Veil" }, { spells = { 6346 }, sigil = "Brave" }, { spells = { 2651 }, sigil = "Moon" },
-		{ spells = { 13896, 19271, 19273, 19274, 19275 }, sigil = "Feedback" }, { spells = { 1277328, 1277327, 1277326, 1277325, 1277324 }, sigil = "Sacrifice" },
+		{ spells = { 10060 }, sigil = "Infusion", major = true }, { spells = { 14751 }, sigil = "Focus", major = true },
+		{ spells = { 586, 9578, 9579, 9592, 10941, 10942 }, sigil = "Veil" }, { spells = { 6346 }, sigil = "Brave" }, { spells = { 2651 }, sigil = "Moon", major = true },
+		{ spells = { 13896, 19271, 19273, 19274, 19275 }, sigil = "Feedback", major = true }, { spells = { 1277328, 1277327, 1277326, 1277325, 1277324 }, sigil = "Sacrifice" },
 		{ spells = { 1277640, 1277639, 1277638, 1277634, 1277462 }, sigil = "Lifeline" },
 	} },
 }, {

@@ -24,7 +24,7 @@ for token, ids in pairs({
 }) do
 	for _, id in ipairs(ids) do ELEMENTS[id] = token end
 end
-local STONE, SETTING, RIM, LAST, GLOW = 14, 18, 22, 300, 0.55
+local STONE, SETTING, RIM, LAST, GLOW = 16, 20, 22, 300, 0.55
 local SLOTS = { MainHand = 16, OffHand = 17 }
 local PULSE = { { 0.25, 1, 0.6 }, { 1, 0.25, 0.6 } }
 
@@ -145,8 +145,8 @@ ns.SlabTrackers.Register("SHAMAN", {
 			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = STORMSTRIKE, figure = "figureStrike", bloom = "totemAir" },
 			{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = RIPTIDE, figure = "figureTide", bloom = "totemWater" },
 		} },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "pipStormGlow", bloom = "pipStormGlow", families = { { spells = { 16166 }, sigil = "Bolt" }, { spells = { 16188 }, sigil = "Swift" },
-			{ spells = { 425336 }, sigil = "Farseer" } } },
+	{ key = "crestCooldowns", seat = "cooldowns", color = "pipStormGlow", bloom = "pipStormGlow", families = { { spells = { 16166 }, sigil = "Bolt", major = true }, { spells = { 16188 }, sigil = "Swift", major = true },
+			{ spells = { 425336 }, sigil = "Farseer", major = true } } },
 }, {
 	figures = true,
 	burst = "medBurstShaman",

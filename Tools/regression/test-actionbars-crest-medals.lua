@@ -154,10 +154,10 @@ do
 	assert(c._slots.sigil5.disabled and not rim.sigils[5].at, "a racial the character does not have takes no place and reads no aura")
 	local at = {}
 	for i, b in ipairs(rim.sigils) do at[i] = b.at and b.at[1] .. "," .. b.at[2] end
-	assert(at[1] == "-18,-37" and at[2] == "0,-37" and at[3] == "18,-37" and at[4] == "-18,-19" and at[6] == "0,-19" and at[7] == "18,-19",
+	assert(at[1] == "-20,-36" and at[2] == "0,-36" and at[3] == "20,-36" and at[4] == "-20,-16" and at[6] == "0,-16" and at[7] == "20,-16",
 		"three to a line below the centre, the next line above: " .. table.concat(at, " ", 1, 4))
 	for i, b in ipairs(rim.sigils) do
-		assert(not b.at or math.abs(b.at[1]) + 7 <= 25 and b.at[2] - 7 >= -44, i .. ": clear of the lower Inner Fire flames (x 32.5 and out) and the feet")
+		assert(not b.at or math.abs(b.at[1]) + b.units / 2 <= 28 and b.at[2] - b.units / 2 >= -44, i .. ": clear of the lower Inner Fire flames (x 32.5 and out) and the feet")
 	end
 	assert(not rim.sigils[1].loop and rim.sigils[1]._regions[1]._state.VertexColor[1] == 0, "a sigil keeps #809's dark shade: the healers' bloom and flash are theirs alone")
 	Slots.Set(env, "player", { { id = 1719, count = 0, icon = 1, start = 0, duration = 15 }, { id = 871, count = 0, icon = 2, start = 0, duration = 10 } })
@@ -185,7 +185,7 @@ do
 	Medals.Engine({ rim }, true, true)
 	assert(#rim.lits == 2 and rim.lits[2].container._unit == "pet" and not rim.timer, "the pet's family has its own container, and the row has no rim")
 	for i, b in ipairs(rim.sigils) do
-		assert(b.at and b.at[1] == 14 * (i - 1) and b.at[2] == 0, i .. ": its own place along the strip, the pet's after the player's four")
+		assert(b.at and b.at[1] == (b.units + 2) * (i - 1) and b.at[2] == 0, i .. ": its own place along the strip, the pet's after the player's four")
 		local ring = false
 		for _, region in ipairs(b._regions) do
 			local t = region._state.Texture and region._state.Texture[1]
@@ -211,7 +211,7 @@ do
 	assert(rim.timer.units / 2 - band >= emblem - 1 and cooldowns.timer.units / 2 <= 60, "the rings run in the dark between the emblem and the rune band, clear of the emblem's edge")
 	assert(AB.W.LastCall(rim.timer, "SetSwipeTexture")[1]:find("RingLine16", 1, true), "a thin ring band, not a wide arc")
 	Medals.Place(cooldowns, parent, 0, 0)
-	assert(cooldowns.sigils[1].units == 14, "a crest sigil is 14 units, 18 apart: a clear gap at every size")
+	assert(cooldowns.sigils[1].units == 16, "a crest sigil is 16 units, 20 apart: a clear gap at every size")
 	local foot = Medals.Medal(parent, { feed = "aura", spells = { 1 }, color = "gilt", size = Medals.FOOT }, 5)
 	local timed = foot.timer.units
 	for _, seat in ipairs({ "footLeft", "footRight" }) do

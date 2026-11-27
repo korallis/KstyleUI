@@ -444,11 +444,53 @@ do
 	end
 	local n = 0
 	for _, count in pairs(lines) do
-		assert(count <= 5, "the row wraps at five medals a line")
+		assert(count <= 10, "the row wraps at ten medals a line")
 		n = n + 1
 	end
-	assert(n == 3, "seven medals stand in two lines and the cooldown sigils on a line of their own")
+	assert(n == 2, "seven medals stand in one line and the cooldown sigils on a line of their own")
 	Clean(env, K, "frames paladin")
+end
+
+-- Frames: a centred strip above the player cast bar, each medal on a square plate (crest audit C11). The cast bar
+-- comes from the unit frames, which may enable after the action bars.
+do
+	local env, K, ns = New("WARRIOR", { 25289, 20662, 2687 }, { frames = true })
+	env._resolveRects = true
+	local cast = env.CreateFrame("Frame", nil, env.UIParent)
+	cast:SetSize(347, 30)
+	cast:SetPoint("BOTTOM", env.UIParent, "BOTTOM", 120, 300)
+	local Element = K.Layout.Element
+	K.Layout.Element = function(key)
+		return key == "unitframes.castbar.player" and { frame = cast } or Element(key)
+	end
+	K.Callbacks.Fire("ModuleChanged", "UnitFrames", true)
+	env.RunTimers()
+	local shown, form = Pieces(ns, "row")
+	local left, right, bottom = math.huge, -math.huge, math.huge
+	for _, plate in ipairs(form.plates) do
+		local x, y, w = plate[1]:GetRect()
+		local s = plate[1]:GetEffectiveScale()
+		left, right, bottom = math.min(left, x * s), math.max(right, (x + w) * s), math.min(bottom, y * s)
+	end
+	local cx = cast:GetCenter() * cast:GetEffectiveScale()
+	assert(math.abs((left + right) / 2 - cx) < 0.5, "the strip is centred on the cast bar: " .. (left + right) / 2 .. " against " .. cx)
+	assert(bottom >= cast:GetTop() * cast:GetEffectiveScale(), "the strip stands above the cast bar")
+	local plates = 0
+	for _, plate in ipairs(form.plates) do
+		if plate[1]:IsShown() then
+			plates = plates + 1
+			local px, py = plate[2]:GetCenter()
+			local under
+			for _, piece in pairs(shown) do
+				local mx, my = piece:GetCenter()
+				under = under or math.abs(px - mx) < 0.01 and math.abs(py - my) < 0.01
+			end
+			assert(under, "plate " .. plates .. " sits under a medal")
+			assert(plate[2]:GetWidth() < plate[1]:GetWidth(), "a plate has an edge round its fill")
+		end
+	end
+	assert(plates == 5, "a square plate under each of Battle Shout, the opening, Enrage, threat and the swing, got " .. plates)
+	Clean(env, K, "frames strip")
 end
 
 -- A shaman's Spirit Poles under Frames: the row stands above the poles, not on their spires.
@@ -490,7 +532,7 @@ do
 	ns.SlabTrackers.Register("ROGUE", {
 		{ key = "crestPoisons", seat = "left", feed = "aura", spells = { 5171 }, place = function(piece, anchor, _, x, cell)
 			ns.SlabMedals.Place(piece, anchor, x, 0)
-			return cell + 3
+			return cell + ns.SlabMedals.LINE - 2
 		end },
 		{ key = "crestPoisons", seat = "right", feed = "aura", spells = { 1943 } },
 	})
@@ -498,8 +540,8 @@ do
 	local pieces = ns.SlabTrackers.state.forms.row.pieces
 	local after = pieces[(n + 2) .. ":1"]
 	local _, _, _, x, y = after:GetPoint(1)
-	local cx, cy = ns.SlabMedals.Cell(5)
-	assert(pieces[(n + 1) .. ":1"]:IsVisible() and math.abs(x - cx) < 1 and math.abs(y - cy) < 1 and cy > 0, "after a three-cell piece at cell 2 the next medal starts the second line")
+	local cx, cy = ns.SlabMedals.Cell(ns.SlabMedals.LINE)
+	assert(pieces[(n + 1) .. ":1"]:IsVisible() and math.abs(x - cx) < 1 and math.abs(y - cy) < 1 and cy > 0, "after a piece filling the rest of the line from cell 2 the next medal starts the second line")
 	Clean(env, K, "custom cells")
 end
 

@@ -10,6 +10,7 @@ local Trackers = {}
 ns.SlabTrackers = Trackers
 
 local OWNER = "ActionBars.SlabTrackers"
+local STRIP = "unitframes.castbar.player"
 local RELIQUARY, MAIN_HAND, OFF_HAND, TRINKET, ARMORY_TRINKET = 30, 16, 17, { 44, 0 }, { 33, -24 }
 local LUA = {
 	cooldown = { "SPELL_UPDATE_COOLDOWN" },
@@ -28,7 +29,7 @@ for kind, events in pairs(LUA) do
 	end
 end
 local SHARED = {
-	{ spells = { 20572 }, sigil = "Axe" }, { spells = { 20554 }, sigil = "Tusks" }, { spells = { 20594 }, sigil = "Stone" },
+	{ spells = { 20572 }, sigil = "Axe", major = true }, { spells = { 20554 }, sigil = "Tusks", major = true }, { spells = { 20594 }, sigil = "Stone", major = true },
 	{ spells = { 20600 }, sigil = "Eye" }, { spells = { 7744 }, sigil = "Grave" }, { spells = { 1299026 }, sigil = "Shatter" },
 	{ spells = { 1259799 }, sigil = "Star" }, { spells = { 1259812, 1259813, 1259817, 1259821, 1259823 }, sigil = "Gear" }, { spells = { 1260270 }, sigil = "Regen" },
 	{ spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {}, sigil = "Potion" },
@@ -97,7 +98,7 @@ function Trackers.Register(class, rows, hooks)
 		cooldowns = row.seat == "cooldowns" and row or cooldowns
 	end
 	HOOKS[class] = hooks or HOOKS[class]
-	local at = hooks and hooks.armory and ARMORY_TRINKET or TRINKET
+	local at = hooks and (hooks.armory or hooks.lowTrinkets) and ARMORY_TRINKET or TRINKET
 	for slot = 13, cooldowns and 14 or 0 do
 		table.insert(CLASSES[class], { key = "crestTrinkets", seat = { slot == 13 and -at[1] or at[1], at[2] }, slot = slot, feed = "item", known = Trinket, color = cooldowns.color,
 			build = hooks and (hooks.figures or hooks.armory) and Medals.Socket or nil })
@@ -139,6 +140,7 @@ local function Resolve(p, row)
 	end
 	local spec = setmetatable({ burst = HOOKS[ns.class] and HOOKS[ns.class].burst }, { __index = p })
 	spec.size = row and Medals.SIZE or p.seat == "top" and RELIQUARY or p.size
+	spec.row = row
 	if p.feeds and ns.SlabArmory.LOOKS[p.look or ""] then
 		spec.feeds = {}
 		for _, feed in ipairs(p.feeds) do
@@ -240,6 +242,8 @@ local function Shape(name, seat)
 		local bar, totems = ns.bars.stance, ns.Totems.state
 		local first = bar.count and bar.count > 0 and bar.buttons[1]
 		local over = totems.shown and totems.header or seat:IsShown() and first
+		local cast = K.Layout and K.Layout.Element and K.Layout.Element(STRIP)
+		form.strip = cast and cast.frame
 		local own = form.frame:GetParent():GetEffectiveScale()
 		form.frame:SetScale(own > 0 and seat:GetEffectiveScale() / own * (first and first.opts.size or Medals.SIZE) / Medals.SIZE or 1)
 		form.frame:SetFrameStrata(seat:GetFrameStrata())
@@ -251,7 +255,37 @@ local function Shape(name, seat)
 	return form
 end
 
+local function Plates(form, n)
+	form.plates = form.plates or {}
+	local edge = Widgets.Border(form.frame)
+	for i = 1, math.max(n, #form.plates) do
+		local plate = form.plates[i]
+		if i <= n and not plate then
+			plate = { form.frame:CreateTexture(nil, "BACKGROUND", nil, -2), form.frame:CreateTexture(nil, "BACKGROUND", nil, -1) }
+			plate[1]:SetColorTexture(K.Tokens.Color("slotEdge"))
+			plate[2]:SetColorTexture(K.Tokens.Color("slotFill"))
+			form.plates[i] = plate
+		end
+		for layer, texture in ipairs(plate or {}) do
+			local x, y = Medals.Cell(i - 1)
+			texture:ClearAllPoints()
+			texture:SetPoint("CENTER", form.frame, "CENTER", x, y)
+			texture:SetSize(Medals.SIZE - (layer - 1) * 2 * edge, Medals.SIZE - (layer - 1) * 2 * edge)
+			texture:SetShown(i <= n)
+		end
+	end
+end
+
 local function Lay(form, name, seat, shown, order, specs)
+	order, form.claims, form.refused = ns.SlabSeats.Claim(order, specs, name == "crest")
+	for _, line in ipairs(form.refused) do
+		K.DevTest.Log("ActionBars", line)
+	end
+	local kept = {}
+	for _, key in ipairs(order) do
+		kept[key] = shown[key]
+	end
+	shown = kept
 	for key, piece in pairs(form.pieces) do
 		piece:SetShown(shown[key] ~= nil)
 		for _, twin in ipairs(piece.twins or {}) do
@@ -279,6 +313,16 @@ local function Lay(form, name, seat, shown, order, specs)
 	end
 	if strip then
 		Medals.Place(strip, form.frame, Medals.Cell(math.ceil(n / Medals.LINE) * Medals.LINE + over))
+	end
+	local x, top = form.strip and form.strip:GetCenter(), form.strip and form.strip:GetTop()
+	local k = top and form.strip:GetEffectiveScale() / form.frame:GetEffectiveScale()
+	if name == "row" then
+		Plates(form, n)
+	end
+	if name == "row" and k then
+		local width = math.max(1, math.min(n, Medals.LINE)) * (Medals.SIZE + Medals.GAP) - Medals.GAP
+		form.frame:ClearAllPoints()
+		form.frame:SetPoint("BOTTOM", UIParent, "BOTTOMLEFT", x * k + (Medals.SIZE - width) / 2, top * k + Medals.GAP)
 	end
 	ns.SlabTarget.Seat()
 end
@@ -341,6 +385,8 @@ local function Listen(on, lua, forms)
 	local Events = K.Events
 	Events.UnregisterAll(OWNER)
 	K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
+	K.Callbacks.Unregister("LayoutChanged", OWNER)
+	K.Callbacks.Unregister("ModuleChanged", OWNER)
 	if not on then
 		return
 	end
@@ -348,6 +394,16 @@ local function Listen(on, lua, forms)
 	Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Trackers.Update)
 	Events.Register(OWNER, "ADDON_RESTRICTION_STATE_CHANGED", Trackers.Update)
 	K.Callbacks.Register("EffectsLevelChanged", OWNER, Trackers.Update)
+	K.Callbacks.Register("LayoutChanged", OWNER, function(_, element)
+		if element == STRIP then
+			Trackers.Update()
+		end
+	end)
+	K.Callbacks.Register("ModuleChanged", OWNER, function(_, module)
+		if module == "UnitFrames" then
+			Trackers.Update()
+		end
+	end)
 	local updating = {}
 	for _, event in ipairs(hooks.update or {}) do
 		Events.Register(OWNER, event, Trackers.Update)
@@ -567,10 +623,10 @@ local DEFENSIVE, BERSERKER = { 18 }, { 19 }
 local EXECUTE_ART, REVENGE_ART, VICTORY_ART = { "axe", "plateHostile" }, { "sword", "pipStormGlow" }, { "sword", "schoolNature" }
 local ARM_L, ARM_R, LL, LR, BL, BR, CENTRE = { -48, 6 }, { 48, 6 }, { -47, -36.5 }, { 47, -36.5 }, { -21.3, -58.9 }, { 21.3, -58.9 }, { 0, 0 }
 
-local function Along(a0, a1, n)
-	local at = {}
+local function Along(mid, n)
+	local at, step = {}, 2 * math.asin((Medals.PIP + 2) / (2 * 63))
 	for k = 1, n do
-		local a = math.rad(a0 + (a1 - a0) * (k - 1) / (n - 1))
+		local a = math.rad(mid) + (k - (n + 1) / 2) * step
 		at[k] = { 63 * math.cos(a), 63 * math.sin(a) }
 	end
 	return at
@@ -593,9 +649,9 @@ if CLASS == "WARRIOR" then
 		} },
 		{ key = "crestEnrage", seat = "rim", feed = "aura", spells = { 12880, 29131, 18499 }, known = { 2687, 18499, 12317, 13045, 13046, 13047, 13048 },
 			color = "pipWarriorGlow", ambient = "medAmbientWarrior", ring = ns.SlabArmory.ART .. "Cracks.png", ringSize = 150, look = "flame" },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 1719 }, sigil = "Crossed" }, { spells = { 12328 }, sigil = "Skull" },
-			{ spells = { 871 }, sigil = "Wall" }, { spells = { 12976 }, known = { 12975 }, sigil = "Heart" }, { spells = { 12292 }, sigil = "Sweep" },
-			{ spells = { 20230 }, sigil = "Thorns" } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 1719 }, sigil = "Crossed", major = true }, { spells = { 12328 }, sigil = "Skull", major = true },
+			{ spells = { 871 }, sigil = "Wall", major = true }, { spells = { 12976 }, known = { 12975 }, sigil = "Heart", major = true }, { spells = { 12292 }, sigil = "Sweep" },
+			{ spells = { 20230 }, sigil = "Thorns", major = true } } },
 		{ key = "crestThreat", seat = "topGem", feed = "threat", known = SHOUTS, choices = { { forms = DEFENSIVE, color = "gilt" }, { color = "plateHostile" } } },
 		{ key = "crestHipLeft", seat = LL, size = 50, feed = "cooldown", look = "grooveLL", color = "pipWarriorGlow", choices = {
 			{ forms = DEFENSIVE, feed = "aura", unit = "target", filter = "HARMFUL", spells = THUNDER, color = "pipStormGlow", loop = "crackle" },
@@ -604,9 +660,9 @@ if CLASS == "WARRIOR" then
 		} },
 		{ key = "crestHipRight", seat = LR, size = 50, feed = "aura", look = "grooveLR", choices = {
 			{ forms = DEFENSIVE, spells = { 2565 }, look = "ward", seat = CENTRE, size = 120, color = "pipStormGlow", pips = 2, pipsAt = { { -18, -36 }, { 18, -36 } } },
-			{ spells = { 12966 }, known = { 12319, 12971, 12972, 12973, 12974 }, color = "pipWarriorGlow", pips = 3, pipsAt = Along(308, 336, 3) },
-			{ spells = { 12292 }, color = "gilt", pips = 5, pipsAt = Along(304, 340, 5) },
-			{ spells = { 1329555 }, color = "plateHostile", pips = 4, pipsAt = Along(306, 338, 4) },
+			{ spells = { 12966 }, known = { 12319, 12971, 12972, 12973, 12974 }, color = "pipWarriorGlow", pips = 3, pipsAt = Along(322, 3) },
+			{ spells = { 12292 }, color = "gilt", pips = 5, pipsAt = Along(322, 5) },
+			{ spells = { 1329555 }, color = "plateHostile", pips = 4, pipsAt = Along(322, 4) },
 		} },
 		{ key = "crestFootLeft", seat = BL, size = 27, feed = "cooldown", look = "grooveBL", color = "schoolFrost",
 			choices = { { forms = BERSERKER, known = { 6554, 6552 } }, { known = { 1672, 1671, 72 } } } },
@@ -646,9 +702,9 @@ if CLASS == "PALADIN" then
 		{ key = "crestJudgement", seat = ARM_L, size = 36, feed = "cooldown", known = JUDGEMENT, look = "hammer", color = "jewelHoly", flash = "left" },
 		{ key = "crestJudged", seat = ARM_R, size = 30, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", known = JUDGEMENT,
 			color = "jewelHoly", look = "brand", flash = "right", feeds = JUDGED_SCHOOLS },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "white", families = { { spells = { 642, 1020 }, sigil = "Bubble" },
-				{ spells = { 498, 5573 }, sigil = "Aegis" }, { spells = { 20216 }, sigil = "Sun" }, { spells = { 1022, 5599, 10278 }, sigil = "Hand" },
-				{ spells = { 1044 }, sigil = "Wing" }, { spells = { 1311015 }, sigil = "Bulwark" }, { spells = { 1310897 }, sigil = "Voice" } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "white", families = { { spells = { 642, 1020 }, sigil = "Bubble", major = true },
+				{ spells = { 498, 5573 }, sigil = "Aegis", major = true }, { spells = { 20216 }, sigil = "Sun", major = true }, { spells = { 1022, 5599, 10278 }, sigil = "Hand", major = true },
+				{ spells = { 1044 }, sigil = "Wing" }, { spells = { 1311015 }, sigil = "Bulwark", major = true }, { spells = { 1310897 }, sigil = "Voice", major = true } } },
 		{ key = "crestHipLeft", seat = LL, size = 50, feed = "cooldown", look = "grooveLL", color = "schoolHoly", choices = {
 			{ known = Talent(PROT, Trackers.Joined({ 407632 }, HOLY_STRIKE)) },
 			{ known = Talent(HOLY, Trackers.Joined({ 20930, 20929, 20473, 1311606, 20216 }, HOLY_STRIKE)) },
@@ -662,13 +718,13 @@ if CLASS == "PALADIN" then
 			{ feed = "cooldown", known = { 10314, 10313, 10312, 5615, 5614, 879 }, look = "grooveLR", color = "schoolHoly" },
 		} },
 		{ key = "crestFootLeft", seat = BL, size = 27, choices = {
-			{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = STONES, look = "vial", size = 14, color = "schoolNature" },
+			{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = STONES, look = "vial", size = 16, color = "schoolNature" },
 			{ feed = "cooldown", known = { 10308, 5589, 5588, 853 }, look = "grooveBL", color = "jewelHoly" },
 		} },
 		{ key = "crestFootRight", seat = "footRight", size = Medals.FOOT, choices = {
-			{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = MANA_POTIONS, look = "vial", seat = BR, size = 14, color = "schoolFrost" },
-			{ known = Talent(PROT, JUDGEMENT), feed = "threat", color = "gilt" },
-			{ known = JUDGEMENT, feed = "threat", color = "plateHostile" },
+			{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = MANA_POTIONS, look = "vial", seat = BR, size = 16, color = "schoolFrost" },
+			{ known = Talent(PROT, JUDGEMENT), feed = "threat", size = Medals.SETTING, color = "gilt" },
+			{ known = JUDGEMENT, feed = "threat", size = Medals.SETTING, color = "plateHostile" },
 		} },
 		{ key = "crestRing", seat = "rim", choices = {
 			{ known = PROT, feed = "aura", spells = { 20925, 20927, 20928, 1239570 }, color = "gilt", look = "ward", seat = CENTRE, size = 120, pips = 4,
@@ -702,17 +758,17 @@ if CLASS == "ROGUE" then
 			color = "schoolNature", look = "vial" },
 		{ key = "crestPoisons", seat = { 47, -32 }, size = 23, perch = true, feed = "enchant", slot = "OffHand", known = Weapon, spells = POISONS, reject = NOT_POISON,
 			color = "schoolNature", look = "vial" },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = { { spells = { 13877 }, sigil = "Flurry" },
-				{ spells = { 13750 }, sigil = "Rush" }, { spells = { 5277 }, sigil = "Evade" }, { spells = { 2983, 8696, 11305 }, sigil = "Dash" },
-				{ spells = { 14177 }, sigil = "Drop" }, { spells = { 11327, 11329 }, known = VANISH, sigil = "Smoke" }, { spells = { 14278 }, sigil = "Ghost" } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = { { spells = { 13877 }, sigil = "Flurry", major = true },
+				{ spells = { 13750 }, sigil = "Rush", major = true }, { spells = { 5277 }, sigil = "Evade", major = true }, { spells = { 2983, 8696, 11305 }, sigil = "Dash" },
+				{ spells = { 14177 }, sigil = "Drop", major = true }, { spells = { 11327, 11329 }, known = VANISH, sigil = "Smoke", major = true }, { spells = { 14278 }, sigil = "Ghost" } } },
 		{ key = "crestFootLeft", seat = BL, size = 27, feed = "cooldown", known = { 1769, 1768, 1767, 1766, 11286, 11285, 8629, 1777, 1776 },
 			look = "grooveBL", color = "schoolFrost" },
 		{ key = "crestFootRight", seat = BR, size = 27, look = "grooveBR", choices = {
 			{ known = Talent({ 16513, 14113, 14186, 14177 }, POISONS), feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = POISON_STACKS,
-				color = "schoolNature", pips = 5, pipsAt = Along(283, 296, 5) },
+				color = "schoolNature", pips = 5, pipsAt = Along(289.5, 5) },
 			{ feed = "usable", groups = { { 14251 } }, color = "white" },
-			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 16511 }, color = "plateHostile", look = "drop", size = 12 },
-			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 1316709, 1325756, 1325757, 1325758 }, color = "plateHostile", look = "brand", size = 12 },
+			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 16511 }, color = "plateHostile", look = "drop", size = 16 },
+			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 1316709, 1325756, 1325757, 1325758 }, color = "plateHostile", look = "brand", size = 16 },
 			{ feed = "cooldown", known = { 1329549, 1329283 }, color = "gilt" },
 		} },
 		{ key = "crestFire", seat = "rim", feed = "aura", spells = { 14143, 1329326, 1328826 }, known = { 14144, 14148, 14278, 1328825 },

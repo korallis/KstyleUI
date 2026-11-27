@@ -538,6 +538,14 @@ The Medallions HUD style's style kit and effect textures, the files directly in 
 | `Media/Textures/Medallions/TargetBrackets.png` | 32x32 | A nameplate target tick, 8 units square: a medGunLit L, arms 4 units and 1 unit thick, in a 0.5-unit black outline, in the top-left corner. Flip the texture coordinates for the other corners. | `Tools/media/medallions_kit.py chrome`, procedural from the med* colours in `Core/Tokens.lua`, no model | 4x4 supersampled; BLEND | 2026-11-16 |
 <!-- END medallions_kit -->
 
+## Crest proc aura (2026-11-27)
+
+The animated aura a proc lights on the crest and on the Medallions cooldown rails (token `procAura`), white so each proc tints it in its own colour. It sits outside the style kit that `Tools/media/medallions_kit.py` owns.
+
+| File | Size | What it is | Source | Processing | Date |
+| --- | --- | --- | --- | --- | --- |
+| `Media/Textures/Medallions/Auras/ProcAura.png` | 512x512 | Proc aura loop: three bright arcs running round a ring of light at 80% of the cell's radius over a dimmer inner ring running the other way, with five sparks orbiting, the centre left clear: 16 frames of 128 in a 4x4 grid, one whole turn | Blender 5.3 render (`Tools/media/proc_aura.py`), EEVEE, orthographic, emission only on black, 256 px frames, no model or download | Gaussian glow added in linear light, box-filtered to 128 cells, 3 px cell-edge fade, white with the light as ADD alpha; SHA-256 `46c49bcb6464dce39d86672dbf0c70aa6bd8cb2027c1fd8fe04d5bef2e39b275` | 2026-11-27 |
+
 ## Medallions hawk perches (2026-11-21)
 
 The sigil the crest's hawk perches draw (`KstyleUI_ActionBars/SlabHawks.lua`, token `hawkSigil`). It sits in its own folder, apart from the style kit that `Tools/media/medallions_kit.py` owns.

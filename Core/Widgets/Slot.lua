@@ -414,6 +414,7 @@ function Slot:BuildState(kind)
 		texture:SetAllPoints(glow)
 		glow.texture = Masked(self, texture)
 		BuildHalo(self.procHalo)
+		self.procHalo.holder:SetShown(not self.medRound)
 	else
 		return
 	end

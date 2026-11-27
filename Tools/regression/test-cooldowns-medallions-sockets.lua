@@ -1,4 +1,4 @@
--- test-cooldowns-medallions-sockets.lua: mirror and native tracked buffs share the slab frame and return to their earlier look on demand.
+-- test-cooldowns-medallions-sockets.lua: under Medallions the mirror's cooldown rows are round crest medals on a short rail, a proc a looping gilt aura round one, native tracked buffs keep the slab frame, and each returns to its earlier look on demand.
 local C = dofile("Tools/regression/cooldowns_env.lua")
 local env, K, ns = C.New({ setup = C.Game })
 C.Enable(env, K)
@@ -12,12 +12,31 @@ K.Options.Write("Cooldowns", "quietCooldown", false)
 assert(math.abs(icon.icon:GetVertexColor() - 1) < 1e-6, "quiet cooldown off restores the mirror's earlier icon brightness")
 K.Options.Write("Cooldowns", "quietCooldown", true)
 assert(icon.medIconFrame and icon.medIconFrame:IsShown() and not icon.chrome.visible, "Medallions mirror uses a single painted frame")
-assert(icon.medIconFrame:GetTexture() == K.Tokens.Texture("medSlot") and icon.medIconWell:GetTexture() == K.Tokens.Texture("medSlotSocket"), "reuse the slab's frame and well")
+-- The cooldown rows are short rails of round medals in the crest's metal (KSTY-97: crest first, rails for the rest).
+assert(icon.medIconFrame:GetTexture() == K.Tokens.Texture("medRing") and icon.medIconWell:GetTexture() == K.Tokens.Texture("dot"), "a cooldown is a round medal in the crest's bezel")
+assert(icon.mask:GetTexture() == K.Tokens.Texture("dot") and C.W.LastCall(icon.cooldown, "SetSwipeTexture")[1] == K.Tokens.Texture("dot"), "its icon and sweep are round")
+local rail = ns.Mirror.Row("essential")
+assert(rail.count > 1 and rail.rails and rail.rails[1][1]:IsShown(), "the row's medals stand on a rail")
+local _, _, _, left = rail.rails[1][1]:GetPoint(1)
+local _, _, _, x = rail.icons[1]:GetPoint(1)
+assert(math.abs(left - (x + rail.icons[1].opts.size / 2)) < 1, "the rail starts at the first medal's centre, to the pixel")
+ns.Style.SetProc(icon, true)
+-- A proc is an animated spell effect, never an icon (the captain's direction for everything a player tracks).
+local aura = icon.medIconProc
+assert(aura and aura.moving:IsShown() and aura.moving:GetTexture() == K.Tokens.Texture("procAura") and aura.loop:IsPlaying(), "a proc loops a gilt aura round the medal")
+assert(not (icon.procHalo and icon.procHalo.holder:IsShown()), "and no square halo")
+K.Motion.SetLevel("reduced")
+assert(not aura.loop:IsPlaying() and aura.still:IsShown() and not aura.moving:IsShown(), "calm motion holds the aura still")
+K.Motion.SetLevel("full")
+assert(aura.loop:IsPlaying() and aura.moving:IsShown(), "and full motion plays it again")
+ns.Style.SetProc(icon, false)
+assert(not aura.moving:IsShown() and not aura.still:IsShown() and not aura.loop:IsPlaying(), "the aura goes with the proc")
 local buff = env._viewers.BuffIconCooldownViewer._items[1]
 local backdrop = K.Skin.Parts(buff).backdrop
 assert(backdrop.medIconFrame:IsShown(), "automatic tracked buffs use the same frame on the native viewer")
 K.Options.Write("Cooldowns", "medallionsIcons", false)
 assert(not icon.medIconFrame:IsShown() and icon.chrome.visible, "off restores the mirror's original chrome")
+assert(icon.mask:GetTexture() == K.Tokens.Texture("iconMask") and not rail.rails[1][1]:IsShown(), "and its square icon, with no rail")
 assert(not backdrop.medIconFrame:IsShown() and backdrop.chrome.visible, "off restores native tracked buff chrome")
 local formatter = C.W.LastCall(icon.cooldown, "SetCountdownFormatter")[1]
 assert(formatter:FormatNumber(4) == "4" and formatter:FormatNumber(120) == "2m" and formatter:FormatNumber(6000) == "2h", "shorten a three-digit minute countdown to hours")
