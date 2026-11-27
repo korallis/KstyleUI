@@ -612,9 +612,12 @@ end
 -- was hidden: the switch's track frame and the dropdown read valid, while the pill's right cap, the knob and the
 -- dropdown's chevron, all textures, read IsRectValid false on the page's first show and were not drawn. Frames and font
 -- strings are not modelled: the reading showed them valid, and the label anchored to the track drew.
+-- It walks the fields rather than calling IsVisible, so the perf tests' widget call counts do not see the model.
 local function noteAnchor(self)
 	if self._type == "Texture" then
-		self._rectInvalid = not self:IsVisible() or nil
+		local node = self
+		while node and node._shown do node = node._parent end
+		self._rectInvalid = node ~= nil or nil
 	end
 end
 function Object:IsRectValid() return self._rectInvalid ~= true end
