@@ -130,6 +130,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Check the commit under test
+        id: commit
         if: inputs.commit != ''
         env:
           COMMIT: ${{ inputs.commit }}
@@ -174,23 +175,24 @@ jobs:
           # The image, crest and Medallions tests skip without these, which would read as a pass.
           "$KSTYLEUI_PYTHON" -c 'import PIL, numpy; print(PIL.__version__, numpy.__version__)' | grep -x '13\.0\.0 2\.5\.5'
       - name: Lint every file
-        if: ${{ !cancelled() }}
+        # These steps run even after an earlier one fails, to report every failure, but never on a commit the check refused.
+        if: ${{ !cancelled() && steps.commit.outcome != 'failure' }}
         env:
           GATE_BASE: HEAD^1
         run: bash scripts/gate.sh lint
       - name: Every Python test file, the renders included
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.commit.outcome != 'failure' }}
         # The commit's own gate: main's older tree has no Tools/tests/run_suite.py. KSTYLEUI_RELEASE makes it run every file.
         run: bash scripts/gate.sh python
       - name: Remove tags from the check build
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.commit.outcome != 'failure' }}
         run: git for-each-ref --format='delete %(refname)' refs/tags | git update-ref --stdin
       - name: Package without uploading or localisation
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.commit.outcome != 'failure' }}
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
         with:
           args: -d -l
           pandoc: false
       - name: Check the zip
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.commit.outcome != 'failure' }}
         run: bash Tools/hooks/check-package.sh

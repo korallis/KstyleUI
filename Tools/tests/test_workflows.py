@@ -340,6 +340,11 @@ class WorkflowsTest(unittest.TestCase):
                     break
                 block.append(line)
             scripts.append(textwrap.dedent("\n".join(block)))
+            # Review finding: a later step that runs after a failure must still never run on a refused commit.
+            for later in re.split(r"(?m)^      - ", step)[2:]:
+                guard = re.search(r"(?m)^        if: (.*)$", later)
+                if guard:
+                    self.assertIn("steps.commit.outcome != 'failure'", guard.group(1), f"{job}: {later.splitlines()[0]}")
         self.assertEqual(scripts[0], scripts[1], "both jobs check the commit the same way")
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
