@@ -183,7 +183,7 @@ The crest rail ([medallions-effects.md](medallions-effects.md#crest-rail)) seats
 | Hunter | Readiness | Not confirmed for any Forever tree by the guides or the client's spell data |
 | Mage | Icy Veins | As above |
 | Mage | Arcane Wrath | Already the crest's own charge piece (`crestSchool`); a medal would show it twice |
-| Mage | Blast Wave | A Fire rotation button under 60 s, outside the ledger's rail order; Cone of Cold fills Fire's free seat |
+| Mage | The tree's great cooldown (Arcane Power, Combustion, Cold Snap) | Held by the power orb (`crestOrb`) while it shows; with the orb off it takes its seat |
 | Warlock | Metamorphosis, Demonic Howl | Not confirmed for any Forever tree by the guides or the client's spell data |
 | Warlock | Conflagrate | Already the crest's own socket (`crestConflagrate`) |
 | Warlock | Bane of Doom | Already the crest's Bane torment spire, which times it; a medal would show it twice |

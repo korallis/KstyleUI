@@ -1,7 +1,21 @@
 -- test-actionbars-crest-rail.lua: every class's five-seat crest rail (KstyleUI_ActionBars/SlabRail.lua), as the crest plan (KSTY-60, KSTY-97) asks: the tree the game names stands its own known abilities, its rotation cooldowns and then the class's other long cooldowns in any free seat, the trinket fifth, the long cooldowns beyond the seats as round medals on a second rail that rise to the crown like a seat, and the seats a player picks in the settings list; seven states driven by the game's own events at Full, Calm and Off (ready, pressed, active, about to end, ended, cooling, ready again), each ready seat burning with its animated aura; the newest running buff owns the crown; a motion change stops what is in flight; auras turning secret mid-fight raise no error; the rail holds its abilities back from the cooldown row and the trinket seat; the captain's choice moves it to its own flat row while the centred cast bars show; nothing runs OnUpdate.
 local R = dofile("Tools/regression/ranged_env.lua")
-local Slots, New, Seated, Updating, Clean = R.Slots, R.New, R.Seated, R.Updating, R.Clean
+local Slots, Seated, Updating, Clean = R.Slots, R.Seated, R.Updating, R.Clean
 local Pose = dofile("Tools/regression/anim_pose.lua")
+
+-- A mage's power orb holds the tree's great cooldown and the rail leaves it out (test-actionbars-crest-orb.lua owns that), so
+-- this file's mage rails run with the orb switched off and keep every cooldown on the rail.
+local function New(class, opts)
+	if class == "MAGE" then
+		opts = opts or {}
+		local before = opts.before
+		opts.before = function(env, K, ns)
+			K.Options.Write("ActionBars", "crestOrb", false)
+			if before then before(env, K, ns) end
+		end
+	end
+	return R.New(class, opts)
+end
 
 local BM = { 13165, 883, 75, 19574, 3045, 19577, 14305 }
 local MM = { 13165, 883, 75, 3045, 14305, 1310786, 20904 }
@@ -676,13 +690,16 @@ end
 
 -- The mage's and warlock's rails, per tree from the Forever guides read for the crest plan (KSTY-97): the tree's long cooldowns,
 -- its rotation cooldowns in any free seat, then the class's other long cooldowns; a long cooldown beyond the four seats stands as a
--- round medal on the second rail.
+-- round medal on the second rail. The captain asked for the mage's racials to be tracked (KSTY-75), so when the second rail
+-- overflows the racials stay and the last of the other cooldowns give way.
 local MAGE = { 12042, 12043, 12051, 11129, 11958, 12472, 2136, 11113, 120, 11426 }
 local WARLOCK = { 603, 18288, 6789, 18708, 6353, 1122, 17877 }
 for _, case in ipairs({
-	{ "MAGE", MAGE, 1, "power,presence,evocation,blast", "combustion,block,snap" },
-	{ "MAGE", MAGE, 2, "combustion,block,evocation,cone", "power,presence,snap" },
-	{ "MAGE", MAGE, 3, "block,evocation,snap,barrier", "power,presence,combustion" },
+	{ "MAGE", MAGE, 1, "power,presence,evocation,blast", "combustion,block,snap,blastWave" },
+	{ "MAGE", MAGE, 2, "combustion,block,evocation,cone", "power,presence,snap,blastWave,blast" },
+	{ "MAGE", MAGE, 3, "block,evocation,snap,barrier", "power,presence,combustion,blastWave,blast" },
+	{ "MAGE", { 12042, 12043, 12051, 11129, 11958, 12472, 2136, 11113, 1953, 122, 1240047, 20589, 20554 }, 1, "power,presence,evocation,blast",
+		"combustion,block,snap,blastWave,escape,berserking" },
 	{ "WARLOCK", WARLOCK, 1, "coil,inferno,amplify,domination", "soulfire" },
 	{ "WARLOCK", WARLOCK, 2, "coil,inferno,domination,soulfire", "amplify" },
 	{ "WARLOCK", WARLOCK, 3, "coil,inferno,amplify,domination", "soulfire" },
@@ -927,18 +944,18 @@ end
 
 -- A spell with no drawn sigil yet shows its own round icon, greyed while it cools.
 do
-	local env, K, ns = New("MAGE", { known = { 12472, 11958, 12051 }, tree = 3 })
+	local env, K, ns = New("MAGE", { known = { 120, 11958, 12051 }, tree = 2 })
 	local rail = Rail(ns)
-	local snap = rail.made.snap
+	local cone = rail.made.cone
 	local function Icon(frame)
 		for _, region in ipairs(frame._regions) do
 			local texture = region._state and region._state.Texture
-			if texture and texture[1] == 1000000 + 12472 then return region end
+			if texture and texture[1] == 1000000 + 120 then return region end
 		end
 	end
-	local face, mark = Icon(snap), Icon(snap.cold)
+	local face, mark = Icon(cone), Icon(cone.cold)
 	local function Grey(region) return (region._state.Desaturated or {})[1] == true end
-	assert(face and not Grey(face), "Cold Snap's seat draws the spell's own icon in colour")
+	assert(face and not Grey(face), "Cone of Cold's seat draws the spell's own icon in colour")
 	assert(mark and Grey(mark), "and greys it for the steel mark over the cooldown")
 	Clean(env, K)
 end
@@ -950,16 +967,16 @@ do
 	env.C_Spell.GetSpellName = function(id) return "spell " .. id end
 	local values = {}
 	for _, option in ipairs(ns.SlabRail.Choices()) do values[#values + 1] = option.value end
-	assert(table.concat(values, ",") == ",power,presence,evocation,combustion,block,snap,blast,cone,barrier",
+	assert(table.concat(values, ",") == ",power,presence,evocation,combustion,block,snap,blastWave,blast,cone,barrier",
 		"the list offers the tree's choice, then every known ability of the class's lists: " .. table.concat(values, ","))
 	K.Options.Write("ActionBars", "crestRailSeat1", "evocation")
 	env.RunTimers()
 	local rail = Rail(ns)
-	assert(Keys(rail) == "evocation,power,presence,blast,trinket" and Spares(rail) == "combustion,block,snap",
+	assert(Keys(rail) == "evocation,power,presence,blast,trinket" and Spares(rail) == "combustion,block,snap,blastWave",
 		"a picked seat takes its place and the rest move along: " .. Keys(rail) .. " | " .. Spares(rail))
 	K.Options.Write("ActionBars", "crestRailSeat3", "cone")
 	env.RunTimers()
-	assert(Keys(rail) == "evocation,power,cone,presence,trinket" and Spares(rail) == "combustion,block,snap",
+	assert(Keys(rail) == "evocation,power,cone,presence,trinket" and Spares(rail) == "combustion,block,snap,blastWave",
 		"a picked rotation cooldown takes its seat and the seat it displaced moves along: " .. Keys(rail) .. " | " .. Spares(rail))
 	K.Options.Write("ActionBars", "crestRailSeat1", "nothing")
 	K.Options.Write("ActionBars", "crestRailSeat3", "")

@@ -14,8 +14,10 @@ end
 local function Seats(ns)
 	local keys = {}
 	local rail = Seated(ns, "crestRail")
-	for _, seat in ipairs(rail and rail.order or {}) do
-		if seat:IsShown() then keys[#keys + 1] = seat.key end
+	for _, list in ipairs({ rail and rail.order or {}, rail and rail.spare or {} }) do
+		for _, seat in ipairs(list) do
+			if seat:IsShown() then keys[#keys + 1] = seat.key end
+		end
 	end
 	return "," .. table.concat(keys, ",") .. ","
 end
@@ -70,10 +72,10 @@ end
 
 -- Each tree's orb holds its own great cooldown in its school's light; the vessel is the player's race; the rail stands the rest.
 for _, case in ipairs({
-	{ known = ARCANE, race = "Human", spell = 12042, school = "Arcane", vessel = "Human", gone = "ap", seats = { "pom", "evocation", "blink", "nova", "fireBlast" } },
-	{ known = FIRE, race = "Orc", spell = 11129, school = "Fire", vessel = "Orc", gone = "combustion", seats = { "blastWave", "fireBlast", "bloodFury" } },
-	{ known = FROST, race = "Scourge", spell = 12472, school = "Frost", vessel = "Scourge", gone = "coldSnap", seats = { "iceBlock", "barrier", "forsaken" } },
-	{ known = { 168, 116, 11426, 11958, 1953 }, race = "NightElf", spell = 11958, school = "Frost", vessel = "Human", gone = "iceBlock", seats = { "barrier", "blink" } },
+	{ known = ARCANE, race = "Human", spell = 12042, school = "Arcane", vessel = "Human", gone = "power", seats = { "presence", "evocation", "blink", "nova", "blast" } },
+	{ known = FIRE, race = "Orc", spell = 11129, school = "Fire", vessel = "Orc", gone = "combustion", seats = { "blastWave", "blast", "bloodFury" } },
+	{ known = FROST, race = "Scourge", spell = 12472, school = "Frost", vessel = "Scourge", gone = "snap", seats = { "block", "barrier", "forsaken" } },
+	{ known = { 168, 116, 11426, 11958, 1953 }, race = "NightElf", spell = 11958, school = "Frost", vessel = "Human", gone = "block", seats = { "barrier", "blink" } },
 }) do
 	local env, K, ns = New("MAGE", { known = case.known, before = function(e) e.UnitRace = function() return case.race, case.race, 1 end; e.UnitSex = function() return 2 end end })
 	local orb = assert(Seated(ns, "crestOrb"), case.school .. ": a mage's crest shows the power orb")
@@ -273,11 +275,11 @@ end
 do
 	local env, K, ns = New("MAGE", { known = ARCANE, before = function(_, K) K.Options.Write("ActionBars", "crestOrb", false) end })
 	assert(not Seated(ns, "crestOrb"), "switched off, no orb shows")
-	assert(Seats(ns):find(",ap,", 1, true), "switched off, Arcane Power stands on the rail (" .. Seats(ns) .. ")")
+	assert(Seats(ns):find(",power,", 1, true), "switched off, Arcane Power stands on the rail (" .. Seats(ns) .. ")")
 	assert(select(2, Piece(ns, "crestClearcasting")), "switched off, Clearcasting has its ring again")
 	K.Options.Write("ActionBars", "crestOrb", true)
 	env.RunTimers()
-	assert(Seated(ns, "crestOrb") and not Seats(ns):find(",ap,", 1, true) and select(2, Piece(ns, "crestClearcasting")),
+	assert(Seated(ns, "crestOrb") and not Seats(ns):find(",power,", 1, true) and select(2, Piece(ns, "crestClearcasting")),
 		"switched back on, the orb takes Arcane Power and Clearcasting keeps its ring")
 	Clean(env, K)
 	env, K, ns = New("MAGE", { known = ARCANE, frames = true })
@@ -290,7 +292,7 @@ end
 do
 	local env, K, ns = New("MAGE", { known = ARCANE, before = function(_, K) K.Medallions.Identity = function() error("no race") end end })
 	assert(not Seated(ns, "crestOrb") and not ns.SlabOrb.Held(), "no orb shows, so none is held")
-	assert(Seats(ns):find(",ap,", 1, true), "the rail keeps Arcane Power (" .. Seats(ns) .. ")")
+	assert(Seats(ns):find(",power,", 1, true), "the rail keeps Arcane Power (" .. Seats(ns) .. ")")
 	Clean(env, K)
 end
 

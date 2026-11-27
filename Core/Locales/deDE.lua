@@ -4256,7 +4256,6 @@ ns.Locale.Add({
 	["Standard: the slab in Medallions, bars under a cap in Frames. Plate: a panel."] = "Standard: die Platte bei Medaillons, Balken unter einer Kappe bei Rahmen. Tafel: ein Feld.",
 	["Standing"] = "Rang",
 	["Standing or reaction"] = "Rang oder Reaktion",
-	["Stands your cooldowns, trinket and a mage's racials over the crest; hunter buffs rise to the crown."] = "Stellt deine Abklingzeiten, dein Schmuckst\195\188ck und die Volksf\195\164higkeiten eines Magiers \195\188ber das Wappen; J\195\164gerst\195\164rkungen steigen zur Krone.",
 	["Start collapsed"] = "Eingeklappt beginnen",
 	["Start point"] = "Startpunkt",
 	["Start the combat log as you enter an instance and stop it as you leave."] = "Startet das Kampflog beim Betreten einer Instanz und beendet es beim Verlassen.",

@@ -1464,7 +1464,6 @@ if CLASS == "MAGE" then
 	local IGNITE = { 11119, 11120, 12846, 12847, 12848 }
 	local FIRE = { 412538, 11366, 12505, 12522, 12523, 12524, 12525, 12526, 18809, 133, 143, 145, 3140, 8400, 8401, 8402, 10148, 10149, 10150, 10151, 25306 }
 	local WINTERS = { 11180, 28592, 28593, 28594, 28595 }
-	local FIRE_BLAST = { 10199, 10197, 8413, 8412, 2138, 2137, 2136 }
 	local CLEARCASTING = { 11213, 12574, 12575, 12576, 12577 }
 	local function Shown(spells, slot)
 		return ns.SlabRail.Holds(spells, slot) or ns.SlabOrb.Holds(spells)
@@ -1484,12 +1483,19 @@ if CLASS == "MAGE" then
 			combustion = { spells = { 11129 }, buffs = { 11129, 28682 }, sigil = "Flame", unit = "player" },
 			block = { spells = { 11958 }, buffs = { 11958, 27619 }, sigil = "Crystal", unit = "player" },
 			evocation = { spells = { 12051 }, sigil = "Vortex", unit = "player" },
-			snap = { spells = { 12472 } },
-			blast = { spells = FIRE_BLAST },
+			snap = { spells = { 12472 }, sigil = "ColdSnap" },
+			blast = { spells = FIRE_BLAST, sigil = "FireBlast" },
 			cone = { spells = { 10161, 10160, 10159, 8492, 120 } },
-			barrier = { spells = { 13033, 13032, 13031, 11426 } },
+			barrier = { spells = { 13033, 13032, 13031, 11426 }, sigil = "IceBarrier" },
+			blink = { spells = { 1953 }, sigil = "Blink" },
+			nova = { spells = NOVA, sigil = "FrostNova" },
+			blastWave = { spells = { 13021, 13020, 13019, 13018, 11113 }, sigil = "BlastWave" },
+			lance = { spells = { 1240047, 1240046, 1240045, 1240044, 400640, 1312002 }, sigil = "IceLance" },
+			escape = { spells = { 20589 }, sigil = "Escape", race = true, unit = "player" },
 		},
-		majors = { "power", "presence", "combustion", "block", "snap", "evocation" },
+		majors = { "power", "presence", "combustion", "block", "snap", "evocation", "blastWave", "blink", "nova", "lance", "blast" },
+		overflow = { "escape" },
+		held = ns.SlabOrb.Expected,
 		trees = {
 			{ majors = { "power", "presence", "evocation" }, fill = { "blast" } },
 			{ majors = { "combustion", "block", "evocation" }, fill = { "cone" } },

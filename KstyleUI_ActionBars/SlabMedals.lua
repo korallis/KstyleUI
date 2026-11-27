@@ -1384,15 +1384,9 @@ function Medals.Spent(cd, fresh)
 	local gcd, global = cd.isOnGCD, consts and consts.GLOBAL_RECOVERY_CATEGORY
 	if not fresh then
 		gcd = cd.activeCategory
-		if IsSecret(gcd) then
-			return nil
-		end
-		gcd = type(global) == "number" and gcd == global
+		gcd = not IsSecret(gcd) and type(global) == "number" and gcd == global
 	end
-	if IsSecret(gcd) then
-		return nil
-	end
-	return gcd ~= true
+	return IsSecret(gcd) or gcd ~= true
 end
 
 local function Cooling(m, id, event)

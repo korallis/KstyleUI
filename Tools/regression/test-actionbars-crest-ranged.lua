@@ -571,7 +571,7 @@ do
 	local intellect, shows = Piece(ns, "crestManaGem", 2)
 	assert(intellect and shows and intellect.spec.spells[1] == 1459, "before a gem, Arcane Intellect perches on the lower right")
 	local rail = Seated(ns, "crestRail")
-	assert(rail and rail.made.fireBlast and not select(2, Piece(ns, "crestCounterspell", 2)), "before Counterspell, Fire Blast stands on the mage's rail, not on the lower left")
+	assert(rail and rail.made.blast and not select(2, Piece(ns, "crestCounterspell", 2)), "before Counterspell, Fire Blast stands on the mage's rail, not on the lower left")
 	local chill, cs = Piece(ns, "crestFrozen", 2)
 	assert(chill and cs, "before Frost Nova your Frostbolt's chill frosts the inner ring")
 	local poly, ps = Piece(ns, "crestYourSpell", 3)
