@@ -23,13 +23,13 @@
 	<Script file="SlabJewels.lua"/>
 	<Script file="SlabHawks.lua"/>
 	<Script file="SlabStorm.lua"/>
+	<Script file="SlabRail.lua"/>
 	<Script file="SlabTrackers.lua"/>
 	<Script file="SlabVigil.lua"/>
 	<Script file="SlabGrove.lua"/>
 	<Script file="SlabStormforged.lua"/>
 	<Script file="SlabCrown.lua"/>
 	<Script file="SlabRings.lua"/>
-	<Script file="SlabRail.lua"/>
 	<Script file="SlabOrb.lua"/>
 	<Script file="SlabRanged.lua"/>
 	<Script file="SlabTarget.lua"/>

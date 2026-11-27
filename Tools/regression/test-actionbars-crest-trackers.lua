@@ -118,7 +118,7 @@ do
 	ns.SlabMedals.Rest()
 	assert(rim.fire:GetAlpha() == (ns.Slab.Resting() and 0 or 1), "the fire follows the crest's rest")
 	assert(Updating(ns.SlabTrackers.state.forms.crest.frame) == 0, "nothing runs OnUpdate")
-	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns", "crestThreat", "crestHipLeft", "crestHipRight", "crestFootLeft", "crestFootRight", "crestTankGlow", "crestKill", "crestSwing" }) do
+	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns", "crestThreat", "crestHipLeft", "crestHipRight", "crestFootLeft", "crestFootRight", "crestTankGlow", "crestKill", "crestSwing", "crestRail" }) do
 		K.Options.Write("ActionBars", key, false)
 	end
 	env.RunTimers()
@@ -193,9 +193,11 @@ do
 end
 
 -- Major cooldowns: the newest burns on the rim and each running family the character has lights its sigil, each in
--- its own place below the emblem; a family it lacks (another race's racial, an unlearned talent) takes no place.
+-- its own place below the emblem; a family it lacks (another race's racial, an unlearned talent) takes no place. The crest rail carries a rogue's long
+-- cooldowns while it shows, so the rim is read with the rail switched off.
 do
 	local env, K, ns = New("ROGUE", { 13877, 5277 })
+	K.Options.Write("ActionBars", "crestRail", false)
 	local rim = Pieces(ns)[5]
 	assert(rim and rim.sigils and #rim.sigils == 17, "a rogue with Blade Flurry gets the cooldown rim: one slot for each of its seven families, the racials and the potions")
 	local placed = {}
@@ -211,12 +213,12 @@ end
 
 -- Eureka!, the gnome racial, has its own spell for each class that has it on Forever (the 71091 cooldown sets: rogue
 -- 1259812, warrior 1259813, mage 1259817, warlock 1259821, priest 1259823); each one places and lights the shared Gear
--- sigil on its class's cooldown rim, or for a mage or warlock, whose crest rail holds the class's long cooldowns, a round medal
--- on the rail's second rail.
+-- sigil on the priest's cooldown rim, or for a class whose crest rail holds its long cooldowns, a round medal on the rail's
+-- second rail.
 for _, case in ipairs({ { "ROGUE", 1259812 }, { "WARRIOR", 1259813 }, { "MAGE", 1259817 }, { "WARLOCK", 1259821 }, { "PRIEST", 1259823 } }) do
 	local class, eureka = case[1], case[2]
 	local env, K, ns = New(class, { eureka })
-	local railed = class == "MAGE" or class == "WARLOCK"
+	local railed = class ~= "PRIEST"
 	local gear
 	for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
 		for _, b in ipairs(not railed and p.sigils or {}) do

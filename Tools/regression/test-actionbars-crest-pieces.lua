@@ -144,9 +144,11 @@ do
 	Clean(env, K, "fuse")
 end
 
--- The trinket's ember burns on the central ring it qualifies, not round the moved jewel (review of 6fc9d08a #1).
+-- The trinket's ember burns on the central ring it qualifies, not round the moved jewel (review of 6fc9d08a #1). The crest's rail carries the trinket while it
+-- shows, so the socket is read with the rail switched off.
 do
 	local env, K, ns = New("ROGUE", { 5171, 13877 })
+	K.Options.Write("ActionBars", "crestRail", false)
 	env._resolveRects = true
 	local jewel = Find(ns, "crestTrinkets")
 	local hot

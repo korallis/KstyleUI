@@ -65,11 +65,13 @@ MARKS = {}
 NEUTRAL = "white"
 
 # Warrior, paladin, rogue and the mage's rail (SlabRail.lua): each class's sigils in its rail's colour (SlabTrackers.lua crestCooldowns), the shared
-# sigils and the crest objects in neutral light.
+# sigils and the crest objects in neutral light; the rail's other melee abilities (SlabTrackers.lua SlabRail.Register)
+# borrow sigils the healers' cooldown rows also draw, so those burn in neutral light that each rail tints.
 for colour, names in (("gilt", "Crossed Skull Wall Heart Sweep Thorns"), ("white", "Bubble Aegis Sun Hand Wing Bulwark Voice"),
                       ("pipPriestGlow", "Flurry Rush Evade Drop Smoke Ghost"),
                       ("pipMageGlow", "Blink FrostNova FireBlast BlastWave ColdSnap IceBarrier IceLance"),
-                      (NEUTRAL, "Dash Axe Tusks Stone Eye Grave Shatter Star Gear Regen Potion Escape")):
+                      (NEUTRAL, "Dash Axe Tusks Stone Eye Grave Shatter Star Gear Regen Potion Escape"),
+                      (NEUTRAL, "Fang Bolt Feedback Farseer Brave Mend Swift Sacrifice Infusion Lifeline Focus Moon Veil")):
     for name in names.split():
         MARKS[name] = ("sigils", colour, None)
 for name, (art, threshold) in {"Horn": ("Horn.png", 0.5), "Sword": ("Sword.png", 0.5), "Axe": ("Axe.png", 0.5),

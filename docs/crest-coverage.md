@@ -25,26 +25,26 @@ Twenty-four major cooldowns in the sets had no crest piece matched by spell ID w
 | Mage | Eureka! 1259817 | 120 s | Shared crest | As above |
 | Warlock | Eureka! 1259821 | 120 s | Shared crest | As above (the rogue's 1259812 already lit it) |
 | Druid | Tranquility 740 | 300 s | Shared crest | A channel, which the crest's cast ring draws round the rim while it runs |
-| Warrior | Intimidating Shout 5246 | 180 s | Row candidate | Crowd control aimed at enemies; it puts no buff on the player for a sigil to show |
-| Warrior | Disarm 676 | 60 s | Row candidate | As above |
-| Paladin | Repentance 20066 | 60 s | Row candidate | As above |
+| Warrior | Intimidating Shout 5246 | 180 s | Dedicated crest | A crest rail medal (`Farseer`) in every tree, its cooldown counted on the medal; the second rail unless picked |
+| Warrior | Disarm 676 | 60 s | Dedicated crest | As above (`Bolt`) |
+| Paladin | Repentance 20066 | 60 s | Dedicated crest | A Retribution crest rail medal (`Lifeline`), on the second rail unless picked |
 | Hunter | Intimidation 19577 | 60 s | Dedicated crest | A Beast Mastery seat on the crest rail, its cooldown counted on the medal; the second rail for the other trees |
-| Rogue | Blind 2094 | 300 s | Row candidate | As above |
+| Rogue | Blind 2094 | 300 s | Dedicated crest | A crest rail medal (`Veil`) in every tree, a seat when the tree leaves one free |
 | Priest | Chastise 1277331 | 120 s | Row candidate | As above |
 | Priest | Confounding Flash 1277455 | 120 s | Row candidate | As above |
 | Druid | Challenging Roar 5209 | 600 s | Row candidate | A taunt on enemies; no buff on the player |
-| Paladin | Holy Wrath 2812 | 60 s | Row candidate | An attack with no lasting effect on the player |
+| Paladin | Holy Wrath 2812 | 60 s | Dedicated crest | A crest rail medal (`Infusion`) in every tree, on the second rail unless picked |
 | Warlock | Soul Fire 6353 | 60 s | Dedicated crest | A seat on the crest rail in every tree (the second rail when Fel Domination takes its seat); the cast ring shows it while it casts |
 | Warlock | Inferno 1122 | 3600 s | Dedicated crest | A seat on the crest rail in every tree, as the crest plan's ledger seats it; the pet's own frame carries the Infernal |
 | Warlock | Soulstone 693 | 1800 s | Dedicated crest | A round medal on the crest rail's second rail in every tree, never a main seat. The 30-minute cooldown belongs to the stone, not to Create Soulstone, so the medal reads the soulstones' shared item cooldown (`C_Item.GetItemCooldown`, Major Soulstone 16896 down to Minor Soulstone 5232), and using a stone (Soulstone Resurrection 20765 to 20707) presses it |
 | Warlock | Ritual of Doom 18540 | 3600 s | Dedicated crest | A round medal on the crest rail's second rail in every tree, never a main seat |
-| Paladin | Lay on Hands 633 | 1200 s | Row candidate | An instant emergency heal with no buff to time |
-| Paladin | Divine Intervention 19752 | 3600 s | Row candidate | A sacrifice on another player, used once an hour |
+| Paladin | Lay on Hands 633 | 1200 s | Dedicated crest | A crest rail seat (`Mend`) in every tree |
+| Paladin | Divine Intervention 19752 | 3600 s | Dedicated crest | A crest rail medal (`Sacrifice`) in every tree, on the second rail unless picked |
 | Priest | Desperate Prayer 13908 | 600 s | Row candidate | An instant emergency heal with no buff to time |
 | Priest | Divine Grace 1277370 | 600 s | Row candidate | Its effect is not confirmed in the live client; the crest adds nothing for it until it is |
 | Druid | Rebirth 20484 | 1800 s | Row candidate | A resurrection on another player, out of the combat rotation |
-| Rogue | Preparation 14185 | 600 s | Row candidate | Its effect is a reset, which the crest shows on the cooldowns it resets |
-| Rogue | Premeditation 14183 | 120 s | Row candidate | Adds combo points, which the crest's combo pips already show |
+| Rogue | Preparation 14185 | 600 s | Dedicated crest | A Subtlety crest rail seat (`Moon`); its reset also shows on the cooldowns it resets |
+| Rogue | Premeditation 14183 | 120 s | Dedicated crest | A Subtlety crest rail seat (`Focus`); its combo points show on the crest's pips |
 | Mage | Cold Snap 12472 | 600 s | Dedicated crest | A Frost mage's power orb fills over it (`crestOrb`); in the other trees it stands on the crest rail (the second rail when the four seats are full) |
 
 Matched by hand rather than by spell ID:
@@ -176,7 +176,7 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 
 ## Crest rail
 
-The crest rail ([medallions-effects.md](medallions-effects.md#crest-rail)) seats each talent tree's long cooldowns, then its rotation cooldowns, for the hunter, the mage and the warlock, from Forever class guides checked against Forever's spell data; the other classes have no rail yet. Long cooldowns beyond the four seats and the racials above stand on its second rail. These abilities have no rail medal, each for a recorded reason:
+The crest rail ([medallions-effects.md](medallions-effects.md#crest-rail)) seats each talent tree's long cooldowns, then its rotation cooldowns, for the hunter, the mage, the warlock, the warrior, the paladin and the rogue, from Forever class guides checked against Forever's spell data; the priest, druid and shaman have no rail yet. Long cooldowns beyond the four seats and the racials above stand on its second rail. These abilities have no rail medal, each for a recorded reason:
 
 | Class | Ability | Why it has no rail medal |
 | --- | --- | --- |
@@ -188,6 +188,11 @@ The crest rail ([medallions-effects.md](medallions-effects.md#crest-rail)) seats
 | Warlock | Conflagrate | Already the crest's own socket (`crestConflagrate`) |
 | Warlock | Bane of Doom | Already the crest's Bane torment spire, which times it; a medal would show it twice |
 | Warlock | Shadowburn | A Destruction rotation button under 60 s, outside the ledger's rail order |
+| Warrior | Rallying Cry, Enraged Regeneration | Not confirmed for any Forever tree: no Cooldown Manager row and no guide names them; their spell records read as former runes |
+| Warrior | Sweeping Strikes | Already the crest's right hip (`crestHipRight`), which times it |
+| Paladin | Avenging Wrath | Not confirmed for Forever: no Cooldown Manager row, and two guides say Retribution has no damage cooldown there |
+| Paladin | Hammer of Justice | Already the crest's lower-left foot groove (`crestFootLeft`), which counts its cooldown |
+| Rogue | Blade Dance | Not confirmed for Forever: no Cooldown Manager row and no guide names it; its spell record reads as a former rune |
 
 ## Conditional racials
 

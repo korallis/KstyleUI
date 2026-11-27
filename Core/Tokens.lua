@@ -594,6 +594,8 @@ for _, set in ipairs({
 	{ kind = "Sigil", names = { "Crossed", "Skull", "Wall", "Heart", "Sweep", "Thorns", "Bubble", "Aegis", "Sun", "Hand", "Wing", "Bulwark", "Voice",
 		"Flurry", "Rush", "Evade", "Drop", "Smoke", "Ghost", "Blink", "FrostNova", "FireBlast", "BlastWave", "ColdSnap", "IceBarrier", "IceLance" } },
 	{ kind = "Sigil", tint = true, names = { "Dash", "Axe", "Tusks", "Stone", "Eye", "Grave", "Shatter", "Star", "Gear", "Regen", "Potion", "Escape" } },
+	{ kind = "Sigil", tint = true, rail = true, names = { "Fang", "Bolt", "Feedback", "Farseer", "Brave", "Mend", "Swift", "Sacrifice", "Infusion",
+		"Lifeline", "Focus", "Moon", "Veil" } },
 	{ kind = "Effect", tint = true, names = { "Horn", "Sword", "Axe", "Dagger", "Hammer", "Shield", "Seal", "Brand", "Drop", "Vial", "Ward", "Oath", "Stain" } },
 }) do
 	for _, name in ipairs(set.names) do
@@ -601,7 +603,7 @@ for _, set in ipairs({
 		TEXTURES[token] = {
 			file = "Textures\\Auras\\" .. set.kind .. "s\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25, tint = set.tint,
 		}
-		if set.kind == "Sigil" then
+		if set.kind == "Sigil" and not set.rail then
 			TEXTURES["sigil" .. name].aura = token
 		end
 	end

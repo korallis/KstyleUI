@@ -745,6 +745,141 @@ for _, case in ipairs({ { "MAGE", { 12042, 12043, 11958 }, 1, "power", 12042 }, 
 	end
 end
 
+-- The warrior's, paladin's and rogue's rails, per tree from the Forever guides read for the crest plan (KSTY-60 Part 3, KSTY-97 ledger): the tree's
+-- long cooldowns in the ledger's order, the trinket fifth, the class's other long cooldowns and the player's racial on the second rail, six at most with
+-- the racial kept. Rallying Cry, Enraged Regeneration, Avenging Wrath and Blade Dance are known here but unconfirmed on Forever, so they take no place.
+local MELEE = {
+	WARRIOR = { 1719, 12328, 871, 12975, 2687, 20230, 676, 20560, 5246, 1161, 20572, 426490, 402913 },
+	PALADIN = { 20216, 1311015, 642, 10310, 10278, 1310994, 5573, 19752, 20066, 10318, 1310897, 20594, 407788 },
+	ROGUE = { 13750, 13877, 14177, 1856, 5277, 2983, 14183, 14185, 2094, 20554, 400012 },
+}
+for _, case in ipairs({
+	{ "WARRIOR", 1, "reck,wall,bloodrage,retaliation", "disarm,mocking,fear,challenge,wish,bloodFury" },
+	{ "WARRIOR", 2, "wish,reck,wall,bloodrage", "retaliation,disarm,mocking,fear,challenge,bloodFury" },
+	{ "WARRIOR", 3, "reck,stand,wall,bloodrage", "retaliation,disarm,mocking,fear,challenge,bloodFury" },
+	{ "PALADIN", 1, "favor,shield,hands,protection", "guard,intervention,wrath,voice,bulwark,stoneform" },
+	{ "PALADIN", 2, "favor,bulwark,shield,hands", "protection,swift,guard,intervention,wrath,stoneform" },
+	{ "PALADIN", 3, "favor,shield,hands,protection", "guard,intervention,repentance,wrath,voice,stoneform" },
+	{ "ROGUE", 1, "cold,vanish,evasion,sprint", "blind,rush,flurry,premeditation,preparation,berserking" },
+	{ "ROGUE", 2, "flurry,cold,rush,vanish", "evasion,sprint,blind,premeditation,preparation,berserking" },
+	{ "ROGUE", 3, "premeditation,cold,preparation,vanish", "evasion,sprint,blind,rush,flurry,berserking" },
+}) do
+	local env, K, ns = New(case[1], { known = MELEE[case[1]], tree = case[2], trinket = true })
+	local rail = assert(Rail(ns), case[1] .. ": a fighter who knows a rail ability sees the rail")
+	local at = case[1] .. " tree " .. case[2]
+	assert(Keys(rail) == case[3] .. ",trinket", at .. ": the tree's seats, then the trinket: " .. Keys(rail))
+	assert(Spares(rail) == case[4], at .. ": the other long cooldowns and the racial stand on the second rail: " .. Spares(rail))
+	Clean(env, K)
+end
+
+-- With no tree from the game, the tree's signature spells choose it.
+for _, case in ipairs({
+	{ "WARRIOR", { 1719, 871, 12292 }, "reck,wall" },
+	{ "WARRIOR", { 1719, 871, 12328 }, "wish,reck,wall" },
+	{ "WARRIOR", { 1719, 871, 12975, 23925 }, "reck,stand,wall" },
+	{ "PALADIN", { 642, 20216, 20930 }, "favor,shield" },
+	{ "PALADIN", { 642, 1311015 }, "bulwark,shield" },
+	{ "PALADIN", { 642, 20066, 20375 }, "shield,repentance" },
+	{ "ROGUE", { 2094, 14177, 16513 }, "cold,blind" },
+	{ "ROGUE", { 2094, 13877, 13750 }, "flurry,rush,blind" },
+	{ "ROGUE", { 2094, 14183, 14185 }, "premeditation,preparation,blind" },
+}) do
+	local env, K, ns = New(case[1], { known = case[2] })
+	assert(Keys(Rail(ns)) == case[3], case[1] .. ": the signature spells choose the tree: " .. Keys(Rail(ns)))
+	Clean(env, K)
+end
+
+-- Every melee rail medal draws a sigil and burns an aura sheet, never a spell's icon (the armory crest shows no icons). A sheet
+-- burned in neutral light takes the rail's colour.
+for class, known in pairs(MELEE) do
+	local env, K, ns = New(class, { known = known, tree = 1, trinket = true })
+	Awake(env)
+	local rail = Rail(ns)
+	for _, list in ipairs({ rail.order, rail.spare }) do
+		for _, seat in ipairs(list) do
+			assert(seat.ability.sigil and seat.aura.loop, class .. ": " .. seat.key .. " burns an aura sheet over a sigil")
+		end
+	end
+	assert(#R.Icons(rail, {}) == 0, class .. ": the rail shows no spell or item icon")
+	Clean(env, K)
+end
+do
+	local env, K, ns = New("WARRIOR", { known = { 1719, 2687 }, tree = 1 })
+	local fang = Rail(ns).made.bloodrage.aura.moving
+	assert(fang._state.Texture[1]:find("Auras\\Sigils\\Fang.png", 1, true), "Bloodrage burns the fang sheet")
+	assert(R.Tint(fang, K, "gilt"), "in the warrior rail's gilt")
+	Clean(env, K)
+end
+
+-- Seven states on a main seat of the warrior's, paladin's and rogue's rails at Full, Calm and Off: ready, pressed, active, about to
+-- end, ended, cooling and ready again.
+for _, case in ipairs({ { "WARRIOR", { 1719, 871 }, 1, "reck", 1719 }, { "PALADIN", { 642, 20216 }, 1, "shield", 642 },
+	{ "ROGUE", { 13750, 13877 }, 2, "rush", 13750 } }) do
+	for _, level in ipairs({ "full", "calm", "off" }) do
+		local env, K, ns = New(case[1], { known = case[2], tree = case[3] })
+		Awake(env)
+		if level ~= "full" then Motion(env, K, level) end
+		local seat, id, full, off = Rail(ns).made[case[4]], case[5], level == "full", level == "off"
+		local at = case[1] .. " " .. case[4] .. " at " .. level
+		assert(seat.aura.loop and seat.lit:GetAlpha() == 1 and seat.aura.loop:IsPlaying() == full and seat.aura.still:GetAlpha() == (full and 0 or 1)
+			and seat.breath:IsPlaying() == full, at .. ": ready, lit, burning its sigil's aura and breathing only at Full, its still frame at Calm and Off")
+		Cast(env, id)
+		assert(seat.dip:IsPlaying() == full and seat.rise:IsPlaying() == full and (not full or seat.bursting:IsPlaying() and seat.gate:GetAlpha() == 1),
+			at .. ": pressed, a dip, burst and rise to the crown only at Full")
+		Auras(env, { { id, 15 } })
+		assert(seat.crowned:IsShown() and seat.gate:GetAlpha() == (off and 0 or 1), at .. ": active, the crown shows the buff's own slot, hidden at Off")
+		Cooling(env, id, true)
+		assert(seat.lit:GetAlpha() == 0 and seat.cold:GetAlpha() == 1 and not seat.breath:IsPlaying(), at .. ": cooling, the seat goes steel under its steel mark")
+		env._now = env._now + 12
+		local flickers = Ending(env, ns, seat, "player", id)
+		assert((flickers > 0) == full, at .. ": about to end, the last fifth flickers only at Full, where flares are allowed (" .. flickers .. ")")
+		Auras(env, {})
+		assert(seat.home:IsPlaying() == full, at .. ": ended, the crowned medal folds home only at Full")
+		env._now = env._now + 300
+		Cooled(env, seat)
+		assert(seat.lit:GetAlpha() == 1 and seat.cold:GetAlpha() == 0 and seat.relight:IsPlaying() == not off and seat.flare[1]:IsPlaying() == full,
+			at .. ": ready again, relit, with a flare at Full and a relight in place at Calm")
+		Clean(env, K)
+	end
+end
+
+-- A warrior's pick takes its seat; the displaced long cooldown moves to the second rail and the racial keeps its place there.
+do
+	local env, K, ns = New("WARRIOR", { known = MELEE.WARRIOR, tree = 1, trinket = true })
+	K.Options.Write("ActionBars", "crestRailSeat1", "challenge")
+	env.RunTimers()
+	local rail = Rail(ns)
+	assert(Keys(rail) == "challenge,reck,wall,bloodrage,trinket" and Spares(rail) == "retaliation,disarm,mocking,fear,wish,bloodFury",
+		"Challenging Shout picked first: " .. Keys(rail) .. " | " .. Spares(rail))
+	Clean(env, K)
+end
+
+-- A railed ability is drawn once: the warrior's railed cooldowns leave the cooldown rim and the trinket leaves the crest's socket,
+-- and a Holy paladin's lower-left groove counts Holy Strike instead of Divine Favor; switching the rail off gives each back.
+local function Placed(ns)
+	local row, placed = Seated(ns, "crestCooldowns"), {}
+	for _, b in ipairs(row and row.sigils or {}) do
+		if b.at then placed[#placed + 1] = b.family.sigil end
+	end
+	return table.concat(placed, ",")
+end
+do
+	local env, K, ns = New("WARRIOR", { known = { 1719, 871, 20230 }, tree = 1, trinket = true })
+	assert(Placed(ns) == "Potion" and Sockets(ns) == "", "the rail holds Recklessness, Shield Wall, Retaliation and the trinket; the rim keeps the potions: " .. Placed(ns) .. " / " .. Sockets(ns))
+	K.Options.Write("ActionBars", "crestRail", false)
+	assert(Placed(ns) == "Crossed,Wall,Thorns,Potion" and Sockets(ns) == "13", "switched off, the rim places their sigils and the crest its trinket again: " .. Placed(ns) .. " / " .. Sockets(ns))
+	Clean(env, K)
+end
+do
+	local env, K, ns = New("PALADIN", { known = { 20216, 10333 }, tree = 1 })
+	local groove = Seated(ns, "crestHipLeft")
+	assert(groove and groove.spec.spell == 10333 and ns.SlabRail.Holds({ 20216 }), "with Divine Favor on the rail the Holy groove counts Holy Strike")
+	K.Options.Write("ActionBars", "crestRail", false)
+	groove = Seated(ns, "crestHipLeft")
+	assert(groove and groove.spec.spell == 20216, "switched off, the groove counts Divine Favor again")
+	Clean(env, K)
+end
+
 -- A racial whose sigil already has a published aura (Blood Fury's axe) burns that sheet on the second rail when the rail has
 -- no aura of its own for it: the sheet spans 1.25 times its sigil and loops at its own 1.44 s.
 do
