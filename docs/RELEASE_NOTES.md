@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The release workflow hands the packager the tagged version's section of that file, so CurseForge, Wago and the GitHub release each show that version's notes; the zip carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.3.5.2: the HUD keeps its size with any bar shape (2026-11-27)
+
+This hotfix fixes two problems with action bar shapes. A bar shape that overlapped the other bars at every size used to shrink the whole HUD below its usual size; the HUD now keeps its size. When bar 1 or bar 2 takes two rows, the bars used to cover the player frame; now bar 2 (under Frames) and the frames above the bars move up by the added row, while frames you placed by hand in Layout Mode stay where you put them. CurseForge and Wago now show this version's notes with the file, as the GitHub release page does.
+
 ## 0.3.5.1: fold the quest card, and the fixes since 0.3.5 (2026-11-26)
 
 This hotfix adds a collapse toggle to the quest card and ships the bug fixes made since 0.3.5. Click the quest card's header row and the card folds down to that row; click it again and it opens on the same quests at the same scroll place. A small arrow beside the quest count shows the state, and the card remembers it in your profile.
