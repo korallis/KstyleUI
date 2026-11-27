@@ -968,17 +968,22 @@ local function Mine(layout, place)
 	return stamp == nil or Owned(layout, place)
 end
 
-function EditMode.Restyle(name, story)
+function EditMode.Restyle(name, story, stamped)
 	local all, _, active = Read()
 	if not all or Own(all, active) ~= name then
 		return false
 	end
 	local layout, viewer, moved = all[active], Enum.EditModeSystem.CooldownViewer, {}
 	for _, place in ipairs(Places(name, story, {})) do
-		local ours = place.system == viewer and Mine(layout, place) or place.stamp ~= nil and Owned(layout, place)
+		local ours
+		if place.system == viewer and not stamped then
+			ours = Mine(layout, place)
+		else
+			ours = (place.system == viewer or place.stamp ~= nil) and Owned(layout, place)
+		end
 		local entry = ours and FindSystem(layout, place.system, place.index)
-		local was = entry and Copy({ entry.anchorInfo, entry.settings, entry.isInDefaultPosition })
-		if entry and Place(layout, place) and not Same(was, { entry.anchorInfo, entry.settings, entry.isInDefaultPosition }) then
+		local was = entry and Copy(entry)
+		if entry and Place(layout, place) and not Same(was, entry) then
 			moved[#moved + 1] = place
 		end
 	end

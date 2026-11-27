@@ -278,30 +278,32 @@ end
 
 local applying = false
 
-local function Restyle()
+local function Restyle(stamped)
 	local layout = ns.Layout
 	local name = layout and layout.Setting and layout.Setting("preset")
 	if applying or not name or Setup.EditMode.ActiveName() ~= name then
 		return
 	end
 	ns.Combat.Queue(function()
-		Setup.EditMode.Restyle(name, Setup.Story(name, GuideLoaded()))
+		Setup.EditMode.Restyle(name, Setup.Story(name, GuideLoaded()), stamped)
 	end)
 end
 
-ns.Callbacks.Register("HudStyleChanged", "Setup", Restyle)
+ns.Callbacks.Register("HudStyleChanged", "Setup", function() Restyle() end)
 ns.Callbacks.Register("SettingChanged", "Setup", function(_, module, key)
 	if Layouts.LiftSetting(module, key) then Restyle() end
 end)
 
 local aspect, band, lane, factor = ns.Scale.Aspect(), ns.Scale.Band(), nil, Setup.EditMode.Factor()
+local rootWidth, rootHeight
 ns.Callbacks.Register("ScaleChanged", "Setup", function()
 	local width, k = Setup.EditMode.WarningLane(), Setup.EditMode.Factor()
-	local rescaled = math.abs(k - factor) > 1e-3
-	factor = k
+	local rw, rh = Setup.RootSize()
+	local rescaled = math.abs(k - factor) > 1e-3 or (rootWidth and (math.abs(rw - rootWidth) > 0.5 or math.abs(rh - rootHeight) > 0.5))
+	factor, rootWidth, rootHeight = k, rw, rh
 	if rescaled or ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band or (lane and width ~= lane) then
 		aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
-		Restyle()
+		Restyle(rescaled)
 	end
 	lane = width
 end)

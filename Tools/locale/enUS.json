@@ -3650,7 +3650,7 @@
 	"Settings window width in interface units; release the slider to apply.",
 	"Settings you change from search results are listed first in later searches.",
 	"Setup",
-	"Setup offers the same choice, and windows it placed keep their spot when you change the game's UI Scale.",
+	"Setup offers it too; windows setup placed keep their spot as the game's UI Scale changes. Apply setup again for an older damage meter.",
 	"Shade darkness",
 	"Shade every other row of the list.",
 	"Shade these icons while a charge recharges.",

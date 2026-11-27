@@ -3657,7 +3657,7 @@ ns.Locale.Add({
 	["Settings window width in interface units; release the slider to apply."] = "Breite des Einstellungsfensters in UI-Einheiten; zum Anwenden loslassen.",
 	["Settings you change from search results are listed first in later searches."] = "Optionen, die Ihr in Suchergebnissen \195\164ndert, stehen in sp\195\164teren Suchen zuerst.",
 	["Setup"] = "Einrichtung",
-	["Setup offers the same choice, and windows it placed keep their spot when you change the game's UI Scale."] = "Die Einrichtung bietet dieselbe Wahl, und Fenster, die sie platziert hat, bleiben an ihrem Platz, wenn Ihr die UI-Skalierung des Spiels \195\164ndert.",
+	["Setup offers it too; windows setup placed keep their spot as the game's UI Scale changes. Apply setup again for an older damage meter."] = "Auch die Einrichtung bietet es; von ihr platzierte Fenster bleiben an ihrem Platz, wenn sich die UI-Skalierung des Spiels \195\164ndert. F\195\188r eine \195\164ltere Schadensanzeige wendet die Einrichtung erneut an.",
 	["Shade darkness"] = "St\195\164rke der Abdunklung",
 	["Shade every other row of the list."] = "Schattiert jede zweite Zeile der Liste.",
 	["Shade these icons while a charge recharges."] = "Schattiert diese Symbole, w\195\164hrend eine Aufladung nachl\195\164dt.",

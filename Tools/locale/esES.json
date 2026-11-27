@@ -3650,7 +3650,7 @@
 	"Settings window width in interface units; release the slider to apply.": "Anchura de ajustes en unidades de interfaz; suelta el deslizador para aplicar.",
 	"Settings you change from search results are listed first in later searches.": "Los ajustes que cambias desde los resultados aparecen primero en búsquedas posteriores.",
 	"Setup": "Configuración",
-	"Setup offers the same choice, and windows it placed keep their spot when you change the game's UI Scale.": "La configuración ofrece la misma opción, y las ventanas que colocó mantienen su sitio cuando cambias la escala de interfaz del juego.",
+	"Setup offers it too; windows setup placed keep their spot as the game's UI Scale changes. Apply setup again for an older damage meter.": "La configuración también lo ofrece; las ventanas que colocó mantienen su sitio al cambiar la escala de interfaz del juego. Vuelve a aplicarla para un medidor de daño antiguo.",
 	"Shade darkness": "Intensidad del sombreado",
 	"Shade every other row of the list.": "Sombrea una de cada dos filas de la lista.",
 	"Shade these icons while a charge recharges.": "Sombrea estos iconos mientras se recarga una carga.",
