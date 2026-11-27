@@ -203,6 +203,8 @@ for _, case in ipairs(FEEDS) do
 end
 do
 	local env, K, ns = New("ROGUE", { 1856, 11275 })
+	-- Vanish counts on the shoulder in Stealth only while the crest rail does not hold it.
+	K.Options.Write("ActionBars", "crestRail", false)
 	env.SetTarget(true)
 	K.Options.Write("Medallions", "motion", "full")
 	env.RunTimers()

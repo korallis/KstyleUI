@@ -1,4 +1,5 @@
--- _ranged.lua: the hunter's, mage's and warlock's crest tracker stories (KstyleUI_ActionBars/SlabRanged.lua), which
+-- _ranged.lua: the hunter's, mage's and warlock's crest tracker stories (KstyleUI_ActionBars/SlabRanged.lua), and the warrior's,
+-- paladin's and rogue's rail story under RENDER_TRACKERS_BUILD=rail (one buffed seat pressed at 1 s with both rails full), which
 -- _trackers.lua plays for those classes under RENDER_TRACKERS: steel (every piece known, nothing up, no pet, empty
 -- bags), lit (the story at its LIT time, every piece up) or moment, the story RENDER_TRACKERS_T seconds in (6 when
 -- unset). Blizzard's aura slots (Tools/regression/aura_slots.lua) and the addon's own bag and pet handlers take every
@@ -210,6 +211,31 @@ local STORIES = {
 					{ unit = "target", id = 702, icon = 136138, at = 1.5, duration = 120, harmful = true } } },
 		},
 	},
+	-- The warrior's, paladin's and rogue's rails, drawn only under RENDER_TRACKERS_BUILD=rail (their other stories are
+	-- _trackers.lua's): every rail ability of the class known, so both rails are full, the trinket ready, and one seat's
+	-- buffed cooldown pressed at 1 s: Bloodrage (its rage buff for 10 s, ready again at 61 s), Divine Shield (12 s, ready
+	-- at 301 s) or Adrenaline Rush (15 s, ready at 301 s). The known lists sign Arms, Holy and Combat.
+	WARRIOR = {
+		railOnly = true, lit = 5, icons = {},
+		known = { 1719, 12328, 871, 12975, 2687, 20230, 676, 20560, 5246, 1161, 20572, 12294, 12292 },
+		cooling = { [2687] = { 1, 60 } }, casts = { { 1, 2687 } }, trinket = { item = 5002, spell = 9002, used = 1000, cooldown = 120 },
+		auras = { { unit = "player", id = 29131, icon = 132277, at = 1, duration = 10 } },
+		builds = { rail = {} },
+	},
+	PALADIN = {
+		railOnly = true, lit = 5, icons = {},
+		known = { 20216, 1311015, 642, 10310, 10278, 1310994, 5573, 19752, 20066, 10318, 1310897, 20594 },
+		cooling = { [642] = { 1, 300 } }, casts = { { 1, 642 } }, trinket = { item = 5002, spell = 9002, used = 1000, cooldown = 120 },
+		auras = { { unit = "player", id = 642, icon = 135896, at = 1, duration = 12 } },
+		builds = { rail = {} },
+	},
+	ROGUE = {
+		railOnly = true, lit = 5, icons = {},
+		known = { 13750, 13877, 14177, 1856, 5277, 2983, 14183, 14185, 2094, 20554 },
+		cooling = { [13750] = { 1, 300 } }, casts = { { 1, 13750 } }, trinket = { item = 5002, spell = 9002, used = 1000, cooldown = 120 },
+		auras = { { unit = "player", id = 13750, icon = 136206, at = 1, duration = 15 } },
+		builds = { rail = {} },
+	},
 }
 
 local SWAP = {}
@@ -255,6 +281,7 @@ end
 function Ranged.Story(class)
 	local story = rawget(_G, "RENDER_TRACKERS") or os.getenv("RENDER_TRACKERS")
 	if not (story and story ~= "" and STORIES[class]) then return nil end
+	if STORIES[class].railOnly and os.getenv("RENDER_TRACKERS_BUILD") ~= "rail" then return nil end
 	return story, story == "steel" and -1 or story == "lit" and Of(class).lit or tonumber(os.getenv("RENDER_TRACKERS_T") or "") or 6
 end
 

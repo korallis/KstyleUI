@@ -774,7 +774,7 @@ end
 
 -- With no tree from the game, the tree's signature spells choose it.
 for _, case in ipairs({
-	{ "WARRIOR", { 1719, 871, 12292 }, "reck,wall" },
+	{ "WARRIOR", { 1719, 871, 12292 }, "reck,wall,sweeping" },
 	{ "WARRIOR", { 1719, 871, 12328 }, "wish,reck,wall" },
 	{ "WARRIOR", { 1719, 871, 12975, 23925 }, "reck,stand,wall" },
 	{ "PALADIN", { 642, 20216, 20930 }, "favor,shield" },
@@ -881,6 +881,120 @@ do
 	K.Options.Write("ActionBars", "crestRail", false)
 	groove = Seated(ns, "crestHipLeft")
 	assert(groove and groove.spec.spell == 20216, "switched off, the groove counts Divine Favor again")
+	Clean(env, K)
+end
+
+-- The ranged rails keep their shared sheets white (the light they were baked in): only the armory crest's rails ask for the tint.
+do
+	local env, K, ns = New("MAGE", { known = { 12042, 20572 }, tree = 1 })
+	Awake(env)
+	local fury = Rail(ns).spare[1]
+	assert(fury.key == "bloodFury" and R.Tint(fury.aura.moving, K, "white"), "a mage's Blood Fury burns its axe in white")
+	Clean(env, K)
+end
+
+-- A melee tree that knows fewer long cooldowns than seats fills the free seats with its confirmed rotation cooldowns (Sweeping
+-- Strikes for Arms, Concussion Blow for Protection, Consecration for a paladin, Kidney Shot for a rogue), the trinket still fifth.
+for _, case in ipairs({
+	{ "WARRIOR", { 1719, 871, 12292 }, 1, "reck,wall,sweeping", "sweeping" },
+	{ "WARRIOR", { 1719, 12975, 12809 }, 3, "reck,stand,concussion", "concussion" },
+	{ "PALADIN", { 642, 26573 }, 1, "shield,consecration", "consecration" },
+	{ "ROGUE", { 14177, 408 }, 1, "cold,kidney", "kidney" },
+}) do
+	local env, K, ns = New(case[1], { known = case[2], tree = case[3], trinket = true })
+	Awake(env)
+	local rail = Rail(ns)
+	local at = case[1] .. " tree " .. case[3]
+	assert(Keys(rail) == case[4] .. ",trinket" and Spares(rail) == "", at .. ": the free seat takes the rotation cooldown: " .. Keys(rail) .. " | " .. Spares(rail))
+	local _, _, _, first = rail.order[1]:GetPoint(1)
+	local _, _, _, trinket = rail.order[#rail.order]:GetPoint(1)
+	assert(trinket - first == 124, at .. ": the trinket keeps the fifth place: " .. (trinket - first))
+	local fill = rail.made[case[5]]
+	assert(fill.ability.sigil and fill.aura.loop and fill.aura.loop:IsPlaying() and #R.Icons(rail, {}) == 0, at .. ": the fill burns an aura over its sigil, no icon")
+	Clean(env, K)
+end
+-- Sweeping Strikes' cooldown is otherwise counted on the cooldown rim, which hands it to the rail and takes it back with the rail off.
+do
+	local env, K, ns = New("WARRIOR", { known = { 1719, 871, 12292 }, tree = 1 })
+	assert(not Placed(ns):find("Sweep", 1, true), "Sweeping Strikes on the rail leaves the cooldown rim: " .. Placed(ns))
+	K.Options.Write("ActionBars", "crestRail", false)
+	assert(Placed(ns):find("Sweep", 1, true), "switched off, the rim counts Sweeping Strikes again: " .. Placed(ns))
+	Clean(env, K)
+end
+-- With every seat held by a long cooldown, a rotation cooldown takes no place, not even on the second rail.
+for class, fill in pairs({ WARRIOR = 12292, PALADIN = 26573, ROGUE = 408 }) do
+	local known = { fill }
+	for _, id in ipairs(MELEE[class]) do known[#known + 1] = id end
+	local env, K, ns = New(class, { known = known, tree = 1, trinket = true })
+	local keys = Keys(Rail(ns)) .. " | " .. Spares(Rail(ns))
+	Clean(env, K)
+	env, K, ns = New(class, { known = MELEE[class], tree = 1, trinket = true })
+	local without = Keys(Rail(ns)) .. " | " .. Spares(Rail(ns))
+	assert(keys == without, class .. ": a full rail leaves the rotation cooldown out: " .. keys .. " against " .. without)
+	Clean(env, K)
+end
+
+-- Bloodrage's rage comes with its own buff (29131), so the pressed medal rises to the crown and the buff owns it, as a seat's does.
+do
+	local env, K, ns = New("WARRIOR", { known = { 1719, 2687 }, tree = 1 })
+	Awake(env)
+	local rail = Rail(ns)
+	local blood = rail.made.bloodrage
+	Cast(env, 2687)
+	assert(blood.rise:IsPlaying() and blood.gate:GetAlpha() == 1, "pressed, Bloodrage rises to the crown")
+	Auras(env, { { 29131, 10 } })
+	assert(blood.crowned:IsShown() and rail.owner == blood, "its buff, by its own id, owns the crown")
+	Auras(env, {})
+	assert(blood.home:IsPlaying() and rail.owner ~= blood, "ended, it folds home")
+	Clean(env, K)
+end
+
+-- In Stealth a rogue's right shoulder counts Vanish's cooldown; with Vanish on the rail it keeps showing Rupture or Garrote
+-- on the target instead, and switching the rail off gives Vanish back.
+do
+	local env, K, ns = New("ROGUE", { known = { 1856, 14177, 1943 }, tree = 1 })
+	env.GetShapeshiftFormID = function() return 30 end
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	local shoulder = Seated(ns, "crestRupture")
+	assert(shoulder and shoulder.spec.feed == "aura" and ns.SlabRail.Holds({ 1856 }), "in Stealth with Vanish railed the shoulder keeps the target's bleeds")
+	K.Options.Write("ActionBars", "crestRail", false)
+	shoulder = Seated(ns, "crestRupture")
+	assert(shoulder and shoulder.spec.feed == "cooldown" and shoulder.spec.spell == 1856, "switched off, the shoulder counts Vanish in Stealth again")
+	Clean(env, K)
+end
+-- A Protection paladin's hammer counts Swift Judgement when that replaces Judgement; with Swift Judgement on the rail the hammer
+-- stands down and returns with the rail off. Ordinary Judgement stays on the hammer whatever the rail holds.
+do
+	local env, K, ns = New("PALADIN", { known = { 642, 1310994 }, tree = 2 })
+	assert(ns.SlabRail.Holds({ 1310994 }) and not Seated(ns, "crestJudgement"), "Swift Judgement on the rail: the hammer stands down")
+	K.Options.Write("ActionBars", "crestRail", false)
+	local hammer = Seated(ns, "crestJudgement")
+	assert(hammer and hammer.spec.spell == 1310994, "switched off, the hammer counts Swift Judgement again")
+	Clean(env, K)
+	env, K, ns = New("PALADIN", { known = { 642, 20271, 1310994 }, tree = 2 })
+	hammer = Seated(ns, "crestJudgement")
+	assert(hammer and hammer.spec.spell == 20271 and ns.SlabRail.Holds({ 1310994 }), "with Judgement known the hammer keeps it beside a railed Swift Judgement")
+	Clean(env, K)
+end
+
+-- A talent change while auras are secret leaves the seats as they stood; the new tree's seats arrive once the restriction lifts.
+do
+	local env, K, ns = New("WARRIOR", { known = MELEE.WARRIOR, trinket = true })
+	local tree = 1
+	env.C_SpecializationInfo = { GetSpecialization = function() return tree end }
+	env.FireEvent("ACTIVE_TALENT_GROUP_CHANGED")
+	local rail = Rail(ns)
+	assert(Keys(rail) == "reck,wall,bloodrage,retaliation,trinket", "Arms before the restriction: " .. Keys(rail))
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	tree = 2
+	env.FireEvent("ACTIVE_TALENT_GROUP_CHANGED")
+	assert(Keys(rail) == "reck,wall,bloodrage,retaliation,trinket" and Spares(rail) == "disarm,mocking,fear,challenge,wish,bloodFury",
+		"restricted, the seats stand: " .. Keys(rail) .. " | " .. Spares(rail))
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	assert(Keys(rail) == "wish,reck,wall,bloodrage,trinket" and Spares(rail) == "retaliation,disarm,mocking,fear,challenge,bloodFury",
+		"released, Fury's seats arrive: " .. Keys(rail) .. " | " .. Spares(rail))
 	Clean(env, K)
 end
 

@@ -189,7 +189,6 @@ The crest rail ([medallions-effects.md](medallions-effects.md#crest-rail)) seats
 | Warlock | Bane of Doom | Already the crest's Bane torment spire, which times it; a medal would show it twice |
 | Warlock | Shadowburn | A Destruction rotation button under 60 s, outside the ledger's rail order |
 | Warrior | Rallying Cry, Enraged Regeneration | Not confirmed for any Forever tree: no Cooldown Manager row and no guide names them; their spell records read as former runes |
-| Warrior | Sweeping Strikes | Already the crest's right hip (`crestHipRight`), which times it |
 | Paladin | Avenging Wrath | Not confirmed for Forever: no Cooldown Manager row, and two guides say Retribution has no damage cooldown there |
 | Paladin | Hammer of Justice | Already the crest's lower-left foot groove (`crestFootLeft`), which counts its cooldown |
 | Rogue | Blade Dance | Not confirmed for Forever: no Cooldown Manager row and no guide names it; its spell record reads as a former rune |

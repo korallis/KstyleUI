@@ -411,7 +411,7 @@ local function Aura(piece, parent, size, seat)
 		Mark(piece, parent, "ARTWORK", 1, seat, "white", size * (sigil and SIGIL or ICON))
 		return { still = false, moving = false, loop = false }
 	end
-	local color = tint and Data().color or "white"
+	local color = tint and Data().tint and Data().color or "white"
 	local still = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, color, size * span, "ADD"))
 	still:SetTexCoord(0, 0.25, 0, 0.25)
 	local moving = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, color, size * span, "ADD"))

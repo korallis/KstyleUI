@@ -255,6 +255,8 @@ end
 
 do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 1833, 1856 })
+	-- Vanish counts on the shoulder in Stealth only while the crest rail does not hold it.
+	K.Options.Write("ActionBars", "crestRail", false)
 	env.GetShapeshiftFormID = function() return env._form end
 	env._form = 30
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
@@ -373,6 +375,8 @@ end
 -- sized Ambush and Vanish medals, and a motion change the engine must take waits for the restriction to end.
 do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842, 8676, 1856, 14144 }, { setup = function(e) e._items = { [16] = 2092 } end })
+	-- Vanish counts on the shoulder in Stealth only while the crest rail does not hold it.
+	K.Options.Write("ActionBars", "crestRail", false)
 	local enchant = {}
 	env.C_PaperDollInfo = { GetTemporaryEnchantmentInfo = function(slot) return enchant[slot] end }
 	env.GetShapeshiftFormID = function() return env._form end

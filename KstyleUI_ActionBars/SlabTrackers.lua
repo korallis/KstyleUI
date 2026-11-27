@@ -690,6 +690,7 @@ local CLASS = UnitClass and select(2, UnitClass("player"))
 if CLASS == "WARRIOR" then
 	Rail.Register("WARRIOR", {
 		color = "gilt",
+		tint = true,
 		burst = "medBurstWarrior",
 		abilities = {
 			reck = { spells = { 1719 }, sigil = "Crossed", unit = "player" },
@@ -697,17 +698,19 @@ if CLASS == "WARRIOR" then
 			wall = { spells = { 871 }, sigil = "Wall", unit = "player" },
 			stand = { spells = { 12975 }, buffs = { 12976 }, sigil = "Heart", unit = "player" },
 			retaliation = { spells = { 20230 }, sigil = "Thorns", unit = "player" },
-			bloodrage = { spells = { 2687 }, sigil = "Fang" },
+			bloodrage = { spells = { 2687 }, buffs = { 29131 }, sigil = "Fang", unit = "player" },
 			disarm = { spells = { 676 }, sigil = "Bolt" },
 			mocking = { spells = { 20560, 20559, 7402, 7400, 694 }, sigil = "Feedback" },
 			fear = { spells = { 5246 }, sigil = "Farseer" },
 			challenge = { spells = { 1161 }, sigil = "Brave" },
+			sweeping = { spells = { 12292 }, sigil = "Sweep" },
+			concussion = { spells = { 12809 }, sigil = "Star" },
 		},
 		majors = { "reck", "wish", "wall", "stand", "retaliation", "bloodrage", "disarm", "mocking", "fear", "challenge" },
 		trees = {
-			{ majors = { "reck", "wall", "bloodrage", "retaliation", "disarm", "mocking", "fear", "challenge" } },
+			{ majors = { "reck", "wall", "bloodrage", "retaliation", "disarm", "mocking", "fear", "challenge" }, fill = { "sweeping" } },
 			{ majors = { "wish", "reck", "wall", "bloodrage", "retaliation", "disarm", "mocking", "fear", "challenge" } },
-			{ majors = { "reck", "stand", "wall", "bloodrage", "retaliation", "disarm", "mocking", "fear", "challenge" } },
+			{ majors = { "reck", "stand", "wall", "bloodrage", "retaliation", "disarm", "mocking", "fear", "challenge" }, fill = { "concussion" } },
 		},
 		signs = { { MORTAL, { 12292 } }, { { 12328 }, BLOODTHIRST }, { { 12975 }, { 23925, 23924, 23923, 23922 } } },
 	})
@@ -752,7 +755,7 @@ end
 
 local SEALS = { 20154, 20287, 20288, 20289, 20290, 20291, 20292, 20293, 21084, 20375, 20915, 20918, 20919, 20920, 20162, 20305, 20306,
 	20307, 20308, 21082, 20165, 20347, 20348, 20349, 20166, 20356, 20357, 20164, 20163, 1311649, 20419, 20421, 20422, 20423, 1311656 }
-local JUDGEMENT, HOLY_STRIKE = { 20271, 1310994 }, { 10333, 10332, 5569, 2495, 680, 1866, 678, 679 }
+local JUDGEMENT, SWIFT, HOLY_STRIKE = { 20271, 1310994 }, { 1310994 }, { 10333, 10332, 5569, 2495, 680, 1866, 678, 679 }
 local PROT, HOLY = { 20925, 20177, 20179, 20180, 20181, 20182 }, { 20473, 20929, 20930, 1311606, 20216 }
 local VENGEANCE = { 20049, 20056, 20057, 20058, 20059 }
 local STONES = { 9421, 5510, 5509, 5511, 5512, 19004, 19005, 19006, 19007, 19008, 19009, 19010, 19011, 19012, 19013, 12662, 20520, 11951 }
@@ -774,6 +777,7 @@ if CLASS == "PALADIN" then
 	local FAVOR = { 20216 }
 	Rail.Register("PALADIN", {
 		color = "white",
+		tint = true,
 		burst = "medBurstPaladin",
 		abilities = {
 			favor = { spells = FAVOR, sigil = "Sun", unit = "player" },
@@ -781,25 +785,31 @@ if CLASS == "PALADIN" then
 			shield = { spells = { 1020, 642 }, sigil = "Bubble", unit = "player" },
 			hands = { spells = { 10310, 2800, 633 }, sigil = "Mend" },
 			protection = { spells = { 10278, 5599, 1022 }, sigil = "Hand" },
-			swift = { spells = { 1310994 }, sigil = "Swift" },
+			swift = { spells = SWIFT, sigil = "Swift" },
 			guard = { spells = { 5573, 498 }, sigil = "Aegis", unit = "player" },
 			intervention = { spells = { 19752 }, sigil = "Sacrifice" },
 			repentance = { spells = { 20066 }, sigil = "Lifeline" },
 			wrath = { spells = { 10318, 2812 }, sigil = "Infusion" },
 			voice = { spells = { 1310897 }, sigil = "Voice", unit = "player" },
+			consecration = { spells = { 20924, 20923, 20922, 20116, 26573 }, sigil = "Flame" },
 		},
 		majors = { "favor", "bulwark", "shield", "hands", "protection", "swift", "guard", "intervention", "repentance", "wrath", "voice" },
 		trees = {
-			{ majors = { "favor", "shield", "hands", "protection", "guard", "intervention", "wrath", "voice" } },
-			{ majors = { "favor", "bulwark", "shield", "hands", "protection", "swift", "guard", "intervention", "wrath", "voice" } },
-			{ majors = { "favor", "shield", "hands", "protection", "guard", "intervention", "repentance", "wrath", "voice" } },
+			{ majors = { "favor", "shield", "hands", "protection", "guard", "intervention", "wrath", "voice" }, fill = { "consecration" } },
+			{ majors = { "favor", "bulwark", "shield", "hands", "protection", "swift", "guard", "intervention", "wrath", "voice" }, fill = { "consecration" } },
+			{ majors = { "favor", "shield", "hands", "protection", "guard", "intervention", "repentance", "wrath", "voice" }, fill = { "consecration" } },
 		},
 		signs = { { FAVOR, { 20930, 20929, 20473, 1311606 } }, { PROT, { 1311015 } }, { { 20066 }, { 20375, 20915, 20918, 20919, 20920 } } },
 	})
 
 	Trackers.Register("PALADIN", {
 		{ key = "crestSeal", seat = { 0, 80 }, size = 24, feed = "aura", color = "jewelHoly", spells = SEALS, look = "seal", feeds = SEAL_SCHOOLS },
-		{ key = "crestJudgement", seat = ARM_L, size = 36, feed = "cooldown", known = JUDGEMENT, look = "hammer", color = "jewelHoly", flash = "left" },
+		{ key = "crestJudgement", seat = ARM_L, size = 36, feed = "cooldown", known = function()
+			local id = Medals.Known(JUDGEMENT)
+			if id ~= SWIFT[1] or not Rail.Holds(SWIFT) then
+				return id
+			end
+		end, look = "hammer", color = "jewelHoly", flash = "left" },
 		{ key = "crestJudged", seat = ARM_R, size = 30, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", known = JUDGEMENT,
 			color = "jewelHoly", look = "brand", flash = "right", feeds = JUDGED_SCHOOLS },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "white", families = { { spells = { 642, 1020 }, sigil = "Bubble", major = true },
@@ -851,6 +861,7 @@ local POISON_STACKS = { 2818, 2819, 11353, 11354, 25349, 434312, 434313, 434314,
 if CLASS == "ROGUE" then
 	Rail.Register("ROGUE", {
 		color = "pipPriestGlow",
+		tint = true,
 		burst = "medBurstRogue",
 		abilities = {
 			rush = { spells = { 13750 }, sigil = "Rush", unit = "player" },
@@ -862,12 +873,13 @@ if CLASS == "ROGUE" then
 			premeditation = { spells = { 14183 }, sigil = "Focus" },
 			preparation = { spells = { 14185 }, sigil = "Moon" },
 			blind = { spells = { 2094 }, sigil = "Veil" },
+			kidney = { spells = { 8643, 408 }, sigil = "Star" },
 		},
 		majors = { "rush", "flurry", "cold", "vanish", "evasion", "sprint", "premeditation", "preparation", "blind" },
 		trees = {
-			{ majors = { "cold", "vanish", "evasion", "sprint", "blind" } },
-			{ majors = { "flurry", "cold", "rush", "vanish", "evasion", "sprint", "blind" } },
-			{ majors = { "premeditation", "cold", "preparation", "vanish", "evasion", "sprint", "blind" } },
+			{ majors = { "cold", "vanish", "evasion", "sprint", "blind" }, fill = { "kidney" } },
+			{ majors = { "flurry", "cold", "rush", "vanish", "evasion", "sprint", "blind" }, fill = { "kidney" } },
+			{ majors = { "premeditation", "cold", "preparation", "vanish", "evasion", "sprint", "blind" }, fill = { "kidney" } },
 		},
 		signs = { { { 14177 }, { 16513, 14113 } }, { { 13877 }, { 13750 } }, { { 14183 }, { 14185 } } },
 	})
@@ -879,7 +891,7 @@ if CLASS == "ROGUE" then
 			{ feed = "aura", spells = { 6774, 5171 }, color = "pipPriestGlow", ring = ns.SlabArmory.ART .. "Fuse.png", spark = ns.SlabArmory.ART .. "Spark.png", ringSize = 150 },
 		} },
 		{ key = "crestRupture", seat = { 44.3, 0 }, size = 92, look = "stain", choices = {
-			{ forms = { 30 }, feed = "cooldown", known = VANISH, color = "schoolShadow" },
+			{ forms = { 30 }, feed = "cooldown", known = function() return not Rail.Holds(VANISH) and Medals.Known(VANISH) end, color = "schoolShadow" },
 			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "plateHostile",
 				spells = { 11275, 11274, 11273, 8640, 8639, 1943, 11290, 11289, 8633, 8632, 8631, 703 } },
 		} },
