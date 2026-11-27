@@ -5,17 +5,22 @@ import subprocess
 import sys
 from html.parser import HTMLParser
 
-GALLERIES = {'docs/renders/index.html', 'docs/renders/phone.html'}
+GALLERIES = {b'docs/renders/index.html', b'docs/renders/phone.html'}
 ATTRIBUTE = re.compile(r'''([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?''')
 IMAGE = re.compile(r'data:image/png;base64,[a-zA-Z0-9+/=]+\Z')
-HUNK = re.compile(r'\+(\d+)')
+HUNK = re.compile(rb'\+(\d+)')
+
+
+def lf_lines(text):
+    pieces = text.split('\n')
+    return [piece + '\n' for piece in pieces[:-1]] + ([pieces[-1]] if pieces[-1] else [])
 
 
 class Images(HTMLParser):
     def __init__(self, text):
         super().__init__(convert_charrefs=False)
         self.text = text
-        self.lines = text.splitlines(keepends=True)
+        self.lines = lf_lines(text)
         self.offsets = []
         offset = 0
         for line in self.lines:
@@ -42,27 +47,28 @@ class Images(HTMLParser):
         text = self.text
         for start, end in reversed(self.spans):
             text = text[:start] + '[image]' + text[end:]
-        return text.splitlines(keepends=True)
+        return lf_lines(text)
 
 
 def gallery(path):
-    result = subprocess.run(['git', 'show', 'HEAD:' + path], capture_output=True, check=True)
+    result = subprocess.run(['git', 'show', 'HEAD:' + path.decode('ascii')], capture_output=True, check=True)
     text = result.stdout.decode('utf-8')
-    return text.splitlines(keepends=True), Images(text).masked_lines()
+    return ([line.encode('utf-8') for line in lf_lines(text)],
+            [line.encode('utf-8') for line in Images(text).masked_lines()])
 
 
 def main():
     cache = {}
     path = None
     line = 0
-    for row in sys.stdin:
-        if row.startswith('+++ b/'):
-            path = row[6:].rstrip('\n')
-        elif row.startswith('@@'):
+    for row in sys.stdin.buffer:
+        if row.startswith(b'+++ b/'):
+            path = row[6:].rstrip(b'\n')
+        elif row.startswith(b'@@'):
             match = HUNK.search(row)
             if match:
                 line = int(match.group(1)) - 1
-        elif row.startswith('+') and not row.startswith('+++ '):
+        elif row.startswith(b'+') and not row.startswith(b'+++ '):
             line += 1
             if path in GALLERIES:
                 if path not in cache:
@@ -70,12 +76,12 @@ def main():
                 original, masked = cache[path]
                 if line <= len(original):
                     source = original[line - 1]
-                    if not source.endswith('\n'):
-                        source += '\n'
+                    if not source.endswith(b'\n'):
+                        source += b'\n'
                     if row[1:] == source:
                         replacement = masked[line - 1]
-                        row = '+' + replacement + ('' if replacement.endswith('\n') else '\n')
-        sys.stdout.write(row)
+                        row = b'+' + replacement + (b'' if replacement.endswith(b'\n') else b'\n')
+        sys.stdout.buffer.write(row)
 
 
 if __name__ == '__main__':
