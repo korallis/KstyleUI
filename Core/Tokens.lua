@@ -540,6 +540,7 @@ for _, name in ipairs({
 }) do
 	TEXTURES[name].forged = true
 end
+TEXTURES.auraSocket = { file = "Textures\\Auras\\Socket.png" }
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do
@@ -751,7 +752,7 @@ function Tokens.Texture(name)
 		unknown("Texture", name)
 	end
 	local units = spec.slice and spec.slice / spec.density
-	return MEDIA .. spec.file, spec.slice, units, spec.forged
+	return MEDIA .. spec.file, spec.slice, units, spec.forged, spec.aura
 end
 
 function Tokens.Flipbook(name)
@@ -759,7 +760,7 @@ function Tokens.Flipbook(name)
 	if not spec or not spec.frames then
 		unknown("Flipbook", name)
 	end
-	return spec.rows, spec.columns, spec.frames, spec.seconds
+	return spec.rows, spec.columns, spec.frames, spec.seconds, spec.span or 1
 end
 
 Tokens.DEFAULT_FONT_FACE = DEFAULT_FACE

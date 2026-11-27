@@ -690,6 +690,14 @@ Each cooldown family's mark on the crest's cooldown row (`KstyleUI_ActionBars/Sl
 | `Media/Textures/Sigils/Wall.png` | 64x64 | Shield Wall (warrior): a heater shield of bricks, white line art in a soft glow; drawn ADD, tinted by the class colour | `Tools/media/sigils.py` (`Wall()`), procedural, no model and no input image | drawn at 8x and reduced with a linear-light Lanczos; ADD alpha; SHA-256 `e6d2d3aa71d3189c6e141bb73bcc01985e79683a1e44912315a6e22358cc6ffc` | 2026-11-24 |
 | `Media/Textures/Sigils/Wing.png` | 64x64 | Blessing of Freedom (paladin): a wing, white line art in a soft glow; drawn ADD, tinted by the class colour | `Tools/media/sigils.py` (`Wing()`), procedural, no model and no input image | drawn at 8x and reduced with a linear-light Lanczos; ADD alpha; SHA-256 `47a0823f0d134ea8d355d03e085ef41be3c4d2814b5d7bcdbfa41dd33d23fa01` | 2026-11-24 |
 
+## Medallions crest auras (2026-11-27)
+
+The aura kit's shared art: each crest mark that takes the kit becomes an animated spell-effect aura rendered in Blender, its own figure made of moving light in its spell's colour, baked by `python3 Tools/media/forge/auras.py` as a 4x4 flip-book (`Core/Tokens.lua`, drawn by `KstyleUI_ActionBars/SlabMedals.lua` `Medals.Mark`). A seated mark burns inside the one empty socket below; the baker prints each file's SHA-256 to compare with these rows. Each class's sheets get their rows here as it takes the kit.
+
+| File | Size | What it is | Source | Processing | Date |
+| --- | --- | --- | --- | --- | --- |
+| `Media/Textures/Auras/Socket.png` | 128x128 | The empty socket every seated aura burns in: a forged coin's round dark plate inside its raised gilt rim, with no figure and a thin dark outline; drawn solid under the aura, gold at 24 units and over | `Tools/media/forge/auras.py` (`socket`), the plate and rim of `relief.Emblem.seat`, no input image | forged by `Tools/media/forge/forge.py` in Blender 5.3 at 512 px, outlined and reduced with a linear-light Lanczos as `marks.py` finishes a coin; straight alpha; SHA-256 `eb6a8b0163949e66e642bf9955ebadde8a9581c938f5eacd20e6d7192565d33d` | 2026-11-27 |
+
 ## Medallions melee crest effects (2026-11-24)
 
 The objects, band grooves and overlays a warrior's, paladin's and rogue's crest pieces show instead of spell icons in sockets (`KstyleUI_ActionBars/SlabArmory.lua`), in their own folder. White, so the game tints each in its piece's colour; each object's alpha masks a plain lit fill, its shade darkens the fill like the metal, and the weapons' hilts stay planted. Run `python3 Tools/media/melee_effects.py` to redraw them; the output is byte-identical. The flame reuses `Trackers/Flame.png` and the gem the kit's `Diamond.png` and `ForgedDiamond.png`.

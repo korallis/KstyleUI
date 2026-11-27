@@ -129,6 +129,7 @@ class Emblem:
         self.M = np.zeros((N, N), bool)
         self.dark = None
         self.edge = None
+        self.figure = None
 
     def add(self, mask, h=1.0, r=0.05, base=None, prof="round"):
         """Raise a layer. base is the height at its edge (default: 35% of h, so the wall shows)."""
@@ -209,6 +210,7 @@ class Emblem:
         M = np.asarray(Image.fromarray((self.M * 255).astype(np.uint8)).transform((N, N), Image.AFFINE, box, Image.BICUBIC)) > 127
         disc = far <= 0.49 * N
         self.dark = disc & ~M & (far <= (0.49 - rim) * N)
+        self.figure = M  # the seated figure alone, where Tools/media/forge/auras.py lights it
         self.H = np.where(M, 0.3 + H, np.where(self.dark, 0.12, 0.0)).astype(np.float32)
         self.M = disc
         return self.add(disc & (far > (0.49 - rim) * N), h=0.5, r=rim / 2, base=0.2)
