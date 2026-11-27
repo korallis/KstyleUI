@@ -1,4 +1,4 @@
--- SlabRail.lua: the hunter's five-seat crest rail (docs/medallions-effects.md#hunter-crest-rail): up to four abilities of the talent tree the game names and the on-use trinket stand as forged medals on an arc above the crest (a flat row between the cooldown rows while the centred cast bars show), built only for the seats the hunter has; a ready seat burns with its sigil's animated Blender aura, breathes and is crossed by a glint, a press dips it, bursts and flashes its ring, a buffed major rises to the crown, where the engine shows the aura's own slot burning with a draining ring, a bead, a last-fifth notch and a countdown, the newest running buff, by your cast or its readable start, owns the crown (handed off by the engine's aura-shown signal), an ended one cools to steel and folds home, a dark sweep and a refilling steel ring count the cooldown under a small steel sigil and the medal relights with a flare; each flare or press claims the crest's one flare as a whole; the seats are chosen afresh only while the crest can be rebuilt, so the other trackers stand down only for a placed rail, and a switch-off that cannot hand their cues back waits whole until it can; a hidden rail plays nothing, and no aura is read while auras are secret, an unseen buff dated once they read; Calm lights in place with still auras and no lift, burst or breathing, Off shows only lit, cooling and ready, a motion change or hiding stops what is in flight, and Lua never reads or compares a secret.
+-- SlabRail.lua: the hunter's five-seat crest rail (docs/medallions-effects.md#hunter-crest-rail): up to four abilities of the talent tree the game names and the on-use trinket stand as forged medals on an arc above the crest (a flat row between the cooldown rows while the centred cast bars show), built only for the seats the hunter has; a ready seat burns with its sigil's animated Blender aura, breathes and is crossed by a glint, a press dips it, bursts and flashes its ring, a buffed major rises to the crown, where the engine shows the aura's own slot burning with a draining ring, a bead, a last-fifth notch and a countdown, the newest running buff, by your cast or its readable start, owns the crown (handed off by the engine's aura-shown signal), an ended one cools to steel and folds home, a dark sweep and a refilling steel ring count the cooldown under a small steel sigil and the medal relights with a flare; each flare or press claims the crest's one flare as a whole; the seats are chosen afresh only while the crest can be rebuilt, so the other trackers stand down only for the seats a shown rail placed, and a switched-off rail stays while locked until they can take their cues back; a hidden rail plays nothing, and no aura is read while auras are secret, an unseen buff dated once they read; Calm lights in place with still auras and no lift, burst or breathing, Off shows only lit, cooling and ready, a motion change or hiding stops what is in flight, and Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -40,7 +40,7 @@ local TREES = {
 }
 local SIGNS = { { "wrath", "intimidate" }, { "sniper", "aimed" }, { "deter", "strider" } }
 Rail.ABILITIES, Rail.TREES = ABILITIES, TREES
-Rail.picked = NONE
+Rail.picked, Rail.held = NONE, NONE
 
 local function Full()
 	return Effects.Allows("ambient") and not ns.Slab.Resting()
@@ -105,20 +105,40 @@ function Rail.Seats()
 end
 
 function Rail.Pick(form)
-	local want = form == "crest" and ns.Config("crestRail") ~= false
 	if not Medals.Locked() then
-		Rail.picked = want and Rail.Seats() or NONE
-	elseif not want and #Rail.picked > 0 then
-		return false
+		Rail.picked = form == "crest" and ns.Config("crestRail") ~= false and Rail.Seats() or NONE
 	end
 end
 
 function Rail.Known()
-	return #Rail.picked > 0 and 3045 or nil
+	return (#Rail.picked > 0 or #Rail.held > 0) and 3045 or nil
+end
+
+function Rail.Holding()
+	return #Rail.held > 0 and Medals.Locked()
+end
+
+local function Named(seats)
+	local keys = {}
+	for i, at in ipairs(seats) do
+		keys[i] = at.key
+	end
+	return table.concat(keys, ",")
+end
+
+function Rail.Commit()
+	if Medals.Locked() then
+		return false
+	end
+	local r = Rail.piece
+	local seats = r and r:IsShown() and r.seated or NONE
+	local changed = Named(seats) ~= Named(Rail.held)
+	Rail.held = seats
+	return changed
 end
 
 function Rail.Holds(spells, slot)
-	for _, at in ipairs(Rail.picked) do
+	for _, at in ipairs(Rail.held) do
 		if slot and at.slot == slot then
 			return true
 		end
@@ -326,7 +346,7 @@ local function Crown(r)
 	end
 	local was = r.owner
 	r.owner = owner
-	if was and was ~= owner and not Has(r.running, was) and full then
+	if was and was ~= owner and not Has(r.running, was) and full and was:IsVisible() then
 		was.home:Stop()
 		was.home:Play()
 	end
@@ -575,6 +595,7 @@ function Rail.Build(parent, spec, level)
 	r.crown = Medals.Piece(r, level + 12, CROWN)
 	r.add(r.crown)
 	r.spec = spec
+	Rail.piece = r
 	r:SetScript("OnHide", function()
 		Settle(r, true)
 	end)
@@ -622,6 +643,7 @@ function Rail.Place(r, anchor)
 			Running(r, seat, false)
 		end
 	end
+	r.seated = seats
 	r.crown.sized = nil
 	Medals.Size(r.crown)
 	Rail.Paint(r)

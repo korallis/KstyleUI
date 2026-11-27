@@ -495,12 +495,12 @@ end
 function Trackers.Update()
 	local name, seat = Form()
 	local pick = HOOKS[ns.class] and HOOKS[ns.class].pick
-	if pick and pick(name) == false then
-		return
+	if pick then
+		pick(name)
 	end
 	local specs, order, rows, forms = {}, {}, {}, false
 	for i, p in ipairs(name and CLASSES[ns.class] or {}) do
-		if ns.Config(p.key) ~= false then
+		if ns.Config(p.key) ~= false or p.hold and p.hold() then
 			local row = {}
 			for c, choice in ipairs(p.choices or { p }) do
 				local spec = Resolve(choice == p and p or setmetatable(choice, { __index = p }), name == "row")
@@ -568,6 +568,10 @@ function Trackers.Update()
 	end
 	table.sort(kinds)
 	Listen(true, kinds, forms)
+	local commit = HOOKS[ns.class] and HOOKS[ns.class].commit
+	if commit and commit() then
+		Trackers.Update()
+	end
 end
 
 local function OnSetting(_, module, key)

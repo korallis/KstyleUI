@@ -1025,8 +1025,8 @@ if CLASS == "HUNTER" then
 			{ spells = { 6150, 1299448, 469144, 3045 }, known = Railed(false, { 3045, 19552, 19553, 19554, 19555, 19556 }, { 3045 }) },
 			{ spells = { 6150, 1299448, 469144 }, known = Railed(true, { 19552, 19553, 19554, 19555, 19556 }, { 3045 }) },
 		} },
-		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, crestOnly = true },
-	}, { burst = "medBurstHunter", pick = ns.SlabRail.Pick, rail = ns.SlabRail.Holds, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" }, events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" },
+		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
+	}, { burst = "medBurstHunter", pick = ns.SlabRail.Pick, commit = ns.SlabRail.Commit, rail = ns.SlabRail.Holds, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" }, events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" },
 		"SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } }, paint = Paint, motion = Motion, figures = true })
 end
 

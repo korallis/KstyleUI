@@ -110,10 +110,17 @@ do
 	local rail = Rail(ns)
 	local wrath = rail.made.wrath
 	assert(Keys(rail) == "wrath,rapid,intimidate,trap" and Burning(wrath), "Beast Mastery seats Bestial Wrath, burning")
+	Cast(env, 19574)
+	Slots.Set(env, "pet", { { id = 19574, auraInstanceID = 9, start = env._now, duration = 18 } })
+	wrath.rise:Stop()
+	assert(rail.owner == wrath, "Bestial Wrath owns the crown before the switch")
+	local folded = false
+	wrath.home:SetScript("OnPlay", function() folded = true end)
 	tree = 2
 	env.FireEvent("ACTIVE_TALENT_GROUP_CHANGED")
 	assert(Keys(rail) == "rapid,trap,sniper,aimed", "switching trees re-seats the rail with the same spells known: " .. Keys(rail))
 	assert(not wrath:IsShown() and not wrath.aura.loop:IsPlaying() and not wrath.breath:IsPlaying(), "the dropped seat stops its aura and breathing")
+	assert(not folded and rail.owner ~= wrath, "the dropped seat gives up the crown without starting a fold home")
 	Clean(env, K)
 end
 
@@ -348,6 +355,10 @@ do
 	K.Options.Write("ActionBars", "crestRail", false)
 	assert(rail:IsShown() and Hunter(Seated(ns, "crestCooldowns")) == "" and not Seated(ns, "crestTrinkets"),
 		"switched off in combat, the rail stays until the other trackers can take its cues back")
+	assert(Seated(ns, "crestAutoShot"), "the Auto Shot ring shows before it is switched off")
+	K.Options.Write("ActionBars", "crestAutoShot", false)
+	assert(not Seated(ns, "crestAutoShot") and rail:IsShown(), "while the rail waits, every other tracker still updates")
+	K.Options.Write("ActionBars", "crestAutoShot", true)
 	env.SetCombat(false)
 	assert(not Rail(ns) and Seated(ns, "crestTrinkets") and Hunter(Seated(ns, "crestCooldowns")) == "Volley,Paw", "out of combat the rail hands every cue back at once")
 	env.SetCombat(true)
@@ -356,6 +367,24 @@ do
 		"switched on in combat, the other trackers keep their cues while the rail cannot be placed")
 	env.SetCombat(false)
 	assert(Rail(ns) and not Seated(ns, "crestTrinkets") and Hunter(Seated(ns, "crestCooldowns")) == "", "out of combat the rail takes them over at once")
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = BM, trinket = true })
+	assert(Rail(ns) and not Seated(ns, "crestTrinkets"), "the rail stands with the trinket")
+	local claim = ns.SlabSeats.Claim
+	ns.SlabSeats.Claim = function(order, specs, crest)
+		local kept = {}
+		for _, key in ipairs(order) do
+			if specs[key].key ~= "crestRail" then kept[#kept + 1] = key end
+		end
+		return claim(kept, specs, crest)
+	end
+	ns.SlabTrackers.Update()
+	assert(not Rail(ns) and Seated(ns, "crestTrinkets") and Hunter(Seated(ns, "crestCooldowns")) == "Volley,Paw",
+		"a rail the update cannot seat leaves the cooldown row's sigils and the crest trinket in place")
+	ns.SlabSeats.Claim = claim
 	Clean(env, K)
 end
 
