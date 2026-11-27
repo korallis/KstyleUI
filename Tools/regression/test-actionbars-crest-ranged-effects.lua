@@ -204,6 +204,9 @@ do
 	for _, angle in ipairs({ 105, 90, 75 }) do
 		local fire, body = Drawn(multi, "Figures\\Arrow" .. angle .. ".png", true), Drawn(multi, "PipArrow" .. angle .. ".png", false)
 		local r, g, b = body:GetVertexColor()
+		-- The first shot is drawn after the piece was sized, so its layer sizes itself: one stub pixel is one unit,
+		-- so the 80-unit emblem's arrows snap to 80 by 80.
+		assert(body:GetWidth() == 80 and body:GetHeight() == 80, "the arrow at " .. angle .. " degrees is drawn at the emblem's size, not left unsized")
 		assert(fire and fire.loop._anims[1]._type == "FlipBook" and r + g + b == 0, "each arrow at " .. angle .. " degrees burns its aura over its own figure drawn black")
 	end
 	-- Multi-Shot must read as three arrows, as the flat figures did: three additive glows over one another
@@ -236,6 +239,8 @@ do
 	env.FireEvent("SPELL_UPDATE_USABLE")
 	local bite = shot.shots[shot.spec.shots[1495]]
 	assert(bite and bite:IsShown() and shot.flare == bite and Drawn(bite, "Mongoose.png", false).units == 36, "Mongoose Bite draws its layer when it first comes up, sized like the other forged shots")
+	local body = Drawn(bite, "Mongoose.png", false)
+	assert(body:GetWidth() == 36 and body:GetHeight() == 36, "Mongoose Bite's body snaps to 36 by 36 when it is first drawn")
 	Clean(env, K)
 end
 
