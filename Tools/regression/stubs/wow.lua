@@ -607,7 +607,19 @@ local function spans(self, relative)
 		set[self] = true
 	end
 end
+-- A texture anchored while it is not visible keeps an invalid rect, IsRectValid false, until it is anchored again while
+-- visible. This models the owner's in-game reading of 2026-11-27 on the setup's Your addons step, built while its page
+-- was hidden: the switch's track frame and the dropdown read valid, while the pill's right cap, the knob and the
+-- dropdown's chevron, all textures, read IsRectValid false on the page's first show and were not drawn. Frames and font
+-- strings are not modelled: the reading showed them valid, and the label anchored to the track drew.
+local function noteAnchor(self)
+	if self._type == "Texture" then
+		self._rectInvalid = not self:IsVisible() or nil
+	end
+end
+function Object:IsRectValid() return self._rectInvalid ~= true end
 function Object:SetPoint(point, ...)
+	noteAnchor(self)
 	checkAnchor(self, (...))
 	spans(self, (...))
 	if self._env._trackOrigin then
@@ -628,9 +640,13 @@ function Object:SetPoint(point, ...)
 		notifySpanners(self, {})
 	end
 end
-function Object:ClearAllPoints() self._points = {} end
+function Object:ClearAllPoints()
+	noteAnchor(self)
+	self._points = {}
+end
 -- SetAllPoints anchors both corners to the target, the parent by default, as in the game.
 function Object:SetAllPoints(relative)
+	noteAnchor(self)
 	checkAnchor(self, relative)
 	spans(self, relative)
 	if self._env._trackOrigin then

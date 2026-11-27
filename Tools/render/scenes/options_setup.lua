@@ -1,4 +1,4 @@
--- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, RENDER_CONTROLS_ROW=off hides the Keyboard and Gamepad choice, RENDER_SETUP_PICK clicks a layout or HUD style card, RENDER_MOTION=full|reduced|off sets Motion, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
+-- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_ADDON lists loaded addons (comma separated), RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, RENDER_CONTROLS_ROW=off hides the Keyboard and Gamepad choice, RENDER_SETUP_PICK clicks a layout or HUD style card, RENDER_MOTION=full|reduced|off sets Motion, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -26,8 +26,19 @@ return Common.Run(function()
 		saved = Gallery.Saved(profile),
 		setup = function(env)
 			Gallery.Setup(env)
+			-- RENDER_ADDON names the loaded addons, comma separated; the client lists them so setup offers Your addons.
+			local addons = {}
+			for name in (os.getenv("RENDER_ADDON") or ""):gmatch("[^,]+") do addons[#addons + 1] = name end
 			env.C_AddOns = {
-				IsAddOnLoaded = function(name) return name == os.getenv("RENDER_ADDON") end,
+				IsAddOnLoaded = function(name)
+					for _, loaded in ipairs(addons) do if loaded == name then return true end end
+					return false
+				end,
+				GetNumAddOns = function() return #addons end,
+				GetAddOnInfo = function(index)
+					local name = addons[index]
+					if name then return name, name, "", true, "", "INSECURE" end
+				end,
 				DoesAddOnExist = function() return true end,
 				LoadAddOn = function(name)
 					if name == "KstyleUI_Options" and not env._addons[name] then Load(O.Files(), env) end
