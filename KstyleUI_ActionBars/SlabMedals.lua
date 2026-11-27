@@ -91,7 +91,7 @@ end
 local function Burn(fire, moving)
 	moving = moving and not fire.quiet
 	fire:SetAlpha((moving or fire.gated) and 1 or 0)
-	fire.still:SetAlpha((moving and not fire.calm) and 0 or 1)
+	fire.still:SetAlpha((fire.calm or not (fire.gated or moving)) and 1 or 0)
 	if fire.fed then
 		return
 	elseif not (moving and fire:IsVisible()) then
@@ -422,7 +422,7 @@ Medals.Mirror, Medals.Timer = Mirror, Timer
 local function Gate(piece, lit, level, key, calm)
 	local shared = lit.share and lit.share[key]
 	local gate = Mirror(piece, lit, level, key)
-	gate.lit.burns = not calm
+	gate.lit.burns = not calm or "calm"
 	if not shared then
 		gate.burning, gate.calm = not calm, calm
 		Medals.Gate(gate, Moving() == not calm and 1 or 0)
@@ -882,6 +882,11 @@ function Medals.Figure(parent, spec, level)
 		end
 		if lit.container then
 			lit.loops = { Medals.Steps(lit, FADE_IN), lit.loop }
+		end
+		for _, copy in ipairs(bar.copies or NONE) do
+			copy.bar:SetAlpha(alpha)
+			copy.button.loops = { Medals.Steps(copy.button, FADE_IN) }
+			copy.button.flicker = lit.flicker and ns.Slab.Flicker(copy.bar, alpha)
 		end
 		lit.bar = bar
 		if not each.alpha then

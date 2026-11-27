@@ -384,6 +384,51 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- The moving leaves are a prepared fire: their loops stay bound and their fire frame selected at every level, under a
+-- layer Calm and Off darken, so Full chosen under hidden values after a readable Calm shows all eight leaves moving with
+-- no write to the aura slots (review of 68c5e7e1, clearcasting-full-from-readable-calm).
+do
+	local env, K, ns = New("DRUID", DRUID)
+	local bloom = Tracker(ns, "DRUID").built.bloom
+	local moving, writes = bloom.moving.lit, 0
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	Slots.Set(env, "player", { { id = 16870, count = 1, start = 0, duration = 15 } })
+	K.Options.Write("Medallions", "motion", "calm")
+	env.RunTimers()
+	assert(bloom.moving:GetAlpha() == 0 and bloom.calm:GetAlpha() == 1, "readable Calm shows the still leaves")
+	for _, verb in ipairs({ "AddAuraShownAnimation", "RemoveAuraShownAnimation" }) do
+		local real = moving[verb]
+		moving[verb] = function(...) writes = writes + 1 return real(...) end
+	end
+	env._aurasSecret = true
+	env.SetCombat(true)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 1)
+	K.Options.Write("Medallions", "motion", "full")
+	env.RunTimers()
+	assert(bloom.moving:GetAlpha() == 1 and bloom.calm:GetAlpha() == 0, "Full chosen under hidden values shows the moving leaves")
+	local bound = {}
+	for _, group in ipairs(moving._shownAnimations or {}) do bound[group] = true end
+	for k, leaf in ipairs(bloom.ring) do
+		local fire
+		for _, region in ipairs(leaf._regions or {}) do
+			if region.loop and region.still then fire = region end
+		end
+		assert(fire, "moving leaf " .. k .. " burns a fire")
+		assert(fire._state.Alpha[1] == 1 and fire.still._state.Alpha[1] == 0, "moving leaf " .. k .. " shows its fire frame, not the still one")
+		assert(bound[fire.loop] and Engine(function() return fire.loop:IsPlaying() end), "moving leaf " .. k .. "'s loop is bound and plays")
+	end
+	assert(writes == 0, "no level choice under hidden values writes to the leaves' aura slot, got " .. writes)
+	env._aurasSecret = false
+	env.SetCombat(false)
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- The druid's plaque and rim follow the form: the five-second rule only as a caster or moonkin; the rim watches
 -- Innervate, Nature's Swiftness, Barkskin, Dash and Nature's Grasp as a caster, Dash and Barkskin in Cat Form, and
 -- Frenzied Regeneration, Enrage, Barkskin and Dash in Bear Form; under Frames the bear's threat is a medal.
@@ -1219,6 +1264,55 @@ do
 	for k, fire in ipairs(flames) do
 		assert(not Shows(fire) and not Shows(fire.still) and not fire.loop:IsPlaying(), "Inner Fire gone: flame " .. k .. "'s light and loop stop")
 	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A figure's light on its moving and still copies keeps the figure's own opacity and cues: the shield's dome reads at
+-- its translucent alpha, Renew's light fades in as it lands and flickers in its pandemic window on the moving copy (held
+-- still on the still copy), and Inner Fire's last flame flickers its light with its seat (review of 68c5e7e1,
+-- gated-figure-loses-opacity).
+do
+	local env, K, ns = New("PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 })
+	local b = Tracker(ns, "PRIEST").built
+	local function Engine(fn)
+		env._engine = true
+		local value = fn()
+		env._engine = nil
+		return value
+	end
+	local function Has(list, group)
+		for _, g in ipairs(list or {}) do
+			if g == group then return true end
+		end
+		return false
+	end
+	local function Under(region, frame)
+		while region do
+			if region == frame then return true end
+			region = region:GetParent()
+		end
+		return false
+	end
+	local dome, renew = b.mend.lits[1], b.renew.lits[1]
+	env.SetTarget(true)
+	env.SetCombat(true)
+	env.RunTimers()
+	Slots.Set(env, "target", { { id = 10901, count = 0, start = 0, duration = 30 }, { id = 25315, count = 0, start = 0, duration = 15 } })
+	assert(dome.bar:GetAlpha() < 1, "the dome is translucent")
+	assert(math.abs(Engine(function() return dome.aura:GetEffectiveAlpha() end) - dome.bar:GetAlpha()) < 1e-9, "the dome's burning light reads at the dome's own alpha")
+	local flame, calm = renew.lights.flame, renew.lights.calm
+	assert(flame.loops and Has(flame._shownAnimations, flame.loops[1]) and Engine(function() return flame.loops[1]:IsPlaying() end),
+		"Renew's moving light fades in as it lands")
+	assert(flame.flicker and Has(flame._pandemicAnimations, flame.flicker) and Under(renew.aura, flame.flicker:GetParent()),
+		"the engine flickers Renew's moving light in its pandemic window")
+	assert(calm.flicker and not Has(calm._pandemicAnimations, calm.flicker) and Has(calm._pandemicAnimations, ns.Slab.Still(calm.flicker))
+		and Under(renew.aura.still, calm.flicker:GetParent()), "and holds its still light still")
+	Slots.Set(env, "target", { { id = 10901, count = 0, start = 0, duration = 30 }, { id = 25315, count = 0, start = 0, duration = 15, pandemic = true } })
+	assert(Engine(function() return flame.flicker:IsPlaying() end), "inside the pandemic window Renew's light flickers")
+	local seat = b.innerFire.ring[1]
+	local last = b.innerFire.lits[2].aura
+	assert(Under(last, seat) and Under(last.still, seat) and b.innerFire.flicker:GetParent() == seat, "Inner Fire's last flame flickers its moving and still light with its seat")
+	env.SetCombat(false)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

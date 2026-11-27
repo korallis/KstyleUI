@@ -43,6 +43,7 @@ local function Bloom(parent, spec, level, form)
 	local r = Medals.Rim(parent, { feed = "aura", spells = CLEARCASTING, proc = "schoolNature" }, level)
 	r.ring, r.moving, r.calm = {}, Medals.Mirror(r, r.lit, level + 2, false), Medals.Mirror(r, r.lit, level + 2, false)
 	r.leaves = Medals.Layer(r.moving.lit, level + 2)
+	r.moving.lit.burns = true
 	r.unfurl = r.leaves:CreateAnimationGroup()
 	local grow = r.unfurl:CreateAnimation("Scale")
 	grow:SetScaleFrom(0.6, 0.6)
@@ -55,7 +56,7 @@ local function Bloom(parent, spec, level, form)
 			local leaf = r.add(CreateFrame("Frame", nil, layer), LEAF)
 			leaf.angle = (k - 0.5) * 360 / LEAVES
 			r.quiet = layer == r.calm.lit and layer or nil
-			local fire, _, body = Medals.Mark(r, leaf, "trackerLeaf", LEAF, "schoolNature")
+			local fire, _, body = Medals.Mark(r, leaf, "trackerLeaf", LEAF, "schoolNature", nil, nil, nil, nil, not r.quiet and { flame = leaf } or nil)
 			r.quiet = nil
 			for _, t in ipairs({ fire, fire.still, body }) do
 				t:SetRotation(-math.rad(leaf.angle))
