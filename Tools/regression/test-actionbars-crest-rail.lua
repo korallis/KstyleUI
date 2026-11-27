@@ -1,6 +1,7 @@
 -- test-actionbars-crest-rail.lua: every class's five-seat crest rail (KstyleUI_ActionBars/SlabRail.lua), as the crest plan (KSTY-60, KSTY-97) asks: the tree the game names stands its own known abilities, its rotation cooldowns and then the class's other long cooldowns in any free seat, the trinket fifth, the long cooldowns beyond the seats as round medals on a second rail that rise to the crown like a seat, and the seats a player picks in the settings list; seven states driven by the game's own events at Full, Calm and Off (ready, pressed, active, about to end, ended, cooling, ready again), each ready seat burning with its animated aura; the newest running buff owns the crown; a motion change stops what is in flight; auras turning secret mid-fight raise no error; the rail holds its abilities back from the cooldown row and the trinket seat; the captain's choice moves it to its own flat row while the centred cast bars show; nothing runs OnUpdate.
 local R = dofile("Tools/regression/ranged_env.lua")
 local Slots, New, Seated, Updating, Clean = R.Slots, R.New, R.Seated, R.Updating, R.Clean
+local Pose = dofile("Tools/regression/anim_pose.lua")
 
 local BM = { 13165, 883, 75, 19574, 3045, 19577, 14305 }
 local MM = { 13165, 883, 75, 3045, 14305, 1310786, 20904 }
@@ -850,10 +851,14 @@ do
 	local dx, dy = sx - cx, sy - cy
 	assert(dx < -60 and dy > 20, "the medal stands left of and above the crown (" .. dx .. ", " .. dy .. ")")
 	local function at(anim) local x, y = anim:GetOffset() return x .. "," .. y end
+	-- Scales(group) -> each size step's order and the size the group's steps together give when it ends.
 	local function Scales(group)
-		local out = {}
-		for _, anim in ipairs(group._anims or {}) do
-			if anim._type == "Scale" then out[#out + 1] = anim:GetOrder() .. ":" .. string.format("%.3f", (anim._state.ScaleTo or {})[1]) end
+		local timed, out = Pose.Passes(group), {}
+		for _, each in ipairs(timed) do
+			if each.anim._type == "Scale" then
+				local _, _, _, scale = Pose.At(timed, each.from + each.run)
+				out[#out + 1] = each.anim:GetOrder() .. ":" .. string.format("%.3f", scale)
+			end
 		end
 		return table.concat(out, " ")
 	end

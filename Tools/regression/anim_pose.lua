@@ -5,7 +5,9 @@ local Pose = {}
 
 -- How the client composes a group's Scale animations once each has started: true multiplies each onto the ones before it, a finished
 -- one holding its end until the group ends; false lets the latest started one replace the others. Offsets and turns always add.
-Pose.MULTIPLY = false
+-- Forever's own interface writes its relative chains for multiplying (the prey widget grows 1 to 1.1, then 1 to 0.909091), so the
+-- crest's chains are written that way; docs/TESTING.md's red-square check settles it in the client, and false lists every chain to rewrite.
+Pose.MULTIPLY = true
 
 -- Eased(each, at) -> how far the timed animation has run at time at of its group's pass, 0 to 1, through its smoothing.
 local function Eased(each, at)

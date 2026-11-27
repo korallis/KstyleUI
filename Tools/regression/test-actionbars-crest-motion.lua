@@ -1,8 +1,10 @@
 -- test-actionbars-crest-motion.lua: the crest plan's motion rules, part 1. One end-warning flicker for every class (Core/Tokens.lua's Flicker: alpha 1 to 0.6 and back in two
 -- 0.25 s steps, so two blinks a second), fades and steps eased in the token's direction everywhere on the crest, Calm keeping the ready and refresh cues as still marks, crest
--- flares sharing one place in the effects arbiter whatever starts them, and the warrior's horn calling once on its cast and once before it ends.
+-- flares sharing one place in the effects arbiter whatever starts them, and the warrior's horn calling once on its cast and once before it ends. Each crest size chain
+-- runs as one path with no jump, its steps composed by Tools/regression/anim_pose.lua's rule.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
+local Pose = dofile("Tools/regression/anim_pose.lua")
 
 local SHOUT = 25289
 local CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
@@ -277,15 +279,44 @@ local function Quieted(env, K, class)
 	env.RunTimers()
 end
 
-local flickers, steps, named, copies = {}, { enter = 0, exit = 0, loop = 0 }, {}, {}
+-- A group's size steps make one path, composed by the rule anim_pose.lua names: it never jumps where a later step starts, and a group that does not loop
+-- ends at its region's own size or faded out, since the region takes its own size back when the group ends. Chain(group, what) -> 1 for a group of two or more
+-- size steps, after checking its path, otherwise 0.
+local function Chain(group, what)
+	local timed, _, length = Pose.Passes(group)
+	local scales, last, fade = 0, nil, nil
+	for _, each in ipairs(timed) do
+		if each.anim._type == "Scale" then scales = scales + 1 end
+	end
+	if scales < 2 then return 0 end
+	local origin = tostring(group._anims[1]._origin)
+	for _, each in ipairs(timed) do
+		if each.anim._type == "Scale" and each.from > 0 then
+			local _, _, _, before = Pose.At(timed, each.from - 1e-4)
+			local _, _, _, after = Pose.At(timed, each.from + 1e-4)
+			assert(math.abs(after - before) < 0.01, string.format("%s: the size chain from %s jumps from %.3f to %.3f where its step %d starts at %.3f s; write the step from 1 to the next size over the last",
+				what, origin, before, after, each.anim:GetOrder(), each.from))
+		end
+	end
+	for _, anim in ipairs(group._anims) do
+		if anim._type == "Alpha" and (not last or (Set(anim, "Order") or 1) >= last) then last, fade = Set(anim, "Order") or 1, Set(anim, "ToAlpha") end
+	end
+	local _, _, _, ends = Pose.At(timed, length)
+	local looping = Set(group, "Looping") == "REPEAT" or Set(group, "Looping") == "BOUNCE"
+	assert(looping or math.abs(ends - 1) < 0.01 or fade == 0, string.format("%s: the size chain from %s ends at %.3f and still shows, so it snaps back to 1 as the group ends", what, origin, ends))
+	return 1
+end
+
+local flickers, steps, named, copies, chains = {}, { enter = 0, exit = 0, loop = 0 }, {}, {}, {}
 for _, class in ipairs(CLASSES) do
 	local env, K, ns = New(class)
 	Quieted(env, K, class)
 	copies[class] = Copies(env, ns, class)
 	Drive(env, ns, class)
 	named[class] = Warnings(ns, class)
-	flickers[class] = 0
+	flickers[class], chains[class] = 0, 0
 	Groups(env, function(group)
+		chains[class] = chains[class] + Chain(group, class)
 		local alphaOnly, cycle = true, 0
 		local looping = Set(group, "Looping") == "REPEAT" or Set(group, "Looping") == "BOUNCE"
 		for _, anim in ipairs(group._anims) do
@@ -323,6 +354,7 @@ for _, what in ipairs({ "ember watch", "storm orb", "storm spark", "totem spire"
 end
 assert(flickers.WARRIOR > 0 and flickers.HUNTER > 0 and flickers.SHAMAN > 0 and flickers.WARLOCK > 0, "the walk meets the flicker on warriors, hunters, shamans and warlocks")
 assert(steps.enter > 0 and steps.exit > 0 and steps.loop > 0, "and steps of all three kinds")
+assert(chains.WARRIOR > 0 and chains.HUNTER > 0 and chains.MAGE > 0 and chains.WARLOCK > 0, "the walk meets size chains on the crest's pulse and lift and on the rail's medals")
 for _, class in ipairs({ "HUNTER", "WARLOCK", "MAGE", "PRIEST", "SHAMAN", "DRUID" }) do
 	assert(copies[class] > 0, class .. ": a ranged crest has pieces with copies for the other motion levels")
 end
