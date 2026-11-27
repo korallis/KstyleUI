@@ -789,8 +789,7 @@ for _, case in ipairs({
 	Clean(env, K)
 end
 
--- Every melee rail medal draws a sigil and burns an aura sheet, never a spell's icon (the armory crest shows no icons). A sheet
--- burned in neutral light takes the rail's colour.
+-- Every melee rail medal draws a sigil and burns an aura sheet, never a spell's icon (the armory crest shows no icons).
 for class, known in pairs(MELEE) do
 	local env, K, ns = New(class, { known = known, tree = 1, trinket = true })
 	Awake(env)
@@ -806,8 +805,13 @@ end
 do
 	local env, K, ns = New("WARRIOR", { known = { 1719, 2687 }, tree = 1 })
 	local fang = Rail(ns).made.bloodrage.aura.moving
-	assert(fang._state.Texture[1]:find("Auras\\Sigils\\Fang.png", 1, true), "Bloodrage burns the fang sheet")
-	assert(R.Tint(fang, K, "gilt"), "in the warrior rail's gilt")
+	assert(fang._state.Texture[1]:find("Auras\\Sigils\\Fang.png", 1, true) and R.Tint(fang, K, "white"), "Bloodrage burns the fang sheet, baked in the warrior's colour")
+	Clean(env, K)
+end
+-- A shared sheet baked in neutral light (Sprint's, a racial's) takes the rail's colour, as the cooldown rim tints it.
+do
+	local env, K, ns = New("ROGUE", { known = { 14177, 2983 }, tree = 1 })
+	assert(R.Tint(Rail(ns).made.sprint.aura.moving, K, "pipPriestGlow"), "Sprint's dash burns in the rogue rail's colour")
 	Clean(env, K)
 end
 
