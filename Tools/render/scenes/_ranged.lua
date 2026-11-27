@@ -257,7 +257,7 @@ function Ranged.Play(env, K, ns, notes)
 	if os.getenv("RENDER_TRACKERS_OFF") == "1" then
 		for _, row in ipairs(ns.SlabTrackers.CLASSES[ns.class] or {}) do K.Options.Write("ActionBars", row.key, false) end
 	end
-	if (rawget(_G, "RENDER_CAST_ON_FRAME") or os.getenv("RENDER_CAST_ON_FRAME")) == "off" and K.Layout.Element("unitframes.castbar.player") == nil then
+	if (rawget(_G, "RENDER_CAST_ON_FRAME") or os.getenv("RENDER_CAST_ON_FRAME")) == "off" and not K.Layout.Live("unitframes.castbar.player") then
 		for _, key in ipairs({ "unitframes.castbar.player", "unitframes.castbar.target" }) do
 			K.Layout.Register(env.CreateFrame("Frame"), key, K.Setup.Layouts.Default(key))
 		end
