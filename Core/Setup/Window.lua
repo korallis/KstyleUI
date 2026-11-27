@@ -1246,6 +1246,7 @@ local function Build()
 	Widgets.Fill(panel.addonsPage, panel.pages[4])
 	panel.addonsPage:Hide()
 	panel.addons = Setup.AddonsPage(panel.addonsPage, width, Changed)
+	panel.addonsPage:SetScript("OnShow", function() panel.addons:Restyle() end)
 	panel.back = Widgets.Button(content, { text = L["Back"], onClick = function() Setup.Go(step - 1) end })
 	Widgets.Point(panel.back, "BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
 	panel.skip = Widgets.Button(content, {
