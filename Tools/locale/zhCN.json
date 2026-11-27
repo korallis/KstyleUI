@@ -3650,7 +3650,7 @@
 	"Settings window width in interface units; release the slider to apply.": "设置窗口的宽度，以界面单位计；松开滑块后生效。",
 	"Settings you change from search results are listed first in later searches.": "你在搜索结果中更改的设置会在之后的搜索中排在最前。",
 	"Setup": "设置",
-	"Setup offers it too; windows setup placed keep their spot as the game's UI Scale changes. Apply setup again for an older damage meter.": "设置向导也提供此选项；它放置的窗口在游戏界面缩放改变时保持原位。较早放置的伤害统计需要重新应用设置。",
+	"Setup offers it too, and windows it placed stay put as the UI Scale changes; old damage meters need setup again.": "设置向导也提供此选项，它放置的窗口在界面缩放改变时保持原位；较早的伤害统计需要重新应用设置。",
 	"Shade darkness": "变暗程度",
 	"Shade every other row of the list.": "列表隔行加深。",
 	"Shade these icons while a charge recharges.": "充能恢复时为这些图标加上阴影。",

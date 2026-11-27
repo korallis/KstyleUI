@@ -7,16 +7,19 @@ A hotfix for players who use the game's UI Scale: KstyleUI can now follow it ins
 Highlights:
 
 - A new switch in General > Size lets KstyleUI follow the game's UI Scale instead of its pixel-perfect size.
-- Setup offers it too; windows setup placed keep their spot as the game's UI Scale changes. Apply setup again for an older damage meter.
+- Setup offers it too, and windows it placed stay put as the UI Scale changes; old damage meters need setup again.
 
 ### Added
 
-- Interface size: a Follow the game's UI scale switch under General > Size. While it is on, KstyleUI grows and shrinks with the UI Scale in the game's options, up to the largest size that fits, and the Auto switch and size slider hide. It is off by default, so the HUD keeps its pixel-perfect size until you turn it on.
+- Interface size: a Follow the game's UI scale switch under General > Size grows and shrinks KstyleUI with the game's UI Scale, up to the largest size that fits. The Auto switch and size slider hide while it is on.
+- Interface size: the switch is off by default, so the HUD keeps its pixel-perfect size until you turn it on.
 - Setup: the HUD style step has an Interface size row with Pixel perfect and Game's UI scale, and shows Your own while you use the size slider. The choice applies when you press Apply.
 
 ### Fixed
 
-- Setup: the quest tracker, damage meter and other windows that setup placed in Edit Mode keep their place on screen when the game's UI Scale changes, with the switch on or off. A cooldown viewer you moved yourself stays where you put it. A damage meter placed by a setup from before this version moves with them only after you apply setup again.
+- Setup: the quest tracker, damage meter and other windows setup placed in Edit Mode keep their place on screen when the game's UI Scale changes, with the switch on or off.
+- Setup: a cooldown viewer you moved yourself stays where you put it when the game's UI Scale changes.
+- Setup: a damage meter placed by a setup from before this version follows only after you apply setup again.
 - Profiles: the import warning also names the new Interface size switch.
 
 ## v0.3.5.2 (2026-11-27)

@@ -3657,7 +3657,7 @@ ns.Locale.Add({
 	["Settings window width in interface units; release the slider to apply."] = "Largeur de la fen\195\170tre en unit\195\169s d\226\128\153interface ; rel\195\162chez pour appliquer.",
 	["Settings you change from search results are listed first in later searches."] = "Les r\195\169glages modifi\195\169s depuis les r\195\169sultats apparaissent en premier lors des recherches suivantes.",
 	["Setup"] = "Configuration",
-	["Setup offers it too; windows setup placed keep their spot as the game's UI Scale changes. Apply setup again for an older damage meter."] = "La configuration le propose aussi ; les fen\195\170tres qu'elle a plac\195\169es gardent leur place quand l'\195\169chelle d'interface du jeu change. R\195\169appliquez-la pour un ancien compteur de d\195\169g\195\162ts.",
+	["Setup offers it too, and windows it placed stay put as the UI Scale changes; old damage meters need setup again."] = "La configuration le propose aussi, et les fen\195\170tres qu'elle a plac\195\169es restent en place quand l'\195\169chelle d'interface change ; un ancien compteur de d\195\169g\195\162ts demande de la r\195\169appliquer.",
 	["Shade darkness"] = "Intensit\195\169 de l'assombrissement",
 	["Shade every other row of the list."] = "Ombre une ligne sur deux de la liste.",
 	["Shade these icons while a charge recharges."] = "Assombrit ces ic\195\180nes pendant qu'une charge se recharge.",

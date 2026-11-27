@@ -4,7 +4,7 @@ local L = KstyleUI.L
 ns.NOTES = {
 	{ "v0.3.5.3 (2026-11-27)", {
 		L["A new switch in General > Size lets KstyleUI follow the game's UI Scale instead of its pixel-perfect size."],
-		L["Setup offers it too; windows setup placed keep their spot as the game's UI Scale changes. Apply setup again for an older damage meter."],
+		L["Setup offers it too, and windows it placed stay put as the UI Scale changes; old damage meters need setup again."],
 	} },
 	{ "v0.3.5.2 (2026-11-27)", {
 		L["A bar shape that cannot fit beside the others no longer shrinks the whole HUD below its usual size."],
