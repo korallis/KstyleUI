@@ -376,9 +376,12 @@ class RunAllAffectedTest(GitRepoCase):
         }, "base")
         self.cache = self.repo / "cache.json"
 
-    def affected(self, base="HEAD", jobs="2"):
+    def affected(self, base="HEAD", jobs="2", verify=None):
         full = dict(os.environ, LUA=lua(), JOBS=jobs, KSTYLEUI_DEPS_CACHE=str(self.cache), KSTYLEUI_SLOTS="0")
         full.pop("CI", None)
+        full.pop("KSTYLEUI_DEPS_VERIFY", None)
+        if verify:
+            full["KSTYLEUI_DEPS_VERIFY"] = verify
         if not jobs:
             del full["JOBS"]
         return subprocess.run([BASH, "Tools/regression/run-all.sh", "--affected", base], cwd=self.repo, env=full,
@@ -413,6 +416,18 @@ class RunAllAffectedTest(GitRepoCase):
         self.assertIn("affected: running 2 of 4 test files", result.stdout)
         self.assertIn("Mod/a.lua changed", result.stdout)
         self.assertTrue(result.stdout.rstrip().endswith("(affected mode: 2 of 4 test files ran; the other 2 did not; the nightly run runs them all)"))
+
+    def test_a_record_restored_from_another_commit_counts_only_where_the_files_it_read_are_unchanged(self):
+        # Review finding on the checks workflow: a nightly record made before a helper started loading Mod/b.lua
+        # must not leave out test-a when a pull request then changes only Mod/b.lua.
+        self.affected()
+        self.commit({"Mod/a.lua": 'dofile("Mod/b.lua")\nreturn 1\n'}, "a now loads b")
+        self.write({"Mod/b.lua": "return 2 -- edited\n"})
+        self.assertEqual(self.ran(self.affected()), ["test-b"], "unverified, the old record of test-a misses Mod/b.lua")
+        result = self.affected(verify="1")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.ran(result), ["test-a", "test-b", "test-d"], "verified, the records that read the old Mod/a.lua count as none")
+        self.assertIn("no record of what it loads yet", result.stdout)
 
     def test_a_language_file_change_runs_the_test_that_sets_a_language_and_not_the_one_that_does_not(self):
         # Intent: the approved faster-gate plan. A language file returns on its first line where GetLocale is unset.

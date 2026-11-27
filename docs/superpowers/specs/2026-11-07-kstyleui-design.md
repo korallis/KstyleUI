@@ -17,7 +17,7 @@ KstyleUI succeeds when all of the following are true:
 - Every module in [Modules](#modules) works on live Forever with no Lua errors and no taint, with Blizzard's forced-restriction CVars switched on.
 - Components match `05_kit_hunter.jpg` at 1920x1080, 2560x1440, 3840x2160 and 3456x2234, with whole-pixel borders on each.
 - A player who never enables a module pays nothing for it: no events, no hooks, no frames.
-- The [local gate](../../../AGENTS.md#check-and-deliver) passes on each pull request commit.
+- The `checks` and `pr-rules` workflows pass on each pull request's newest commit ([Check and deliver](../../../AGENTS.md#check-and-deliver)).
 - The owner confirms each release in game before `staging` moves to `main`.
 
 ## Decisions
@@ -417,7 +417,7 @@ The checks are KstyleUI's own implementations of NaowhForever's checks. NaowhFor
 | `check-package.sh` | Release workflow | A packaged zip that is missing a TOC file or library, or that contains `Tools/`, `docs/`, `research_notes/`, `reports/` or lint config |
 | `check-pr.sh` | Local gate with PR wording | A title outside the conventional format, a missing required changelog line, or a version marker changed outside a release |
 
-Use the [local gate](../../../AGENTS.md#check-and-deliver) for pull requests and releases, with `LUA` unset. One Lua module, `Tools/regression/toc_files.lua`, walks the TOCs and XML includes, and every test and the package check uses it. GitHub Actions are pinned by commit SHA, set `persist-credentials: false` and request minimal permissions.
+Follow [Check and deliver](../../../AGENTS.md#check-and-deliver): the fast local gate before a push, with `LUA` unset, the `checks` workflow on each pull request and the `nightly` workflow before a release. One Lua module, `Tools/regression/toc_files.lua`, walks the TOCs and XML includes, and every test and the package check uses it. GitHub Actions are pinned by commit SHA, set `persist-credentials: false` and request minimal permissions.
 
 ## In-game testing
 
@@ -436,9 +436,9 @@ Every PR description lists its in-game checks. A release candidate also runs wit
 ## Branches and releases
 
 - Each task gets a branch named `<type>/<scope>-<slug>`, such as `feat/unitframes-player-frame`, in its own worktree under `~/KstyleUI.worktrees/`.
-- Before a PR opens, run the [local gate](../../../AGENTS.md#check-and-deliver) and have the latest GPT Sol model independently review the diff against `origin/staging`.
+- Before a PR opens, run the fast [local gate](../../../AGENTS.md#check-and-deliver) and have the latest GPT Sol model independently review the diff against `origin/staging`.
 - A PR targets `staging`, covers one coherent piece of work, and is squash-merged. KstyleUI has no PR line limit: the owner waived the global 400-line rule on 2026-11-07.
-- When the owner confirms in-game tests pass on `staging`, `staging` fast-forwards to `main`, `bash scripts/gate.sh release` (lint, every Lua test file and the Python suite) passes on that commit, and `main` is tagged `vX.Y.Z`. The tag starts the release workflow, which runs no test suite: it packages with the BigWigs packager and uploads to CurseForge, Wago and GitHub. The CurseForge and Wago API tokens live in GitHub Actions secrets, set by the owner. They are never printed or committed.
+- When the owner confirms in-game tests pass on `staging`, `staging` fast-forwards to `main`, the `nightly` workflow (lint, every Lua test file and the Python suite) passes on that commit, and `main` is tagged `vX.Y.Z`. The tag starts the release workflow, which runs no test suite: it packages with the BigWigs packager and uploads to CurseForge, Wago and GitHub. The CurseForge and Wago API tokens live in GitHub Actions secrets, set by the owner. They are never printed or committed.
 
 ## Build mode
 

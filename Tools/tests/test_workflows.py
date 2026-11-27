@@ -3,6 +3,7 @@
 import os
 import re
 import subprocess
+import tempfile
 import textwrap
 import unittest
 from pathlib import Path
@@ -184,7 +185,8 @@ class WorkflowsTest(unittest.TestCase):
             jobs = jobs_of(path.read_text(encoding="utf-8"))
             self.assertTrue(jobs, path.name)
             for job, body in jobs.items():
-                self.assertEqual(re.search(r"(?m)^    runs-on: (.+)$", body).group(1), "ubuntu-latest", f"{path.name}: {job}")
+                hosted = "windows-latest" if (path.name, job) == ("checks.yml", "windows") else "ubuntu-latest"
+                self.assertEqual(re.search(r"(?m)^    runs-on: (.+)$", body).group(1), hosted, f"{path.name}: {job}")
 
     def test_release_jobs_run_for_a_tag_push_or_a_manual_repost(self):
         for job, body in jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8")).items():
@@ -212,38 +214,101 @@ class WorkflowsTest(unittest.TestCase):
             self.assertNotIn("head.repo", text, name)
             self.assertNotRegex(text, r"secrets\.|: write", name)
 
-    def test_pull_request_checks_pick_by_what_changed_and_only_warn_on_perf(self):
-        # The captain's ruling: checks picked by what changed (docs-only runs no Lua tests), perf a warning on each pull request.
-        jobs = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))
-        self.assertEqual(list(jobs), ["lua", "lint-python-package", "checks"])
-        self.assertIn("      KSTYLEUI_PERF: warn\n", jobs["lua"])
-        self.assertIn("if bash Tools/hooks/needs-lua.sh HEAD^1; then", jobs["lua"])
-        self.assertIn('run: bash Tools/regression/run-all.sh --shard "$SHARD/$SHARD_TOTAL" --affected HEAD^1\n', jobs["lua"])
-        self.assertEqual(jobs["lua"].count("if: steps.scope.outputs.run == 'true'"), 4, "every Lua step waits on the scope")
-        self.assertIn("run: bash scripts/gate.sh fast\n", jobs["lint-python-package"])
-        self.assertIn("""run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py HEAD^1 --skip test_render_deterministic.py'\n""",
+    def test_pull_request_checks_pick_by_what_changed(self):
+        # The captain's ruling (d:d-qp9lxr): run only the checks a change can affect; a docs-only change runs no Lua tests.
+        text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
+        jobs = jobs_of(text)
+        self.assertEqual(list(jobs), ["scope", "lua", "lint-python-package", "windows", "checks"])
+        self.assertIn("    needs: [scope]\n    if: needs.scope.outputs.lua == 'true'\n", jobs["lua"])
+        self.assertIn('      KSTYLEUI_DEPS_VERIFY: "1"\n', jobs["lua"])
+        self.assertIn('run: bash Tools/regression/run-all.sh --shard "$SHARD/$SHARD_TOTAL" --affected "$BASE"\n', jobs["lua"])
+        self.assertIn('run: GATE_BASE="$BASE" bash scripts/gate.sh fast\n', jobs["lint-python-package"])
+        self.assertIn("""run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py "$BASE" --skip test_render_deterministic.py'\n""",
                       jobs["lint-python-package"])
         self.assertIn("run: bash Tools/hooks/check-package.sh\n", jobs["lint-python-package"])
 
-    def test_the_nightly_run_checks_everything_with_perf_enforced(self):
+    def test_a_push_is_compared_from_where_it_started(self):
+        # Review finding: a code commit followed by a docs commit in one push must still be checked.
+        text = (WORKFLOWS / "checks.yml").read_text(encoding="utf-8")
+        self.assertIn("  BASE: ${{ github.event_name == 'push' && github.event.before != "
+                      "'0000000000000000000000000000000000000000' && github.event.before || 'HEAD^1' }}\n", text)
+        for job in ("scope", "lua", "lint-python-package"):
+            self.assertIn("fetch-depth: ${{ github.event_name == 'push' && '0' || '2' }}", jobs_of(text)[job], job)
+
+    def scope(self, needs, changed):
+        """Run the scope job's script in a repository whose last commit changes the file changed."""
+        job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["scope"]
+        script = textwrap.dedent(job.split("        run: |\n", 1)[1])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env = dict(os.environ, BASE="HEAD^1", GITHUB_OUTPUT=str(root / "out"), GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.com",
+                       GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.com", GIT_CONFIG_GLOBAL=os.devnull)
+            for step in (["init", "-q"], ["commit", "-q", "--allow-empty", "-m", "base"]):
+                subprocess.run(["git", *step], cwd=root, env=env, check=True)
+            (root / changed).parent.mkdir(parents=True, exist_ok=True)
+            (root / changed).write_text("change\n", encoding="utf-8")
+            subprocess.run(["git", "add", "-A"], cwd=root, env=env, check=True)
+            subprocess.run(["git", "commit", "-q", "-m", "change"], cwd=root, env=env, check=True)
+            (root / "Tools" / "hooks").mkdir(parents=True, exist_ok=True)
+            (root / "Tools" / "hooks" / "needs-lua.sh").write_text(f"exit {needs}\n", encoding="utf-8")
+            done = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env, capture_output=True, text=True)
+            out = (root / "out").read_text(encoding="utf-8").split() if (root / "out").exists() else []
+            return done.returncode, out
+
+    def test_the_lua_jobs_skip_only_when_nothing_reaches_a_lua_test(self):
+        # Review finding: a scope that cannot be worked out must fail, never skip the tests.
+        self.assertEqual(self.scope(0, "Core/A.lua"), (0, ["lua=true", "windows=false"]))
+        self.assertEqual(self.scope(1, "docs/A.md"), (0, ["lua=false", "windows=false"]))
+        self.assertEqual(self.scope(2, "docs/A.md"), (2, []))
+
+    def test_windows_runs_the_two_gate_commands_when_the_gate_or_the_lua_runner_changes(self):
+        # AGENTS.md: a change to scripts/gate.sh, run-all.sh or run_all.py includes their native Windows exit codes.
+        for changed in ("scripts/gate.sh", "Tools/regression/run-all.sh", "Tools/regression/run_all.py"):
+            with self.subTest(changed=changed):
+                self.assertEqual(self.scope(0, changed), (0, ["lua=true", "windows=true"]))
+        job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["windows"]
+        self.assertIn("    needs: [scope]\n    if: needs.scope.outputs.windows == 'true'\n", job)
+        self.assertIn("lint) set -- lint ;;", job)
+        self.assertIn('*) set -- lua --affected origin/staging --shard "${PART#lua }" ;;', job)
+        self.assertIn('echo "native Windows exit code of bash scripts/gate.sh $*: $code"', job)
+
+    def test_the_python_tests_have_the_image_libraries_they_need(self):
+        # Review finding: without Pillow and NumPy the image, crest and Medallions tests skip and read as a pass.
+        for name in ("checks.yml", "nightly.yml"):
+            text = (WORKFLOWS / name).read_text(encoding="utf-8")
+            self.assertIn("pip install pre-commit==4.7.0 Pillow==13.0.0 numpy==2.5.5", text, name)
+            self.assertIn("-precommit470-pillow1300-numpy255-luacheck120-", text, name)
+            self.assertIn("print(PIL.__version__, numpy.__version__)' | grep -x '13\\.0\\.0 2\\.5\\.5'", text, name)
+
+    def test_the_nightly_run_checks_everything(self):
         text = (WORKFLOWS / "nightly.yml").read_text(encoding="utf-8")
         jobs = jobs_of(text)
-        self.assertNotIn("KSTYLEUI_PERF", text)
         self.assertNotIn("--skip", text)
         self.assertIn("run: bash scripts/gate.sh lint\n", jobs["lint-python-package"])
         self.assertIn("""run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py'\n""", jobs["lint-python-package"])
         self.assertIn('--shard "$SHARD/$SHARD_TOTAL" --affected 4b825dc642cb6eb9a060e54bf8d69288fbee4904\n', jobs["lua"])
         self.assertIn("key: lua-deps-${{ github.run_id }}", jobs["lua-deps"])
 
-    def test_the_checks_job_passes_only_when_every_job_passed(self):
-        # The checks job is the one status a merge waits on, so a failed, cancelled or skipped job must turn it red.
+    def test_the_checks_job_passes_only_when_every_job_the_change_needs_passed(self):
+        # The checks job is the one status a merge waits on: a failed, cancelled or wrongly skipped job must turn it red.
         job = jobs_of((WORKFLOWS / "checks.yml").read_text(encoding="utf-8"))["checks"]
-        self.assertIn("    if: ${{ always() }}\n    needs: [lua, lint-python-package]\n", job)
+        self.assertIn("    if: ${{ always() }}\n    needs: [scope, lua, lint-python-package, windows]\n", job)
         script = textwrap.dedent(job.split("        run: |\n", 1)[1])
-        for results, code in (("success success", 0), ("success failure", 1), ("cancelled success", 1),
-                              ("success skipped", 1)):
-            with self.subTest(results=results):
-                done = subprocess.run(["bash", "-c", script], env=dict(os.environ, RESULTS=results), capture_output=True, text=True)
+        cases = (
+            (("success", "success", "success", "skipped", "true", "false"), 0),
+            (("success", "success", "skipped", "skipped", "false", "false"), 0),
+            (("success", "success", "success", "success", "true", "true"), 0),
+            (("success", "success", "skipped", "skipped", "true", "false"), 1),
+            (("success", "success", "success", "skipped", "true", "true"), 1),
+            (("success", "failure", "success", "skipped", "true", "false"), 1),
+            (("success", "success", "cancelled", "skipped", "true", "false"), 1),
+            (("success", "success", "success", "failure", "true", "true"), 1),
+            (("failure", "success", "skipped", "skipped", "", ""), 1),
+        )
+        for values, code in cases:
+            with self.subTest(values=values):
+                env = dict(os.environ, **dict(zip(("SCOPE", "LINT", "LUA", "WINDOWS", "WANT_LUA", "WANT_WINDOWS"), values)))
+                done = subprocess.run(["bash", "-e", "-c", script], env=env, capture_output=True, text=True)
                 self.assertEqual(done.returncode, code, done.stdout + done.stderr)
 
     def test_the_runner_tools_are_checked_by_version(self):

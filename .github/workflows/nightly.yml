@@ -1,5 +1,5 @@
 # nightly.yml: the full suite on staging each night, and by hand on a release commit: lint on every file, every Lua test file with
-# perf budgets enforced, every Python test file with the renders, and a fresh record of what each Lua test loads for checks.yml.
+# their budgets, every Python test file with the renders, and a fresh record of what each Lua test loads for checks.yml.
 name: nightly
 
 on:
@@ -109,7 +109,7 @@ jobs:
             ~/.luarocks
             ~/.local/share/wow-dev/venv
             ~/.cache/pre-commit
-          key: ${{ runner.os }}-${{ runner.arch }}-python${{ steps.python.outputs.python-version }}-precommit470-luacheck120-${{ hashFiles('.pre-commit-config.yaml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-python${{ steps.python.outputs.python-version }}-precommit470-pillow1300-numpy255-luacheck120-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Install the hosted runner tools
         env:
           CACHE_HIT: ${{ steps.tools.outputs.cache-hit }}
@@ -119,12 +119,14 @@ jobs:
           if [ "$CACHE_HIT" != true ]; then
             luarocks --local --lua-version=5.1 install luacheck 1.2.0
             python3 -m venv "$HOME/.local/share/wow-dev/venv"
-            "$KSTYLEUI_PYTHON" -m pip install pre-commit==4.7.0
+            "$KSTYLEUI_PYTHON" -m pip install pre-commit==4.7.0 Pillow==13.0.0 numpy==2.5.5
           fi
           echo "$HOME/.luarocks/bin" >> "$GITHUB_PATH"
           echo "$HOME/.local/share/wow-dev/venv/bin" >> "$GITHUB_PATH"
           echo "LUA_PATH=$(luarocks --local --lua-version=5.1 path --lr-path)" >> "$GITHUB_ENV"
           echo "LUA_CPATH=$(luarocks --local --lua-version=5.1 path --lr-cpath)" >> "$GITHUB_ENV"
+          # The image, crest and Medallions tests skip without these, which would read as a pass.
+          "$KSTYLEUI_PYTHON" -c 'import PIL, numpy; print(PIL.__version__, numpy.__version__)' | grep -x '13\.0\.0 2\.5\.5'
       - name: Lint every file
         if: ${{ !cancelled() }}
         env:

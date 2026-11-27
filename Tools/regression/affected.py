@@ -97,12 +97,15 @@ def seen(record, root=".", memo=None):
 def load_records(cwd=None):
     """Return this working copy's records. A working copy with none yet starts from the shared copy's records
     whose files, listings and tracked names are what this working copy holds: a record made on a tree where one
-    of them differed may name the wrong files, so its test has no record and runs."""
+    of them differed may name the wrong files, so its test has no record and runs. KSTYLEUI_DEPS_VERIFY=1 holds the
+    records in KSTYLEUI_DEPS_CACHE to the same rule: the checks workflow restores them from a nightly run on another
+    commit, where a shared helper may have loaded other files."""
     records = load_cache(cache_path(cwd))
-    if records or os.environ.get("KSTYLEUI_DEPS_CACHE"):
+    verify = os.environ.get("KSTYLEUI_DEPS_VERIFY") == "1"
+    if not verify and (records or os.environ.get("KSTYLEUI_DEPS_CACHE")):
         return records
-    memo, records = {}, {}
-    for test, record in load_cache(shared_path()).items():
+    memo, source, records = {}, records if verify else load_cache(shared_path()), {}
+    for test, record in source.items():
         try:
             if record.get("seen") == seen(record, cwd or ".", memo):
                 records[test] = record

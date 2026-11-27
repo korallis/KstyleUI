@@ -1,6 +1,7 @@
 # checks.yml: the checks a pull request and a push to staging or main wait for, picked by what changed, on GitHub-hosted runners.
-# Lint covers the changed files; Lua runs only the test files the change can reach (none for docs), with perf failures as warnings;
-# Python leaves out tool tests whose tool is unchanged and the render comparison. nightly.yml runs everything with perf enforced.
+# Lint covers the changed files; Lua runs only the test files the change can reach (none for docs); Python leaves out tool tests
+# whose tool is unchanged and the render comparison. A change to the gate or the Lua runner also runs the two gate commands
+# AGENTS.md names on Windows. nightly.yml runs everything. The base is the pushed range's start on a push, else HEAD^1.
 name: checks
 run-name: "${{ github.event_name == 'push' && format('{0}: {1}', github.ref_name, github.event.head_commit.message) || github.event.pull_request.title || 'checks (manual run)' }}"
 
@@ -18,8 +19,44 @@ concurrency:
   group: checks-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  # On a push, every commit of the push counts; github.event.before is all zeros for a new branch.
+  BASE: ${{ github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000' && github.event.before || 'HEAD^1' }}
+
 jobs:
+  scope:
+    name: what the change reaches
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      lua: ${{ steps.scope.outputs.lua }}
+      windows: ${{ steps.scope.outputs.windows }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # A pull request's merge commit has the target branch as HEAD^1; a push needs history back to its start.
+          fetch-depth: ${{ github.event_name == 'push' && '0' || '2' }}
+          persist-credentials: false
+      - name: Decide which jobs the change needs
+        id: scope
+        run: |
+          code=0
+          bash Tools/hooks/needs-lua.sh "$BASE" || code=$?
+          case $code in
+          0) echo lua=true >> "$GITHUB_OUTPUT" ;;
+          1) echo "no changed file reaches a Lua test"; echo lua=false >> "$GITHUB_OUTPUT" ;;
+          *) echo "could not tell what changed against $BASE" >&2; exit "$code" ;;
+          esac
+          since=$(git merge-base "$BASE" HEAD)
+          if git diff --quiet "$since" HEAD -- scripts/gate.sh Tools/regression/run-all.sh Tools/regression/run_all.py; then
+            echo windows=false >> "$GITHUB_OUTPUT"
+          else
+            echo "the gate or the Lua runner changed"; echo windows=true >> "$GITHUB_OUTPUT"
+          fi
+
   lua:
+    needs: [scope]
+    if: needs.scope.outputs.lua == 'true'
     name: lua ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -29,42 +66,34 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
     env:
       KSTYLEUI_DEPS_CACHE: /home/runner/lua-deps.json
-      KSTYLEUI_PERF: warn
+      KSTYLEUI_DEPS_VERIFY: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # HEAD^1 is the base: the target branch for a pull request's merge commit, the previous commit for a push.
-          fetch-depth: 2
+          fetch-depth: ${{ github.event_name == 'push' && '0' || '2' }}
           persist-credentials: false
-      - name: Decide whether the change reaches a Lua test
-        id: scope
-        run: |
-          if bash Tools/hooks/needs-lua.sh HEAD^1; then echo run=true >> "$GITHUB_OUTPUT"; else echo run=false >> "$GITHUB_OUTPUT"; fi
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: steps.scope.outputs.run == 'true'
         with:
-          # What each test loads, recorded by the nightly run; without it every file runs.
+          # What each test loads, recorded by the nightly run on some earlier commit. KSTYLEUI_DEPS_VERIFY keeps only the records
+          # whose files still read the same here; the other tests, and every test without this file, run.
           path: /home/runner/lua-deps.json
           key: lua-deps-
           restore-keys: lua-deps-
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: steps.scope.outputs.run == 'true'
         with:
           path: ~/.cache/lua51/*.deb
           key: ${{ runner.os }}-${{ runner.arch }}-lua515
       - name: Install hosted Lua 5.1
-        if: steps.scope.outputs.run == 'true'
         run: |
           mkdir -p "$HOME/.cache/lua51/partial"
           sudo apt-get update -qq
           sudo apt-get -o Dir::Cache::archives="$HOME/.cache/lua51" install -y lua5.1
           lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
       - name: The Lua test files the change reaches, one slice
-        if: steps.scope.outputs.run == 'true'
         env:
           SHARD: ${{ matrix.shard }}
           SHARD_TOTAL: ${{ strategy.job-total }}
-        run: bash Tools/regression/run-all.sh --shard "$SHARD/$SHARD_TOTAL" --affected HEAD^1
+        run: bash Tools/regression/run-all.sh --shard "$SHARD/$SHARD_TOTAL" --affected "$BASE"
 
   lint-python-package:
     name: lint, python and package
@@ -75,7 +104,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 2
+          fetch-depth: ${{ github.event_name == 'push' && '0' || '2' }}
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         id: python
@@ -88,7 +117,7 @@ jobs:
             ~/.luarocks
             ~/.local/share/wow-dev/venv
             ~/.cache/pre-commit
-          key: ${{ runner.os }}-${{ runner.arch }}-python${{ steps.python.outputs.python-version }}-precommit470-luacheck120-${{ hashFiles('.pre-commit-config.yaml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-python${{ steps.python.outputs.python-version }}-precommit470-pillow1300-numpy255-luacheck120-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Install the hosted runner tools
         env:
           CACHE_HIT: ${{ steps.tools.outputs.cache-hit }}
@@ -98,20 +127,20 @@ jobs:
           if [ "$CACHE_HIT" != true ]; then
             luarocks --local --lua-version=5.1 install luacheck 1.2.0
             python3 -m venv "$HOME/.local/share/wow-dev/venv"
-            "$KSTYLEUI_PYTHON" -m pip install pre-commit==4.7.0
+            "$KSTYLEUI_PYTHON" -m pip install pre-commit==4.7.0 Pillow==13.0.0 numpy==2.5.5
           fi
           echo "$HOME/.luarocks/bin" >> "$GITHUB_PATH"
           echo "$HOME/.local/share/wow-dev/venv/bin" >> "$GITHUB_PATH"
           echo "LUA_PATH=$(luarocks --local --lua-version=5.1 path --lr-path)" >> "$GITHUB_ENV"
           echo "LUA_CPATH=$(luarocks --local --lua-version=5.1 path --lr-cpath)" >> "$GITHUB_ENV"
+          # The image, crest and Medallions tests skip without these, which would read as a pass.
+          "$KSTYLEUI_PYTHON" -c 'import PIL, numpy; print(PIL.__version__, numpy.__version__)' | grep -x '13\.0\.0 2\.5\.5'
       - name: Lint the changed files
         if: ${{ !cancelled() }}
-        env:
-          GATE_BASE: HEAD^1
-        run: bash scripts/gate.sh fast
+        run: GATE_BASE="$BASE" bash scripts/gate.sh fast
       - name: Python tool tests the change reaches
         if: ${{ !cancelled() }}
-        run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py HEAD^1 --skip test_render_deterministic.py'
+        run: '"$KSTYLEUI_PYTHON" Tools/tests/run_suite.py "$BASE" --skip test_render_deterministic.py'
       - name: Remove tags from the check build
         if: ${{ !cancelled() }}
         run: git for-each-ref --format='delete %(refname)' refs/tags | git update-ref --stdin
@@ -125,18 +154,72 @@ jobs:
         if: ${{ !cancelled() }}
         run: bash Tools/hooks/check-package.sh
 
+  windows:
+    # AGENTS.md asks for native Windows exit codes of these two commands when the gate or the Lua runner changes.
+    name: windows ${{ matrix.part }}
+    needs: [scope]
+    if: needs.scope.outputs.windows == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [lint, lua 1/8, lua 2/8, lua 3/8, lua 4/8, lua 5/8, lua 6/8, lua 7/8, lua 8/8]
+    defaults:
+      run:
+        shell: bash
+    env:
+      JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # lua --affected origin/staging needs the target branch and the history back to it.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install Lua 5.1.5, luacheck 1.2.0 and pre-commit 4.7.0
+        run: |
+          python -m venv "$HOME/.local/share/wow-dev/venv"
+          "$HOME/.local/share/wow-dev/venv/Scripts/python.exe" -m pip install pre-commit==4.7.0
+          bash Tools/dev/install-lua51.sh
+          cygpath -w "$HOME/.local/bin" >> "$GITHUB_PATH"
+          cygpath -w "$HOME/.local/share/wow-dev/venv/Scripts" >> "$GITHUB_PATH"
+      - name: The gate command and its exit code
+        env:
+          PART: ${{ matrix.part }}
+        run: |
+          case $PART in
+          lint) set -- lint ;;
+          *) set -- lua --affected origin/staging --shard "${PART#lua }" ;;
+          esac
+          code=0
+          bash scripts/gate.sh "$@" || code=$?
+          echo "native Windows exit code of bash scripts/gate.sh $*: $code"
+          exit "$code"
+
   checks:
     name: checks
     if: ${{ always() }}
-    needs: [lua, lint-python-package]
+    needs: [scope, lua, lint-python-package, windows]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Every job passed
+      - name: Every job the change needs passed
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
+          SCOPE: ${{ needs.scope.result }}
+          LINT: ${{ needs.lint-python-package.result }}
+          LUA: ${{ needs.lua.result }}
+          WINDOWS: ${{ needs.windows.result }}
+          WANT_LUA: ${{ needs.scope.outputs.lua }}
+          WANT_WINDOWS: ${{ needs.scope.outputs.windows }}
         run: |
-          echo "job results: $RESULTS"
-          for result in $RESULTS; do
-            [ "$result" = success ] || exit 1
+          echo "scope $SCOPE, lint $LINT, lua $LUA (needed: $WANT_LUA), windows $WINDOWS (needed: $WANT_WINDOWS)"
+          [ "$SCOPE" = success ] && [ "$LINT" = success ] || exit 1
+          for pair in "$LUA:$WANT_LUA" "$WINDOWS:$WANT_WINDOWS"; do
+            case $pair in
+            success:true | skipped:false) ;;
+            *) exit 1 ;;
+            esac
           done

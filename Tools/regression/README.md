@@ -18,7 +18,7 @@ To see a failing test's full output, run that test alone, for example `lua5.1 To
 
 ## Modes
 
-The `checks` workflow runs the files a pull request reaches with `--shard I/8 --affected HEAD^1`, none for a change no Lua test can see; the `nightly` workflow runs every file and records what each loads for the next pull requests. `bash scripts/gate.sh lua` runs `--affected` locally. `KSTYLEUI_PERF=warn`, which pull request checks set, reports a failing `test-perf` file as a warning and leaves it out of the failure count; the nightly run and local runs fail it. Functional tests, instruction budgets, memory limits and hang guards fail on every computer; CPU-time overruns print a warning.
+The `checks` workflow runs the files a pull request or push reaches with `--shard I/8 --affected <base>`, none for a change no Lua test can see; the `nightly` workflow runs every file and records what each loads for the next pull requests. The checks workflow sets `KSTYLEUI_DEPS_VERIFY=1`, which keeps a restored record only while every file, listing and tracked name it read is unchanged in the checkout, so a record from an older commit never leaves a test out. `bash scripts/gate.sh lua` runs `--affected` locally. Functional tests, instruction budgets, memory limits and hang guards fail on every computer; CPU-time overruns print a warning.
 
 | Option | What it runs | Last line |
 | --- | --- | --- |
