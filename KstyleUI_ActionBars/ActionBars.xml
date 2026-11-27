@@ -30,6 +30,7 @@
 	<Script file="SlabCrown.lua"/>
 	<Script file="SlabRings.lua"/>
 	<Script file="SlabRail.lua"/>
+	<Script file="SlabOrb.lua"/>
 	<Script file="SlabRanged.lua"/>
 	<Script file="SlabTarget.lua"/>
 	<Script file="Totems.lua"/>

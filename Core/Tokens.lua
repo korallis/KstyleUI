@@ -510,9 +510,9 @@ for _, element in ipairs({ "Earth", "Fire", "Water", "Air" }) do
 	TEXTURES["totemRune" .. element] = { file = "Textures\\Totems\\Rune" .. element .. ".png" }
 end
 for _, name in ipairs({
-	"Aegis", "Aimed", "Arcane", "Axe", "Bark", "Bolt", "Brave", "Bubble", "Bulwark", "Charm", "Crossed", "Crystal", "Curse", "Dash",
-	"Deflect", "Drop", "Evade", "Eye", "Fang", "Farseer", "Feedback", "FireTrap", "Flame", "Flurry", "Focus", "Gear", "Ghost",
-	"Grave", "Hand", "Heart", "Horns", "Hourglass", "Infusion", "Innervate", "Intimidate", "Lifeline", "Mend", "Moon", "Paw",
+	"Aegis", "Aimed", "Arcane", "Axe", "Bark", "BlastWave", "Blink", "Bolt", "Brave", "Bubble", "Bulwark", "Charm", "ColdSnap", "Crossed", "Crystal", "Curse", "Dash",
+	"Deflect", "Drop", "Escape", "Evade", "Eye", "Fang", "Farseer", "Feedback", "FireBlast", "FireTrap", "Flame", "Flurry", "Focus", "FrostNova", "Gear", "Ghost",
+	"Grave", "Hand", "Heart", "Horns", "Hourglass", "IceBarrier", "IceLance", "Infusion", "Innervate", "Intimidate", "Lifeline", "Mend", "Moon", "Paw",
 	"Potion", "Regen", "Roots", "Rush", "Sacrifice", "Shade", "Shatter", "Skull", "Smoke", "Sniper", "Star", "Stone", "Strider",
 	"Sun", "Sweep", "Swift", "Thorns", "Tusks", "Veil", "Voice", "Void", "Volley", "Vortex", "Wall", "Wing"
 }) do
@@ -568,10 +568,22 @@ for _, name in ipairs({ "auraGlyphFacet", "auraGlyphHealthstone", "auraSigilArca
 end
 TEXTURES.auraTrackerGust = { file = "Textures\\Auras\\Trackers\\Gust.png", rows = 8, columns = 2, frames = 16, seconds = 1.44 }
 TEXTURES.auraSocket = { file = "Textures\\Auras\\Socket.png" }
+for _, race in ipairs({ "Human", "Gnome", "Orc", "Scourge", "Troll", "Skyborne" }) do
+	TEXTURES["orbVessel" .. race] = { file = "Textures\\Medallions\\Orbs\\Vessel" .. race .. ".png" }
+end
+for _, school in ipairs({ "Arcane", "Fire", "Frost" }) do
+	TEXTURES["orbLight" .. school] = { file = "Textures\\Medallions\\Orbs\\Light" .. school .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+	TEXTURES["orbCore" .. school] = { file = "Textures\\Medallions\\Orbs\\Core" .. school .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+	TEXTURES["orbMeniscus" .. school] = { file = "Textures\\Medallions\\Orbs\\Meniscus" .. school .. ".png" }
+end
+for _, name in ipairs({ "Clear", "Barrage", "Heat", "Rime1", "Rime2" }) do
+	TEXTURES["orb" .. name] = { file = "Textures\\Medallions\\Orbs\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+end
+TEXTURES.orbGlass = { file = "Textures\\Medallions\\Orbs\\Glass.png" }
 for _, set in ipairs({
 	{ kind = "Sigil", names = { "Crossed", "Skull", "Wall", "Heart", "Sweep", "Thorns", "Bubble", "Aegis", "Sun", "Hand", "Wing", "Bulwark", "Voice",
-		"Flurry", "Rush", "Evade", "Drop", "Smoke", "Ghost" } },
-	{ kind = "Sigil", tint = true, names = { "Dash", "Axe", "Tusks", "Stone", "Eye", "Grave", "Shatter", "Star", "Gear", "Regen", "Potion" } },
+		"Flurry", "Rush", "Evade", "Drop", "Smoke", "Ghost", "Blink", "FrostNova", "FireBlast", "BlastWave", "ColdSnap", "IceBarrier", "IceLance" } },
+	{ kind = "Sigil", tint = true, names = { "Dash", "Axe", "Tusks", "Stone", "Eye", "Grave", "Shatter", "Star", "Gear", "Regen", "Potion", "Escape" } },
 	{ kind = "Effect", tint = true, names = { "Horn", "Sword", "Axe", "Dagger", "Hammer", "Shield", "Seal", "Brand", "Drop", "Vial", "Ward", "Oath", "Stain" } },
 }) do
 	for _, name in ipairs(set.names) do

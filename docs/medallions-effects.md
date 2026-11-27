@@ -382,6 +382,50 @@ stateDiagram-v2
     ReadyAgain --> Ready
 ```
 
+## Mage power orb
+
+`KstyleUI_ActionBars/SlabOrb.lua` fills the crest's opening with a mage's power orb (Action Bars > Slab and cooldowns > Power orb, on by default, Medallions only, mage only). It covers the painted crest inside the ring; the ring, rune band and every other tracker stay. The orb is a dark glass globe in a vessel for the player's race (`Vessel<Race>`: Human, Gnome, Orc, Undead, Troll and the Skyborne; any other race takes the human's), so each race and class pairing draws its own crest. The light inside is the talent tree's great cooldown, in the tree's school colour:
+
+| Tree (as the rail reads it) | The orb holds | Light, core and meniscus |
+| --- | --- | --- |
+| Arcane | Arcane Power 12042 | `LightArcane`, `CoreArcane`, `MeniscusArcane`, `schoolArcane` glow |
+| Fire | Combustion 11129 | `LightFire`, `CoreFire`, `MeniscusFire`, `schoolFire` glow |
+| Frost | Cold Snap 12472, else Ice Block 11958 | `LightFrost`, `CoreFrost`, `MeniscusFrost`, `schoolFrost` glow |
+
+Before the tree's great cooldown is known the orb holds Evocation 12051, and before that Fireball, so a low mage still sees a full orb. Only the vessel of the player's race and the current school's three sheets are set, once the crest shows; a tree change repaints them out of combat.
+
+| State | What shows | Full | Calm | Off |
+| --- | --- | --- | --- | --- |
+| Ready | The orb full of light, the star's core burning and its rays turning, a soft glow in the school's colour | Light and core loop | Still frames | Still frames |
+| Spent | Your cast of the cooldown (`SPELL_UPDATE_COOLDOWN`, `C_Spell.GetSpellCooldown`'s `isActive`): the core goes out and the light drops to empty | Yes | Yes | Yes |
+| Refilling | The light rises from the bottom as the cooldown returns, a status bar fed the cooldown's own duration (`SetTimerDuration`), so the game advances it and Lua runs nothing per frame; a bright meniscus rides the light's surface | Loops | Still | Still |
+| Ready again | The orb timer's `OnCooldownDone`: the core relights and the mage's burst flares | Flare | Still flare | Nothing |
+
+Four procs light inside the glass, each only while its own buff shows (aura slots on `"player"`, `"HELPFUL"`, fed by the engine, so nothing reads an aura in combat):
+
+| Proc | Buff IDs | Effect |
+| --- | --- | --- |
+| Clearcasting | 12536 | Violet glitter drifting through the glass (the ring's Clearcasting ping stands down while the orb shows) |
+| Missile Barrage | 400589, 1326083 | Three arcane missiles circling the glass |
+| Heating Up | 400625 | Fire round the glass's rim, a third of the rim per stack, from three application bars (`SetApplicationBar`, minimum `n - 1`, maximum `n`) |
+| Fingers of Frost | 400670 | Rime over the glass, a second layer for the second charge |
+
+The orb is 118 units across, its glass 0.72 to 0.78 of that by race; the light, the procs and the glass's highlight are framed on the glass, so one sheet fits every vessel. Every sheet is rendered in Blender (`Tools/media/forge/orb.py`, packed by `Tools/media/forge/orbs.py`): 16 frames over 1.6 s for every loop. The orb takes the tree's great cooldown from the rail, and from the crest's cooldown rim, so it is counted once. Under Frames, or with the orb switched off, there is no orb: that cooldown goes back to the rail or the rim, and Clearcasting goes back to its ring.
+
+While auras are secret the orb reads none: the aura slots keep drawing what the engine shows, and the cooldown keeps its duration object. Nothing in the orb runs `OnUpdate`.
+
+## Mage crest rail
+
+The mage's **Cooldown rail** (Action Bars > Slab and cooldowns > Cooldown rail, on by default, Medallions only) is the hunter's rail with a mage's kit: up to eight known abilities and the on-use trinket, in the order the talent tree picks, each burning its sigil's animated Blender aura in the mage's violet (`pipMageGlow`; the racials' sigils tinted by it). The orb's own cooldown is never seated.
+
+| Tree (signature) | Seats, in order, known ones only |
+| --- | --- |
+| Arcane (Arcane Power, Presence of Mind) | Presence of Mind, Arcane Power, Evocation, Blink, Frost Nova, Fire Blast, Ice Block, Cold Snap, Ice Barrier, Combustion, Blast Wave, Ice Lance |
+| Fire (Combustion, Blast Wave) | Combustion, Blast Wave, Fire Blast, Blink, Frost Nova, Evocation, Ice Block, Cold Snap, Ice Barrier, Arcane Power, Presence of Mind, Ice Lance |
+| Frost (Cold Snap, Ice Barrier, Ice Block) | Cold Snap, Ice Block, Ice Barrier, Ice Lance, Frost Nova, Blink, Evocation, Fire Blast, Arcane Power, Presence of Mind, Combustion, Blast Wave |
+
+The racials follow: Perception, Eureka!, Escape Artist, Blood Fury, Shatter, Will of the Forsaken, Berserking and the Skyborne's regeneration, whichever the player knows. Touch of the Grave is passive, so it takes no seat. While the rail shows, Frost Nova's and Fire Blast's cooldowns stand on it, not on the left band or the lower left. A rail of more than five seats flattens its arc: seats 31 units apart, 133 units above the hub's centre in the middle and 119 at the ninth seat's ends, clear of the unit frames and under the cooldown row (`test-actionbars-crest-ranged-reach`).
+
 ## Hawk perch motion
 
 The hunter's hawk perches (`KstyleUI_ActionBars/SlabHawks.lua`, [ActionBars README](../KstyleUI_ActionBars/README.md#hawk-perches)) are the reference for a tracker that pops off the crest. Each perch keeps two anchors: the seat on the ring's shoulder, which holds the steel hawk, the timer ring, its ember and the ripple, and a lift layer that holds the lit hawk (its figure drawn black under its animated aura) and its flare. The aura loops only while its perch is lit, at Full with the crest awake; Calm, Off and the resting crest show its still, and an empty or expired perch plays nothing. Only the lift layer travels, so the timer never moves while the player reads it.

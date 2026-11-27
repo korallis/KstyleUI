@@ -405,6 +405,82 @@ def Crystal(p):
     p.line((0.5, 0.5), pts[4])
 
 
+# the mage's rail (KstyleUI_ActionBars/SlabRail.lua): the cooldowns its seats count
+@glyph
+def Blink(p):
+    # a figure's outline left behind and the arrow it jumps along
+    p.arc(0.3, 0.32, 0.08, 0, 360, width=0.05)
+    p.line((0.3, 0.42), (0.3, 0.7), width=0.05)
+    arrow(p, 0.42, 0.56, 0.84, 0.56, head=0.13)
+    p.dot(0.84, 0.32, 0.05)
+
+
+@glyph
+def FrostNova(p):
+    # a burst of ice: six spikes round a ring
+    p.ring(0.5, 0.5, 0.14)
+    for k in range(6):
+        a = math.radians(90 + 60 * k)
+        p.line((0.5 + 0.2 * math.cos(a), 0.5 + 0.2 * math.sin(a)), (0.5 + 0.38 * math.cos(a), 0.5 + 0.38 * math.sin(a)))
+        b = math.radians(120 + 60 * k)
+        p.dot(0.5 + 0.3 * math.cos(b), 0.5 + 0.3 * math.sin(b), 0.035)
+
+
+@glyph
+def FireBlast(p):
+    # a flame struck through by a blast's three lines
+    bezier(p, (0.42, 0.84), (0.2, 0.5), (0.46, 0.16))
+    bezier(p, (0.42, 0.84), (0.68, 0.62), (0.52, 0.38))
+    for k, y in enumerate((0.36, 0.52, 0.68)):
+        p.line((0.62, y), (0.86 - 0.04 * k, y - 0.06))
+
+
+@glyph
+def BlastWave(p):
+    # a fire's heart and the waves it throws out
+    p.dot(0.5, 0.6, 0.08)
+    for r in (0.18, 0.3, 0.42):
+        p.arc(0.5, 0.6, r, 200, 340)
+
+
+@glyph
+def ColdSnap(p):
+    # a six-armed snowflake, each arm branching
+    for k in range(3):
+        a = math.radians(90 + 60 * k)
+        p.line((0.5 - 0.34 * math.cos(a), 0.5 - 0.34 * math.sin(a)), (0.5 + 0.34 * math.cos(a), 0.5 + 0.34 * math.sin(a)))
+    for k in range(6):
+        a = math.radians(90 + 60 * k)
+        x, y = 0.5 + 0.22 * math.cos(a), 0.5 + 0.22 * math.sin(a)
+        for side in (-1, 1):
+            b = a + side * math.radians(40)
+            p.line((x, y), (x + 0.1 * math.cos(b), y + 0.1 * math.sin(b)), width=0.05)
+
+
+@glyph
+def IceBarrier(p):
+    # a shield of ice facets
+    shield(p)
+    p.line((0.5, 0.2), (0.5, 0.82), width=0.05)
+    p.line((0.22, 0.42), (0.5, 0.56), (0.78, 0.42), width=0.05)
+
+
+@glyph
+def IceLance(p):
+    # a lance of ice thrown down and to the right
+    p.poly((0.18, 0.18), (0.3, 0.14), (0.86, 0.86), (0.14, 0.3))
+    p.line((0.3, 0.3), (0.62, 0.62), width=0.05)
+
+
+@glyph
+def Escape(p):
+    # a broken shackle
+    p.arc(0.36, 0.56, 0.18, 30, 300)
+    p.arc(0.64, 0.44, 0.18, 210, 480)
+    p.line((0.5, 0.12), (0.5, 0.24), width=0.05)
+    p.line((0.5, 0.76), (0.5, 0.88), width=0.05)
+
+
 # Warlock
 @glyph
 def Curse(p):

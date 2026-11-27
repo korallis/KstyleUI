@@ -12,7 +12,7 @@
 -- felhunter (Spell Lock cooling), imp, voidwalker or succubus (that demon out, chosen through the pet's spellbook as the felhunter's Spell Lock
 -- chooses it), curses (each of the five curses on the target in turn, one at a time as
 -- the game allows: RENDER_TRACKERS=moment at RENDER_TRACKERS_T 1.5, 3.5, 5.5, 7.5 and 9.5), sacrifice (Demonic Sacrifice of the Imp, Death Coil cooling;
--- every summon known, so RENDER_TRACKERS_SWAP=18789:18790, 18789:18791 or 18789:18792 sacrifices the Voidwalker, Succubus or Felhunter instead), nodemon or level 8 build, each caster's sigils build (every
+-- every summon known, so RENDER_TRACKERS_SWAP=18789:18790, 18789:18791 or 18789:18792 sacrifices the Voidwalker, Succubus or Felhunter instead), nodemon or level 8 build, the mage's orb_arcane, orb_fire and orb_frost builds (the power orb in each tree's light, its great cooldown filling or full, its procs lit, and the mage's rail beside it), each caster's sigils build (every
 -- cooldown sigil of the class up at once: the mage's Arcane Power, Presence of Mind, Combustion, Evocation and Ice Block, the warlock's
 -- Amplify Curse, Fel Domination, Shadow Ward and the Voidwalker's Sacrifice), the hunter's bite (Mongoose Bite ready), aimed (Aimed Shot ready, no Multi-Shot) or raptor
 -- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
@@ -102,6 +102,18 @@ local STORIES = {
 		},
 		builds = {
 			arcane = {},
+			orb_arcane = { known = { 7302, 759, 11426, 118, 116, 12042, 12043, 12051, 1953, 10230, 10199, 2139, 11958, 12574, 20589, 1259817 },
+				cooling = { [12042] = { -67, 180 }, [12043] = { 1, 180 }, [1953] = { 3, 15 } }, casts = { { 1, 12043 }, { 3, 1953 }, { 2, 9002 } },
+				trinket = { item = 5002, spell = 9002, used = 2, cooldown = 120 },
+				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "player", id = 12536, icon = 136170, at = 3, duration = 15 },
+					{ unit = "player", id = 400589, icon = 236221, at = 4, duration = 15 } } },
+			orb_fire = { known = { 7302, 759, 11426, 118, 116, 11129, 13021, 10199, 1953, 10230, 2139, 12051, 11958, 20589, 1259817 },
+				cooling = { [10199] = { 4, 8 }, [12051] = { -200, 480 } }, casts = { { 4, 10199 } },
+				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "player", id = 400625, icon = 135808, at = 4, duration = 20, count = 2 } } },
+			orb_frost = { known = { 7302, 759, 13033, 118, 116, 12472, 11958, 1240047, 10230, 1953, 10199, 2139, 12051, 20589, 1259817 },
+				cooling = { [12472] = { -300, 600 }, [10230] = { 3.5, 25 } }, casts = { { 3.5, 10230 } },
+				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "player", id = 13033, icon = 135988, at = 2, duration = 60 },
+					{ unit = "player", id = 400670, icon = 132189, at = 4, duration = 15, count = 2 } } },
 			sigils = { known = { 7302, 759, 118, 116, 12042, 12043, 11129, 12051, 11958 }, cooling = {},
 				auras = { { unit = "player", id = 12042, icon = 136048, at = 1, duration = 15 }, { unit = "player", id = 12043, icon = 136031, at = 1.5, duration = 30 },
 					{ unit = "player", id = 11129, icon = 135824, at = 2, duration = 15 }, { unit = "player", id = 12051, icon = 136075, at = 2.5, duration = 8 },
@@ -255,8 +267,13 @@ function Ranged.Install(env, class)
 	end
 	spell.GetSpellCooldownDuration = function(id)
 		local c = (s.cooling or {})[id]
-		local start = c and env._story >= c[1] and env._story < c[1] + c[2] and (env._now or 0) - (env._story - c[1])
-		return start and { start = start, finish = start + c[2] } or { start = 0, finish = 0 }
+		if not (c and env._story >= c[1] and env._story < c[1] + c[2]) then return { start = 0, finish = 0 } end
+		-- Dated when read, on the scene's clock (env._time, which Play also runs on), so a cooldown the build starts before
+		-- the story, first read while the crest is built and before that clock is set, fills its bar from the right start.
+		return setmetatable({}, { __index = function(_, key)
+			local start = (env._time or env._now or 0) - (select(2, Ranged.Story(class)) - c[1])
+			return key == "start" and start or key == "finish" and start + c[2] or nil
+		end })
 	end
 	local trinket = s.trinket
 	if trinket then

@@ -839,9 +839,9 @@ function modules.actionbars(opts)
 			end
 			if class == "SHAMAN" and TotemScene.Story() then TotemScene.Install(env) end
 			if TrackerScene.Story(class) then TrackerScene.Install(env, class) end
-			-- The player's race, which picks the Medallions crest with the class, as the unit frames draw it (Hud.RACES).
+			-- The player's race, which picks the Medallions crest with the class, as the unit frames draw it (Hud.RACES, or RENDER_RACE).
 			env.UnitRace = env.UnitRace or function()
-				local race = Hud.RACES[(Hud.Class(opts))] or "Human"
+				local race = os.getenv("RENDER_RACE") or Hud.RACES[(Hud.Class(opts))] or "Human"
 				return race, race, 1
 			end
 			env.UnitSex = env.UnitSex or function()

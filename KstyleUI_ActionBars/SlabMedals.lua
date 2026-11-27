@@ -1441,6 +1441,9 @@ function Medals.Refresh(m, event)
 			if m.ready then
 				m.ready:SetShown(not cooling)
 			end
+			if m.spent then
+				m.spent:SetShown(cooling)
+			end
 		end
 		return
 	end

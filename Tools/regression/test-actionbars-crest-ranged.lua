@@ -570,7 +570,8 @@ do
 	local env, K, ns = New("MAGE", { known = { 168, 1459, 116, 118, 2136 } })
 	local intellect, shows = Piece(ns, "crestManaGem", 2)
 	assert(intellect and shows and intellect.spec.spells[1] == 1459, "before a gem, Arcane Intellect perches on the lower right")
-	assert(select(2, Piece(ns, "crestCounterspell", 2)), "before Counterspell, Fire Blast's orb charges on the lower left")
+	local rail = Seated(ns, "crestRail")
+	assert(rail and rail.made.fireBlast and not select(2, Piece(ns, "crestCounterspell", 2)), "before Counterspell, Fire Blast stands on the mage's rail, not on the lower left")
 	local chill, cs = Piece(ns, "crestFrozen", 2)
 	assert(chill and cs, "before Frost Nova your Frostbolt's chill frosts the inner ring")
 	local poly, ps = Piece(ns, "crestYourSpell", 3)
@@ -578,7 +579,8 @@ do
 	assert(ps and chill.lit:IsShown() and poly.lit:IsShown(), "your Frostbolt and Polymorph light the frost and the fuse")
 	assert(Piece(ns, "crestSchool") == nil and Piece(ns, "crestSchool", 3) == nil, "nothing on the left band before Frost Nova or a talent")
 	Learn(env, 122, 2139)
-	assert(select(2, Piece(ns, "crestFrozen", 1)) and select(2, Piece(ns, "crestCounterspell", 1)) and select(2, Piece(ns, "crestSchool", 4)), "Frost Nova and Counterspell take their seats; Frost Nova's cooldown charges along the left band")
+	assert(select(2, Piece(ns, "crestFrozen", 1)) and select(2, Piece(ns, "crestCounterspell", 1)) and Seated(ns, "crestRail").made.nova and not select(2, Piece(ns, "crestSchool", 4)),
+		"Frost Nova and Counterspell take their seats; Frost Nova's cooldown stands on the mage's rail, not along the left band")
 	Learn(env, 1326079)
 	assert(select(2, Piece(ns, "crestSchool", 3)), "Arcane Wrath charges along the left band at 25")
 	Learn(env, 11095, 11119)
@@ -593,7 +595,8 @@ do
 end
 
 do
-	local env, K, ns = New("MAGE")
+	-- With the power orb on, Clearcasting lights inside the orb (test-actionbars-crest-orb.lua); switched off, the ring carries it.
+	local env, K, ns = New("MAGE", { before = function(_, K) K.Options.Write("ActionBars", "crestOrb", false) end })
 	local gem, ward, clear = Piece(ns, "crestManaGem"), Piece(ns, "crestWard"), Piece(ns, "crestClearcasting")
 	assert(gem:IsShown() and not gem.lit:IsShown(), "no gem: nothing hangs from the band")
 	env._bags[5514] = 1
@@ -742,10 +745,11 @@ end
 
 for class, keys in pairs({ HUNTER = { "crestShot", "crestAspect", "crestPet", "crestMark", "crestSting", "crestAutoShot", "crestGust", "crestCooldowns", "crestRail", "crestTrueshot",
 	"crestTracking", "crestRange", "crestPetAbility", "crestOrders", "crestPotion" },
-	MAGE = { "crestArmor", "crestManaGem", "crestCounterspell", "crestSchool", "crestFrozen", "crestYourSpell", "crestWard", "crestClearcasting", "crestCooldowns" },
+	MAGE = { "crestArmor", "crestManaGem", "crestCounterspell", "crestSchool", "crestFrozen", "crestYourSpell", "crestWard", "crestClearcasting", "crestOrb", "crestCooldowns" },
 	WARLOCK = { "crestTorments", "crestWisps", "crestDemon", "crestHealthstone", "crestStone", "crestConflagrate", "crestCurse", "crestTrance", "crestCooldowns", "crestRail" } }) do
 	local deterrence = class == "HUNTER" and { 13165, 883, 1130, 1978, 19552, 3045, 19574, 75, 2643, 19263, 19506, 24293 } or nil
-	local env, K, ns = New(class, { known = deterrence, tree = deterrence and 1, bags = { [6265] = 2, [5512] = 1, [5514] = 1 }, pet = { max = 100, missing = 0 },
+	local known = deterrence or class == "MAGE" and { 168, 759, 11426, 12574, 116, 118, 12042, 11958, 2139, 122, 1326079 } or nil
+	local env, K, ns = New(class, { known = known, tree = deterrence and 1, bags = { [6265] = 2, [5512] = 1, [5514] = 1 }, pet = { max = 100, missing = 0 },
 		petSpells = { 24579, 14916 } })
 	for _, key in ipairs(keys) do
 		K.Options.Write("ActionBars", key, false)
