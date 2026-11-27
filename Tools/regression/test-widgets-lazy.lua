@@ -300,9 +300,13 @@ do
 	-- so together they take the hunter's limit from 5,168 to 5,222.
 	-- The potion sigil every class's rail carries burns as an aura (a fire, a still and its figure drawn black beneath, in
 	-- place of one flat texture): 2 more for each class, and the druid's Dash sigil does the same on each of its form rails: 12.
+	-- The mage's and warlock's marks, cooldown sigils and soul wisps burn as auras the same way, as the captain asked: a fire and a
+	-- still in place of each flat glyph, a seated one over a socket plate, and each perch or fuse head an aura slot feeds adds a
+	-- transparent copy of its still for the Calm arrival cue. That takes the mage from 4,925 to 4,953 and the warlock, whose five
+	-- curse heads, four spire feet and live and sacrificed demon sheets are each their own aura, from 5,099 to 5,227.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5224, MAGE = 4943, WARLOCK = 5099 }) do
+	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5224, MAGE = 4953, WARLOCK = 5227 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")
