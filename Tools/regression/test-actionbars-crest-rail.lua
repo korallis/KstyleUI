@@ -870,12 +870,15 @@ do
 		.. string.format("%.3f", 1.29 / 1.21) .. " 7:1.000", "it shrinks to a 4-unit spark where it stands and pops only once it has landed (" .. Scales(block.rise) .. ")")
 	assert(at(block.trail[1]) == "0,8" and at(block.trail[2]) == dx .. ",0" and at(block.trail[3]) == "0," .. (dy - 8),
 		"the fold home runs the same lane backwards")
+	assert(Scales(block.home) == "2:" .. string.format("%.3f", 4 / 34) .. " 6:" .. string.format("%.3f", 22 / 34),
+		"and shrinks back to the spark for the lane, landing at the small medal's own size (" .. Scales(block.home) .. ")")
 	local seat = rail.order[1]
 	local _, _, _, ax, ay = seat:GetPoint(1)
 	assert(#seat.legs == 1 and at(seat.legs[1]) == (cx - ax) .. "," .. (cy - ay) and at(seat.trail[1]) == (ax - cx) .. "," .. (ay - cy),
 		"a seat on the main rail still flies straight to the crown and back")
 	assert(Scales(seat.rise) == "1:" .. string.format("%.3f", 28 * 0.86 / 34) .. " 2:" .. string.format("%.3f", 1.29 / 1.21) .. " 3:1.000",
 		"it leaves at its dipped size, pops at the crown and settles to the crown's size (" .. Scales(seat.rise) .. ")")
+	assert(Scales(seat.home) == "2:" .. string.format("%.3f", 28 / 34), "and folds home to the seat's own size (" .. Scales(seat.home) .. ")")
 	K.Layout.Register(env.CreateFrame("Frame"), "unitframes.castbar.player", { anchor = "CENTER", x = 0, y = 0 })
 	K.Layout.SetLive("unitframes.castbar.player", false)
 	K.Layout.SetLive("unitframes.castbar.player", true)
