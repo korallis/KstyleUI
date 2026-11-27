@@ -1060,7 +1060,7 @@ if CLASS == "MAGE" then
 			{ spells = { 11958, 27619 }, known = { 11958 }, sigil = "Crystal", major = true } } },
 		{ key = "crestWard", seat = "rim", build = Ward, place = Ring, feed = "aura", spells = WARDS, color = "rim", ward = true },
 		{ key = "crestClearcasting", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 12536 }, known = { 11213, 12574, 12575, 12576, 12577 },
-			color = "schoolArcane", ambient = "medAmbientMage" },
+			color = "schoolArcane", proc = "schoolArcane" },
 	}, { burst = "medBurstMage", events = { { "UNIT_POWER_UPDATE", "player" } }, paint = Paint, figures = true })
 end
 
@@ -1138,7 +1138,7 @@ if CLASS == "WARLOCK" then
 			end
 		end },
 		{ key = "crestTrance", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 17941 }, known = { 18094, 18095 },
-			color = "jewelShard", ambient = "medAmbientWarlock" },
+			color = "jewelShard", proc = "jewelShard" },
 	}, {
 		burst = "medBurstWarlock",
 		events = { PET_EVENTS[1], PET_EVENTS[2], "BAG_UPDATE_DELAYED", "PLAYER_TARGET_CHANGED" },

@@ -34,7 +34,7 @@ local function Bloom(parent, spec, level, form)
 	if form == "row" then
 		return Medals.Figure(parent, { feed = "aura", spells = CLEARCASTING, figure = "trackerLeaf", burst = spec.burst, bloom = "schoolNature" }, level)
 	end
-	local r = Medals.Rim(parent, { feed = "aura", spells = CLEARCASTING, ambient = "medAmbientDruid", burst = spec.burst }, level)
+	local r = Medals.Rim(parent, { feed = "aura", spells = CLEARCASTING, proc = "schoolNature" }, level)
 	r.ring, r.moving, r.calm = {}, Medals.Mirror(r, r.lit, level + 2, false), Medals.Mirror(r, r.lit, level + 2, false)
 	r.leaves = Medals.Layer(r.moving.lit, level + 2)
 	r.unfurl = r.leaves:CreateAnimationGroup()

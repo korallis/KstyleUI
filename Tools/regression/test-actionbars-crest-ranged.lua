@@ -197,10 +197,11 @@ do
 	assert(AB.W.LastCall(ward.timer, "SetSwipeTexture"), "the ward drains the shared thin rim ring")
 	Slots.Set(env, "player", { { id = 11426, icon = 135988, start = 0, duration = 60 } })
 	assert(ward.lit:IsShown() and AB.W.LastCall(ward.timer, "SetCooldownFromDurationObject"), "Ice Barrier lights the ward ring and drains it")
-	local mirror = clear.lit.awake.lit
-	assert(clear.timer == nil and Shown(clear.lit.flareGate.lit, clear.lit.flareGate.lit.flare.play) and Shown(mirror, mirror.loop), "at Full Clearcasting gives the engine its burst and fire, with no ring")
-	K.Options.Write("Medallions", "motion", "calm")
-	assert(not Shown(mirror, mirror.loop), "Calm holds the moment's fire still")
+	local gate = clear.lit.flareGate
+	local ping = gate.lit.flare._regions[1]
+	assert(clear.timer == nil and Shown(gate.lit, gate.lit.flare.play) and ping:GetTexture():find("RingLine16", 1, true) and Tint(ping, K, "schoolArcane", 0),
+		"Clearcasting, a proc, pings a thin ring round the crest in its own arcane colour when it lights, with no drain ring")
+	assert(clear.lit.awake == nil and not clear.fire and not ping:GetTexture():find("Burst", 1, true), "and never the class burst or the cooldowns' fire: those are the blaze's")
 	Clean(env, K)
 end
 

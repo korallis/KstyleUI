@@ -226,6 +226,9 @@ do
 	assert(AB.W.LastCall(b.seedLeft.lits[2].bar, "SetTimerDuration"), "and its bud drains over the aura's time")
 	Slots.Set(env, "player", { { id = 16870, count = 1, start = 0, duration = 15 } })
 	assert(b.bloom.lit:IsShown() and #b.bloom.ring == 8, "Clearcasting blooms the leaves")
+	local ping = b.bloom.lit.flareGate.lit.flare._regions[1]
+	assert(ping:GetTexture():find("RingLine16", 1, true) and ping._state.VertexColor[1] == K.Tokens.Color("schoolNature") and not b.bloom.fire,
+		"a proc pings a thin ring in nature green, never the druid's burst or fire")
 	env._cooling[18562] = true
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(AB.W.LastCall(b.swiftmend.bar, "SetTimerDuration"), "the gem refills over Swiftmend's cooldown")

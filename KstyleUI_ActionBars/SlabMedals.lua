@@ -604,7 +604,9 @@ function Medals.Rim(parent, spec, level)
 		ns.Slab.Fade(orbit, 0, 1, 0.03, 1, 0.96)
 		lit.awake.lit.loop = orbit
 	end
-	Medals.Flare(r, lit, level + 3, spec.burst or "glow", RIM, spec.lua)
+	for _, ping in ipairs(Medals.Flare(r, lit, level + 3, spec.proc and "ringLine16" or spec.burst or "glow", RIM, spec.lua)) do
+		ping:SetVertexColor(Tokens.Color(spec.proc or "white"))
+	end
 	r.spec = spec
 	return r
 end
