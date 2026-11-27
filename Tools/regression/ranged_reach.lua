@@ -1,4 +1,4 @@
--- ranged_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture: an additive RGB aura sheet by its brightest channel, a flipbook sheet folded into one cell, a still cell through its texture coordinates; an addon file the reader cannot read stops the check) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The warlock knows every summon and Demonic Sacrifice, so its demon piece builds each demon's mark and each Sacrifice copy, and unless only is set each of those aura sheets must be among the measured textures. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches.
+-- ranged_reach.lua: Reach.Check(sizes) builds the HUD scene's action bars for a hunter, mage and warlock with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture: an additive RGB aura sheet by its brightest channel, a flipbook sheet folded into one cell, a still cell through its texture coordinates; an addon file the reader cannot read stops the check) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The warlock knows every summon and Demonic Sacrifice, so its demon piece builds each demon's mark and each Sacrifice copy, and each of those aura sheets must be among the measured textures. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Pose = dofile("Tools/regression/anim_pose.lua")
@@ -9,6 +9,13 @@ local FRAMES = { "unitframes.player", "unitframes.target", "unitframes.castbar.p
 local ROW = { "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars" }
 local DECODED, CONTENT, SAMPLES = {}, {}, {}
 local DEMON_SHEETS = { "HornsPet", "Imp", "Voidwalker", "Succubus", "Fangs", "ImpFel", "VoidwalkerFel", "SuccubusFel", "FangsFel" }
+
+-- Decoded(file) -> alpha(x, y), width and height of an addon file, read once for both sweeps; a file the reader cannot read stops
+-- the check.
+local function Decoded(file)
+	DECODED[file] = DECODED[file] or { Png.Alpha(file) }
+	return DECODED[file][1], DECODED[file][2], DECODED[file][3]
+end
 
 -- Spread(path, rows, columns, coords) -> how far from its cell's centre, as a share of the cell's width, the texture's pixels of alpha
 -- 64 or more reach in any direction, so a round medal measures as round however it turns. A flipbook sheet folds into one cell;
@@ -26,8 +33,7 @@ local function Spread(path, rows, columns, coords)
 		local file = tostring(path):gsub("\\", "/"):match("Media/.+$")
 		local most = 0
 		if file then
-			DECODED[file] = DECODED[file] or { Png.Alpha(file) }
-			local alpha, w, h = DECODED[file][1], DECODED[file][2], DECODED[file][3]
+			local alpha, w, h = Decoded(file)
 			local x0, x1, y0, y1 = math.floor(u0 * w), math.ceil(u1 * w) - 1, math.floor(v0 * h), math.ceil(v1 * h) - 1
 			local cw, ch = (x1 - x0 + 1) / columns, (y1 - y0 + 1) / rows
 			for y = y0, y1 do
@@ -81,6 +87,7 @@ local function Content(region)
 	local texture = region._state.Texture
 	local file = texture and tostring(texture[1]):gsub("\\", "/"):match("Media/.+$")
 	if not file then return false end
+	local alpha, w, h = Decoded(file)
 	local rows, columns = Cells(region)
 	local ul, ur, vt, vb = 0, 1, 0, 1
 	if rows == 1 and columns == 1 then
@@ -89,8 +96,6 @@ local function Content(region)
 	end
 	local key = table.concat({ file, rows, columns, ul, ur, vt, vb }, "/")
 	if CONTENT[key] == nil then
-		DECODED[file] = DECODED[file] or { Png.Alpha(file) }
-		local alpha, w, h = DECODED[file][1], DECODED[file][2], DECODED[file][3]
 		local x0, x1 = math.floor(math.min(ul, ur) * w), math.ceil(math.max(ul, ur) * w) - 1
 		local y0, y1 = math.floor(math.min(vt, vb) * h), math.ceil(math.max(vt, vb) * h) - 1
 		local cw, ch = (x1 - x0 + 1) / columns, (y1 - y0 + 1) / rows
@@ -194,7 +199,7 @@ local WIDEST = {
 }
 local SPARES = 6
 
-function Reach.Check(sizes, classes)
+function Reach.Check(sizes)
 	local original, measured = dofile, nil
 	_G.dofile = function(path)
 		local result = original(path)
@@ -234,7 +239,7 @@ function Reach.Check(sizes, classes)
 			local x, y = (cast[1] + cast[3]) / 2 + (place.x - from.x) * k, cast[2] + (place.y - from.y) * k
 			rail[#rail + 1] = { x - box.width * k / 2, y, x + box.width * k / 2, y + box.height * k }
 		end
-		for _, class in ipairs(classes or { "HUNTER", "MAGE", "WARLOCK" }) do
+		for _, class in ipairs({ "HUNTER", "MAGE", "WARLOCK" }) do
 			SAMPLES = {}
 			local _, ns = Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 			local known, widest = measured.C_SpellBook.IsSpellKnown, {}
