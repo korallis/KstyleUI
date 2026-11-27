@@ -1,4 +1,4 @@
--- Looks.lua: one-click Looks and controls, each a named set of existing settings (Readable also raises every text size below its readable size and lowers none); Forged and Keyboard are the shipped sets and the way back, and the current set is read from those settings, never saved.
+-- Looks.lua: one-click Looks, controls and interface size, each a named set of existing settings (Readable also raises every text size below its readable size and lowers none); Forged and Keyboard are the shipped sets and the way back, and the current set is read from those settings, never saved.
 local _, ns = ...
 
 local L = ns.L
@@ -99,6 +99,27 @@ end
 
 function Looks.ApplyControls(name)
 	return Default(PAD_KEYS[1]) ~= nil and Looks.Apply(name, Looks.CONTROLS, PAD_KEYS)
+end
+
+Looks.SIZES = {
+	{ value = "Pixel", label = L["Pixel perfect"], note = L["Sharp edges, sized for your screen. Pick it to go back."] },
+	{ value = "Game", label = L["Game's UI scale"], note = L["Grows and shrinks with the UI Scale in the game's options, up to the largest size that fits."] },
+}
+Looks.SIZES_CUSTOM = { Looks.SIZES[1], Looks.SIZES[2], Looks.CUSTOM[4] }
+Looks.SIZES_STATUS = { Looks.SIZES[1], Looks.SIZES[2], Looks.STATUS[4] }
+
+function Looks.Size()
+	if not ns.Store.IsLoaded() then return nil end
+	if ns.Appearance.Get("uiScaleGame") then return "Game" end
+	if ns.Appearance.Get("uiScaleAuto") then return "Pixel" end
+end
+
+function Looks.ApplySize(name)
+	if not (Looks.Get(name, Looks.SIZES) and ns.Store.IsLoaded()) then return false end
+	ns.Options.Write("Appearance", "uiScaleGame", name == "Game")
+	if name == "Pixel" then ns.Options.Write("Appearance", "uiScaleAuto", true) end
+	ns.DevTest.Log("Setup", "interface size " .. name)
+	return true
 end
 
 function Looks.ControlsShown()

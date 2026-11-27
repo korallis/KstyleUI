@@ -164,7 +164,7 @@ local function Options(size, bars)
 	return env, K, ns
 end
 
--- Setup step 2 grows by the Controls row while it shows, and keeps the base height with the row off (at once, on the open step) or on any other step.
+-- Setup step 2 grows by the Controls row while it shows, and loses that row with the row off (at once, on the open step); every other step keeps the base height. The Interface size row (test-scale-game) always shows on step 2.
 for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K = Options(size, true)
 	local label = size[1] .. "x" .. size[2] .. ": "
@@ -179,8 +179,9 @@ for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 
 	assert(K.Setup.Go(3) and panel.opts.height == 540, label .. "step 3 keeps the base height")
 	assert(K.Setup.Go(2) and panel.opts.height > 540, label .. "back on step 2 the row grows the window again")
 	K.Options.Write("Setup", "controls", false)
-	assert(panel.opts.height == 540 and not panel.padTabs:IsShown(), label .. "the row off on the open step: the window as before at once, got " .. panel.opts.height)
-	assert(K.Setup.Go(3) and K.Setup.Go(2) and panel.opts.height == 540 and not panel.padTabs:IsShown(), label .. "the row off: step 2 as before")
+	local without = panel.opts.height
+	assert(without > 540 and without < grown - 20 and not panel.padTabs:IsShown(), label .. "the row off on the open step: the window loses the Controls row at once, got " .. without)
+	assert(K.Setup.Go(3) and K.Setup.Go(2) and panel.opts.height == without and not panel.padTabs:IsShown(), label .. "the row off: step 2 stays without it")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, table.concat(env._errors, "\n"))
 end
 
@@ -189,7 +190,7 @@ do
 	local env, K, ns = Options({ 1920, 1080 }, false)
 	local Looks = K.Setup.Looks
 	assert(Looks.Controls() == nil and not Looks.ApplyControls("Gamepad") and Looks.Controls() == nil, "no Action Bars settings: no current set and Apply refuses")
-	assert(K.Setup.Open(true) and K.Setup.Go(2) and not K.Setup.window.padTabs:IsShown() and K.Setup.window.opts.height == 540, "setup hides the row")
+	assert(K.Setup.Open(true) and K.Setup.Go(2) and not K.Setup.window.padTabs:IsShown() and K.Setup.window.opts.height < 620, "setup hides the row: step 2 grows only by its one Interface size row, got " .. K.Setup.window.opts.height)
 	for _, item in ipairs(ns.Pages.Find(ns.Pages.List(), "General").Items()) do
 		assert(item.label ~= K.L["Controls"], "General hides the row")
 	end

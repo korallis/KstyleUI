@@ -1,4 +1,4 @@
--- Setup.lua: the first-run setup's choices, Apply (the HUD style, positions, the layout's module settings, the Look, the controls, the arrangement, the layout's name and its Edit Mode write, which Try again repeats), and when the setup window opens.
+-- Setup.lua: the first-run setup's choices, Apply (the HUD style, positions, the layout's module settings, the Look, the controls, the interface size, the arrangement, the layout's name and its Edit Mode write, which Try again repeats), and when the setup window opens.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -294,10 +294,12 @@ ns.Callbacks.Register("SettingChanged", "Setup", function(_, module, key)
 	if Layouts.LiftSetting(module, key) then Restyle() end
 end)
 
-local aspect, band, lane = ns.Scale.Aspect(), ns.Scale.Band()
+local aspect, band, lane, factor = ns.Scale.Aspect(), ns.Scale.Band(), nil, Setup.EditMode.Factor()
 ns.Callbacks.Register("ScaleChanged", "Setup", function()
-	local width = Setup.EditMode.WarningLane()
-	if ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band or (lane and width ~= lane) then
+	local width, k = Setup.EditMode.WarningLane(), Setup.EditMode.Factor()
+	local rescaled = math.abs(k - factor) > 1e-3
+	factor = k
+	if rescaled or ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band or (lane and width ~= lane) then
 		aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
 		Restyle()
 	end
@@ -339,6 +341,7 @@ function Setup.Apply(picked)
 	local setup = ns.Store.Module("Setup")
 	if setup.looks and picked.look then Setup.Looks.Apply(picked.look) end
 	if setup.controls and picked.controls then Setup.Looks.ApplyControls(picked.controls) end
+	if picked.uiScale then Setup.Looks.ApplySize(picked.uiScale) end
 	if setup.layoutPictures and setup.bigPictures and ns.Scale.ARRANGEMENT[picked.arrangement] and picked.arrangement ~= ns.Scale.Arrangement() then ns.Options.Write("Layout", "arrangement", picked.arrangement) end
 	local hudStyle = ns.HudStyle.Valid(picked.hudStyle) and picked.hudStyle
 	if hudStyle then
