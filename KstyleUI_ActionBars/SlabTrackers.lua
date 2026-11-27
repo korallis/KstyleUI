@@ -158,7 +158,7 @@ local function Resolve(p, row)
 	local spec = setmetatable({ burst = HOOKS[ns.class] and HOOKS[ns.class].burst }, { __index = p })
 	spec.size = row and Medals.SIZE or p.seat == "top" and RELIQUARY or p.size
 	spec.row = row
-	if p.feeds and ns.SlabArmory.LOOKS[p.look or ""] then
+	if p.feeds and (p.learned or ns.SlabArmory.LOOKS[p.look or ""]) then
 		spec.feeds = {}
 		for _, feed in ipairs(p.feeds) do
 			local need = rawget(feed, "known") or rawget(feed, "spells")

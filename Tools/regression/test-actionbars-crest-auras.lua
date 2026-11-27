@@ -269,5 +269,32 @@ do
 	assert(not flame:IsShown() and not fire.loop:IsPlaying(), "the sigil cleared: its loop stops")
 end
 
+-- A sigil loads its sheet only once its family is known and not drawn on the rail, so a cooldown the hunter has not learned, or one the
+-- rail holds, never loads art (review of the hunter auras: unneeded sheets).
+do
+	local known = { [3045] = true }
+	env.C_SpellBook.IsSpellKnown = function(id) return known[id] == true end
+	local railed = true
+	local rim = Medals.CooldownRim(parent, { families = { { spells = { 3045 }, sigil = "Volley" }, { spells = { 19263 }, sigil = "Deflect" },
+		{ spells = { 19574 }, sigil = "Paw" } }, color = "jewelHawk", railed = function(spells) return railed and spells[1] == 19574 end }, 5)
+	local volley, deflect, paw = rim.sigils[1].fire, rim.sigils[2].fire, rim.sigils[3].fire
+	for _, fire in ipairs({ volley, deflect, paw }) do
+		assert(fire:GetTexture() == nil and fire.still:GetTexture() == nil, "a sigil built before it is placed has loaded no sheet")
+	end
+	Medals.Place(rim, parent, 0, 0)
+	assert(Draws(volley, BARE) and Draws(volley.still, BARE), "placed, the known Volley loads its own sheet")
+	local x, right, y = volley:GetTexCoord()
+	local sx, _, sy = volley.still:GetTexCoord()
+	local _, columns = K.Tokens.Flipbook("auraSigilVolley")
+	assert(x == 0 and y == 0 and right == 1 / columns and sx == 0 and sy == 0, "its fire and its still draw the sheet's first cell, not the whole sheet")
+	assert(deflect:GetTexture() == nil and deflect.still:GetTexture() == nil, "Deflection, not yet learned, loads nothing")
+	known[19574] = true
+	Medals.Place(rim, parent, 0, 0)
+	assert(paw:GetTexture() == nil, "Bestial Wrath, learned but held by the rail, loads nothing")
+	known[19263], railed = true, false
+	Medals.Place(rim, parent, 0, 0)
+	assert(Draws(deflect, texture("auraSigilDeflect")) and Draws(paw.still, texture("auraSigilPaw")), "learning Deflection, and the rail letting Bestial Wrath go, loads their sheets")
+end
+
 assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 print("actionbars crest auras ok")

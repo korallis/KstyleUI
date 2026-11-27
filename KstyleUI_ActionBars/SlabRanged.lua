@@ -1326,7 +1326,7 @@ if CLASS == "HUNTER" then
 		{ spells = { 19386, 24132, 24133, 24131, 24134, 24135 }, color = "schoolFire", glyph = "glyphWyvern" },
 		{ spells = { 24118, 24119, 24120, 1299332 }, color = "hostile", glyph = "glyphLacerate" },
 		{ spells = { 3674, 14296 }, color = "schoolShadow", glyph = "glyphBlackArrow" },
-		{ spells = { 13797, 14298, 14299, 14300, 14301 }, color = "schoolFire", glyph = "sigilFireTrap" },
+		{ spells = { 13797, 14298, 14299, 14300, 14301 }, known = { 13795, 14302, 14303, 14304, 14305 }, color = "schoolFire", glyph = "sigilFireTrap" },
 	}
 	local RAPTOR = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 }
 	local MELEE = Trackers.Joined(RAPTOR, { 14268, 14267, 2974 })
@@ -1376,7 +1376,7 @@ if CLASS == "HUNTER" then
 			groups = { COUNTER, MONGOOSE, AIMED, MULTI } },
 		{ key = "crestAspect", seat = PERCH_LEFT, size = PERCH, build = Effect, choices = {
 			{ feed = "aura", look = "glyph", glyph = "glyphHawk", spells = Trackers.Joined(ASPECTS[1].spells, ASPECTS[2].spells, ASPECTS[3].spells, ASPECTS[4].spells,
-				ASPECTS[5].spells, ASPECTS[6].spells, ASPECTS[7].spells), feeds = ASPECTS },
+				ASPECTS[5].spells, ASPECTS[6].spells, ASPECTS[7].spells), feeds = ASPECTS, learned = true },
 			{ build = Flash, seat = EMBLEM, overlay = true, size = FLASH, feed = "cooldown", look = "orb", glyph = "glyphRaptor", color = "gilt", known = RAPTOR },
 		} },
 		{ key = "crestPet", seat = At(BAND.pet), choices = {
@@ -1387,7 +1387,7 @@ if CLASS == "HUNTER" then
 		{ key = "crestMark", seat = At(BAND.mark), build = Mark, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile",
 			spells = { 1130, 14323, 14324, 14325 } },
 		{ key = "crestSting", seat = At(BAND.right), build = Fuse, glyph = "glyphSerpent", feed = "aura", unit = "target",
-			filter = "HARMFUL|PLAYER", color = "schoolNature", known = { 1978, 3034, 3043, 24118, 3674, 13795 }, feeds = STINGS },
+			filter = "HARMFUL|PLAYER", color = "schoolNature", known = { 1978, 3034, 3043, 24118, 3674, 13795 }, feeds = STINGS, learned = true },
 		{ key = "crestTrueshot", seat = TRUESHOT_SEAT, size = PERCH, build = Effect, look = "glyph", glyph = "glyphTrueshot", feed = "aura", color = "gilt",
 			spells = TRUESHOT },
 		{ key = "crestTracking", seat = COMPASS_SEAT, size = PERCH, build = Sign, look = "glyph", glyph = "glyphCompass", feed = "tracking", color = "gilt",

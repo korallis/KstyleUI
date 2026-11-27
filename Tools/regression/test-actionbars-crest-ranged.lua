@@ -28,8 +28,35 @@ do
 	Clean(env, K)
 end
 
+-- The Aspect and Sting pieces build only the feeds the hunter has learned, so no unlearned Aspect's or Sting's aura sheet loads, and
+-- learning one rebuilds the piece with it (review of the hunter auras: unneeded sheets).
 do
+	local function Sheets(frame, found)
+		for _, region in ipairs(frame._regions or {}) do
+			local file = tostring(((region._state or {}).Texture or {})[1])
+			local name = file:match("Auras\\Glyphs\\(%a+)%.png")
+			if name then found[name] = true end
+		end
+		for _, kid in ipairs(frame._kids or {}) do Sheets(kid, found) end
+		return found
+	end
 	local env, K, ns = New("HUNTER")
+	local aspect, sting = Piece(ns, "crestAspect"), Piece(ns, "crestSting")
+	local aspects, stings = Sheets(aspect, {}), Sheets(sting, {})
+	assert(#aspect.lits == 1 and aspects.Hawk and not (aspects.Monkey or aspects.Viper), "knowing only Aspect of the Hawk, the perch loads the hawk's sheet alone")
+	assert(#sting.lits == 1 and stings.Serpent and not (stings.ViperSting or stings.Wyvern), "knowing only Serpent Sting, the fuse loads the serpent's sheet alone")
+	Learn(env, 13163)
+	aspect = Piece(ns, "crestAspect")
+	assert(#aspect.lits == 2 and Sheets(aspect, {}).Monkey, "learning Aspect of the Monkey rebuilds the perch with its sheet")
+	Slots.Set(env, "player", { { id = 13163, icon = 136074, start = 0 } })
+	assert(aspect:IsShown() and aspect.lits[2]:IsShown() and Aura(aspect.lits[2].art, "Glyphs\\Monkey"), "and the new Aspect lights its own sigil")
+	Clean(env, K)
+end
+
+do
+	local known = { 13163, 5118, 13159, 20043, 13161, 415423, 3034, 3043, 19386, 24118, 3674 }
+	for _, id in ipairs(R.KNOWN.HUNTER) do known[#known + 1] = id end
+	local env, K, ns = New("HUNTER", { known = known })
 	local aspect, mark, sting, pet = Piece(ns, "crestAspect"), Piece(ns, "crestMark"), Piece(ns, "crestSting"), Piece(ns, "crestPet")
 	assert(aspect:IsShown() and aspect.rest:IsShown() and not aspect.lit:IsShown(), "no Aspect up: a dark steel hawk perched on the ring")
 	Slots.Set(env, "player", { { id = 14318, icon = 136076, start = 0 } })
