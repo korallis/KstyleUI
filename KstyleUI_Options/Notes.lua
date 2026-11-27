@@ -2,6 +2,10 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.3.5.3 (2026-11-27)", {
+		L["A new switch in General > Size lets KstyleUI follow the game's UI Scale instead of its pixel-perfect size."],
+		L["Setup offers the same choice, and windows it placed keep their spot when you change the game's UI Scale."],
+	} },
 	{ "v0.3.5.2 (2026-11-27)", {
 		L["A bar shape that cannot fit beside the others no longer shrinks the whole HUD below its usual size."],
 		L["Two-row action bars lift the frames above them by a row, so the bars no longer cover the player frame."],
@@ -13,13 +17,5 @@ ns.NOTES = {
 		L["Settings sliders save when you let go, a bad import keeps your text and Layout Mode's Discard puts things back."],
 		L["Healer cues stay on raid frames, and nameplates, channels and boss auras read clearer in crowded fights."],
 		L["Consumable keys, guide text, tooltips and item readouts get fixes, and the HUD does less work in busy moments."],
-	} },
-	{ "v0.3.5 (2026-11-25)", {
-		L["The crest comes alive: your buffs, procs and cooldowns are part of the crest now, no more little icons."],
-		L["Ten new crest effects, from Unleashed cooldowns and rising heat to a cast ring, kill window and target lock."],
-		L["Your cooldowns light engraved sigils, and on-use trinkets burn their cooldowns round the crest's rim."],
-		L["Rogues and cat druids get an energy tick spark that sweeps the energy bar between ticks."],
-		L["Aura timers about to run out turn a lighter red that stays readable over any scenery, on every frame."],
-		L["Windows and pages show at once, no more invisible windows, plus RestedXP, loot-roll and Zygor fixes."],
 	} },
 }

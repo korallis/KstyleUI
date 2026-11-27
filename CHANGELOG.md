@@ -1,5 +1,24 @@
 # KstyleUI changelog
 
+## v0.3.5.3 (2026-11-27)
+
+A hotfix for players who use the game's UI Scale: KstyleUI can now follow it instead of keeping its own pixel-perfect size, from settings or from setup.
+
+Highlights:
+
+- A new switch in General > Size lets KstyleUI follow the game's UI Scale instead of its pixel-perfect size.
+- Setup offers the same choice, and windows it placed keep their spot when you change the game's UI Scale.
+
+### Added
+
+- Interface size: a Follow the game's UI scale switch under General > Size. While it is on, KstyleUI grows and shrinks with the UI Scale in the game's options, up to the largest size that fits, and the Auto switch and size slider hide. It is off by default, so nothing changes until you turn it on.
+- Setup: the HUD style step has an Interface size row with Pixel perfect and Game's UI scale, and shows Your own while you use the size slider. The choice applies when you press Apply.
+
+### Fixed
+
+- Setup: the quest tracker, damage meter and other windows that setup placed in Edit Mode keep their place on screen when you change the game's UI Scale. A damage meter placed by an older setup moves with them after you apply setup again.
+- Profiles: the import warning also names the new Interface size switch.
+
 ## v0.3.5.2 (2026-11-27)
 
 A hotfix for the HUD's action bars: a bar shape that cannot fit keeps the HUD its usual size, and two-row bars move the frames above them out of the way.
