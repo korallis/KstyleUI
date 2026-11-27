@@ -120,7 +120,9 @@ echo "exit=$?"
 
 `test-hud-style-gate.lua` prints `hud style gate ok` and exits 0. Swap in the regression files the feature map row names for the change under test. Run them one file at a time under `lua5.1` for a focused proof. `bash Tools/regression/run-all.sh` with no argument is the full suite, and `bash scripts/gate.sh` with `KSTYLEUI_PYTHON=python` is the repository gate.
 
-The native Windows lint and Python groups pass. The lint group runs `Tools/dev/crlf.py --check`, `env -u SKIP pre-commit run --all-files` (including luacheck and the TOC/API hooks), `Tools/locale/strings.py check` and `scripts/check-suppressions.sh` with `SUPPRESSION_BASELINES=Tools/regression/pixel_allow.tsv`. TSV baseline keys are every column except the final count: a lower count or removed row passes, while a new key or higher count requires a `Baseline-Growth:` ticket trailer. The full Windows gate still has Lua wall-budget overruns and the known runtime/performance files; the Python runner timing tests can also hit the LEE-1537 flake assigned to PR 7. Record each group's actual exit code and output; report a full gate as green only when every group passed. Mac CI proves the full POSIX gate.
+Follow [Check and deliver](../AGENTS.md#check-and-deliver) for the local gate and independent review. Record the actual exit code and output on the computer that ran the gate; a focused check or a pass on another computer is not its result.
+
+TSV baseline keys are every column except the final count: a lower count or removed row passes, while a new key or higher count requires a `Baseline-Growth:` ticket trailer.
 
 Renders of the same scene share `Tools/render/out/<scene>.json`, `.html` and `.guard.tsv`. Run one render of a scene at a time per worktree. Parallel renders of the same scene overwrite each other's page and proof. Use a second worktree, or run them in sequence.
 

@@ -17,7 +17,7 @@ KstyleUI succeeds when all of the following are true:
 - Every module in [Modules](#modules) works on live Forever with no Lua errors and no taint, with Blizzard's forced-restriction CVars switched on.
 - Components match `05_kit_hunter.jpg` at 1920x1080, 2560x1440, 3840x2160 and 3456x2234, with whole-pixel borders on each.
 - A player who never enables a module pays nothing for it: no events, no hooks, no frames.
-- Every check in [Checks](#checks) passes in CI on every pull request.
+- The [local gate](../../../AGENTS.md#check-and-deliver) passes on each pull request commit.
 - The owner confirms each release in game before `staging` moves to `main`.
 
 ## Decisions
@@ -65,7 +65,7 @@ These facts come from Blizzard's code and posts:
 - Addons can load power-of-two PNG, TGA, JPEG and BLP textures, but cannot register atlases. There is no blur or shader API.
 - `ReloadUI()` is blocked from addon code. A reload button must be a secure macro button that runs `/reload`.
 
-The authoritative API source is the `forever` branch of [Gethe/wow-ui-source](https://github.com/Gethe/wow-ui-source/tree/forever), which matches build 70840. The in-game `/api` browser confirms anything the branch leaves unclear.
+Use the [Forever API catalog](../../../Tools/data/forever_api_contracts.json) to identify the client build and matching revision of [Gethe/wow-ui-source](https://github.com/Gethe/wow-ui-source/tree/forever). The in-game `/api` browser confirms anything the branch leaves unclear.
 
 ## Architecture
 
@@ -412,9 +412,8 @@ The checks are KstyleUI's own implementations of NaowhForever's checks. NaowhFor
 | `test-features.lua` | tests | A switch that is not a boolean, is on by default, or does not match a module's declared defaults |
 | `test-perf.lua` | tests | A combat path over its per-call time budget, or one that allocates memory |
 | `test-*.lua` per module | tests | Module behaviour against stubs, loaded through the shared TOC-and-XML walker |
-| `package` | CI | A packaged zip that is missing a TOC file or library, or that contains `Tools/`, `docs/`, `research_notes/`, `reports/` or lint config |
-| `pr-rules` | CI | A PR that changes shipped files without a `## Changelog` line starting `Added:`, `Changed:` or `Fixed:`, or that changes a TOC version outside a release |
-| `title` | CI | A PR title that is not `type(scope): summary` |
+| `check-package.sh` | Release workflow | A packaged zip that is missing a TOC file or library, or that contains `Tools/`, `docs/`, `research_notes/`, `reports/` or lint config |
+| `check-pr.sh` | Local gate with PR wording | A title outside the conventional format, a missing required changelog line, or a version marker changed outside a release |
 
 Use the [local gate](../../../AGENTS.md#check-and-deliver) for pull requests and releases, with `LUA` unset. One Lua module, `Tools/regression/toc_files.lua`, walks the TOCs and XML includes, and every test and the package check uses it. GitHub Actions are pinned by commit SHA, set `persist-credentials: false` and request minimal permissions.
 

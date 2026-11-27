@@ -33,7 +33,7 @@ Before using an API, event, template, mixin, CVar or Blizzard frame name, find i
 Iterate on the affected feature without launching the game. From the repository root:
 
 - **Behavior:** run the feature map's regression file with `lua5.1 Tools/regression/test-<name>.lua`. Exercise the event or setting a player uses. For restricted paths, include the transition into and out of the restriction, not just steady combat.
-- **Appearance:** choose the feature map's scene and settings. For example, `RENDER_SCREEN=1920x1080 RENDER_LAYOUT=DPS bash Tools/render/shoot.sh hud_reference --ppu 1 --strict` draws the real addon Lua on fixtures with LuaJIT and headless Chrome. Inspect the picture and the guard output. A render shows layout, not freedom from taint in the client.
+- **Appearance:** choose the feature map's scene and settings. For example, `RENDER_SCREEN=1920x1080 RENDER_SIZE=auto RENDER_LAYOUT=DPS bash Tools/render/shoot.sh hud_reference --ppu 1 --strict` draws the real addon Lua on fixtures with LuaJIT and headless Chrome. Inspect the picture and the guard output. A render shows layout, not freedom from taint in the client.
 - **Evidence:** use [the verification guide](verify/SKILL.md) for captures and [the in-game checklist](docs/TESTING.md) for checks only Forever can settle. Update the feature map when adding, removing or renaming a feature, and the [statecharts](docs/statecharts/) when changing a charted flow.
 
 ## Check and deliver

@@ -255,7 +255,7 @@ class CheckPrTest(unittest.TestCase):
         for needle in (
             "## Summary", "## Changelog", "## In-game checks", "addonCombatRestrictionsForced",
             "addonEncounterRestrictionsForced", "addonMapRestrictionsForced", "addonChatRestrictionsForced",
-            "taintLog", "python3 Tools/dev/crlf.py", "pre-commit run --all-files", "bash scripts/gate.sh", "PR_TITLE", "local gate",
+            "taintLog", "AGENTS.md#check-and-deliver", "bash scripts/gate.sh", "PR_TITLE", "local gate",
             "latest GPT Sol", "no changelog",
         ):
             self.assertIn(needle, text)

@@ -38,7 +38,7 @@ The layout and render tests draw the HUD on 1280x720, 1366x768, 1920x1080, 2560x
 
 ## Checks
 
-Run the gate from the repository root before every push and read its exit code. `AGENTS.md` explains each step.
+Follow [Check and deliver](../AGENTS.md#check-and-deliver) for the review and push sequence. Run the gate from the repository root and read its exit code.
 
 ```bash
 bash scripts/gate.sh
