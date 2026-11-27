@@ -175,7 +175,8 @@ local function New(class, opts)
 end
 
 -- Piece(ns, key, choice) -> the piece built for the switch's row and choice (1 when unset), and whether it shows.
--- A choice whose feeds are pared to the learned ones is keyed with their count ("1:1/3"), so learning one builds a new piece.
+-- A choice whose feeds are pared to the learned ones is keyed with their places in its list ("1:1/1,3"), so learning or
+-- swapping one builds a new piece.
 local function Piece(ns, key, choice)
 	local state = ns.SlabTrackers.state
 	local form = state.form

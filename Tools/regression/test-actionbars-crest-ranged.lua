@@ -53,6 +53,24 @@ do
 	Clean(env, K)
 end
 
+-- Swapping one learned Aspect for another keeps the count but still rebuilds the perch with the new sheet alone (review of the
+-- hunter auras: the piece was keyed by its count, so a same-count swap kept the old art).
+do
+	local env, K, ns = New("HUNTER")
+	env._known[13165] = nil
+	Learn(env, 13163)
+	local aspect = Piece(ns, "crestAspect")
+	local found = {}
+	for _, lit in ipairs(aspect.lits) do
+		local file = tostring(((lit.art._state or {}).Texture or {})[1])
+		found[#found + 1] = file:match("Auras\\Glyphs\\(%a+)%.png")
+	end
+	assert(#aspect.lits == 1 and found[1] == "Monkey", "unlearning the Hawk while learning the Monkey rebuilds the perch with the Monkey's sheet alone: " .. table.concat(found, ","))
+	Slots.Set(env, "player", { { id = 13163, icon = 136074, start = 0 } })
+	assert(aspect:IsShown() and aspect.lits[1]:IsShown(), "and Aspect of the Monkey lights it")
+	Clean(env, K)
+end
+
 do
 	local known = { 13163, 5118, 13159, 20043, 13161, 415423, 3034, 3043, 19386, 24118, 3674 }
 	for _, id in ipairs(R.KNOWN.HUNTER) do known[#known + 1] = id end
