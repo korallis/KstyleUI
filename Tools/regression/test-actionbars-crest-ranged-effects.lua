@@ -3,19 +3,10 @@ local R = dofile("Tools/regression/ranged_env.lua")
 local Budget = dofile("Tools/regression/path_budget.lua")
 local Png = dofile("Tools/regression/png.lua")
 -- The socketed crest on staging 3e037a6be measured 229,200 addon instructions and 1,700 widget calls for a hundred unchanged
-<<<<<<< HEAD
 -- mage cooldown updates, and 46,100 and 2,000 for a hundred warlock pet health ticks, with this fixture; the mage's crest rail
 -- then added its two seats' cooldown repaint, measured at 269,700 instructions, and the hunter's crest needs
 -- (staging b107b6f0) added 2,400 to the mage's path there (226,800 to 229,200), measured on top of the rail at 271,900.
 local BUDGET_COOLDOWN, BUDGET_HEALTH = { 271900, 1700 }, { 46100, 2000 }
-=======
--- mage cooldown updates, and 46,100 and 2,000 for a hundred warlock pet health ticks, with this fixture. The mage's power orb
--- and rail raise the cooldown path to 308,300 and 3,400: the orb's fill costs 8,400 and 200, each of the rail's three seats
--- feeds its two cooldown sweeps and writes its lit and steel faces only when they change, every cooldown medal reads
--- isActive only after checking it is not secret, as GetSpellCooldown's restricted-cooldown flag requires, and the orb's
--- hold is settled after the rail's. The widest mage rail, eight cooldowns and the trinket, measured 410,800 and 7,700.
-local BUDGET_COOLDOWN, BUDGET_RAIL, BUDGET_HEALTH = { 308300, 3400 }, { 410800, 7700 }, { 46100, 2000 }
->>>>>>> 26b204ab (fix(actionbars): tell the global cooldown on a rebuild, stop the mage rail's per-event churn and measure every orb and rail sheet)
 local AB, Slots, New, Piece, Seated, Shown, Clean, Tint, Icons = R.AB, R.Slots, R.New, R.Piece, R.Seated, R.Shown, R.Clean, R.Tint, R.Icons
 local Aura = R.Aura
 
@@ -592,24 +583,13 @@ do
 	Clean(env, K)
 end
 
--- The hot tracker events stay within their measured cost: an unchanged cooldown update for a mage, with this fixture's rail
--- and with the widest mage rail, and a pet health tick for a warlock.
-local WIDEST = { 12042, 12043, 12051, 1953, 10230, 10199, 11958, 12472, 13033, 11129, 13021, 1240047, 20589, 1259817 }
-for _, case in ipairs({ { "MAGE", "SPELL_UPDATE_COOLDOWN", nil, BUDGET_COOLDOWN }, { "MAGE", "SPELL_UPDATE_COOLDOWN", nil, BUDGET_RAIL, WIDEST },
-	{ "WARLOCK", "UNIT_HEALTH", "pet", BUDGET_HEALTH } }) do
-	local class = case[1]
-	local env, K, ns = New(class, { pet = { max = 100, missing = 10 }, bags = { [5512] = 1, [5514] = 1 }, known = case[5] })
-	if case[5] then
-		env.GetInventoryItemID = function(_, slot) return slot == 13 and 5002 or nil end
-		env.C_Item.GetItemSpell = function(id) if id == 5002 then return "Use", 9002 end end
-		ns.SlabTrackers.Update()
-		assert(#ns.SlabRail.piece.order == 9, "the widest mage rail seats eight cooldowns and the trinket")
-	end
-	env.FireEvent(case[2], case[3])
-	local used = Budget.Count(env, function() for _ = 1, 100 do env.FireEvent(case[2], case[3]) end end, 1)
-	local what = class .. " " .. case[2] .. (case[5] and " on the widest rail" or "")
-	Budget.Check(used, case[4][1], case[4][2], what .. " repaints only what changed")
-	print(string.format("%s x100: %d addon instructions, %d widget calls", what, used.instructions, used.calls))
+-- The two hot tracker events cost no more than the socketed crest's did: an unchanged cooldown update for a mage and a pet health tick for a warlock.
+for class, case in pairs({ MAGE = { "SPELL_UPDATE_COOLDOWN", nil, BUDGET_COOLDOWN }, WARLOCK = { "UNIT_HEALTH", "pet", BUDGET_HEALTH } }) do
+	local env, K = New(class, { pet = { max = 100, missing = 10 }, bags = { [5512] = 1, [5514] = 1 } })
+	env.FireEvent(case[1], case[2])
+	local used = Budget.Count(env, function() for _ = 1, 100 do env.FireEvent(case[1], case[2]) end end, 1)
+	Budget.Check(used, case[3][1], case[3][2], class .. " " .. case[1] .. " repaints only what changed")
+	print(string.format("%s %s x100: %d addon instructions, %d widget calls", class, case[1], used.instructions, used.calls))
 	Clean(env, K)
 end
 

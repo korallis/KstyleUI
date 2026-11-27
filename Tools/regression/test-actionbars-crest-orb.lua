@@ -1,6 +1,7 @@
 -- test-actionbars-crest-orb.lua: the mage's power orb (KstyleUI_ActionBars/SlabOrb.lua) and the mage's rail (SlabRail.lua). The owner asked for the mage's crest to become a power orb tied to the spell effects, unique for each race and class, clearly showing procs and cooldowns without the Cooldown Manager; the orb plan and the owner's settings ask that the light is each tree's school colour and fills as the tree's great cooldown (Arcane Power, Combustion, Cold Snap, else Ice Block) returns, that the vessel is the player's race, that Clearcasting and Missile Barrage, and on their own trees Heating Up (a third of the rim per stack) and Fingers of Frost (a rime per charge), light inside it while Clearcasting keeps its own ring, and that the rail stands the other cooldowns and racials the owner named. The orb steps aside under Frames or when switched off, secret auras raise no error, and nothing runs OnUpdate.
 local R = dofile("Tools/regression/ranged_env.lua")
 local AB, Slots, New, Seated, Piece, Updating, Clean = R.AB, R.Slots, R.New, R.Seated, R.Piece, R.Updating, R.Clean
+local Scene = dofile("Tools/render/scene.lua")
 
 local ARCANE = { 168, 759, 116, 118, 12574, 12042, 12043, 12051, 1953, 122, 2136, 2139 }
 local FIRE = { 168, 759, 116, 118, 11129, 11113, 12051, 1953, 122, 2136, 2139, 20572 }
@@ -35,6 +36,20 @@ end
 local function Timed(orb)
 	local timed = AB.W.LastCall(orb.bar, "SetTimerDuration")
 	return timed and timed[1].finish, timed and timed[3]
+end
+
+-- Due(env, orb) -> when the orb's completion timer runs out, or nil while it is clear.
+local function Due(env, orb)
+	local _, left = Scene.CooldownFraction(env, orb.timer, env._now)
+	return left and env._now + left
+end
+
+-- Elapse(env, orb, seconds) moves the clock on and, as the engine does, runs the completion timer's OnCooldownDone once the
+-- duration it was bound to has run out.
+local function Elapse(env, orb, seconds)
+	local due = Due(env, orb)
+	env._now = env._now + seconds
+	if due and due <= env._now then orb.timer:GetScript("OnCooldownDone")(orb.timer) end
 end
 
 local function Tree(env, from, to)
@@ -88,13 +103,17 @@ do
 	local finish, direction = Timed(orb)
 	assert(finish == env._now + 180 and direction == env.Enum.StatusBarTimerDirection.ElapsedTime,
 		"the light refills from the cooldown's own duration as it elapses, which the game advances")
+	assert(Due(env, orb) == env._now + 180, "the completion timer counts the same cooldown (" .. tostring(Due(env, orb)) .. ")")
 	Cooling(env, 12042, 60)
-	assert(Timed(orb) == env._now + 60 and orb.spent:IsShown(), "a cooldown cut short while spent moves the light onto the new timer")
+	assert(Timed(orb) == env._now + 60 and Due(env, orb) == env._now + 60 and orb.spent:IsShown(),
+		"a cooldown cut short while spent moves the light and the completion timer onto the new timer (" .. tostring(Due(env, orb)) .. ")")
+	orb.flare.play:Stop()
+	Elapse(env, orb, 59)
+	assert(orb.spent:IsShown() and not orb.flare.play:IsPlaying(), "a second before the shortened cooldown ends the orb is still spent")
+	Elapse(env, orb, 2)
+	assert(orb.ready:IsShown() and not orb.spent:IsShown() and orb.flare.play:IsPlaying(), "back: the completion timer ends with the cooldown, the orb is full again and bursts")
 	env.C_Spell.GetSpellCooldown = function() return { isActive = false, isOnGCD = false } end
 	env.C_Spell.GetSpellCooldownDuration = function() return { start = 0, finish = 0 } end
-	orb.flare.play:Stop()
-	orb.timer:GetScript("OnCooldownDone")(orb.timer)
-	assert(orb.ready:IsShown() and not orb.spent:IsShown() and orb.flare.play:IsPlaying(), "back: the orb is full again and bursts")
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(orb.ready:IsShown() and not orb.spent:IsShown(), "the cooldown event after the timer agrees the orb is full")
 	K.Options.Write("Medallions", "motion", "calm")
@@ -126,15 +145,16 @@ do
 	Tree(env, ARCANE, FIRE)
 	env.RunTimers()
 	local orb = Seated(ns, "crestOrb")
-	assert(orb.school == "Fire" and orb.spent:IsShown() and Timed(orb) == env._now + 45,
-		"a talent swap to a cooling Combustion shows the fire orb on Combustion's own timer (" .. tostring(Timed(orb)) .. ")")
+	assert(orb.school == "Fire" and orb.spent:IsShown() and Timed(orb) == env._now + 45 and Due(env, orb) == env._now + 45,
+		"a talent swap to a cooling Combustion shows the fire orb on Combustion's own timer, light and completion (" .. tostring(Timed(orb)) .. ", " .. tostring(Due(env, orb)) .. ")")
 	K.Options.Write("ActionBars", "crestOrb", false)
 	env.RunTimers()
 	Cooling(env, 11129, 30, true)
 	K.Options.Write("ActionBars", "crestOrb", true)
 	env.RunTimers()
 	orb = Seated(ns, "crestOrb")
-	assert(orb.spent:IsShown() and Timed(orb) == env._now + 30, "coming back, the orb reads the cooldown afresh (" .. tostring(Timed(orb)) .. ")")
+	assert(orb.spent:IsShown() and Timed(orb) == env._now + 30 and Due(env, orb) == env._now + 30,
+		"coming back, the orb reads the cooldown afresh, light and completion (" .. tostring(Timed(orb)) .. ", " .. tostring(Due(env, orb)) .. ")")
 	Clean(env, K)
 end
 
