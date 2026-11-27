@@ -4249,7 +4249,7 @@ ns.Locale.Add({
 	["Standard: the slab in Medallions, bars under a cap in Frames. Plate: a panel."] = "Standard: die Platte bei Medaillons, Balken unter einer Kappe bei Rahmen. Tafel: ein Feld.",
 	["Standing"] = "Rang",
 	["Standing or reaction"] = "Rang oder Reaktion",
-	["Stands your tree's major abilities and trinket above the crest; a pressed one rises to the crown."] = "Stellt die gro\195\159en F\195\164higkeiten deines Talentbaums und dein Schmuckst\195\188ck \195\188ber das Wappen; eine gedr\195\188ckte steigt zur Krone auf.",
+	["Stands your tree's major abilities and trinket above the crest; a pressed buff rises to the crown."] = "Stellt die gro\195\159en F\195\164higkeiten deines Talentbaums und dein Schmuckst\195\188ck \195\188ber das Wappen; eine gedr\195\188ckte St\195\164rkung steigt zur Krone auf.",
 	["Start collapsed"] = "Eingeklappt beginnen",
 	["Start point"] = "Startpunkt",
 	["Start the combat log as you enter an instance and stop it as you leave."] = "Startet das Kampflog beim Betreten einer Instanz und beendet es beim Verlassen.",

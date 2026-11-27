@@ -773,9 +773,7 @@ function Medals.CooldownRim(parent, spec, level, form)
 			Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		end
 		for k, family in ipairs(each.families) do
-			if row or not (spec.bare and spec.bare[family]) then
-				Sigil(r, lit, "sigil" .. k, family, spec.color, size, spec.bloom)
-			end
+			Sigil(r, lit, "sigil" .. k, family, spec.color, size, spec.bloom)
 		end
 	end
 	r.timer = r.lit.timer
@@ -892,7 +890,7 @@ local function Arrange(r)
 	local n = 0
 	for _, b in ipairs(r.sigils) do
 		local f = b.family
-		local on = f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
+		local on = (f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil) and not (r.spec.railed and r.spec.railed(f.spells))
 		b.container:SetAuraSlotEnabled(b.key, on)
 		if b.flashed then
 			b.flashed.container:SetAuraSlotEnabled(b.key, on)

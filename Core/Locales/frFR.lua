@@ -4249,7 +4249,7 @@ ns.Locale.Add({
 	["Standard: the slab in Medallions, bars under a cap in Frames. Plate: a panel."] = "Standard : la dalle en M\195\169daillons, des barres sous un chapeau en Cadres. Plaque : un panneau.",
 	["Standing"] = "Niveau de r\195\169putation",
 	["Standing or reaction"] = "Niveau de r\195\169putation ou r\195\169action",
-	["Stands your tree's major abilities and trinket above the crest; a pressed one rises to the crown."] = "Place les grandes techniques de votre arbre de talents et votre bijou au-dessus du blason ; celle que vous lancez monte \195\160 la couronne.",
+	["Stands your tree's major abilities and trinket above the crest; a pressed buff rises to the crown."] = "Place les grandes techniques de votre arbre de talents et votre bijou au-dessus du blason ; un renforcement lanc\195\169 monte \195\160 la couronne.",
 	["Start collapsed"] = "Commencer repli\195\169",
 	["Start point"] = "Point de d\195\169part",
 	["Start the combat log as you enter an instance and stop it as you leave."] = "Lance le journal de combat en entrant en instance et l'arr\195\170te en sortant.",

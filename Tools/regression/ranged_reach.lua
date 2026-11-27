@@ -6,7 +6,7 @@ local Reach = {}
 local RING = { crestGust = true, crestClearcasting = true, crestTrance = true, crestWard = true, crestAutoShot = true, crestCooldowns = true, crestFiveSecond = true }
 local FRAMES = { "unitframes.player", "unitframes.target", "unitframes.castbar.player", "unitframes.castbar.target" }
 local ROW = { "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars" }
-local CONTENT = {}
+local CONTENT, SAMPLES = {}, {}
 
 -- Content(path) -> the share of the texture its pixels of alpha 64 or more span: left, right, top, bottom; false if none.
 local function Content(path)
@@ -61,6 +61,32 @@ local function Passes(group)
 	return timed, times
 end
 
+-- Samples(group) -> the group's offset, turn and scale at each sampled time of its pass, worked out once per group and check.
+local function Samples(group)
+	if not SAMPLES[group] then
+		local timed, times = Passes(group)
+		local list = {}
+		for _, time in ipairs(#timed > 0 and times or {}) do
+			local x, y, turn, scale, latest = 0, 0, 0, 1, -1
+			for _, each in ipairs(timed) do
+				local p, state = Eased(each, time), each.anim._state
+				if each.anim._type == "Translation" then
+					local ox, oy = unpack(state.Offset or { 0, 0 })
+					x, y = x + (ox or 0) * p, y + (oy or 0) * p
+				elseif each.anim._type == "Rotation" then
+					turn = turn + (state.Degrees and state.Degrees[1] or 0) * p
+				elseif time >= each.from and each.from >= latest then
+					local from, to = (state.ScaleFrom or { 1 })[1] or 1, (state.ScaleTo or { 1 })[1] or 1
+					scale, latest = from + (to - from) * p, each.from
+				end
+			end
+			list[#list + 1] = { x, y, math.cos(math.rad(turn)), math.sin(math.rad(turn)), scale }
+		end
+		SAMPLES[group] = list
+	end
+	return SAMPLES[group]
+end
+
 -- Sweep(solver, region, l, r, t, b, unit) -> the box l, r, t, b of the region's drawn content over every pass of every Translation,
 -- Rotation and Scale animation group on it and on each frame above it, sampled through each pass: a frame's scale and turn about its own
 -- centre, then its offset, as the client applies them; a frame's groups are swept one at a time, and each frame's sweep bounds the next.
@@ -71,22 +97,8 @@ local function Sweep(solver, region, l, r, t, b, unit)
 		local cx, cy = at and (at[1] + at[3]) / 2 or (l + r) / 2, at and (at[2] + at[4]) / 2 or (t + b) / 2
 		local nl, nr, nt, nb = l, r, t, b
 		for _, group in ipairs(node._groups or {}) do
-			local timed, times = Passes(group)
-			for _, time in ipairs(#timed > 0 and times or {}) do
-				local x, y, turn, scale, latest = 0, 0, 0, 1, -1
-				for _, each in ipairs(timed) do
-					local p, state = Eased(each, time), each.anim._state
-					if each.anim._type == "Translation" then
-						local ox, oy = unpack(state.Offset or { 0, 0 })
-						x, y = x + (ox or 0) * p, y + (oy or 0) * p
-					elseif each.anim._type == "Rotation" then
-						turn = turn + (state.Degrees and state.Degrees[1] or 0) * p
-					elseif time >= each.from and each.from >= latest then
-						local from, to = (state.ScaleFrom or { 1 })[1] or 1, (state.ScaleTo or { 1 })[1] or 1
-						scale, latest = from + (to - from) * p, each.from
-					end
-				end
-				local c, s = math.cos(math.rad(turn)), math.sin(math.rad(turn))
+			for _, sample in ipairs(Samples(group)) do
+				local x, y, c, s, scale = sample[1], sample[2], sample[3], sample[4], sample[5]
 				for _, corner in ipairs({ { l, t }, { r, t }, { l, b }, { r, b } }) do
 					local dx, dy = (corner[1] - cx) * scale, (corner[2] - cy) * scale
 					local px, py = cx + dx * c - dy * s + x * unit, cy + dx * s + dy * c + y * unit
@@ -130,12 +142,16 @@ function Reach.Check(sizes, classes)
 		_G.RENDER_SCREEN = { width = size[1], height = size[2], size = "auto" }
 		local Hud = dofile("Tools/render/scenes/hud.lua")
 		Hud.Module("unitframes", Hud.Options({ layout = "DPS", class = "HUNTER", applyPreset = true }))
-		local frames, rail = {}, {}
-		for _, key in ipairs(FRAMES) do
+		local frames, rail, casts = {}, {}, 0
+		for i, key in ipairs(FRAMES) do
 			local element = measured.KstyleUI.Layout.Element(key)
 			frames[#frames + 1] = assert(element and Scene.RectSolver(measured):rect(element.frame), at .. ": " .. key .. " is placed")
-			if element.live ~= false then rail[#rail + 1] = frames[#frames] end
+			if element.live ~= false then
+				rail[#rail + 1] = frames[#frames]
+				casts = casts + (i > 2 and 1 or 0)
+			end
 		end
+		assert(casts == (low and 2 or 0), at .. ": the rail is measured against both centred cast bars exactly while they show (" .. casts .. ")")
 		local Layouts, cast = measured.KstyleUI.Setup.Layouts, frames[3]
 		local from = Layouts.Style("DPS", FRAMES[3], "medallions")
 		local k = (cast[3] - cast[1]) / from.width
@@ -145,6 +161,7 @@ function Reach.Check(sizes, classes)
 			rail[#rail + 1] = { x - box.width * k / 2, y, x + box.width * k / 2, y + box.height * k }
 		end
 		for _, class in ipairs(low and { "HUNTER" } or classes or { "HUNTER", "MAGE", "WARLOCK" }) do
+			SAMPLES = {}
 			local _, ns = Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 			if class == "HUNTER" then
 				local known = measured.C_SpellBook.IsSpellKnown

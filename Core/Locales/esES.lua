@@ -4249,7 +4249,7 @@ ns.Locale.Add({
 	["Standard: the slab in Medallions, bars under a cap in Frames. Plate: a panel."] = "Est\195\161ndar: la losa en Medallones, barras bajo un remate en Marcos. Placa: un panel.",
 	["Standing"] = "Nivel de reputaci\195\179n",
 	["Standing or reaction"] = "Nivel de reputaci\195\179n o reacci\195\179n",
-	["Stands your tree's major abilities and trinket above the crest; a pressed one rises to the crown."] = "Coloca las habilidades principales de tu \195\161rbol de talentos y tu abalorio sobre el emblema; la que pulsas sube a la corona.",
+	["Stands your tree's major abilities and trinket above the crest; a pressed buff rises to the crown."] = "Coloca las habilidades principales de tu \195\161rbol de talentos y tu abalorio sobre el emblema; un beneficio que pulsas sube a la corona.",
 	["Start collapsed"] = "Empezar plegado",
 	["Start point"] = "Punto de partida",
 	["Start the combat log as you enter an instance and stop it as you leave."] = "Inicia el registro de combate al entrar en una instancia y lo detiene al salir.",
