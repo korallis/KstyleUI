@@ -127,10 +127,10 @@ write("target.pvpPlayersOnly", false)
 U.SetUnit(env, "pet", { name = "Wolf", level = 58, health = 1460, healthMax = 2000, power = 80, powerMax = 100, reaction = 5 })
 env.C_PetInfo = { GetPetHappiness = function() return 3 end }
 env.HasPetUI = nil
-write("pet.happiness", true)
+write("pet.happiness", "always")
 local pet = ns.Frames.Get("pet").views[1]
 assert(not (pet.extraIcon and pet.extraIcon:IsShown()), "unknown hunter status shows no happiness badge")
-write("pet.happiness", false)
+write("pet.happiness", "unhappy")
 
 -- 6. Cast fill opacity survives a failed cast on the Medallions player cast bar.
 write("player.castbarAlpha", 0.35)

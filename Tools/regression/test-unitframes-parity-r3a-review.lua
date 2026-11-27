@@ -52,7 +52,7 @@ assert(not (cb.bar.fillCursor and cb.bar.fillCursor:IsShown()), "a resize keeps 
 -- The happiness badge never covers the raid marker, wherever it sits.
 env.HasPetUI = function() return true, true end
 env.C_PetInfo = { GetPetHappiness = function() return 3 end }
-write("pet.happiness", true)
+write("pet.happiness", "always")
 write("pet.markerSize", 48)
 env._units.pet.marker = 8
 env.FireEvent("RAID_TARGET_UPDATE")
@@ -80,7 +80,7 @@ for _, style in ipairs({ "medallions", "frames" }) do
 end
 write("pet.happinessPosition", "")
 write("pet.markerSize", 0)
-write("pet.happiness", false)
+write("pet.happiness", "unhappy")
 
 -- On Frames the pet's Spell icon row shows only where its cast bar draws the icon, and a tiny width keeps a usable bar.
 write("edit", "pet")

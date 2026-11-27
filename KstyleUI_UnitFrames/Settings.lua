@@ -245,7 +245,7 @@ Settings.defaults = {
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
-	pet = Kind(false, { happiness = false, auraPosition = "ABOVE", auraColumns = 5, auraFilter = "debuffs", happinessPosition = "", castbarHeight = 12, castbarWidth = 0 }),
+	pet = Kind(false, { happiness = "unhappy", auraPosition = "ABOVE", auraColumns = 5, auraFilter = "debuffs", happinessPosition = "", castbarHeight = 12, castbarWidth = 0 }),
 	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = true, auraGrowth = "LEFT_DOWN", growth = "DOWN", gap = 6, auraSimple = "", castbarWidth = 0 }, 10, 12, { on = true, size = 22, columns = 4, rows = 1, position = "LEFT" }, { 13, 13, 9, 12 }),
 	resource = {
 		enabled = true,
@@ -348,6 +348,7 @@ Settings.CHOICES = {
 	auraPosition = Options({ { "CENTER", L["Centred below the frame"] }, { "BELOW", L["Below the frame"] }, { "ABOVE", L["Above the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] }, { "SIDE", L["Right of the portrait"] } }),
 	auraCopy = Options({ { "", L["Own settings"] }, { "player", L["Player"] }, { "target", L["Target"] }, { "focus", L["Focus"] }, { "pet", L["Pet"] }, { "boss", L["Boss"] } }),
 	auraSimple = Options({ { "", L["Off"] }, { "LEFT", L["Left of the frame"] }, { "RIGHT", L["Right of the frame"] } }),
+	happiness = Options({ { "off", L["Off"] }, { "unhappy", L["When not happy"] }, { "always", L["Always"] } }),
 	happinessPosition = Options({ { "", L["Standard"] }, { "TOPLEFT", L["Above the left end"] }, { "TOPRIGHT", L["Above the right end"] }, { "LEFT", L["Left of the frame"] }, { "RIGHT", L["Right of the frame"] } }),
 	placement = Options({ { "", L["Current style"] }, { "END", L["From the bar's end"] }, { "START", L["From the bar's start"] } }),
 	absorbBar = Options({ { "", L["None"] }, { "TOP", L["Top"] }, { "BOTTOM", L["Bottom"] } }),
@@ -395,6 +396,7 @@ local CHOICE_OF = {
 	growth = "growth",
 	auraCopy = "auraCopy",
 	auraSimple = "auraSimple",
+	happiness = "happiness",
 	happinessPosition = "happinessPosition",
 	absorbPlacement = "placement", healAbsorbPlacement = "placement", absorbBar = "absorbBar",
 	powerTextAlign = "align", powerTextColor = "powerTextColor",
@@ -889,7 +891,7 @@ local ICON_ROWS = {
 	{ "threat", L["Threat glow"], L["Glows in the threat colour when the unit has or causes threat."] },
 	{ "hoverBorder", L["Hover highlight"], L["Outlines the frame in the accent colour while the mouse is over it."] },
 	{ "targetBorder", L["Target highlight"], L["Outlines the frame in the accent colour while this unit is your target."], "-target" },
-	{ "happiness", L["Pet happiness"], L["Shows your hunter pet's happiness."], "pet" },
+	{ "happiness", L["Pet happiness"], L["Shows your hunter pet's happiness: when it is not happy, always, or never."], "pet", nil, "happiness" },
 }
 
 IconRows = function(schema, kind)
@@ -901,7 +903,8 @@ IconRows = function(schema, kind)
 		local only = spec[4]
 		if only == nil or only == kind or only:sub(1, 1) == "-" and not ("-" .. only .. "-"):find("-" .. kind .. "-", 1, true) then
 			local parent = spec[5]
-			schema[#schema + 1] = Row(kind, { type = "toggle", key = spec[1], label = spec[2], help = spec[3] },
+			local choice = spec[6] and CHOICES[spec[6]]
+			schema[#schema + 1] = Row(kind, { type = choice and "dropdown" or "toggle", key = spec[1], label = spec[2], help = spec[3], options = choice },
 				parent and function() return Settings.Value(kind, parent) == true end or nil)
 		end
 	end
@@ -917,7 +920,7 @@ IconRows = function(schema, kind)
 		function(s) return s.raidMarker ~= false end)
 	if kind == "pet" then
 		schema[#schema + 1] = Row(kind, { type = "dropdown", key = "happinessPosition", label = L["Happiness position"],
-			help = L["Where the pet happiness badge sits."], options = CHOICES.happinessPosition }, function(s) return s.happiness == true end)
+			help = L["Where the pet happiness badge sits."], options = CHOICES.happinessPosition }, function() return Settings.Value(kind, "happiness") ~= "off" end)
 	end
 	local function add(icon, row, second)
 		schema[#schema + 1] = Row(kind, row, function()

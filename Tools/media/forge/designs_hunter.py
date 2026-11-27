@@ -1,4 +1,4 @@
-"""designs_hunter.py: the hunter's crest marks as layered relief: seven Aspects, six Stings, the two openings and Raptor Strike."""
+"""designs_hunter.py: the hunter's crest marks as layered relief: seven Aspects, six Stings, the two openings, Raptor Strike and the pet's feed mark, a haunch."""
 import math
 
 from relief import Emblem, blob, ellipse, poly, stroke, transform, mask_poly
@@ -347,3 +347,20 @@ def Raptor():
     (jx, jy), = at([(0.50, 0.36)])
     e.add(ellipse(jx, jy, 0.16 * k, 0.14 * k), h=0.95, r=0.06 * k, base=0.45)
     return e.fit()
+
+
+@design
+def Haunch():
+    """The pet's feed mark: a haunch of meat on the bone, the meat a broad rounded leg rising to the upper right, a fat rim where it meets the bone, and the bone's double knuckle at the lower left. A paw already names three hunter spells, so the mark names food instead."""
+    e = Emblem("Haunch")
+    e.add(stroke([(0.40, 0.60), (0.18, 0.82)], 0.13, 0.12, smooth=False), h=0.7, r=0.05, base=0.35)
+    for (x, y) in ((0.10, 0.80), (0.20, 0.92)):
+        e.add(ellipse(x, y, 0.085), h=0.85, r=0.06, base=0.4)
+    meat = blob([(0.36, 0.56), (0.32, 0.40), (0.40, 0.20), (0.58, 0.08), (0.78, 0.08), (0.92, 0.20), (0.94, 0.40), (0.84, 0.58),
+                 (0.66, 0.68), (0.48, 0.70)], 16)
+    e.add(meat, h=0.9, r=0.16, base=0.35)
+    e.add(stroke([(0.30, 0.46), (0.40, 0.62), (0.54, 0.72)], 0.10, 0.08), h=0.95, r=0.04, base=0.5)
+    e.add(blob([(0.52, 0.30), (0.62, 0.16), (0.80, 0.14), (0.88, 0.28), (0.80, 0.44), (0.62, 0.48)], 14), h=1.02, r=0.12, base=0.8)
+    for pts in (((0.44, 0.42), (0.58, 0.56), (0.76, 0.58)), ((0.50, 0.22), (0.66, 0.08), (0.84, 0.10))):
+        e.cut(stroke(pts, 0.024, 0.01), depth=0.2, r=0.012)
+    return e.seat()

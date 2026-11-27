@@ -70,7 +70,7 @@ for _, kind in ipairs(U.KINDS) do
 		assert(view.edge == nil and view.extraIcon == nil, kind .. " makes no highlight or badge until an option needs one")
 	end
 end
-assert(Settings.Value("pet", "happiness") == false, "pet happiness starts off")
+assert(Settings.Value("pet", "happiness") == "unhappy", "pet happiness starts at When not happy")
 local module = Settings.Module()
 assert(not module.healthDecimal and module.unitTooltip == "always" and not module.castbarRaise, "module options keep today's behaviour")
 
@@ -209,12 +209,15 @@ env._units.target.classification = "elite"
 write("target.elite", false)
 assert(not badge:IsShown(), "turning the badge off hides it")
 
--- Pet happiness.
+-- Pet happiness, the pet mood plan's part 2: Off, When not happy (the default) or Always.
 U.SetUnit(env, "pet", { name = "Wolf", level = 58, health = 1460, healthMax = 2000, power = 80, powerMax = 100, reaction = 5 })
 local pet = ns.Frames.Get("pet").views[1]
-write("pet.happiness", true)
-local mood = assert(pet.extraIcon, "turning happiness on makes the badge")
-assert(mood:IsShown() and W.LastCall(mood, "SetAtlas")[1] == "UI-PetHappiness", "a happy pet shows its mood")
+env.FireEvent("UNIT_HAPPINESS", "pet")
+assert(pet.extraIcon == nil, "by default a happy pet shows no badge, and none is made")
+env._mood = 2
+env.FireEvent("UNIT_HAPPINESS", "pet")
+local mood = assert(pet.extraIcon, "a content pet makes the badge by default")
+assert(mood:IsShown() and W.LastCall(mood, "SetAtlas")[1] == "UI-PetNeutral", "a content pet shows the game's neutral face")
 if frames then
 	local spot = W.LastCall(mood, "SetPoint")
 	assert(pet.form == "row" and spot[1] == "BOTTOMRIGHT" and spot[2] == pet.parent and spot[3] == "TOPRIGHT", "a row frame's badge sits above the frame, clear of its name")
@@ -224,13 +227,23 @@ else
 end
 env._mood = 1
 env.FireEvent("UNIT_HAPPINESS", "pet")
-assert(W.LastCall(mood, "SetAtlas")[1] == "UI-PetMad", "UNIT_HAPPINESS updates the mood")
+assert(mood:IsShown() and W.LastCall(mood, "SetAtlas")[1] == "UI-PetMad", "an unhappy pet shows the game's mad face")
+env._mood = 3
+env.FireEvent("UNIT_HAPPINESS", "pet")
+assert(not mood:IsShown(), "fed back to Happy, the badge goes")
+write("pet.happiness", "always")
+assert(mood:IsShown() and W.LastCall(mood, "SetAtlas")[1] == "UI-PetHappiness", "Always shows a happy pet's face too")
 env._hunter = false
 env.FireEvent("UNIT_HAPPINESS", "pet")
 assert(not mood:IsShown(), "a pet that is not a hunter's shows no mood")
 env._hunter = true
-write("pet.happiness", false)
-assert(not mood:IsShown(), "turning happiness off hides it")
+env._mood = env.Secret(1)
+env.FireEvent("UNIT_HAPPINESS", "pet")
+assert(not mood:IsShown(), "a secret mood shows no badge rather than guess")
+env._mood = 1
+write("pet.happiness", "off")
+assert(not mood:IsShown(), "Off hides it, even for an unhappy pet")
+env._mood = 3
 
 -- Hover and target highlights: made on first use, shown and hidden on their events.
 write("pet.hoverBorder", true)
@@ -399,8 +412,33 @@ write("target.hoverBorder", false)
 pane:Refresh()
 assert(not sample.extraIcon:IsShown() and not sample.edge:IsShown(), "the preview clears them when turned off")
 write("edit", "pet")
-write("pet.happiness", true)
+write("pet.happiness", "unhappy")
 pane:Refresh()
-assert(pane.views.pet.extraIcon and pane.views.pet.extraIcon:IsShown(), "the pet preview shows its mood")
+local preview = pane.views.pet.extraIcon
+assert(preview and preview:IsShown() and W.LastCall(preview, "SetAtlas")[1] == "UI-PetNeutral", "at When not happy the pet preview shows the face it would show, a content pet's")
+write("pet.happiness", "always")
+pane:Refresh()
+assert(preview:IsShown() and W.LastCall(preview, "SetAtlas")[1] == "UI-PetHappiness", "at Always the preview shows a happy pet's")
 clean(env, K)
+
+-- A pet happiness switch saved on before the three-way choice reads as Always, and one saved off as Off.
+for _, case in ipairs({ { true, "always", "UI-PetHappiness" }, { false, "off" } }) do
+	local oenv, OK, ons = U.New({ frames = frames,
+		saved = saved({ pet = { happiness = case[1] } }),
+		setup = function(e)
+			e.C_PetInfo = { GetPetHappiness = function() return 3 end }
+			e.HasPetUI = function() return true, true end
+		end,
+	})
+	assert(OK.Options.Read("UnitFrames", "pet.happiness") == case[2], "a saved " .. tostring(case[1]) .. " becomes " .. case[2])
+	U.SetUnit(oenv, "pet", { name = "Wolf", level = 58, health = 1460, healthMax = 2000, power = 80, powerMax = 100, reaction = 5 })
+	oenv.FireEvent("UNIT_HAPPINESS", "pet")
+	local face = ons.Frames.Get("pet").views[1].extraIcon
+	if case[3] then
+		assert(face and face:IsShown() and W.LastCall(face, "SetAtlas")[1] == case[3], "a pet frame happiness saved on keeps the happy face")
+	else
+		assert(not (face and face:IsShown()), "a pet frame happiness saved off stays off")
+	end
+	clean(oenv, OK)
+end
 print("test-unitframes-parity-r1: ok")

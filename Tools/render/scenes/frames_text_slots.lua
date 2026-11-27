@@ -65,7 +65,7 @@ return Common.Run(function()
 			{ "target.portraitMirror", true }, { "target.portraitZoom", 0.15 }, { "target.castbarIcon", true },
 			{ "target.castbarIconRight", true }, { "target.castbarAlpha", 0.75 }, { "target.auraZoom", 0.2 },
 			{ "player.healthColor", "health" }, { "player.portraitMirror", true }, { "player.incomingAlpha", 0.8 },
-			{ "focus.targetBorder", true }, { "focus.elite", true }, { "pet.happiness", true }, { "pet.hoverBorder", true },
+			{ "focus.targetBorder", true }, { "focus.elite", true }, { "pet.happiness", "always" }, { "pet.hoverBorder", true },
 		}) do
 			K.Options.Write(module, pair[1], pair[2])
 		end
@@ -106,7 +106,7 @@ return Common.Run(function()
 		env.HasPetUI = function() return true, true end
 		for _, event in ipairs({ "PLAYER_FOCUS_CHANGED", "INSTANCE_ENCOUNTER_ENGAGE_UNIT", "RAID_TARGET_UPDATE" }) do env.FireEvent(event) end
 		for _, pair in ipairs({
-			{ "target.markerSize", 28 }, { "pet.happiness", true }, { "pet.happinessPosition", "LEFT" }, { "pet.castbar", true },
+			{ "target.markerSize", 28 }, { "pet.happiness", "always" }, { "pet.happinessPosition", "LEFT" }, { "pet.castbar", true },
 			{ "pet.castbarHideIdle", false }, { "focus.auraCopy", "target" }, { "target.auraBuffZoom", 0.25 },
 			{ "boss.auraSimple", "LEFT" }, { "boss.castbarHideIdle", false }, { "focus.auraFilter", "both" },
 		}) do

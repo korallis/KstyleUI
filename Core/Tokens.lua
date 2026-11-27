@@ -525,7 +525,7 @@ for _, name in ipairs({
 end
 for _, name in ipairs({
 	"ArcLeft", "ArcPet", "ArcRight", "ArmorArcane", "ArmorFrost", "Bail", "Beast", "BlackArrow", "Burst", "Cheetah",
-	"ChillShard", "Counter", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Frost", "Hawk", "Horns", "Hourglass",
+	"ChillShard", "Counter", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Frost", "Haunch", "Hawk", "Horns", "Hourglass",
 	"Imp", "Intellect", "Lacerate", "MarkReticle", "Mongoose", "Monkey", "Pack", "PolyCurl", "Raptor", "RimLeft",
 	"Scorpid", "Serpent", "Siphon", "Succubus", "Swirl", "Tongue", "Viper", "ViperSting", "Voidwalker", "Weakness",
 	"Wild", "Wyvern"
@@ -533,7 +533,7 @@ for _, name in ipairs({
 	TEXTURES["glyph" .. name] = { file = "Textures\\Glyphs\\" .. name .. ".png" }
 end
 for _, name in ipairs({
-	"glyphBeast", "glyphBlackArrow", "glyphCheetah", "glyphCounter", "glyphHawk", "glyphLacerate", "glyphMongoose",
+	"glyphBeast", "glyphBlackArrow", "glyphCheetah", "glyphCounter", "glyphHaunch", "glyphHawk", "glyphLacerate", "glyphMongoose",
 	"glyphMonkey", "glyphPack", "glyphRaptor", "glyphScorpid", "glyphSerpent", "glyphViper", "glyphViperSting", "glyphWild",
 	"glyphWyvern", "sigilDeflect", "sigilPaw", "sigilVolley"
 }) do

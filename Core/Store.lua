@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor, huge = string.format, string.sub, math.floor, math.huge
 
-Store.DB_VERSION = 48
+Store.DB_VERSION = 49
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -1111,6 +1111,15 @@ Store.migrations[48] = function(data)
 					end
 				end
 			end
+		end
+	end
+end
+
+Store.migrations[49] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local pet = type(profile) == "table" and Table(Table(profile.UnitFrames).pet)
+		if pet and type(pet.happiness) == "boolean" then
+			pet.happiness = pet.happiness and "always" or "off"
 		end
 	end
 end

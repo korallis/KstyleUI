@@ -86,14 +86,16 @@ function Medals.Mark(piece, parent, art, size, color, r, g, b, level)
 	end
 	local gold = size >= FORGED
 	local body = piece.add(Medals.Texture(host, "ARTWORK", -1, art, gold and "coinGold" or color, size))
+	local tint = body
 	if gold then
 		piece.add(Medals.Texture(host, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(HALO_LIT)
-		piece.add(Medals.Texture(host, "BACKGROUND", 1, "glow", color, size * HALO, "ADD")):SetAlpha(HALO_LIT)
+		tint = piece.add(Medals.Texture(host, "BACKGROUND", 1, "glow", color, size * HALO, "ADD"))
+		tint:SetAlpha(HALO_LIT)
 	elseif r then
 		body:SetVertexColor(r, g, b)
 	end
 	t:SetAlpha(gold and SHEEN or SHEEN_SMALL)
-	return t, host ~= parent and host or t
+	return t, host ~= parent and host or t, tint, gold
 end
 
 function Medals.Layer(holder, level)
