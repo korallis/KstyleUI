@@ -57,21 +57,18 @@ end
 
 local function Unrailed(families)
 	local choices = {}
-	for mask = 2 ^ #families - 1, 1, -1 do
-		local kept, spells = {}, {}
+	local spells = {}
+	for _, family in ipairs(families) do
+		for _, id in ipairs(family.spells) do spells[#spells + 1] = id end
+	end
+	for mask = 2 ^ #families - 1, 0, -1 do
+		local bare = {}
 		for i, family in ipairs(families) do
-			if math.floor(mask / 2 ^ (i - 1)) % 2 == 1 then
-				kept[#kept + 1] = family
-				for _, id in ipairs(family.spells) do spells[#spells + 1] = id end
-			end
+			bare[family] = math.floor(mask / 2 ^ (i - 1)) % 2 == 0 or nil
 		end
-		choices[#choices + 1] = { families = kept, known = function()
+		choices[#choices + 1] = { bare = bare, known = function()
 			for _, family in ipairs(families) do
-				local held = ns.SlabRail.Holds(family.spells)
-				for _, own in ipairs(kept) do
-					if own == family then held = not held end
-				end
-				if not held then return nil end
+				if ns.SlabRail.Holds(family.spells) ~= (bare[family] == true) then return nil end
 			end
 			return Medals.Known(spells)
 		end }

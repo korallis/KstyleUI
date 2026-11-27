@@ -542,9 +542,15 @@ for _, name in ipairs({
 	TEXTURES[name].forged = true
 end
 TEXTURES.auraSocket = { file = "Textures\\Auras\\Socket.png" }
-for _, name in ipairs({ "Aimed", "Charm", "Deflect", "FireTrap", "Intimidate", "Paw", "Sniper", "Strider", "Volley" }) do
-	TEXTURES["railAura" .. name] = { file = "Textures\\Medallions\\Rail\\Aura" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
-end
+TEXTURES.railAuraAimed = { file = "Textures\\Medallions\\Rail\\AuraAimed.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraCharm = { file = "Textures\\Medallions\\Rail\\AuraCharm.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraDeflect = { file = "Textures\\Medallions\\Rail\\AuraDeflect.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraFireTrap = { file = "Textures\\Medallions\\Rail\\AuraFireTrap.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraIntimidate = { file = "Textures\\Medallions\\Rail\\AuraIntimidate.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraPaw = { file = "Textures\\Medallions\\Rail\\AuraPaw.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraSniper = { file = "Textures\\Medallions\\Rail\\AuraSniper.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraStrider = { file = "Textures\\Medallions\\Rail\\AuraStrider.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.railAuraVolley = { file = "Textures\\Medallions\\Rail\\AuraVolley.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do

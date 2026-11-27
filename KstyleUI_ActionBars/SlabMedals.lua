@@ -773,7 +773,9 @@ function Medals.CooldownRim(parent, spec, level, form)
 			Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		end
 		for k, family in ipairs(each.families) do
-			Sigil(r, lit, "sigil" .. k, family, spec.color, size, spec.bloom)
+			if row or not (spec.bare and spec.bare[family]) then
+				Sigil(r, lit, "sigil" .. k, family, spec.color, size, spec.bloom)
+			end
 		end
 	end
 	r.timer = r.lit.timer

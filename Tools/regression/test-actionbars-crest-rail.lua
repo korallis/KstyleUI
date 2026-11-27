@@ -51,8 +51,9 @@ end
 
 local function Hunter(row)
 	local own = {}
-	for _, family in ipairs(row.spec.families) do
-		if family.sigil == "Volley" or family.sigil == "Deflect" or family.sigil == "Paw" then own[#own + 1] = family.sigil end
+	for _, button in ipairs(row.sigils) do
+		local sigil = button.family.sigil
+		if sigil == "Volley" or sigil == "Deflect" or sigil == "Paw" then own[#own + 1] = sigil end
 	end
 	return table.concat(own, ",")
 end
@@ -214,7 +215,8 @@ end
 do
 	local env, K, ns = New("HUNTER", { known = BM, trinket = true })
 	assert(not Seated(ns, "crestTrinkets") and Rail(ns).made.trinket:IsShown(), "the trinket stands on the rail, not beside the crest")
-	assert(not Seated(ns, "crestCooldowns"), "the rail holds Rapid Fire and Bestial Wrath, so the cooldown row has nothing left")
+	local held = Seated(ns, "crestCooldowns")
+	assert(held and Hunter(held) == "Deflect", "the rail holds Rapid Fire and Bestial Wrath, so the cooldown row keeps their slots for Unleashed and draws only the sigil it does not seat")
 	K.Options.Write("ActionBars", "crestRail", false)
 	local row = Seated(ns, "crestCooldowns")
 	assert(not Rail(ns) and Seated(ns, "crestTrinkets") and row and Hunter(row) == "Volley,Deflect,Paw", "switched off, the cooldown row and the crest trinket come back")
