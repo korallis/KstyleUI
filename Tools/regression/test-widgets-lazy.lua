@@ -318,9 +318,11 @@ do
 	-- Each seated bloom (an Aspect, Trueshot or a Sting head) then draws a copy of its socket body on its flame copy, so the socket that grows
 	-- is hidden with the light when a newer flare masks it under hidden values: one texture per lit seat, built with the copy because the
 	-- engine's copies refuse new regions while auras are secret. The lit hunter's three take it to the measured 5,184.
+	-- The mage's power orb (its vessel, light, core, meniscus and glass, the cooldown's timer and flare, and a fire and a still for each
+	-- of its tree's procs) takes the tree's great cooldown from the rail and the cooldown row: 5,021.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5184, MAGE = 5024, WARLOCK = 5254 }) do
+	for class, limit in pairs({ PRIEST = 4942, DRUID = 5280, SHAMAN = 4919, HUNTER = 5184, MAGE = 5021, WARLOCK = 5254 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")

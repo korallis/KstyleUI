@@ -42,14 +42,19 @@ function Orb.Held()
 	return Orb.held
 end
 
+function Orb.Expected()
+	return not Orb.missed and Orb.Want() or nil
+end
+
 function Orb.Commit()
 	if Medals.Locked() then
 		return false
 	end
-	local p = Orb.piece
-	local held = p and p:IsShown() and p.school == Orb.School() and Orb.Want() or nil
-	local changed = held ~= Orb.held
-	Orb.held = held
+	local p, want = Orb.piece, Orb.Want()
+	local held = p and p:IsShown() and p.school == Orb.School() and want or nil
+	local missed = want ~= nil and held == nil
+	local changed = held ~= Orb.held or missed ~= (Orb.missed == true)
+	Orb.held, Orb.missed = held, missed
 	return changed
 end
 

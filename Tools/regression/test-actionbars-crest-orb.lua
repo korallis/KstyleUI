@@ -12,7 +12,10 @@ end
 
 local function Seats(ns)
 	local keys = {}
-	for i, at in ipairs(Seated(ns, "crestRail") and ns.SlabRail.picked or {}) do keys[i] = at.key end
+	local rail = Seated(ns, "crestRail")
+	for _, seat in ipairs(rail and rail.order or {}) do
+		if seat:IsShown() then keys[#keys + 1] = seat.key end
+	end
 	return "," .. table.concat(keys, ",") .. ","
 end
 
@@ -141,9 +144,18 @@ do
 	env.SetTarget(true)
 	env.RunTimers()
 	local orb = Seated(ns, "crestOrb")
-	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = true } end
+	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = true, activeCategory = 133 } end
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(orb.ready:IsShown() and not orb.spent:IsShown(), "the global cooldown alone leaves the orb full")
+	-- Outside the event isOnGCD means nothing (SpellSharedDocumentation.lua), so a rebuild tells the global cooldown by its
+	-- recovery category and keeps the orb full.
+	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = false, activeCategory = 133 } end
+	K.Options.Write("ActionBars", "crestOrb", false)
+	env.RunTimers()
+	K.Options.Write("ActionBars", "crestOrb", true)
+	env.RunTimers()
+	orb = Seated(ns, "crestOrb")
+	assert(orb.ready:IsShown() and not orb.spent:IsShown(), "rebuilt during the global cooldown alone, the orb stays full")
 	Clean(env, K)
 end
 
@@ -188,6 +200,10 @@ for _, case in ipairs({
 	end
 	if case.rime then
 		assert(#orb.procs[case.rime].fires == 2, "Fingers of Frost has two charges")
+		for _, count in ipairs({ 1, 2, 1 }) do
+			Up(env, 400670, count)
+			assert(Heat(orb, orb.procs[case.rime]) == count, count .. " Fingers of Frost charges light " .. count .. " rimes, not " .. Heat(orb, orb.procs[case.rime]))
+		end
 	end
 	Up(env, nil)
 	assert(Lit(orb) == none, case.school .. ": the procs fade when their buffs drop")
@@ -215,12 +231,15 @@ do
 	env.SetTarget(true)
 	env.RunTimers()
 	Up(env, 400589)
+	local orb = Seated(ns, "crestOrb")
 	env._aurasSecret = true
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	-- The addon may not read inside the engine's aura slots while auras are secret, so the engine's own view says what shows.
+	assert(Slots.Engine(env, Lit, orb) == "01", "as auras go secret the Missile Barrage already up stays lit (" .. Slots.Engine(env, Lit, orb) .. ")")
 	Cooling(env, 12042)
 	Up(env, 12536)
-	local orb = Seated(ns, "crestOrb")
-	assert(orb and orb.spent:IsShown(), "while auras are secret the cooldown still empties the orb")
+	assert(Slots.Engine(env, Lit, orb) == "10", "during the freeze the engine swaps in the Clearcasting that rose and drops the Barrage (" .. Slots.Engine(env, Lit, orb) .. ")")
+	assert(Seated(ns, "crestOrb") == orb and orb.spent:IsShown(), "while auras are secret the orb stays and the cooldown still empties it")
 	env._aurasSecret = false
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
 	env.RunTimers()

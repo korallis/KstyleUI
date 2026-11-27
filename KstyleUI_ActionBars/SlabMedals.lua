@@ -1373,19 +1373,35 @@ function Medals.Rest()
 	end
 end
 
+function Medals.Spent(cd, fresh)
+	local active = type(cd) == "table" and cd.isActive
+	if IsSecret(active) then
+		return nil
+	elseif active ~= true then
+		return false
+	end
+	local consts = Constants and Constants.SpellCooldownConsts
+	local gcd, global = cd.isOnGCD, consts and consts.GLOBAL_RECOVERY_CATEGORY
+	if not fresh then
+		gcd = cd.activeCategory
+		if IsSecret(gcd) then
+			return nil
+		end
+		gcd = type(global) == "number" and gcd == global
+	end
+	if IsSecret(gcd) then
+		return nil
+	end
+	return gcd ~= true
+end
+
 local function Cooling(m, id, event)
 	m.cooling = m.cooling or {}
-	local fresh = event == "SPELL_UPDATE_COOLDOWN"
-	if fresh or event == nil or m.cooling[id] == nil then
+	if event == "SPELL_UPDATE_COOLDOWN" or event == nil or m.cooling[id] == nil then
 		local get = C_Spell and C_Spell.GetSpellCooldown
-		local cd = type(get) == "function" and get(id)
-		local active = type(cd) == "table" and cd.isActive
-		if IsSecret(active) then
-			return m.cooling[id] == true
-		elseif not fresh or active ~= true then
-			m.cooling[id] = active == true
-		elseif not IsSecret(cd.isOnGCD) then
-			m.cooling[id] = cd.isOnGCD ~= true
+		local spent = Medals.Spent(type(get) == "function" and get(id), event == "SPELL_UPDATE_COOLDOWN")
+		if spent ~= nil then
+			m.cooling[id] = spent
 		end
 	end
 	return m.cooling[id] == true
