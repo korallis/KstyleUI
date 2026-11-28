@@ -798,6 +798,9 @@ end
 
 local function Rule()
 	state.ruling = false
+	if type(RegisterStateDriver) ~= "function" or type(UnregisterStateDriver) ~= "function" then
+		return
+	end
 	local gate = Slab.Gate()
 	local driver = state.split and K.Layout.Rules.Driver(K.Layout.Get(CREST_KEY).shown) or nil
 	if driver == state.driver then
