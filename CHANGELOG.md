@@ -1,6 +1,6 @@
 # KstyleUI changelog
 
-## v0.3.5.4 (2026-11-27)
+## v0.3.5.4 (2026-11-28)
 
 A hotfix for ultrawide screens and the HUD width: cooldown viewers placed by a setup from before v0.3.5.3 move with the HUD again, while viewers you move yourself still stay put when the UI Scale changes.
 

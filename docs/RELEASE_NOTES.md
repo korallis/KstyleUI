@@ -2,7 +2,7 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The release workflow hands the packager the tagged version's section of that file, so CurseForge, Wago and the GitHub release each show that version's notes; the zip carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes, and after the `nightly` workflow, started by hand on `staging` with `commit` set to the full id of the commit to be tagged, passes on that commit. `bash scripts/gate.sh release` on that commit stands in only when GitHub cannot run `nightly` ([`DEVELOPING.md`](DEVELOPING.md), Releases and testing).
 
-## 0.3.5.4: older cooldown viewers follow the HUD again (2026-11-27)
+## 0.3.5.4: older cooldown viewers follow the HUD again (2026-11-28)
 
 v0.3.5.3 keeps a cooldown viewer you moved yourself in place when the game's UI Scale changes. It also kept viewers in place when you changed the HUD width, or switched an ultrawide screen between Centred and Spread, because it read the HUD's new size as a UI Scale change. A setup from before v0.3.5.3 left no record of where it put the viewers, so on those layouts the viewers stayed behind while the HUD moved. Now only a change of the game's UI Scale or of KstyleUI's Interface size (Follow the game's UI scale, Auto or the size slider) keeps unrecorded viewers in place. A HUD width or arrangement change moves them with the HUD again, as in v0.3.5.2.
 
