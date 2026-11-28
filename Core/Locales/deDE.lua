@@ -1525,6 +1525,7 @@ ns.Locale.Add({
 	["Fill the rest"] = "Rest f\195\188llen",
 	["Fill up"] = "Auff\195\188llen",
 	["Filled tile"] = "Gef\195\188llte Kachel",
+	["Fills as your great cooldown returns or with Expose Prey's window, and lights your procs inside."] = "F\195\188llt sich, w\195\164hrend deine gro\195\159e Abklingzeit zur\195\188ckkehrt oder mit dem Fenster von Beute entlarven, und l\195\164sst deine Procs darin aufleuchten.",
 	["Fills from right to left, or from top to bottom."] = "F\195\188llt von rechts nach links oder von oben nach unten.",
 	["Fills the bar from the other end."] = "F\195\188llt die Leiste vom anderen Ende.",
 	["Fills the bar from the right, or from the top when it is vertical."] = "F\195\188llt die Leiste von rechts oder, wenn sie senkrecht ist, von oben.",

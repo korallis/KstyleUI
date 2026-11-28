@@ -1,4 +1,4 @@
--- test-actionbars-crest-orb.lua: the mage's power orb (KstyleUI_ActionBars/SlabOrb.lua) and the mage's rail (SlabRail.lua). The owner asked for the mage's crest to become a power orb tied to the spell effects, unique for each race and class, clearly showing procs and cooldowns without the Cooldown Manager; the orb plan and the owner's settings ask that the light is each tree's school colour and fills as the tree's great cooldown (Arcane Power, Combustion, Cold Snap, else Ice Block) returns, that the vessel is the player's race, that Clearcasting and Missile Barrage, and on their own trees Heating Up (a third of the rim per stack) and Fingers of Frost (a rime per charge), light inside it while Clearcasting keeps its own ring, and that the rail stands the other cooldowns and racials the owner named. The orb steps aside under Frames or when switched off, secret auras raise no error, and nothing runs OnUpdate.
+-- test-actionbars-crest-orb.lua: the mage's power orb (KstyleUI_ActionBars/SlabOrb.lua) and the mage's rail (SlabRail.lua). The owner asked for the mage's crest to become a power orb tied to the spell effects, unique for each race and class, clearly showing procs and cooldowns without the Cooldown Manager; the orb plan and the owner's settings ask that the light is each tree's school colour and fills as the tree's great cooldown (Arcane Power, Combustion, Cold Snap, else Ice Block) returns, that the vessel is the player's race, that Clearcasting and Missile Barrage, and on their own trees Heating Up (a third of the rim per stack) and Fingers of Frost (a rime per charge), light inside it while Clearcasting keeps its own ring, and that the rail stands the other cooldowns and racials the owner named. The orb steps aside under Frames or when switched off, secret auras raise no error, and nothing runs OnUpdate. The orb plan's first piece gives the hunter its own centrepiece in the same opening, a winged bow over wind in the tree's colour: the wind fills as Bestial Wrath or Rapid Fire returns, and on Survival with Expose Prey's window, Rapid Killing lights inside it on Marksmanship, the Shot timer, range ring and Hunter's Mark stay over it, and the Dwarf, Night Elf and Tauren take vessels of their own.
 local R = dofile("Tools/regression/ranged_env.lua")
 local AB, Slots, New, Seated, Piece, Updating, Clean = R.AB, R.Slots, R.New, R.Seated, R.Piece, R.Updating, R.Clean
 local Scene = dofile("Tools/render/scene.lua")
@@ -75,7 +75,7 @@ for _, case in ipairs({
 	{ known = ARCANE, race = "Human", spell = 12042, school = "Arcane", vessel = "Human", gone = "power", seats = { "presence", "evocation", "blink", "nova", "blast" } },
 	{ known = FIRE, race = "Orc", spell = 11129, school = "Fire", vessel = "Orc", gone = "combustion", seats = { "blastWave", "blast", "bloodFury" } },
 	{ known = FROST, race = "Scourge", spell = 12472, school = "Frost", vessel = "Scourge", gone = "snap", seats = { "block", "barrier", "forsaken" } },
-	{ known = { 168, 116, 11426, 11958, 1953 }, race = "NightElf", spell = 11958, school = "Frost", vessel = "Human", gone = "block", seats = { "barrier", "blink" } },
+	{ known = { 168, 116, 11426, 11958, 1953 }, race = "NightElf", spell = 11958, school = "Frost", vessel = "NightElf", gone = "block", seats = { "barrier", "blink" } },
 }) do
 	local env, K, ns = New("MAGE", { known = case.known, before = function(e) e.UnitRace = function() return case.race, case.race, 1 end; e.UnitSex = function() return 2 end end })
 	local orb = assert(Seated(ns, "crestOrb"), case.school .. ": a mage's crest shows the power orb")
@@ -440,6 +440,295 @@ do
 	local env, K, ns = New("MAGE", { known = ARCANE, before = function(_, K) K.Medallions.Identity = function() error("no race") end end })
 	assert(not Seated(ns, "crestOrb") and not ns.SlabOrb.Held(), "no orb shows, so none is held")
 	assert(Seats(ns):find(",power,", 1, true), "the rail keeps Arcane Power (" .. Seats(ns) .. ")")
+	Clean(env, K)
+end
+
+-- The hunter's bow: each tree's wind holds its own great cooldown, or Expose Prey's window on Survival, in the vessel of the
+-- player's race; the rail stands the rest.
+local BM = { 13165, 883, 75, 1130, 2643, 19574, 3045, 19577, 14305 }
+local MM = { 13165, 883, 75, 1130, 2643, 3045, 14305, 1310786, 20904 }
+local SV = { 13165, 883, 75, 1130, 2643, 3045, 19263, 14305, 1317257, 1310532 }
+
+local function Hunter(known, tree, race, opts)
+	opts = opts or {}
+	opts.known, opts.tree = known, tree
+	local before = opts.before
+	opts.before = function(e, K, ns)
+		e.UnitRace = function() return race or "Human", race or "Human", 1 end
+		e.UnitSex = function() return 2 end
+		if before then before(e, K, ns) end
+	end
+	return New("HUNTER", opts)
+end
+
+-- Over(orb) -> the bow drawn over the wind, or nil if the piece's overlay is some other sheet.
+local function Over(orb)
+	return orb.over and File(orb.over) == "Frame" and orb.over or nil
+end
+
+for _, case in ipairs({
+	{ known = BM, tree = 1, race = "Dwarf", spell = 19574, school = "Beast", gone = "wrath", seats = { "rapid", "intimidate", "trap" } },
+	{ known = MM, tree = 2, race = "NightElf", spell = 3045, school = "Marks", gone = "rapid", seats = { "trap", "sniper", "aimed" } },
+	{ known = SV, tree = 3, race = "Tauren", spell = 1310532, school = "Survival", window = true, seats = { "rapid", "deter", "trap", "strider" } },
+	{ known = { 13165, 883, 75, 3045, 19263, 14305, 1317257 }, tree = 3, race = "Orc", spell = 3045, school = "Survival", gone = "rapid", seats = { "deter", "trap", "strider" } },
+	{ known = { 13165, 883, 75 }, tree = 1, race = "Troll", spell = 75, school = "Beast", seats = {} },
+}) do
+	local env, K, ns = Hunter(case.known, case.tree, case.race)
+	local orb = assert(Seated(ns, "crestOrb"), case.school .. ": a hunter's crest shows the bow")
+	assert(orb.spec.spell == case.spell and orb.school == case.school, case.school .. ": the bow holds " .. case.spell .. ", not " .. tostring(orb.spec.spell))
+	assert(File(orb.fill) == "Light" .. case.school and File(orb.core) == "Core" .. case.school and File(orb.meniscus) == "Meniscus" .. case.school,
+		case.school .. ": the wind, the lit broadhead and the gust line are the tree's own (" .. tostring(File(orb.fill)) .. ")")
+	assert(tostring(orb.fill:GetTexture()):find("Medallions[\\/]Bow[\\/]"), case.school .. ": the wind is the bow's sheet, not the orb's")
+	assert(Vessel(orb) == "Vessel" .. case.race, case.race .. ": the vessel is the player's race, not " .. tostring(Vessel(orb)))
+	assert(not orb.glow and Over(orb), case.school .. ": the bow is drawn over the wind in place of the glass, with no ready glow")
+	assert((orb.window == true) == (case.window == true), case.school .. ": the bow follows a window only on Survival with Expose Prey")
+	assert(ns.SlabOrb.Held() == (not case.window and case.spell or nil), case.school .. ": the bow holds its cooldown from the rail (" .. tostring(ns.SlabOrb.Held()) .. ")")
+	local seats = Seats(ns)
+	assert(not case.gone or not seats:find("," .. case.gone .. ",", 1, true), case.school .. ": the rail leaves the bow's cooldown to the bow (" .. seats .. ")")
+	for _, key in ipairs(case.seats) do
+		assert(seats:find("," .. key .. ",", 1, true), case.school .. ": the rail stands " .. key .. " (" .. seats .. ")")
+	end
+	assert(Updating(orb) == 0, "nothing in the bow runs OnUpdate")
+	Clean(env, K)
+end
+
+-- Bestial Wrath spent empties the wind, which refills from the game's own timer, and its return flares the bow.
+do
+	local env, K, ns = Hunter(BM, 1)
+	env.SetTarget(true)
+	env.RunTimers()
+	local orb = Seated(ns, "crestOrb")
+	assert(orb.ready:IsShown() and not orb.spent:IsShown(), "Bestial Wrath ready: the wind is full and the broadhead lit")
+	Cooling(env, 19574, 120)
+	assert(not orb.ready:IsShown() and orb.spent:IsShown(), "spent: the broadhead goes dark and the gust line rides the wind")
+	assert(Timed(orb) == env._now + 120 and Due(env, orb) == env._now + 120, "the wind refills over Bestial Wrath's own two minutes")
+	orb.flare.play:Stop()
+	Elapse(env, orb, 121)
+	assert(orb.ready:IsShown() and orb.flare.play:IsPlaying(), "back: the wind is full again and the bow flares")
+	Clean(env, K)
+end
+
+-- Rapid Fire spent on Marksmanship empties the wind and refills over its five minutes; the global cooldown alone leaves it
+-- full, and a real return flares once, whether the cooldown event or the completion timer reads it over first.
+do
+	local env, K, ns = Hunter(MM, 2)
+	env.SetTarget(true)
+	env.RunTimers()
+	local orb = Seated(ns, "crestOrb")
+	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = true, activeCategory = 133 } end
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(orb.ready:IsShown() and not orb.spent:IsShown(), "the global cooldown alone leaves the Marksmanship wind full")
+	orb.flare.play:Stop()
+	Cooling(env, 3045, 300)
+	assert(orb.spent:IsShown() and not orb.ready:IsShown() and not orb.flare.play:IsPlaying(), "Rapid Fire spent: the wind empties with no flare")
+	assert(Timed(orb) == env._now + 300, "the wind refills over Rapid Fire's own five minutes")
+	env._now = env._now + 300
+	env.C_Spell.GetSpellCooldown = function() return { isActive = false, isOnGCD = false } end
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(orb.ready:IsShown() and orb.flare.play:IsPlaying(), "the event that reads Rapid Fire over flares the bow")
+	orb.flare.play:Stop()
+	orb.timer:GetScript("OnCooldownDone")(orb.timer)
+	assert(not orb.flare.play:IsPlaying(), "and the completion timer after it does not flare a second time")
+	Clean(env, K)
+end
+
+-- Quick Shots keeps its gust with the bow on, and Rapid Fire's buff joins the gust only while neither the bow nor the rail shows Rapid Fire.
+do
+	local function Gust(ns)
+		local gust = Seated(ns, "crestGust")
+		local has = {}
+		for _, id in ipairs(gust and gust.spec.spells or {}) do has[id] = true end
+		return gust ~= nil, has
+	end
+	for _, case in ipairs({ { MM, 2, "Marksmanship" }, { BM, 1, "Beast Mastery" } }) do
+		local known = { 19552 }
+		for _, id in ipairs(case[1]) do known[#known + 1] = id end
+		local env, K, ns = Hunter(known, case[2])
+		local shown, has = Gust(ns)
+		assert(shown and has[6150] and not has[3045], case[3] .. ": the bow on, Quick Shots keeps its gust and Rapid Fire's buff stays out of it")
+		K.Options.Write("ActionBars", "crestRail", false)
+		env.RunTimers()
+		shown, has = Gust(ns)
+		assert(shown and has[6150] and (has[3045] == true) == (case[2] == 1), case[3] .. ": with the rail off, Rapid Fire's buff joins the gust only where the bow does not hold it")
+		Clean(env, K)
+	end
+end
+
+-- With the bow on, Quick Shots and either Quick Strikes buff each light the gust, and it clears when the buff falls.
+do
+	local known = { 19552 }
+	for _, id in ipairs(MM) do known[#known + 1] = id end
+	local env, K, ns = Hunter(known, 2)
+	env.SetTarget(true)
+	local gust = Seated(ns, "crestGust")
+	assert(Seated(ns, "crestOrb") and gust and not gust.lit:IsShown(), "the bow on and no buff: the gust is dark")
+	for _, id in ipairs({ 6150, 1299448, 469144 }) do
+		Slots.Set(env, "player", { { id = id, auraInstanceID = 1, start = env._now, duration = 12 } })
+		assert(gust.lit:IsShown() and gust.lits[#gust.lits]:IsShown(), id .. " up lights the gust beside the bow")
+		Slots.Set(env, "player", nil)
+		assert(not gust.lit:IsShown(), id .. " gone clears the gust")
+	end
+	Clean(env, K)
+end
+
+-- Survival's wind is Expose Prey's window: it fills when the buff comes up and runs down with its time, and the gust line rides it.
+do
+	local env, K, ns = Hunter(SV, 3)
+	env.SetTarget(true)
+	env.RunTimers()
+	local orb = Seated(ns, "crestOrb")
+	assert(not orb.fill:IsVisible() and not orb.meniscus:IsVisible() and Over(orb):IsVisible(), "no window: the bow stands over empty glass")
+	Slots.Set(env, "player", { { id = 1310726, auraInstanceID = 1, start = env._now, duration = 10 } })
+	local finish, direction = Timed(orb)
+	assert(orb.fill:IsVisible() and orb.meniscus:IsVisible() and orb.core:IsVisible(), "Expose Prey up: the wind fills and the broadhead lights")
+	assert(finish == env._now + 10 and direction == env.Enum.StatusBarTimerDirection.RemainingTime, "the wind runs down with the window's own ten seconds")
+	Slots.Set(env, "player", nil)
+	assert(not orb.fill:IsVisible(), "the window closed: the wind is gone")
+	assert(Updating(orb) == 0, "nothing in the bow runs OnUpdate")
+	Clean(env, K)
+end
+
+-- Rapid Killing lights spectral arrows inside the Marksmanship bow only; Beast Mastery builds no proc art.
+do
+	local env, K, ns = Hunter(MM, 2)
+	env.SetTarget(true)
+	env.RunTimers()
+	local orb = Seated(ns, "crestOrb")
+	assert(#orb.procs == 1 and File(orb.procs[1].fires[1]) == "Rapid", "Marksmanship: the bow holds Rapid Killing")
+	assert(Lit(orb) == "0", "Rapid Killing down: no arrows")
+	Up(env, 415407)
+	assert(Lit(orb) == "1", "Rapid Killing up: the spectral arrows circle")
+	Up(env, nil)
+	assert(Lit(orb) == "0", "and fade when it drops")
+	Clean(env, K)
+	env, K, ns = Hunter(BM, 1)
+	assert(#Seated(ns, "crestOrb").procs == 0, "Beast Mastery: no proc art is built")
+	Clean(env, K)
+end
+
+-- The Shot timer, the range ring and Hunter's Mark stay drawn over the bow.
+do
+	local env, K, ns = Hunter(MM, 2)
+	env.SetTarget(true)
+	env.RunTimers()
+	local over = Over(Seated(ns, "crestOrb")):GetParent():GetFrameLevel()
+	for _, key in ipairs({ "crestShot", "crestRange", "crestMark" }) do
+		local piece = assert(Seated(ns, key), key .. " shows beside the bow")
+		assert(piece:GetFrameLevel() > over, key .. " is drawn over the bow (" .. piece:GetFrameLevel() .. " over " .. over .. ")")
+	end
+	Clean(env, K)
+end
+
+-- Aura data going secret mid-window raises no error and keeps the bow; the engine keeps drawing the window.
+do
+	local env, K, ns = Hunter(SV, 3)
+	env.SetTarget(true)
+	env.RunTimers()
+	local orb = Seated(ns, "crestOrb")
+	Slots.Set(env, "player", { { id = 1310726, auraInstanceID = 1, start = env._now, duration = 10 } })
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	assert(Slots.Engine(env, function(o) return o.fill:IsVisible() end, orb) == true, "as auras go secret the open window stays drawn")
+	Slots.Set(env, "player", nil)
+	assert(Seated(ns, "crestOrb") == orb, "while auras are secret the bow stays")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	env.RunTimers()
+	orb = Seated(ns, "crestOrb")
+	assert(orb and not orb.fill:IsVisible(), "after the restriction the closed window shows empty")
+	Clean(env, K)
+end
+
+-- Rim(ns) -> the cooldown row's arranged families by their first spell, in whichever form shows.
+local function Rim(ns)
+	local on = {}
+	for _, p in pairs(ns.SlabTrackers.state.form.pieces) do
+		for _, b in ipairs(p.spec and p.spec.key == "crestCooldowns" and p.sigils or {}) do
+			if b.at then on[b.family.spells[1]] = true end
+		end
+	end
+	return on
+end
+
+-- With the rail off the cooldown row stands what the bow does not hold, and takes Bestial Wrath back when the bow is switched off.
+do
+	local env, K, ns = Hunter(BM, 1, nil, { before = function(_, K) K.Options.Write("ActionBars", "crestRail", false) end })
+	local rim = Rim(ns)
+	assert(Seated(ns, "crestOrb") and rim[3045] and not rim[19574], "rail off: Rapid Fire stands on the cooldown row and the bow keeps Bestial Wrath")
+	K.Options.Write("ActionBars", "crestOrb", false)
+	env.RunTimers()
+	rim = Rim(ns)
+	assert(not Seated(ns, "crestOrb") and rim[3045] and rim[19574], "bow off too: Bestial Wrath goes back to the cooldown row")
+	Clean(env, K)
+end
+
+-- Changing the style to Frames with the bow still switched on takes the bow away and the row stands Bestial Wrath and Rapid Fire.
+do
+	local env, K, ns = Hunter(BM, 1, nil, { before = function(_, K) K.Options.Write("ActionBars", "crestRail", false) end })
+	assert(Seated(ns, "crestOrb") and not Rim(ns)[19574], "Medallions: the bow holds Bestial Wrath")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	local rim = Rim(ns)
+	assert(K.Options.Read("ActionBars", "crestOrb") ~= false and not Seated(ns, "crestOrb") and rim[19574] and rim[3045], "changed to Frames: the bow leaves and the row's cooldowns take Bestial Wrath and Rapid Fire")
+	Clean(env, K)
+end
+
+-- Switching the bow off or on while the game holds the crest still keeps one owner: the bow stays as it was until the
+-- restriction lifts, then hands Rapid Fire to the rail, or takes it back, in one step.
+do
+	local env, K, ns = Hunter(MM, 2)
+	local orb = Seated(ns, "crestOrb")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	K.Options.Write("ActionBars", "crestOrb", false)
+	env.RunTimers()
+	assert(Seated(ns, "crestOrb") == orb and not Seats(ns):find(",rapid,", 1, true) and not Rim(ns)[3045], "switched off while restricted, the bow keeps Rapid Fire")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	env.RunTimers()
+	assert(not Seated(ns, "crestOrb") and Seats(ns):find(",rapid,", 1, true), "the restriction lifted, Rapid Fire stands on the rail (" .. Seats(ns) .. ")")
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	K.Options.Write("ActionBars", "crestOrb", true)
+	env.RunTimers()
+	assert(not Seated(ns, "crestOrb") and Seats(ns):find(",rapid,", 1, true), "switched on while restricted, the rail keeps Rapid Fire and no bow shows beside it")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	env.RunTimers()
+	assert(Seated(ns, "crestOrb") and not Seats(ns):find(",rapid,", 1, true), "the restriction lifted, the bow takes Rapid Fire back")
+	Clean(env, K)
+end
+
+-- Survival's bow holds no cooldown, yet switched off mid-window while the game holds the crest it stays, window and all,
+-- until the restriction lifts.
+do
+	local env, K, ns = Hunter(SV, 3)
+	env.SetTarget(true)
+	env.RunTimers()
+	local orb = Seated(ns, "crestOrb")
+	Slots.Set(env, "player", { { id = 1310726, auraInstanceID = 1, start = env._now, duration = 10 } })
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	K.Options.Write("ActionBars", "crestOrb", false)
+	env.RunTimers()
+	assert(orb and Seated(ns, "crestOrb") == orb and Slots.Engine(env, function(o) return o.fill:IsVisible() end, orb) == true, "switched off mid-window while restricted, the bow and its window stay")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	env.RunTimers()
+	assert(not Seated(ns, "crestOrb"), "the restriction lifted, the bow goes")
+	Clean(env, K)
+end
+
+-- Switched off, or under Frames, the bow steps aside and Bestial Wrath goes back to the rail.
+do
+	local env, K, ns = Hunter(BM, 1, nil, { before = function(_, K) K.Options.Write("ActionBars", "crestOrb", false) end })
+	assert(not Seated(ns, "crestOrb") and Seats(ns):find(",wrath,", 1, true), "switched off, no bow shows and Bestial Wrath stands on the rail (" .. Seats(ns) .. ")")
+	K.Options.Write("ActionBars", "crestOrb", true)
+	env.RunTimers()
+	assert(Seated(ns, "crestOrb") and not Seats(ns):find(",wrath,", 1, true), "switched back on, the bow takes Bestial Wrath")
+	Clean(env, K)
+	env, K, ns = Hunter(BM, 1, nil, { frames = true })
+	assert(not Seated(ns, "crestOrb") and not ns.SlabOrb.Held(), "the Frames form has no crest, so no bow")
 	Clean(env, K)
 end
 

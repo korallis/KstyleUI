@@ -1,12 +1,13 @@
-"""orb.py: Blender 5.3, headless. Design render of the mage power orb that replaces the crest hub's painted crest.
+"""orb.py: Blender 5.3, headless. Design render of the power orb that replaces the crest hub's painted crest.
 
-One orb per race: the class lives inside (an arcane crystal star in its orbit rings, wrapped in swirling mage light),
-the race is the vessel round it. The orb's light is the signature cooldown's charge: full is ready, spent it drains and
-rises again as the cooldown recovers. A proc floods it with its school's own effect.
+One centrepiece per class, one vessel per race round it. The mage's is a glass orb (an arcane crystal star in its orbit
+rings, wrapped in swirling mage light); the hunter's (--klass hunter) is a winged spirit bow, drawn and nocked, with the
+tree's wind rising behind it. The light is the signature cooldown's charge: full is ready, spent it drains and rises again
+as the cooldown recovers. A proc floods it with its school's own effect.
 
-    blender -b --factory-startup --python-exit-code 1 --python orb.py -- RACE OUT --repo REPO
-        [--story race|procs] [--build arcane|fire|frost] [--proc clearcasting|missile|heating|fingers]
-        [--frames a:b|n,n] [--size 720] [--samples 24]
+    blender -b --factory-startup --python-exit-code 1 --python orb.py -- RACE OUT --repo REPO [--klass mage|hunter]
+        [--story race|procs] [--school arcane|fire|frost|beast|marks|survival]
+        [--proc clearcasting|missile|heating|fingers|rapid] [--frames a:b|n,n] [--size 720] [--samples 24]
 """
 import argparse
 import math
@@ -24,6 +25,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("race")
 ap.add_argument("out")
 ap.add_argument("--repo", required=True)
+ap.add_argument("--klass", default="mage", choices=("mage", "hunter"))
 ap.add_argument("--story", default="race")
 ap.add_argument("--proc", default="clearcasting")
 ap.add_argument("--frames", default="")
@@ -33,12 +35,13 @@ ap.add_argument("--scale", type=float, default=2.9, help="ortho scale: the frame
 ap.add_argument("--noring", action="store_true", help="the orb alone on black, for the bake")
 ap.add_argument("--save", default="")
 ap.add_argument("--school", default="", help="arcane, fire or frost: light the orb in that tree's school colour")
-ap.add_argument("--layer", default="", help="bake one in-game layer: " + ", ".join(sorted(["vessel", "light", "glass", "core", "meniscus", "clear", "barrage", "heat", "rime1", "rime2"])))
+ap.add_argument("--layer", default="", help="bake one in-game layer: " + ", ".join(sorted(["vessel", "light", "glass", "core", "meniscus", "clear", "barrage", "heat", "rime1", "rime2", "bow", "rapid"])))
 ap.add_argument("--re", type=float, default=0.0, help="the glass's radius in opening radii, over the race's own")
 ap.add_argument("--cells", type=int, default=16, help="frames in a layer's loop")
 ap.add_argument("--seconds", type=float, default=1.6, help="a layer loop's length")
 args = ap.parse_args(argv)
 RACE = args.race
+KLASS = args.klass
 REPO = Path(args.repo)
 OUT = Path(args.out)
 OUT.mkdir(parents=True, exist_ok=True)
@@ -56,7 +59,8 @@ def srgb(hexv):
     return tuple(lin(int(hexv[i:i + 2], 16) / 255.0) for i in (0, 2, 4)) + (1.0,)
 
 
-MAGE = "3fc7eb"      # the mage's class colour (Core/Appearance.lua)
+# the class colour the preview's hub wears: the mage's (Core/Appearance.lua) or the hunter's jewelHawk (Core/Tokens.lua)
+MAGE = {"mage": "3fc7eb", "hunter": "aad372"}[args.klass]
 ARCANE = "e07bff"    # schoolArcane (Core/Tokens.lua)
 FIRE = "ff7a1a"
 FROST = "6fd6ff"     # schoolFrost
@@ -75,18 +79,31 @@ RACES = {
                   twist=2.6, scale=2.5, rim="8ff7e8", deep="041012"),
     "skyborne": dict(re=0.74, ramp=["000000", "081428", "2c6aa8", "7fd8f5", "e6faff", "ffffff"], accent="ffffff",
                      twist=3.4, scale=2.1, rim="e6f6ff", deep="08101c"),
+    # the three vessels the hunter brought (KSTY-166 piece 1); their ramps only light a mage's glass
+    "dwarf": dict(re=0.74, ramp=["000000", "04102e", "0d3f86", MAGE, "b4f0ff", "ffffff"], accent="ffd08a",
+                  twist=2.0, scale=2.4, rim="ffe0b0", deep="0e0a06"),
+    "nightelf": dict(re=0.76, ramp=["000000", "04102e", "0d3f86", MAGE, "b4f0ff", "ffffff"], accent="e6dcff",
+                     twist=2.6, scale=2.3, rim="d8d0ff", deep="0a0814"),
+    "tauren": dict(re=0.72, ramp=["000000", "04102e", "0d3f86", MAGE, "b4f0ff", "ffffff"], accent="ffe6b8",
+                   twist=2.2, scale=2.5, rim="ffe8c8", deep="0e0806"),
 }
 R = dict(RACES[RACE])
 # the light in each tree's school colour (Core/Tokens.lua schoolArcane, schoolFire, schoolFrost); the race keeps its vessel,
 # its swirl and its accent
 SCHOOLS = {"arcane": (ARCANE, ["000000", "160428", "4a1a8a", ARCANE, "f2d6ff", "ffffff"], "f3dca4"),
            "fire": (FIRE, ["000000", "260600", "8a2604", FIRE, "ffd890", "fffbf0"], "ffd060"),
-           "frost": (FROST, ["000000", "021a2e", "0b5a80", FROST, "d6f8ff", "ffffff"], "e6fbff")}
+           "frost": (FROST, ["000000", "021a2e", "0b5a80", FROST, "d6f8ff", "ffffff"], "e6fbff"),
+           # the hunter's three trees' wind: Beast Mastery in schoolFire, Marksmanship in schoolFrost, Survival in schoolNature
+           # (Core/Tokens.lua); the accent tints the leaves that ride the wind
+           "beast": ("ff8a3d", ["000000", "1a0a02", "6b2a08", "ff8a3d", "ffd4a8", "ffffff"], "ffd4a8"),
+           "marks": ("6fd6ff", ["000000", "02141c", "0b4a66", "6fd6ff", "c8f2ff", "ffffff"], "e6fbff"),
+           "survival": ("6fdc5a", ["000000", "06160a", "1e5a1a", "6fdc5a", "cff4c4", "ffffff"], "e8ffd8")}
 LIGHT = MAGE
 if args.school:
     LIGHT, R["ramp"], R["accent"] = SCHOOLS[args.school]
 if args.re:
     R["re"] = args.re
+SCHOOL["rapid"] = LIGHT
 RE = R["re"]
 
 
@@ -107,6 +124,7 @@ CHARGE = dict(BASE, level=0.04, power=0.58, speed=0.10, star=0.22, sharp=5.0, ac
 READY = dict(BASE, power=0.64, speed=0.13, star=1.3, sharp=5.5, accent=0.45, glyph=0.6, spin=0.05, light=1.0, rays=0.22, arcs=0.05)
 PROC_BASE = dict(READY, power=0.68, speed=0.30, star=1.6, sharp=7.0, accent=0.8, glyph=1.0, spin=0.3, light=1.4, rays=0.55, arcs=0.6)
 PROCS = {
+    "rapid": dict(PROC_BASE, bolts=1.0),  # the hunter's Rapid Killing: spectral arrows streaking round inside the wind
     "clearcasting": dict(PROC_BASE, clear=1.0),
     "missile": dict(PROC_BASE, bolts=1.0, clear=0.25),
     "heat1": dict(PROC_BASE, power=0.6, fire=0.95, fh=0.36, arcs=0.15, rays=0.25, speed=0.18, star=1.3),
@@ -1053,10 +1071,350 @@ def vessel_skyborne():
     s.location = (0, 0.86, 0.14)
 
 
+# ----------------------------------------------------------------------------------------------- flat shapes
+def _ccw(pts):
+    a = sum(pts[i][0] * pts[(i + 1) % len(pts)][1] - pts[(i + 1) % len(pts)][0] * pts[i][1] for i in range(len(pts)))
+    return pts if a > 0 else list(reversed(pts))
+
+
+def prism(bm, pts, depth, xf=None, z=0.0):
+    xf = xf or Matrix.Identity(4)
+    pts = _ccw(pts)
+    front = [bm.verts.new(xf @ Vector((x, y, z + depth / 2))) for x, y in pts]
+    back = [bm.verts.new(xf @ Vector((x, y, z - depth / 2))) for x, y in pts]
+    bm.faces.new(front)
+    bm.faces.new(list(reversed(back)))
+    n = len(pts)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((front[i], back[i], back[j], front[j]))
+
+
+def strip(path, widths):
+    """A polyline with a width per point, as a polygon."""
+    if not isinstance(widths, (list, tuple)):
+        widths = [widths] * len(path)
+    left, right = [], []
+    for i, (x, y) in enumerate(path):
+        a = path[max(0, i - 1)]
+        b = path[min(len(path) - 1, i + 1)]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        ln = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / ln, dx / ln
+        w = widths[i] / 2
+        left.append((x + nx * w, y + ny * w))
+        right.append((x - nx * w, y - ny * w))
+    return left + list(reversed(right))
+
+
+def arcpath(cx, cy, r, a0, a1, n=24):
+    return [(cx + r * math.cos(math.radians(a0 + (a1 - a0) * i / (n - 1))), cy + r * math.sin(math.radians(a0 + (a1 - a0) * i / (n - 1)))) for i in range(n)]
+
+
+def taper(n, w, ends=0.0):
+    return [w * (ends + (1 - ends) * math.sin(math.pi * i / (n - 1))) for i in range(n)]
+
+
+def hexring(bm, r_in, r_hex, segs=96):
+    inn, out = [], []
+    for i in range(segs):
+        th = 2 * math.pi * i / segs
+        d = math.degrees(th - math.pi / 2) % 60 - 30
+        rh = r_hex * math.cos(math.radians(30)) / math.cos(math.radians(d))
+        inn.append(bm.verts.new((r_in * math.cos(th), r_in * math.sin(th), 0)))
+        out.append(bm.verts.new((rh * math.cos(th), rh * math.sin(th), 0)))
+    for i in range(segs):
+        j = (i + 1) % segs
+        bm.faces.new((inn[i], out[i], out[j], inn[j]))
+
+
+def vessel_dwarf():
+    stone = metal("Stone", "6f6b66", 0.85, metallic=0.0, noise=0.12)
+    bronze = metal("Bronze", "c08a40", 0.3, noise=0.1)
+    ruby = metal("Ruby", "c01818", 0.08, metallic=0.0, emit=("ff3020", 0.5))
+    snow = metal("Snow", "f2f5f8", 0.6, metallic=0.0)
+    rock = metal("Rock", "8a8680", 0.8, metallic=0.0, noise=0.1)
+    solid(mesh_obj("HexStone", lambda bm: hexring(bm, 0.8, 1.0), stone, smooth=False), 0.09)
+    torus("BronzeLip", 0.8, 0.022, bronze, rsegs=12, loc=(0, 0, 0.04))
+    for k, ph in enumerate((0.0, math.pi)):
+        pts = []
+        for i in range(120):
+            th = 2 * math.pi * i / 120
+            r = 0.87 + 0.022 * math.cos(14 * th + ph)
+            pts.append((r * math.cos(th), r * math.sin(th), 0.07 + 0.02 * math.sin(14 * th + ph)))
+        tube(f"Braid{k}", pts, bronze, bevel=0.014, res=4, closed=True)
+    for i in range(1, 6):
+        a = math.radians(90 + 60 * i)
+        ico(f"Ruby{i}", 0.042, ruby, loc=(0.93 * math.cos(a), 0.93 * math.sin(a), 0.08), sub=1, smooth=False)
+    for x, h, r in ((-0.13, 0.15, 0.1), (0.13, 0.13, 0.09), (0.0, 0.22, 0.13)):
+        cone(f"Peak{x}", r, 0.0, h, rock, segs=6, loc=(x, 0.9, 0.1), direction=(0, 1, 0.15), smooth=False)
+        cone(f"Snow{x}", r * 0.38, 0.0, h * 0.38, snow, segs=6, loc=(x, 0.9 + h * 0.62, 0.1 + h * 0.09), direction=(0, 1, 0.15), smooth=False)
+
+
+def leafmesh(bm, length, width, xf):
+    pts = []
+    for i in range(13):
+        u = i / 12
+        pts.append((width * math.sin(math.pi * u) * (1 - 0.3 * u), length * u))
+    for i in range(11, 0, -1):
+        u = i / 12
+        pts.append((-width * math.sin(math.pi * u) * (1 - 0.3 * u), length * u))
+    prism(bm, pts, 0.012, xf)
+
+
+def vessel_nightelf():
+    silver = metal("MoonSilver", "d8dcf0", 0.2, noise=0.05)
+    amethyst = metal("Amethyst", "7a3ad0", 0.08, metallic=0.0, emit=("9a5aff", 0.6))
+    leafm = metal("SilverLeaf", "c4cae0", 0.3, metallic=0.7)
+    moon = metal("Moon", "f4f0ff", 0.2, metallic=0.0, emit=("e8e0ff", 1.0))
+    torus("MoonRing", 0.845, 0.032, silver, rsegs=16, loc=(0, 0, 0.03))
+    torus("MoonRingOuter", 0.93, 0.012, silver, rsegs=10, loc=(0, 0, 0.02))
+
+    def leaves(bm):
+        for sgn in (1, -1):
+            for i in range(8):
+                a = math.radians(78 - 18 * i)
+                x, y = sgn * 0.9 * math.cos(a), 0.9 * math.sin(a)
+                leafmesh(bm, 0.17, 0.05, Matrix.Translation((x, y, 0.06 + 0.004 * i)) @ Matrix.Rotation(math.atan2(y, x) - math.pi / 2 - sgn * 0.5, 4, "Z"))
+    mesh_obj("Leaves", leaves, leafm, smooth=True)
+    p = arcpath(0, 0.98, 0.1, 190, 350, 28)
+    mesh_obj("Crescent", lambda bm: prism(bm, strip(p, taper(28, 0.06, 0.05)), 0.04, z=0.1), moon, smooth=False)
+    for a in (0, 180, 270):
+        aa = math.radians(a)
+        ico(f"Amethyst{a}", 0.04, amethyst, loc=(0.845 * math.cos(aa), 0.845 * math.sin(aa), 0.08), sub=1, smooth=False)
+
+
+def vessel_tauren():
+    wood = metal("HoopWood", "6a4428", 0.7, metallic=0.0, noise=0.1)
+    hide = metal("Hide", "b8946a", 0.85, metallic=0.0, noise=0.1)
+    lace = metal("Lace", "3e2414", 0.7, metallic=0.0)
+    ivory = metal("HornIvory", "e3d6b4", 0.4, metallic=0.0, noise=0.08)
+    tip = metal("HornTip", "3a3026", 0.4, metallic=0.0)
+    turq = metal("Turquoise", "1fb8a8", 0.2, metallic=0.0, emit=("30e0c8", 0.3))
+    feather = metal("TFeather", "eee8dc", 0.6, metallic=0.0)
+    disc("HideBand", 0.95, hide, z=-0.02, inner=0.8)
+    torus("Hoop", 0.955, 0.045, wood, rsegs=16)
+    torus("HoopIn", 0.8, 0.03, wood, rsegs=12)
+    pts = []
+    for i in range(97):
+        th = 2 * math.pi * i / 96
+        r = 0.83 if i % 2 == 0 else 0.93
+        pts.append((r * math.cos(th), r * math.sin(th), 0.03))
+    tube("Lacing", pts, lace, bevel=0.008, res=2)
+    for sgn in (1, -1):
+        h = [(sgn * 0.42, 0.82, 0.12, 1.6), (sgn * 0.78, 0.88, 0.16, 1.15), (sgn * 0.98, 1.02, 0.15, 0.65), (sgn * 0.96, 1.16, 0.12, 0.12)]
+        tube(f"Horn{sgn}", h, ivory, bevel=0.062, res=24)
+        cone(f"HornTip{sgn}", 0.016, 0.0, 0.05, tip, segs=10, loc=(sgn * 0.962, 1.13, 0.12), direction=(sgn * -0.1, 1, 0))
+        tube(f"Thong{sgn}", [(sgn * 0.68, -0.66, 0.08), (sgn * 0.74, -0.78, 0.1)], lace, bevel=0.01)
+        ico(f"Bead{sgn}", 0.03, turq, loc=(sgn * 0.75, -0.8, 0.1), sub=2)
+        tube(f"Feather{sgn}", [(sgn * 0.76, -0.84, 0.1, 0.5), (sgn * 0.8, -0.93, 0.1, 1.0), (sgn * 0.84, -1.04, 0.08, 0.3)], feather, bevel=0.035, res=12)
+    for y in (0.955, -0.955):
+        ico(f"Turq{y}", 0.045, turq, loc=(0, y, 0.07), sub=1, smooth=False)
+
+
 BEFORE = set(bpy.data.objects)
 EXTRA = {"human": vessel_human, "gnome": vessel_gnome, "orc": vessel_orc, "scourge": vessel_scourge,
-         "troll": vessel_troll, "skyborne": vessel_skyborne}[RACE]()
+         "troll": vessel_troll, "skyborne": vessel_skyborne, "dwarf": vessel_dwarf, "nightelf": vessel_nightelf,
+         "tauren": vessel_tauren}[RACE]()
 VESSEL = set(bpy.data.objects) - BEFORE
+
+
+# ----------------------------------------------------------------------------------------------- the hunter's bow
+def tint(hexv, f):
+    """hexv carried f of the way to white."""
+    return "".join(f"{int(int(hexv[i:i + 2], 16) + (255 - int(hexv[i:i + 2], 16)) * f):02x}" for i in (0, 2, 4))
+
+
+HUNT = {}
+
+
+def hunter_build():
+    """The hunter's centrepiece in place of the glass orb; HUNT keeps its materials and its objects by in-game layer."""
+    for o in [energy, glass, star, *orbits] + [o for trail in BOLTS for o in trail]:
+        o.hide_render = True
+    before = set(bpy.data.objects)
+    # the wind behind the bow: streaks swirling round the opening, a ragged gust edge at the fill line, leaves in it
+    wmat, w = material("Wind")
+    Pw = w.node("ShaderNodeTexCoord").outputs["Object"]
+    x, y, _ = w.sep(Pw)
+    lv = w.value("level", 1.0)
+    pw = w.value("power", 0.6)
+    ph = w.value("phase", 0.0)
+    men = w.value("men", 0.0)
+    tm = w.value("time", 0.0)
+    r = w.m("DIVIDE", w.v("LENGTH", Pw), RE)
+    th = w.m("ARCTAN2", y, x)
+    bend = w.m("MULTIPLY", w.m("SINE", w.m("ADD", w.m("MULTIPLY", y, 3.0), w.m("MULTIPLY", ph, 6.0))), 0.12)
+    v = w.xyz(w.m("MULTIPLY", w.m("ADD", x, bend), 3.2), w.m("SUBTRACT", w.m("MULTIPLY", y, 0.9), w.m("MULTIPLY", ph, 9.0)), w.m("MULTIPLY", r, 1.5))
+    n = w.node("ShaderNodeTexNoise", noise_dimensions="4D")
+    w.L.new(v, n.inputs["Vector"])
+    w.feed(n.inputs["W"], w.m("MULTIPLY", ph, 2.0))
+    n.inputs["Scale"].default_value = 1.6
+    n.inputs["Detail"].default_value = 5.0
+    n.inputs["Distortion"].default_value = 0.9
+    ridge = w.m("SUBTRACT", 1.0, w.m("ABSOLUTE", w.m("SUBTRACT", w.m("MULTIPLY", n.outputs["Fac"], 2.0), 1.0)))
+    streak = w.m("POWER", ridge, 6.0)
+    body = w.smooth(n.outputs["Fac"], 0.4, 0.8)
+    edge = w.m("MULTIPLY", w.m("EXPONENT", w.m("MULTIPLY", w.m("POWER", w.m("DIVIDE", w.m("SUBTRACT", r, 0.95), 0.05), 2.0), -1.0)), 0.9)
+    deep = w.m("SUBTRACT", 1.0, w.m("MULTIPLY", w.smooth(r, 0.55, 0.95), 0.45))
+    dens = w.m("ADD", w.m("MULTIPLY", w.m("ADD", w.m("MULTIPLY", streak, 1.1), w.m("MULTIPLY", body, 0.4)), deep), edge)
+    # the fill line, its gust edge waving
+    gust = w.node("ShaderNodeTexNoise")
+    w.L.new(w.xyz(w.m("MULTIPLY", x, 3.0), w.m("MULTIPLY", tm, 0.9), 0.0), gust.inputs["Vector"])
+    gust.inputs["Scale"].default_value = 1.5
+    yy = w.m("ADD", w.m("DIVIDE", y, RE), w.m("MULTIPLY", w.m("SUBTRACT", gust.outputs["Fac"], 0.5), 0.12))
+    ly = w.m("SUBTRACT", w.m("MULTIPLY", lv, 2.08), 1.04)
+    fill = w.m("SUBTRACT", 1.0, w.smooth(w.m("SUBTRACT", yy, ly), -0.03, 0.03))
+    tot = w.m("MULTIPLY", w.m("MULTIPLY", dens, w.m("MULTIPLY", pw, 0.78)), w.m("ADD", w.m("MULTIPLY", fill, 0.94), 0.06))
+    band = w.m("EXPONENT", w.m("MULTIPLY", w.m("POWER", w.m("DIVIDE", w.m("SUBTRACT", yy, ly), 0.035), 2.0), -1.0))
+    tot = w.m("ADD", tot, w.m("MULTIPLY", band, w.m("MULTIPLY", men, w.m("ADD", 0.4, w.m("MULTIPLY", streak, 1.2)))))
+    inside = w.m("SUBTRACT", 1.0, w.smooth(r, 0.97, 1.0))
+    col = w.ramp(w.m("MINIMUM", tot, 1.0), list(zip((0.0, 0.1, 0.28, 0.5, 0.76, 1.0), R["ramp"])))
+    w.additive(w.scalec(col, inside))
+    HUNT["wind"] = w
+    wind = disc("Wind", RE, wmat, z=-0.5)
+    no_shadow(wind)
+    HUNT["light"] = {wind}
+    before = set(bpy.data.objects)
+
+    # the bow: dark yew limbs with silver inlay, a leather grip, horn tips that recurve forward
+    yew = metal("Yew", "3b2414", 0.45, metallic=0.0, noise=0.12)
+    inlay = metal("Inlay", "e6e2d2", 0.2, noise=0.05)
+    leather = metal("Grip", "5a3a22", 0.75, metallic=0.0, noise=0.1)
+    horn = metal("BowHorn", "e8dcc0", 0.35, metallic=0.0, noise=0.06)
+    thread = metal("String", "f4efe0", 0.4, metallic=0.0)
+    S = RE / 0.76
+    for sg_ in (1, -1):
+        limb = [(0, 0.2, 0.06, 1.25), (sg_ * 0.14, 0.205, 0.06, 1.2), (sg_ * 0.32, 0.16, 0.06, 1.0), (sg_ * 0.48, 0.05, 0.06, 0.82),
+                (sg_ * 0.58, -0.1, 0.06, 0.65), (sg_ * 0.62, -0.24, 0.06, 0.5), (sg_ * 0.66, -0.31, 0.06, 0.42), (sg_ * 0.72, -0.3, 0.06, 0.34)]
+        tube(f"Limb{sg_}", [(p[0] * S, p[1] * S, p[2], p[3]) for p in limb], yew, bevel=0.052 * S, res=24)
+        inl = [(sg_ * 0.16, 0.226, 0.09), (sg_ * 0.32, 0.186, 0.09), (sg_ * 0.46, 0.09, 0.09), (sg_ * 0.555, -0.05, 0.1)]
+        tube(f"Inlay{sg_}", [(p[0] * S, p[1] * S, p[2]) for p in inl], inlay, bevel=0.011 * S, res=16)
+        tip = [(sg_ * 0.62, -0.25, 0.07, 1.0), (sg_ * 0.67, -0.315, 0.07, 0.9), (sg_ * 0.735, -0.29, 0.07, 0.6), (sg_ * 0.76, -0.24, 0.07, 0.25)]
+        tube(f"Tip{sg_}", [(p[0] * S, p[1] * S, p[2], p[3]) for p in tip], horn, bevel=0.034 * S, res=16)
+        torus(f"Ferrule{sg_}", 0.036 * S, 0.008 * S, inlay, rsegs=8, loc=(sg_ * 0.15 * S, 0.205 * S, 0.06), rot=(0, math.radians(90), 0))
+        HUNT.setdefault("ends", []).append((sg_ * 0.655 * S, -0.3 * S))
+    # gilt wings swept back from the riser, the hunter crest's winged bow
+    gilt = metal("WingSilver", "e4e8f0", 0.3, metallic=0.8, noise=0.06, emit=("5a6070", 0.5))
+
+    def wings(bm):
+        for sg_ in (1, -1):
+            for i in range(6):
+                a = math.radians(12 + 8.5 * i)
+                ln = (0.5 - 0.035 * i) * S
+                base = (sg_ * 0.09 * S, (0.25 + 0.008 * i) * S)
+                pts = []
+                for k in range(13):
+                    u = k / 12
+                    pts.append((0.045 * S * math.sin(math.pi * u) * (1 - 0.45 * u), ln * u))
+                for k in range(11, 0, -1):
+                    u = k / 12
+                    pts.append((-0.045 * S * math.sin(math.pi * u) * (1 - 0.45 * u), ln * u))
+                rot = sg_ * -(math.pi / 2 - a)
+                xf = Matrix.Translation((base[0], base[1], 0.01 - 0.006 * i)) @ Matrix.Rotation(rot, 4, "Z")
+                prism(bm, pts, 0.012, xf)
+                prism(bm, strip([(0, 0.02 * S), (0, ln * 0.9)], [0.008 * S, 0.003 * S]), 0.004, xf, 0.009)
+            for i in range(4):
+                a = math.radians(16 + 11 * i)
+                ln = (0.2 - 0.02 * i) * S
+                pts = [(0.05 * S * math.sin(math.pi * k / 12) * (1 - 0.3 * k / 12), ln * k / 12) for k in range(13)]
+                pts += [(-0.05 * S * math.sin(math.pi * k / 12) * (1 - 0.3 * k / 12), ln * k / 12) for k in range(11, 0, -1)]
+                xf = Matrix.Translation((sg_ * 0.1 * S, 0.25 * S, 0.035)) @ Matrix.Rotation(sg_ * -(math.pi / 2 - a), 4, "Z")
+                prism(bm, pts, 0.012, xf)
+    mesh_obj("Wings", wings, gilt, smooth=False)
+    tube("GripWrap", [(-0.07 * S, 0.2 * S, 0.06, 1.0), (0.07 * S, 0.2 * S, 0.06, 1.0)], leather, bevel=0.072 * S, res=8)
+    for i in range(7):
+        xx = (-0.06 + 0.02 * i) * S
+        torus(f"Wrap{i}", 0.072 * S, 0.008 * S, leather, segs=40, rsegs=6, loc=(xx, 0.2 * S, 0.06), rot=(0, math.radians(90), math.radians(12)))
+    # the string, drawn to the nock
+    nock = (0.0, -0.5 * S)
+    for (ex, ey) in HUNT["ends"]:
+        tube(f"String{ex > 0}", [(ex, ey, 0.07), (nock[0], nock[1], 0.08)], thread, bevel=0.008 * S, res=2)
+    # the arrow: ash shaft, broadhead, three fletchings
+    ash = metal("Ash", "b08a5a", 0.55, metallic=0.0, noise=0.08)
+    steel = metal("Steel", "b8bec8", 0.22, noise=0.05)
+    feather = metal("Fletch", "8a5a32", 0.6, metallic=0.0, noise=0.1)
+    tube("Shaft", [(0, -0.55 * S, 0.14), (0, 0.4 * S, 0.14)], ash, bevel=0.019 * S, res=2)
+    torus("Nock", 0.02 * S, 0.008 * S, horn, segs=24, rsegs=6, loc=(0, -0.55 * S, 0.14), rot=(math.radians(90), 0, 0))
+
+    def head(bm):
+        pts = [(0, 0.66), (0.085, 0.47), (0.05, 0.43), (0.02, 0.45), (0.02, 0.38), (-0.02, 0.38), (-0.02, 0.45), (-0.05, 0.43), (-0.085, 0.47)]
+        pts = [(px_ * S, py_ * S) for px_, py_ in pts]
+        top = [bm.verts.new((px_, py_, 0.16)) for px_, py_ in pts]
+        bot = [bm.verts.new((px_, py_, 0.12)) for px_, py_ in pts]
+        ridge_ = bm.verts.new((0, 0.5 * S, 0.2))
+        for i in range(len(pts)):
+            j = (i + 1) % len(pts)
+            bm.faces.new((top[i], top[j], ridge_))
+            bm.faces.new((bot[j], bot[i], top[i], top[j]))
+        bm.faces.new(list(reversed(bot)))
+    # the broadhead glows in the tree's light when the shot is ready
+    hmat, hg_ = material("Head", blended=False)
+    lw_ = hg_.node("ShaderNodeLayerWeight")
+    hb = hg_.value("star", 0.3)
+    face = hg_.m("POWER", lw_.outputs["Facing"], 0.8)
+    hc = hg_.ramp(hg_.m("MINIMUM", hg_.m("MULTIPLY", hg_.m("ADD", hg_.m("MULTIPLY", hg_.m("SUBTRACT", 1.0, face), 0.6), 0.25), hb), 1.0),
+                  [(0.0, "1a1e24"), (0.3, "5a626e"), (0.55, LIGHT), (0.85, tint(LIGHT, 0.7)), (1.0, "ffffff")])
+    hg_.emissive(hc, hg_.m("ADD", 1.0, hg_.m("MULTIPLY", hg_.m("MAXIMUM", hg_.m("SUBTRACT", hb, 0.8), 0.0), 2.0)))
+    HUNT["head"] = hg_
+    broadhead = mesh_obj("Broadhead", head, hmat, smooth=False)
+
+    def fletch(bm, side):
+        pts = [(0.0, -0.3), (side * 0.05, -0.33), (side * 0.1, -0.44), (side * 0.105, -0.53), (side * 0.07, -0.5), (0.0, -0.47)]
+        prism(bm, [(px_ * S, py_ * S) for px_, py_ in pts], 0.008, None, 0.14)
+    mesh_obj("FletchL", lambda bm: fletch(bm, -1), feather, smooth=False)
+    mesh_obj("FletchR", lambda bm: fletch(bm, 1), feather, smooth=False)
+    # the fletching's tips and the string's glow take the tree's light while drawn
+    gmat, gl = material("ShotGlow")
+    Pg_ = gl.node("ShaderNodeTexCoord").outputs["Object"]
+    gx, gy, _ = gl.sep(Pg_)
+    ga = gl.value("amt", 0.0)
+    line = gl.m("EXPONENT", gl.m("MULTIPLY", gl.m("MULTIPLY", gx, gx), -2600.0))
+    along = gl.m("MULTIPLY", gl.smooth(gy, -0.55 * S, -0.3 * S), gl.m("SUBTRACT", 1.0, gl.smooth(gy, 0.4 * S, 0.62 * S)))
+    tipg = gl.m("EXPONENT", gl.m("MULTIPLY", gl.v("LENGTH", gl.v("SUBTRACT", Pg_, (0, 0.53 * S, 0))), -14.0))
+    gl.additive(gl.scalec(gl.rgb(tint(LIGHT, 0.4)), gl.m("MULTIPLY", gl.m("ADD", gl.m("MULTIPLY", line, along), gl.m("MULTIPLY", tipg, 0.9)), ga)))
+    HUNT["glow"] = gl
+    HUNT["bow"] = set(bpy.data.objects) - before
+    shot = plane("ShotGlow", 2.0 * RE, gmat, 0.2)
+    no_shadow(shot)
+    HUNT["core"] = {broadhead, shot}
+    # Rapid Killing: spectral arrows streaking round inside the wind
+    smat, sgl = material("Spectral")
+    sa = sgl.value("amt", 0.0)
+    sgl.additive(sgl.scalec(sgl.rgb(tint(LIGHT, 0.55)), sa), 3.0)
+    HUNT["spectral"] = (sgl, [])
+    for i in range(3):
+        trail = []
+        for j in range(40):
+            o = ico(f"Spec{i}_{j}", 0.02 * S * (1 - j / 41.0) + 0.003, smat, sub=1)
+            no_shadow(o)
+            trail.append(o)
+        HUNT["spectral"][1].append(trail)
+    HUNT["rapid"] = {o for trail in HUNT["spectral"][1] for o in trail}
+    for o, *_ in MOTES:
+        o.scale = (1.0, 2.2, 0.4)
+
+
+def hunter_apply(s):
+    w = HUNT["wind"]
+    for k in ("level", "power", "phase", "men"):
+        w.values[k].outputs[0].default_value = s[k]
+    w.values["time"].outputs[0].default_value = s["t"]
+    HUNT["head"].values["star"].outputs[0].default_value = s["star"]
+    HUNT["glow"].values["amt"].outputs[0].default_value = max(0.0, (s["star"] - 0.6)) * 0.9 + 0.6 * s["flash"]
+    sgl, trails = HUNT["spectral"]
+    amt = s.get("bolts", 0.0)
+    sgl.values["amt"].outputs[0].default_value = amt
+    for i, trail in enumerate(trails):
+        for j, o in enumerate(trail):
+            a = s["t"] * 5.2 + i * 2 * math.pi / 3 - j * 0.022
+            rr = RE * (0.7 + 0.05 * math.sin(a * 3 + i))
+            o.location = (rr * math.cos(a), rr * math.sin(a), 0.0 - 0.2 * (j / 40))
+            o.hide_render = amt < 0.02
+
+
+if KLASS == "hunter":
+    hunter_build()
 
 # ----------------------------------------------------------------------------------------------- camera, world, render, bloom
 cam_data = bpy.data.cameras.new("cam")
@@ -1197,6 +1555,8 @@ def apply(s):
         EXTRA.location = Vector((0, 0.83, 0.15)) + d * 0.0425
     if RACE == "orc" and EXTRA is not None:
         EXTRA.values["amt"].outputs[0].default_value = 0.25 + 0.9 * s["accent"] + 0.6 * s["fire"]
+    if KLASS == "hunter":
+        hunter_apply(s)
 
 
 if args.layer:
@@ -1206,18 +1566,24 @@ if args.layer:
     ORB = [back, energy, glass, star, *orbits, waves] + [m[0] for m in MOTES] + [o for trail in BOLTS for o in trail]
     SHOW = {"vessel": VESSEL | {back}, "light": {energy, star, *orbits} | {m[0] for m in MOTES}, "glass": {glass},
             "core": {star, waves}, "meniscus": {energy}, "clear": {energy}, "heat": {energy},
-            "barrage": {o for trail in BOLTS for o in trail}, "rime1": {glass}, "rime2": {glass}}[L]
+            "barrage": {o for trail in BOLTS for o in trail}, "rime1": {glass}, "rime2": {glass}}.get(L)
+    if KLASS == "hunter":
+        # the bow on clear film, lit as the vessel is, drawn solid over the wind; everything else on black for ADD
+        ORB += [o for k in ("light", "bow", "core", "rapid") for o in HUNT[k]]
+        SHOW = {"vessel": VESSEL | {back}, "light": HUNT["light"] | {m[0] for m in MOTES}, "meniscus": HUNT["light"],
+                "core": HUNT["core"], "bow": HUNT["bow"], "rapid": HUNT["rapid"]}[L]
+    solid = L in ("vessel", "bow")
     for o in set(ORB) | VESSEL:
         o.hide_render = o not in SHOW
     for o in (backdrop, hub_glow, ring, enamel, glyphs):
         if o:
             o.hide_render = True
-    if L == "vessel":
+    if solid:
         scene.render.use_compositing = False
         scene.render.film_transparent = True
         scene.render.image_settings.color_mode = "RGBA"
     cam_data.ortho_scale = 2.9 * RE if L == "core" else 2.05 * RE if L != "vessel" else 2.1
-    if L != "vessel":
+    if not solid:
         scene.render.film_transparent = False
         scene.render.image_settings.color_mode = "RGB"
         wl.remove(wbg.inputs["Strength"].links[0])
@@ -1226,9 +1592,9 @@ if args.layer:
     LOOK = {"vessel": dict(), "light": dict(), "glass": dict(power=0.5), "core": dict(star=1.6, rays=0.7),
             "meniscus": dict(level=0.5, power=0.0, accent=0.0, men=1.0), "clear": dict(power=0.0, accent=0.0, clear=1.0),
             "heat": dict(power=0.0, accent=0.0, fire=1.0, fh=1.0), "barrage": dict(bolts=1.0), "rime1": dict(power=0.5, rime=0.5),
-            "rime2": dict(power=0.5, rime=1.0)}[L]
-    still = L in ("vessel", "glass", "meniscus")
-    looped = L == "barrage"
+            "rime2": dict(power=0.5, rime=1.0), "bow": dict(star=0.3), "rapid": dict(bolts=1.0)}[L]
+    still = L in ("vessel", "glass", "meniscus", "bow")
+    looped = L in ("barrage", "rapid")
     n = 1 if still else args.cells if looped else 2 * args.cells
     t0 = time.time()
     for f in range(n):
@@ -1239,7 +1605,14 @@ if args.layer:
         for o in ORB:
             if o not in SHOW:
                 o.hide_render = True
-        if looped:
+        if L == "rapid":
+            # three spectral arrows a third of a turn apart: one turn per loop closes it
+            for i, trail in enumerate(HUNT["spectral"][1]):
+                for j, o in enumerate(trail):
+                    a = 2 * math.pi * f / args.cells + i * 2 * math.pi / 3 - j * 0.022
+                    rr = RE * (0.7 + 0.05 * math.sin(a * 3 + i))
+                    o.location = (rr * math.cos(a), rr * math.sin(a), -0.2 * j / len(trail))
+        elif looped:
             # three missiles a third of a turn apart: one turn per loop closes it
             for i, trail in enumerate(BOLTS):
                 for j, o in enumerate(trail):

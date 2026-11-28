@@ -1525,6 +1525,7 @@ ns.Locale.Add({
 	["Fill the rest"] = "Remplir le reste",
 	["Fill up"] = "Remplir",
 	["Filled tile"] = "Tuile pleine",
+	["Fills as your great cooldown returns or with Expose Prey's window, and lights your procs inside."] = "Se remplit \195\160 mesure que votre grand temps de recharge revient ou avec la fen\195\170tre d'Exposer la proie, et y allume vos effets d\195\169clench\195\169s.",
 	["Fills from right to left, or from top to bottom."] = "Remplit de droite \195\160 gauche, ou de haut en bas.",
 	["Fills the bar from the other end."] = "Remplit la barre depuis l'autre extr\195\169mit\195\169.",
 	["Fills the bar from the right, or from the top when it is vertical."] = "Remplit la barre depuis la droite, ou depuis le haut quand elle est verticale.",

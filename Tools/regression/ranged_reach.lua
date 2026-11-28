@@ -1,4 +1,4 @@
--- ranged_reach.lua: Reach.Check(sizes, low, classes, trees, only) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture: an additive RGB aura sheet by its brightest channel, a flipbook sheet folded into one cell, a still cell through its texture coordinates; an addon file the reader cannot read stops the check) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The warlock knows every summon and Demonic Sacrifice, so its demon piece builds each demon's mark and each Sacrifice copy, and each of those aura sheets must be among the measured textures. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column. With low true each screen is built with Cast bars on unit frames off instead, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too; each layout is a call of its own, so a test file can build one screen in one layout inside the hosted runner's CPU budget. With only set to a piece's key (crestRail), only that piece is measured, with no hawk perches, so a warrior's, paladin's or rogue's rail is checked alone (test-actionbars-crest-melee-reach and its 1440 and wide files) while its armory pieces are measured by test-actionbars-crest-armory. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches. With trees, low must be true and the mage runs once per talent tree named, its shown orb and each of that tree's orb sheets and rail seat aura sheets among the measured textures. A seat cut from a full second rail stays built, hidden, and draws nothing, so it is left out.
+-- ranged_reach.lua: Reach.Check(sizes, low, classes, trees, only) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture: an additive RGB aura sheet by its brightest channel, a flipbook sheet folded into one cell, a still cell through its texture coordinates; an addon file the reader cannot read stops the check) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The warlock knows every summon and Demonic Sacrifice, so its demon piece builds each demon's mark and each Sacrifice copy, and each of those aura sheets must be among the measured textures. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column. With low true each screen is built with Cast bars on unit frames off instead, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too; each layout is a call of its own, so a test file can build one screen in one layout inside the hosted runner's CPU budget. With only set to a piece's key (crestRail), only that piece is measured, with no hawk perches, so a warrior's, paladin's or rogue's rail is checked alone (test-actionbars-crest-melee-reach and its 1440 and wide files) while its armory pieces are measured by test-actionbars-crest-armory. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches. With trees, low must be true and the mage and hunter run once per talent tree named, the shown orb or bow and each of that tree's sheets and rail seat aura sheets among the measured textures; the hunter knows Expose Prey, so on Survival its bow follows the window. A seat cut from a full second rail stays built, hidden, and draws nothing, so it is left out.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Pose = dofile("Tools/regression/anim_pose.lua")
@@ -251,7 +251,7 @@ end
 -- character's one or two so every class fills it. The warlock also knows every summon and Demonic Sacrifice, so the demon
 -- piece builds each demon's mark and each Sacrifice copy (SlabRanged.lua's Pet).
 local WIDEST = {
-	HUNTER = { 1293241, 19574, 3045, 19577, 14305, 19263, 20572, 20554, 20594, 1259799, 20600, 1260270, 13795, 24579, 14916, 19801 },
+	HUNTER = { 1293241, 19574, 3045, 19577, 14305, 19263, 20572, 20554, 20594, 1259799, 20600, 1260270, 13795, 24579, 14916, 19801, 1310532 },
 	MAGE = { 12042, 12043, 12051, 11129, 11958, 12472, 10199, 1953, 10230, 13033, 13021, 1240047, 20589, 20572, 20554, 1260270 },
 	WARLOCK = { 6789, 1122, 18288, 18708, 6353, 20572, 20554, 1259821, 1299026, 7744, 1260270, 688, 697, 712, 691, 18788 },
 	WARRIOR = { 1719, 12328, 871, 12975, 2687, 20230, 676, 20560, 5246, 1161, 20572, 20554 },
@@ -266,12 +266,14 @@ local function Key(path)
 	return tostring(path):gsub("\\", "/"):match("Media/.+$") or tostring(path)
 end
 
--- OrbSheets(ns, Tokens, orb) -> the Media key of every sheet the shown orb's tree builds: its race's vessel, its school's light,
--- core and meniscus, the glass, and each of the tree's procs (one sheet per stack where a proc draws its stacks apart).
-local function OrbSheets(ns, Tokens, orb)
-	local school = orb.school
-	local names = { "orbVessel" .. orb.race, "orbLight" .. school, "orbCore" .. school, "orbMeniscus" .. school, "orbGlass" }
-	for _, each in ipairs(ns.SlabOrb.PROCS) do
+-- OrbSheets(ns, Tokens, orb, class) -> the Media key of every sheet the shown centrepiece's tree builds: its race's vessel, its
+-- school's light, core and meniscus, the glass or the bow over them, and each of the tree's procs (one sheet per stack where a
+-- proc draws its stacks apart).
+local function OrbSheets(ns, Tokens, orb, class)
+	local school, own = orb.school, ns.SlabOrb.CLASSES[class]
+	local art = own.art
+	local names = { "orbVessel" .. orb.race, art .. "Light" .. school, art .. "Core" .. school, art .. "Meniscus" .. school, own.overlay }
+	for _, each in ipairs(own.procs) do
 		if not each.school or each.school == school then
 			for n = 1, each.stacks and not each.bands and each.stacks or 1 do
 				names[#names + 1] = each.token .. (each.stacks and not each.bands and n or "")
@@ -325,9 +327,9 @@ function Reach.Check(sizes, low, classes, trees, only)
 		end
 		local runs = {}
 		for _, class in ipairs(classes or { "HUNTER", "MAGE", "WARLOCK" }) do
-			-- The mage's trees are measured in the centred layout, where the rail's flat row sits lowest. Each tree is a whole HUD
-			-- build, so Fire and Frost run in their own files (trees) to keep every file inside its wall-clock guard.
-			for _, tree in ipairs(class == "MAGE" and low and (trees or { 1 }) or { false }) do
+			-- The mage's and hunter's trees are measured in the centred layout, where the rail's flat row sits lowest. Each tree is a
+			-- whole HUD build, so the other trees run in their own files (trees) to keep every file inside its wall-clock guard.
+			for _, tree in ipairs((class == "MAGE" or class == "HUNTER") and low and (trees or { 1 }) or { false }) do
 				runs[#runs + 1] = { class = class, tree = tree or nil }
 			end
 		end
@@ -432,10 +434,11 @@ function Reach.Check(sizes, low, classes, trees, only)
 				end
 			end
 			assert(checked > ((low or only) and 10 or 20), where .. " " .. class .. ": the lit pieces are measured (" .. checked .. ")")
-			if class == "MAGE" then
+			if class == "MAGE" or class == "HUNTER" then
 				local Tokens, orb = measured.KstyleUI.Tokens, nil
 				for _, p in pairs(seated) do orb = p.spec.key == "crestOrb" and p:IsShown() and p or orb end
-				local need = OrbSheets(ns, Tokens, assert(orb, where .. ": the mage's orb shows"))
+				local need = OrbSheets(ns, Tokens, assert(orb, where .. ": the " .. class .. " centrepiece shows"), class)
+				assert(class ~= "HUNTER" or (orb.window == true) == (tree == 3), where .. ": the hunter's bow follows Expose Prey's window on Survival alone")
 				for _, list in ipairs({ railPiece.order, railPiece.spare }) do
 					for _, seat in ipairs(list) do
 						-- Only the aura sheet each mage seat's sigil publishes; the rail's own sheets and its lookup order are test-actionbars-crest-rail's.

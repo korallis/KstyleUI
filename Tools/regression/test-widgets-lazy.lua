@@ -256,13 +256,20 @@ do
 end
 
 do
-	local original, measured = dofile, nil
+	local original, measured, tree = dofile, nil, nil
 	_G.dofile = function(path)
 		local result = original(path)
 		if path == "Tools/render/scenes/_common.lua" then
 			local force = result.ForceScreen
 			result.ForceScreen = function(env, ...)
 				measured = env
+				if tree then
+					local info, book = env.C_SpecializationInfo or {}, env.C_SpellBook or {}
+					local known = book.IsSpellKnown
+					info.GetSpecialization = function() return tree end
+					book.IsSpellKnown = function(id, ...) return id == 1310532 or known ~= nil and known(id, ...) end
+					env.C_SpecializationInfo, env.C_SpellBook = info, book
+				end
 				return force(env, ...)
 			end
 		end
@@ -320,17 +327,30 @@ do
 	-- engine's copies refuse new regions while auras are secret. The lit hunter's three take it to the measured 5,184.
 	-- The mage's power orb (its vessel, light, core, meniscus and glass, the cooldown's timer and flare, and a fire and a still for each
 	-- of its tree's procs) takes the tree's great cooldown from the rail and the cooldown row: 5,021.
+	-- The hunter's bow is the same piece with the bow in place of the glass and no ready glow; it takes Bestial Wrath from the
+	-- rail and the cooldown row, which leaves the lit hunter at the measured 5,168. Marksmanship builds Rapid Killing's arrows (5,172);
+	-- Survival's bow follows Expose Prey's window through an aura slot beside that tree's own rail seats (5,196).
 	-- Each signature pop-off the lit story knows (SlabPopoffs.lua) adds 10, its Blender sheet once in each motion face among
 	-- them, and Power Infusion's target and focus slots 16 more, each with the sheet, ring, late warning and flare the priest's own
 	-- slot has. The warlock and priest know one, and the hunter and mage none: the crest rail crowns their moments.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4968, DRUID = 5280, SHAMAN = 4919, HUNTER = 5184, MAGE = 5021, WARLOCK = 5263 }) do
+	for class, limit in pairs({ PRIEST = 4968, DRUID = 5280, SHAMAN = 4919, HUNTER = 5168, MAGE = 5021, WARLOCK = 5263 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")
 		print("lazy regions actionbars lit " .. class .. ": " .. created)
 	end
+	for _, each in ipairs({ { 2, "Marks", 5172 }, { 3, "Survival", 5196 } }) do
+		tree = each[1]
+		local _, ns = Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = "HUNTER", applyPreset = true }))
+		local created, orb = count(assert(measured)), nil
+		for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do orb = p.spec.key == "crestOrb" and p:IsShown() and p or orb end
+		assert(orb and orb.school == each[2] and (orb.window == true) == (tree == 3), "the lit hunter on tree " .. tree .. " shows its own bow")
+		assert(created <= each[3] and #measured._errors == 0, "HUNTER " .. each[2] .. " lit creates " .. created .. " action bar regions, over " .. each[3])
+		print("lazy regions actionbars lit HUNTER " .. each[2] .. ": " .. created)
+	end
+	tree = nil
 	rawset(os, "getenv", getenv)
 	_G.dofile = original
 	_G.RENDER_SCREEN, _G.RENDER_SCENE_LIB = screen, lib

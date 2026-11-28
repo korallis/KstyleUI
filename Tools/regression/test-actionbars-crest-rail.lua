@@ -3,10 +3,10 @@ local R = dofile("Tools/regression/ranged_env.lua")
 local Slots, Seated, Updating, Clean = R.Slots, R.Seated, R.Updating, R.Clean
 local Pose = dofile("Tools/regression/anim_pose.lua")
 
--- A mage's power orb holds the tree's great cooldown and the rail leaves it out (test-actionbars-crest-orb.lua owns that), so
--- this file's mage rails run with the orb switched off and keep every cooldown on the rail.
+-- A mage's power orb and a hunter's bow hold the tree's great cooldown and the rail leaves it out (test-actionbars-crest-orb.lua
+-- owns that), so this file's mage and hunter rails run with the orb switched off and keep every cooldown on the rail.
 local function New(class, opts)
-	if class == "MAGE" then
+	if class == "MAGE" or class == "HUNTER" then
 		opts = opts or {}
 		local before = opts.before
 		opts.before = function(env, K, ns)
