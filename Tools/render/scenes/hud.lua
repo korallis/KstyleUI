@@ -319,8 +319,15 @@ local function applyPreset(env, opts)
 		end
 	end
 	for bar, perRow in (os.getenv("RENDER_BAR_PER_ROW") or ""):gmatch("(bar%d)=(%d+)") do
-		assert(K.Modules.IsEnabled("ActionBars"), "RENDER_BAR_PER_ROW needs the ActionBars module, which links Rows to it")
-		K.Options.Write("ActionBars", bar .. ".perRow", tonumber(perRow))
+		if K.Modules.IsEnabled("ActionBars") then
+			K.Options.Write("ActionBars", bar .. ".perRow", tonumber(perRow))
+		else
+			local cfg = K.Store.Module("ActionBars")
+			cfg[bar] = cfg[bar] or {}
+			cfg[bar].perRow = tonumber(perRow)
+			cfg[bar].rows = select(2, K.Setup.Layouts.BarShape(cfg[bar].buttons or 12, cfg[bar].perRow, nil, cfg[bar].orientation))
+			K.Callbacks.Fire("SettingChanged", "ActionBars", bar .. ".perRow", cfg[bar].perRow)
+		end
 	end
 	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" and K.Modules.IsEnabled("ActionBars") then
 		K.Options.Write("ActionBars", "bar3.enabled", true)
