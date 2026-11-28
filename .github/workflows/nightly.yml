@@ -195,5 +195,14 @@ jobs:
           args: -d -l
           pandoc: false
       - name: Check the zip
+        id: check_zip
         if: ${{ !cancelled() && steps.checkout.outcome == 'success' && steps.commit.outcome != 'failure' }}
         run: bash Tools/hooks/check-package.sh
+      - name: Upload the checked zip
+        if: ${{ !cancelled() && steps.check_zip.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: KstyleUI
+          path: .release/*.zip
+          if-no-files-found: error
+          retention-days: 7
