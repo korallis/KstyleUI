@@ -422,6 +422,7 @@ local function OnProfile()
 end
 
 local function OnLayout(_, key, reason)
+	if key == "actionbars.crest" then ns.Slab.CrestMoved() end
 	if reason == "scale" then return end
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]

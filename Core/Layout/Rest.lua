@@ -301,6 +301,13 @@ local function Gather()
 	end
 end
 
+function Rest.Regather()
+	if quiet then
+		Gather()
+		ApplyAll(0)
+	end
+end
+
 local function Yes(fn, ...)
 	return type(fn) == "function" and fn(...) == true
 end

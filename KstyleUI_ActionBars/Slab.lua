@@ -559,6 +559,8 @@ local function Build()
 		fields = { "shown", "anchor", "x", "y", "scale", "alphaCombat", "alphaIdle" },
 	})
 	K.Layout.SetLive(CREST_KEY, false)
+	crest:HookScript("OnShow", Slab.CrestMoved)
+	crest:HookScript("OnHide", Slab.CrestMoved)
 	Slab.crest = crest
 	local hub = CreateFrame("Frame", nil, root)
 	hub:SetFrameStrata(STRATA)
@@ -765,7 +767,7 @@ function Slab.Pair(cfg)
 	local bars = ns.bars
 	local left, right = bars and bars.bar1, bars and bars.bar2
 	cfg = cfg or K.Store.Module("ActionBars")
-	if not (left and right and ns.running and not ns.gamepad and cfg.bar1.enabled == true and cfg.bar2.enabled == true) or left.holderHidden or right.holderHidden or left.gateHidden or right.gateHidden then
+	if not (left and right and ns.running and not ns.gamepad and cfg.bar1.enabled == true and cfg.bar2.enabled == true) or left.holderHidden or right.holderHidden or left.gateHidden or right.gateHidden or left.headerHidden or right.headerHidden then
 		return nil
 	end
 	local l1, r1, t1, b1 = Edges(left.holder)
@@ -803,6 +805,19 @@ local function Seat(split)
 		rest.Follow("actionbars.bar1", hub)
 	end
 	K.Layout.SetLive(CREST_KEY, split)
+	rest.Regather()
+end
+
+function Slab.CrestShown()
+	local hub = Slab.hub
+	return hub ~= nil and hub:IsShown() and not (state.split and not Slab.crest:IsShown())
+end
+
+function Slab.CrestMoved()
+	if state.split then
+		ns.Totems.Update()
+		if ns.Travel then ns.Travel.Refresh() end
+	end
 end
 
 local function Hide()
@@ -1022,7 +1037,7 @@ function Slab.PlaceSides(on, cfg)
 			sides[key] = plate
 		end
 		if plate then
-			local shown = wanted and bar:Shown() and not bar.holderHidden and not bar.gateHidden and not cfg[key].backing
+			local shown = wanted and bar:Shown() and not bar.holderHidden and not bar.gateHidden and not bar.headerHidden and not cfg[key].backing
 			if shown then
 				local action = key ~= "pet" and key ~= "stance"
 				local pad = Widgets.Snap(plate, action and Slab.Spec().pad or Slab.Side().pad)

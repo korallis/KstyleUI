@@ -198,6 +198,20 @@ do
 	assert(near(crest:GetAlpha(), 1) and near(slab:GetAlpha(), 0.4), "and no longer follows the rest opacity")
 	K.Options.Write("Rest", "alpha", 0.35)
 	W.Settle(env)
+	-- KSTY-171: the Crest element goes live when the bars split, which can happen while the HUD rests; Regather
+	-- takes it into the resting panel at once, and out again when it stops being live.
+	local holder = env.CreateFrame("Frame", nil, K.Scale.Root())
+	holder:SetSize(158, 158)
+	K.Layout.Register(holder, "actionbars.crest", { anchor = "BOTTOM", x = 0, y = 100 }, { label = "Crest" })
+	K.Layout.SetLive("actionbars.crest", false)
+	Rest.Regather()
+	assert(near(holder:GetAlpha(), 1), "a Crest element that is not live does not rest")
+	K.Layout.SetLive("actionbars.crest", true)
+	Rest.Regather()
+	assert(near(holder:GetAlpha(), 0.35) and near(slab:GetAlpha(), 0.35), "Regather rests it with its panel at once and keeps the others at rest")
+	K.Layout.SetLive("actionbars.crest", false)
+	Rest.Regather()
+	assert(near(holder:GetAlpha(), 1) and near(slab:GetAlpha(), 0.35), "and gives it back full opacity when it stops being live")
 	assert(near(frames["actionbars.bar2"]:GetAlpha(), 0.5), "an element the player set to its own opacity keeps it")
 
 	W.Enter(frames["actionbars.bar1"].child)

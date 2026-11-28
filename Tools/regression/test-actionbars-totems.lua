@@ -12,6 +12,8 @@ local function New(class, opts)
 		width = size[1],
 		height = size[2],
 		setup = function(e)
+			e._resolveRects = opts.rects
+			if opts.toggle then e._game.bindings["CLICK KstyleUI_Toggle_bar2:LeftButton"] = { "F10" } end
 			e._totems, e._known = {}, { [66842] = true, [36936] = true }
 			e.C_ActionBar.GetMultiCastBarIndex = function() return 12 end
 			e.GetMultiCastTotemSpells = function(slot) return unpack(KNOWN[slot] or {}) end
@@ -263,13 +265,74 @@ do
 	K.Options.Write("ActionBars", "totemBar", true)
 	env.RunTimers()
 	assert(state.header:IsShown() and K.Safe.IsHidden(env.MultiCastActionBarFrame) and ns.bars.stance:Visibility() == "hide", "on takes it over again")
+	Clean(env, K, "combat")
+end
+
+-- KSTY-171 part 1: split bars keep the crest, so Spirit Poles stay with it on the Crest element. Moving, scaling and
+-- hiding that element carry the poles, which are placed over the hub by coordinates: the hub moves in combat when
+-- the bars split, so no protected frame may anchor to it. Only the crest's removal gives Blizzard's bar back.
+do
+	local env, K, ns = New("SHAMAN", { rects = true, toggle = true })
+	local state, Layout, hub = ns.Totems.state, K.Layout, ns.Slab.hub
+	local function Free(what)
+		local frames = { state.header, state.call, state.wolf }
+		for _, b in ipairs(state.sockets) do
+			frames[#frames + 1], frames[#frames + 2] = b, b.fan
+			for _, f in ipairs(b.fan.buttons) do frames[#frames + 1] = f end
+		end
+		for _, frame in ipairs(frames) do
+			for i = 1, frame:GetNumPoints() do
+				assert(select(2, frame:GetPoint(i)) ~= hub, what .. ": no Spirit Poles frame anchors to the moving hub")
+			end
+		end
+	end
+	local function Over(what)
+		local hx, hy = hub:GetCenter()
+		local cx, cy = state.header:GetCenter()
+		local hs, cs = hub:GetEffectiveScale(), state.header:GetEffectiveScale()
+		assert(math.abs(hs - cs) < 1e-6, string.format("%s: the poles take the crest's scale, %.3f against %.3f", what, cs, hs))
+		assert(math.abs(hx * hs - cx * cs) < 0.5 and math.abs(hy * hs - cy * cs) < 0.5, string.format("%s: the poles sit over the crest, %s %s against %s %s", what, tostring(cx), tostring(cy), tostring(hx), tostring(hy)))
+	end
+	Free("joined")
+	Over("joined")
+	env.SetCombat(true)
+	assert(AB.PressKey(env, "F10"))
+	env.RunTimers()
+	assert(hub:GetParent() == ns.Slab.crest and hub:IsVisible(), "bar 2 toggled away in combat splits the bars and keeps the crest")
+	assert(state.header:IsShown() and K.Safe.IsHidden(env.MultiCastActionBarFrame), "split in combat: Spirit Poles stay")
+	assert(#env._blocked == 0, "split in combat: nothing protected moved: " .. table.concat(env._blocked, ", "))
+	Free("split in combat")
+	env.SetCombat(false)
+	env.RunTimers()
+	Over("split")
+	assert(AB.PressKey(env, "F10"))
+	env.RunTimers()
+	assert(hub:GetParent() == K.Scale.Root(), "bar 2 back rejoins the bars")
 	K.Options.Write("ActionBars", "slab", false)
 	env.RunTimers()
+	assert(hub:GetParent() == ns.Slab.crest and state.header:IsShown() and K.Safe.IsHidden(env.MultiCastActionBarFrame), "the slab switch off keeps the crest and Spirit Poles")
+	Free("slab off")
+	Over("slab off")
+	local c = Layout.Get("actionbars.crest")
+	assert(Layout.Set("actionbars.crest", "x", c.x + 100))
+	env.RunTimers()
+	Over("the Crest element moved 100 units")
+	assert(Layout.Set("actionbars.crest", "scale", 1.5))
+	env.RunTimers()
+	Over("the Crest element at scale 1.5")
+	assert(Layout.Set("actionbars.crest", "shown", "never"))
+	env.RunTimers()
 	assert(not state.header:IsShown() and not K.Safe.IsHidden(env.MultiCastActionBarFrame) and ns.bars.stance:Visibility() == "show", "without the crest Blizzard's bar and the stance bar come back")
-	K.Options.Write("ActionBars", "slab", true)
+	assert(Layout.Set("actionbars.crest", "shown", "always"))
 	env.RunTimers()
 	assert(state.header:IsShown() and K.Safe.IsHidden(env.MultiCastActionBarFrame), "the crest's return brings the bar back")
-	Clean(env, K, "combat")
+	Over("the crest shown again")
+	K.Options.Write("ActionBars", "slab", true)
+	env.RunTimers()
+	assert(hub:GetParent() == K.Scale.Root() and state.header:IsShown(), "the slab switch on rejoins the bars with the poles on the crest")
+	Free("rejoined")
+	Over("rejoined")
+	Clean(env, K, "split")
 end
 
 -- The crest at four screen sizes: sockets on the arc above the hub, medals on its shoulders, none overlapping
@@ -278,8 +341,7 @@ end
 local EARTH = KNOWN[2]
 KNOWN[2] = { 8075, 8071, 2484, 5730, 8143, 2062 }
 for _, size in ipairs(SIZES) do
-	local env, K, ns = New("SHAMAN", { size = size })
-	env._resolveRects = true
+	local env, K, ns = New("SHAMAN", { size = size, rects = true })
 	local state = ns.Totems.state
 	assert(state.shown, "the bar sits on the crest")
 	local hub = ns.Slab.hub

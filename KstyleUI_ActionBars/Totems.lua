@@ -68,7 +68,7 @@ end
 
 local function Seat()
 	local hub = ns.Slab.hub
-	if hub and hub:IsShown() then return hub end
+	if ns.Slab.CrestShown() then return hub end
 	local stance = K.HudStyle.Current() == "frames" and ns.bars.stance
 	return stance and stance.holder or nil
 end
@@ -502,12 +502,12 @@ local function Place()
 	header:ClearAllPoints()
 	local half, pitch, w, h = SOCKET / 2, SOCKET + ROW_GAP, 4 * (SOCKET + ROW_GAP) + 2 * MEDAL + 2 * ROW_GAP, SOCKET + SPIRE_LIFT + SPIRE
 	if crest then
-		header:SetAllPoints(hub)
+		if not Widgets.Cover(header, hub) then ns.LogOnce("totemCover", "The crest has no readable place yet; Spirit Poles stay where they were") end
 	else
 		header:SetPoint("BOTTOMLEFT", seat, "BOTTOMLEFT", 0, 0)
 		header:SetSize(w, h)
 	end
-	local anchor, step, rise = crest and hub or header, FAN + ROW_GAP / 2, half + SPIRE_LIFT + SPIRE + ROW_GAP
+	local anchor, step, rise = header, FAN + ROW_GAP / 2, half + SPIRE_LIFT + SPIRE + ROW_GAP
 	for i, b in ipairs(state.sockets) do
 		b:SetShown(b.known)
 		b.spire:SetShown(b.known)
@@ -528,7 +528,7 @@ local function Place()
 		b.tab:SetPoint("TOP", b, "BOTTOM", 0, -1)
 		Widgets.Size(b.tab, SOCKET * 0.6, 3)
 		if crest then
-			Put(b.fan, hub, 0, FAN_RADIUS - FAN_DROP - FAN)
+			Put(b.fan, header, 0, FAN_RADIUS - FAN_DROP - FAN)
 			Widgets.Size(b.fan, 2 * FAN_RADIUS * sin(rad(FAN_SPAN / 2)) + 2 * FAN, 3 * FAN)
 		else
 			Put(b.fan, header, x, y + rise + b.fan.count * step / 2)

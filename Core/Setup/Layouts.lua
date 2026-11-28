@@ -1754,7 +1754,8 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		end
 	end
 	if style == "medallions" and layout["actionbars.bar1"] and (enabled["actionbars.bar1"] ~= false or enabled["actionbars.bar2"] ~= false) then
-		local centre = state.slab and layout["actionbars.bar1"].y + state.groupHeight or state.crestY
+		local split = not state.slab or enabled["actionbars.bar1"] == false or enabled["actionbars.bar2"] == false
+		local centre = split and state.crestY or layout["actionbars.bar1"].y + state.groupHeight
 		local ring = max(1, floor(Layouts.MEDALLIONS_RING * pixelScale + 0.5))
 		local left = floor(physicalWidth / 2 - ring / 2 + 0.5)
 		local bottom = floor(centre * pixelScale - ring / 2 + 0.5)
@@ -1766,7 +1767,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			local dock = rect.key == "databars.strip" and Layouts.DataBarDock(name, ns.Scale.AspectClass(physicalWidth, physicalHeight), style)
 			local position = layout[rect.key]
 			local docked = dock and position.anchor == dock.anchor and position.x == dock.x and position.y == dock.y
-			local own = not state.slab and (rect.key == "actionbars.bar1" or rect.key == "actionbars.bar2")
+			local own = split and (rect.key == "actionbars.bar1" or rect.key == "actionbars.bar2")
 			if rect.key ~= "databars.xp" and not docked and not own and left < rect[3] and rect[1] < left + ring and bottom < rect[4] and rect[2] < bottom + ring then
 				return false
 			end

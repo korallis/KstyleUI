@@ -137,12 +137,12 @@ do
 	-- Medallions puts the poles back on the crest with their own art; Frames brings the row back.
 	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
-	assert(st.shown and st.header:GetPoint(1) ~= "BOTTOMLEFT" and st.ring[5]:IsShown() and st.ring.breath:IsPlaying(), "Medallions: the poles on the crest, the ring back and breathing")
+	assert(st.shown and select(2, st.header:GetPoint(1)) ~= ns.bars.stance.holder and st.ring[5]:IsShown() and st.ring.breath:IsPlaying(), "Medallions: the poles on the crest, the ring back and breathing")
 	assert(#AB.Band(st.header, root) == 0 and not (fire.edge and fire.edge:IsVisible()), "Medallions: the closed bar keeps its look, no plate and no socket edge")
 	assert(tostring(AB.W.LastCall(fire.spire.steel, "SetTexture")[1]):find("PipSpireSteel102.png", 1, true), "the crest's fire spire leans at its own angle")
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
-	assert(st.shown and st.header:GetPoint(1) == "BOTTOMLEFT" and not st.ring[5]:IsShown() and not st.ring.breath:IsPlaying(), "Frames: the row again, the ring still")
+	assert(st.shown and select(2, st.header:GetPoint(1)) == ns.bars.stance.holder and not st.ring[5]:IsShown() and not st.ring.breath:IsPlaying(), "Frames: the row again, the ring still")
 	for _, size in ipairs({ 32, 48 }) do
 		K.Options.Write("ActionBars", "stance.size", size)
 		env.RunTimers()

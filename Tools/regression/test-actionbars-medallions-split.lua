@@ -26,7 +26,9 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	local env, K, ns = AB.New({ width = width, height = height, class = "WARLOCK", setup = function(e)
 		e._game.bindings["CLICK KstyleUI_Toggle_bar1:LeftButton"] = { "F9" }
 		e._game.bindings["CLICK KstyleUI_Toggle_bar2:LeftButton"] = { "F10" }
+		e._resolveRects = true
 	end })
+	AB.Hiding(env)
 	AB.Enable(env, K)
 	env.RunTimers()
 	local Slab, Layout = ns.Slab, K.Layout
@@ -87,7 +89,15 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	env.RunTimers()
 	Joined(what .. " bar 1 toggled back")
 
-	-- The Crest element: moving, scaling and hiding it carries the crest while split.
+	-- The Crest element: moving, scaling and hiding it carries the crest and its secure travel button while split.
+	local travel = ns.Travel.crest
+	local function Travels(what)
+		local tl, tb, tw, th = travel:GetRect()
+		local vl, vb, vw, vh = hub.crest:GetRect()
+		local ts, vs = travel:GetEffectiveScale(), hub.crest:GetEffectiveScale()
+		assert(travel:IsShown(), what .. ": the travel button is on the crest")
+		assert(math.abs(tl * ts - vl * vs) < 0.5 and math.abs(tb * ts - vb * vs) < 0.5 and math.abs(tw * ts - vw * vs) < 0.5 and math.abs(th * ts - vh * vs) < 0.5, what .. ": the travel button covers the crest")
+	end
 	assert(Layout.Set("actionbars.bar2", "y", y + 14))
 	env.RunTimers()
 	local c = Layout.Get(CREST)
@@ -100,12 +110,31 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	env.RunTimers()
 	local _, _, mw = Centre(hub)
 	assert(math.abs(mw / w - 1.5) < 0.01, what .. ": scaling the element to 1.5 scales the crest, got " .. mw / w)
+	Travels(what .. " moved and scaled")
 	assert(Layout.Set(CREST, "shown", "never"))
 	env.RunTimers()
 	assert(not hub:IsVisible(), what .. ": Shown never on the element hides the crest")
+	assert(not travel:IsShown() and not (ns.Travel.menu and ns.Travel.menu:IsShown()), what .. ": and its travel button")
 	assert(Layout.Set(CREST, "shown", "always"))
 	env.RunTimers()
 	assert(hub:IsVisible(), what .. ": and Always brings it back")
+	Travels(what .. " shown again")
+	local sx, sy = Centre(hub)
+
+	-- Profiles: a copy keeps the split; back in line there it joins; the first profile splits again with the crest
+	-- where it was left.
+	local profile, other = K.Store.ProfileName(), "Other " .. width
+	assert(K.Store.CopyProfile(profile, other) and K.Store.SetProfile(other))
+	env.RunTimers()
+	Split(what .. " in a copied profile", true, true)
+	assert(Layout.Set("actionbars.bar2", "y", y))
+	env.RunTimers()
+	Joined(what .. " the copy back in line")
+	assert(K.Store.SetProfile(profile))
+	env.RunTimers()
+	Split(what .. " back in the split profile", true, true)
+	local bx, by = Centre(hub)
+	assert(math.abs(bx - sx) <= px and math.abs(by - sy) <= px, string.format("%s: the crest keeps its moved place across profiles, %.2f %.2f against %.2f %.2f", what, bx, by, sx, sy))
 
 	-- Splitting and joining in combat stays clear of protected calls.
 	env._combat = true
@@ -122,6 +151,20 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	assert(Layout.Set("actionbars.bar2", "y", y))
 	env.RunTimers()
 	assert(slab:IsShown() and hub:GetParent() == K.Scale.Root(), what .. ": back in line after combat, the slab returns")
+
+	-- A custom visibility rule that hides bar 2 in combat splits the aligned bars there and rejoins them after.
+	K.Options.Write("ActionBars", "bar2.visibility", "[combat] hide; show")
+	env.RunTimers()
+	Joined(what .. " with a combat rule, out of combat")
+	env.SetCombat(true)
+	env.RunTimers()
+	assert(not bar2.header:IsVisible(), what .. ": the rule hides bar 2 in combat")
+	Split(what .. " the rule in combat", true, false)
+	env.SetCombat(false)
+	env.RunTimers()
+	Joined(what .. " the rule after combat")
+	K.Options.Write("ActionBars", "bar2.visibility", "")
+	env.RunTimers()
 
 	-- Gamepad mode keeps today's rule: neither the slab nor the crest.
 	ns.gamepad = true

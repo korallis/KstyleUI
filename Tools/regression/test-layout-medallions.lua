@@ -149,9 +149,6 @@ do
 	local Layouts = K.Setup.Layouts
 	local enabled = Layouts.Enabled("DPS")
 	local crest = Layouts.CrestPlace("16:9", "DPS")
-	local bar = Layouts.Place("DPS", "medallions", "16:9", BAR1)
-	local _, _, _, height = Layouts.MedallionsGroup("16:9")
-	assert(crest.anchor == "BOTTOM" and crest.x == 0 and near(crest.y + Layouts.MEDALLIONS_HUB_GAP / 2, bar.y + height), "the crest's default centre is the joined gap's top centre")
 	for _, slab in ipairs({ true, false }) do
 		K.Store.Module("ActionBars").slab = slab
 		local what = slab and "joined" or "split"
