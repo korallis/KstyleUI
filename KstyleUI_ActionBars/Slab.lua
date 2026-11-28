@@ -1264,7 +1264,7 @@ function Slab.Dress(b)
 	Slab.Keybind(b)
 end
 
-local CREST_OWNERS = { "SlabJewels", "SlabHawks", "SlabStorm", "SlabTrackers", "SlabRings", "SlabCrown", "SlabHeat", "SlabTarget", "SlabUnleashed", "SlabPopoffs" }
+local CREST_OWNERS = { "SlabUnleashed", "SlabJewels", "SlabHawks", "SlabStorm", "SlabTrackers", "SlabRings", "SlabCrown", "SlabHeat", "SlabTarget", "SlabPopoffs" }
 
 local function Waited()
 	state.waiting = false
