@@ -917,8 +917,8 @@ function Slab.CrestMoved()
 		Ruled()
 		if not InCombatLockdown() then Parent() end
 	end
+	ns.Totems.Update()
 	if state.split then
-		ns.Totems.Update()
 		ns.SlabCrown.Update()
 		if ns.Travel then ns.Travel.Refresh() end
 	end

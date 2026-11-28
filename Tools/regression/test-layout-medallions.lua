@@ -158,13 +158,19 @@ do
 		assert(not Layouts.Fits("DPS", 1920, 1080, 0.875, enabled, at, nil, "medallions"), what .. ": a class resource over the crest does not fit")
 	end
 	-- Off the slab a bar still on the default grid keeps the slab's slot size, clear of the crest; one with its own
-	-- size keeps that size (the captain's choice: make room without overwriting custom arrangements).
+	-- size, centre gap, fill order or growth keeps its grid (the captain's choice: make room without overwriting custom arrangements).
 	K.Store.Module("ActionBars").slab = false
 	local _, _, _, _, cell = Layouts.MedallionsGroup("16:9")
 	local _, _, size = Layouts.ActionBarGrid("16:9", "actionbars.bar2", {}, "medallions")
 	assert(size == cell, "slab off, a default bar 2 keeps the slab's slot size, got " .. tostring(size))
 	_, _, size = Layouts.ActionBarGrid("16:9", "actionbars.bar2", { size = 40 }, "medallions")
 	assert(size == 40, "slab off, a bar 2 sized 40 keeps 40, got " .. tostring(size))
+	local grid = Layouts.Grid("actionbars.bar2")
+	for _, own in ipairs({ { split = "on" }, { orientation = "VERTICAL" }, { growth = "LEFTUP" } }) do
+		local field, value = next(own)
+		local _, _, got, gap = Layouts.ActionBarGrid("16:9", "actionbars.bar2", own, "medallions")
+		assert(got == grid.size and gap == grid.spacing, "slab off, a bar 2 with " .. field .. " " .. value .. " keeps its own size and spacing, got " .. tostring(got) .. " and " .. tostring(gap))
+	end
 	K.Store.Module("ActionBars").slab = true
 end
 -- One bar off splits the bars with the slab on: the fit counts the crest at its own place, not above a bar 1 moved

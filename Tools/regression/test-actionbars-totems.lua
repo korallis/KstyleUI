@@ -1,4 +1,4 @@
--- test-actionbars-totems.lua: the shaman's Spirit Poles on the Medallions crest: a shaman who knows a totem gets KstyleUI's secure totem bar and Blizzard's MultiCastActionBarFrame goes to Safe's hidden parent, nobody else gets a frame, an event or a callback; the sockets drop their multi-cast action slots, right click fans out the element's totems as multispell buttons that set the slot and close, shift right click dismisses, Call casts Call of the Elements and right click Totemic Recall; each spire lights from the slot's own boolean and drains from its duration object, secret or not, hidden rather than alpha 0 when Lua can read it; toggling in combat waits for the end of combat with nothing blocked; turning the setting off, or hiding the crest, gives Blizzard's bar and the Ghost Wolf stance bar back, while split bars keep the crest and the poles on it, which are placed over it once and only take over once that place can be read; Motion Off shows end states and nothing runs OnUpdate; the sockets sit on an arc above the crest with the medals on its shoulders, clear of each other, the cooldown row and the crest debuff fan, at four screen sizes.
+-- test-actionbars-totems.lua: the shaman's Spirit Poles on the Medallions crest: a shaman who knows a totem gets KstyleUI's secure totem bar and Blizzard's MultiCastActionBarFrame goes to Safe's hidden parent, nobody else gets a frame, an event or a callback; the sockets drop their multi-cast action slots, right click fans out the element's totems as multispell buttons that set the slot and close, shift right click dismisses, Call casts Call of the Elements and right click Totemic Recall; each spire lights from the slot's own boolean and drains from its duration object, secret or not, hidden rather than alpha 0 when Lua can read it; toggling in combat waits for the end of combat with nothing blocked; turning the setting off, or hiding the crest, gives Blizzard's bar and the Ghost Wolf stance bar back, as does a Crest element whose Shown rule can hide it, joined or split, while split bars keep the crest and the poles on it, which are placed over it once and only take over once that place can be read; Motion Off shows end states and nothing runs OnUpdate; the sockets sit on an arc above the crest with the medals on its shoulders, clear of each other, the cooldown row and the crest debuff fan, at four screen sizes.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
@@ -324,6 +324,28 @@ do
 	K.Options.Write("ActionBars", "slab", true)
 	env.RunTimers()
 	Seated("the slab switch on", root)
+	local function Native(what)
+		assert(not state.header:IsShown() and not K.Safe.IsHidden(env.MultiCastActionBarFrame) and ns.bars.stance:Visibility() == "show" and ns.bars.stance.header:IsShown(), what .. ": Blizzard's totem bar and the stance bar are shown")
+	end
+	-- A Shown edit while joined hands the totems back at once, so a later split in combat, which hides the crest,
+	-- leaves usable controls; Blizzard's bar could not come back in combat.
+	assert(Layout.Set("actionbars.crest", "shown", "noCombat"))
+	env.RunTimers()
+	Native("joined, a crest shown only out of combat")
+	env.SetCombat(true)
+	env.RunTimers()
+	Native("joined in combat")
+	assert(AB.PressKey(env, "F10"))
+	env.RunTimers()
+	assert(not hub:IsVisible(), "split in combat under Out of combat only: the crest hides")
+	Native("split in combat under Out of combat only")
+	assert(#env._blocked == 0, "split in combat under Out of combat only: nothing protected moved: " .. table.concat(env._blocked, ", "))
+	assert(AB.PressKey(env, "F10"))
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(Layout.Set("actionbars.crest", "shown", "always"))
+	env.RunTimers()
+	Seated("joined, the crest always shown again", root)
 	env.SetCombat(true)
 	assert(AB.PressKey(env, "F10"))
 	env.RunTimers()
@@ -351,9 +373,6 @@ do
 	-- stay usable while combat hides the crest; Blizzard's bar could not come back in combat.
 	assert(Layout.Set("actionbars.crest", "shown", "noCombat"))
 	env.RunTimers()
-	local function Native(what)
-		assert(not state.header:IsShown() and not K.Safe.IsHidden(env.MultiCastActionBarFrame) and ns.bars.stance:Visibility() == "show", what .. ": Blizzard's totem bar and the stance bar")
-	end
 	Native("a crest shown only out of combat")
 	env.SetCombat(true)
 	env.RunTimers()

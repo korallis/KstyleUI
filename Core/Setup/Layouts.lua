@@ -429,6 +429,7 @@ end
 
 local function Sized(saved, cfg, grid, key, style)
 	return Grouped(saved, key, style) or style == "medallions" and (key == "actionbars.bar1" or key == "actionbars.bar2") and Untouched(cfg, grid, false)
+		and (cfg.split == nil or cfg.split == "off") and (cfg.orientation == nil or cfg.orientation == "HORIZONTAL") and (cfg.growth == nil or cfg.growth == (grid.growth or "RIGHTDOWN"))
 end
 
 function Layouts.ActionBarGrid(class, key, cfg, style)

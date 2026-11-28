@@ -29,6 +29,9 @@ do
 	assert(near(Split(bar2), gap), "off the slab, Always parts bar 2 into two groups of six, got " .. Split(bar2))
 	assert(near(Split(bar1), 0), "bar 1 stays one row")
 	assert(near(x(bar2.buttons[1]), 0) and x(bar2.buttons[12]) > x(bar2.buttons[7]), "each half keeps its order")
+	-- A bar on the default grid takes the slab's slot size off the slab only while its row is whole, so a size of its own
+	-- holds the buttons still while the gap comes and goes.
+	K.Options.Write("ActionBars", "bar2.size", 40)
 	local split = bar2.holder:GetWidth()
 	K.Options.Write("ActionBars", "bar2.split", "off")
 	local whole = bar2.holder:GetWidth()
