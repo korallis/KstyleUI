@@ -157,6 +157,7 @@ do
 	local mend = pet.lits[#pet.lits]
 	assert(mend.container and #mend.loops == 4 and Shown(mend, mend.loops[1]) and Shown(mend, mend.loops[4]), "Mend Pet's motes run along the light as the engine's shown animations on a pet slot")
 	K.Options.Write("ActionBars", "crestRail", false)
+	K.Options.Write("ActionBars", "crestOrb", false)
 	local rim = Piece(ns, "crestCooldowns")
 	Slots.Set(env, "pet", { { id = 19574, icon = 132127, start = 0, duration = 18 } })
 	Slots.Set(env, "player", { { id = 3045, icon = 132208, start = 1, duration = 15 } })
@@ -526,7 +527,8 @@ do
 end
 
 do
-	local env, K, ns = New("HUNTER", { known = { 13165, 883, 3045, 75 } })
+	-- With the bow on, the bow holds Rapid Fire and the rail leaves it out (test-actionbars-crest-orb.lua owns that).
+	local env, K, ns = New("HUNTER", { known = { 13165, 883, 3045, 75 }, before = function(_, K) K.Options.Write("ActionBars", "crestOrb", false) end })
 	assert(not Seated(ns, "crestGust"), "the crest plan moves Rapid Fire to the cooldown rail: alone it brings no gust while the rail shows")
 	K.Options.Write("ActionBars", "crestRail", false)
 	local gust = Piece(ns, "crestGust")
@@ -744,7 +746,7 @@ do
 end
 
 for class, keys in pairs({ HUNTER = { "crestShot", "crestAspect", "crestPet", "crestMark", "crestSting", "crestAutoShot", "crestGust", "crestCooldowns", "crestRail", "crestTrueshot",
-	"crestTracking", "crestRange", "crestPetAbility", "crestOrders", "crestPotion" },
+	"crestTracking", "crestRange", "crestPetAbility", "crestOrders", "crestPotion", "crestOrb" },
 	MAGE = { "crestArmor", "crestManaGem", "crestCounterspell", "crestSchool", "crestFrozen", "crestYourSpell", "crestWard", "crestClearcasting", "crestOrb", "crestCooldowns" },
 	WARLOCK = { "crestTorments", "crestWisps", "crestDemon", "crestHealthstone", "crestStone", "crestConflagrate", "crestCurse", "crestTrance", "crestCooldowns", "crestRail" } }) do
 	local deterrence = class == "HUNTER" and { 13165, 883, 1130, 1978, 19552, 3045, 19574, 75, 2643, 19263, 19506, 24293 } or nil
@@ -766,7 +768,8 @@ for class, keys in pairs({ HUNTER = { "crestShot", "crestAspect", "crestPet", "c
 	local fenv, FK, fns = New(class, { frames = true, bags = { [6265] = 2, [5512] = 1, [5514] = 1 }, pet = { max = 100, missing = 0 }, petSpells = { 24579, 14916 } })
 	local seen = 0
 	for _, p in pairs(fns.SlabTrackers.state.form.pieces) do seen = seen + (p:IsShown() and 1 or 0) end
-	assert(fns.SlabTrackers.state.form == fns.SlabTrackers.state.forms.row and seen >= #keys, class .. ": Frames stands every seat in the row")
+	-- The orb is the crest's alone, so Frames stands every other seat.
+	assert(fns.SlabTrackers.state.form == fns.SlabTrackers.state.forms.row and seen >= #keys - 1, class .. ": Frames stands every seat in the row")
 	local rects = {}
 	for _, p in pairs(fns.SlabTrackers.state.form.pieces) do
 		if p:IsShown() and not p.halo then

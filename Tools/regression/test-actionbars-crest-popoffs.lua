@@ -121,6 +121,8 @@ do
 		{ class = "WARLOCK", tree = 1, known = { 603, 18288, 6789, 18708, 6353, 1122, 17877, 18094 }, key = "amplify", spell = 18288, unit = "player" },
 	}) do
 		local henv, hK, hns = R.New(case.class, { known = case.known, tree = case.tree })
+		-- The hunter's bow holds its tree's great cooldown; switched off, Bestial Wrath takes its rail seat.
+		if case.class == "HUNTER" then hK.Options.Write("ActionBars", "crestOrb", false) end
 		henv.SetTarget(true)
 		henv.RunTimers()
 		local rail = assert(R.Seated(hns, "crestRail"), case.class .. ": the rail is seated")

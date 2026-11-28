@@ -1,4 +1,4 @@
-"""Bake the mage's power orb into Media/Textures/Medallions/Orbs/: a vessel per race, the light per school, the glass and the proc effects.
+"""Bake the class centrepieces: the race vessels and the mage's orb into Medallions/Orbs/, the hunter's bow into Medallions/Bow/.
 
 The orb replaces the crest's painted emblem in the hub's opening (KstyleUI_ActionBars/SlabOrb.lua). orb.py, the Blender rig,
 renders each layer framed on its glass alone; this packs the frames for the game:
@@ -12,11 +12,18 @@ renders each layer framed on its glass alone; this packs the frames for the game
   fire, Fingers of Frost's rime for one charge and the second), 128 px cells, additive; each rime is the difference its
   charge makes to the glass, so the two stack.
 
+The hunter's bow (--klass hunter) packs into Media/Textures/Medallions/Bow/ in the same shapes:
+
+- Light<Tree>, Core<Tree>, Meniscus<Tree>: the wind for Beast Mastery, Marksmanship and Survival, its lit broadhead and
+  its gust line, additive.
+- Frame: the bow and arrow on clear film over the wind, 256 px, drawn solid in place of the glass.
+- Rapid: Rapid Killing's three spectral arrows, 128 px cells, additive.
+
 Layers framed on the glass are rendered with the glass at radius 1 and sized in game by the race's glass radius, so one
 light serves every vessel. A loop renders twice its frames and cross-fades the second half into the first in linear
 light, so it closes without a seam; the missiles circle exactly one turn instead.
 
-    python3 Tools/media/forge/orbs.py [--blender PATH] [--work DIR] [--only Vessel,Light,...] [--out DIR]
+    python3 Tools/media/forge/orbs.py [--blender PATH] [--work DIR] [--only Vessel,Light,...] [--out DIR] [--klass hunter]
 
 Needs Blender 5.x (BLENDER, --blender or blender on the PATH), numpy and Pillow.
 """
@@ -38,8 +45,10 @@ sys.path[:0] = [str(HERE)]
 
 from finish import to_lin, to_srgb
 
-RACES = ("human", "gnome", "orc", "scourge", "troll", "skyborne")
+RACES = {"human": "Human", "gnome": "Gnome", "orc": "Orc", "scourge": "Scourge", "troll": "Troll", "skyborne": "Skyborne",
+         "dwarf": "Dwarf", "nightelf": "NightElf", "tauren": "Tauren"}
 SCHOOLS = ("arcane", "fire", "frost")
+TREES = ("beast", "marks", "survival")
 CELLS, SECONDS, MASTER, SAMPLES = 16, 1.6, 512, 24
 RIME = 1.8  # frost on glass is faint beside the light it covers
 # name: (layer, school, cell px, light gain, or a gain per channel); a proc is lit in its own school, and Clearcasting's
@@ -53,14 +62,19 @@ SHEETS = {
     "Barrage": ("barrage", "arcane", 128, 1.0),
     "Heat": ("heat", "fire", 128, (1.6, 0.7, 0.25)),
 }
+BOW = {
+    **{f"Light{s.capitalize()}": ("light", s, 256, 1.0) for s in TREES},
+    **{f"Core{s.capitalize()}": ("core", s, 128, 1.0) for s in TREES},
+    "Rapid": ("rapid", "marks", 128, 1.0),
+}
 
 
-def render(blender, env, work, race, layer, school="", re=0.0):
-    out = work / f"{race}-{layer}-{school or 'none'}"
+def render(blender, env, work, race, layer, school="", re=0.0, klass="mage"):
+    out = work / f"{klass}-{race}-{layer}-{school or 'none'}"
     shutil.rmtree(out, ignore_errors=True)
     cmd = [blender, "-b", "--factory-startup", "--python-exit-code", "1", "--python", str(HERE / "orb.py"), "--", race, str(out),
            "--repo", str(ROOT), "--layer", layer, "--size", str(MASTER), "--samples", str(SAMPLES), "--cells", str(CELLS),
-           "--seconds", str(SECONDS)]
+           "--seconds", str(SECONDS), "--klass", klass]
     if school:
         cmd += ["--school", school]
     if re:
@@ -131,8 +145,8 @@ def sheet(frames, cell, gain):
     return out
 
 
-def vessel(blender, env, work, race, path):
-    f = render(blender, env, work, race, "vessel")[0]
+def vessel(blender, env, work, race, path, layer="vessel", klass="mage"):
+    f = render(blender, env, work, race, layer, "", 1.0 if layer != "vessel" else 0.0, klass)[0]
     img = np.asarray(Image.open(f).convert("RGBA"), np.float32) / 255
     lin = to_lin(img[..., :3]) * img[..., 3:4]
     rgb = shrink(lin, 256)
@@ -148,8 +162,11 @@ def main(argv=None):
     parser.add_argument("--blender", default=os.environ.get("BLENDER") or shutil.which("blender"))
     parser.add_argument("--work", type=Path, help="keep the rendered frames here")
     parser.add_argument("--only", default="", help="comma-separated texture names (VesselHuman, LightArcane, Glass, Meniscus, Rime...)")
-    parser.add_argument("--out", type=Path, default=ROOT / "Media/Textures/Medallions/Orbs")
+    parser.add_argument("--out", type=Path, help="default Media/Textures/Medallions/Orbs, or .../Bow for the hunter")
+    parser.add_argument("--klass", default="mage", choices=("mage", "hunter"), help="mage: the vessels and the orb; hunter: the bow")
     args = parser.parse_args(argv)
+    hunter = args.klass == "hunter"
+    args.out = args.out or ROOT / "Media/Textures/Medallions" / ("Bow" if hunter else "Orbs")
     if not args.blender:
         parser.error("no Blender found; set BLENDER or pass --blender")
     only = set(filter(None, args.only.split(",")))
@@ -161,31 +178,33 @@ def main(argv=None):
         return not only or name in only or any(name.startswith(o) for o in only)
 
     made = []
-    for race in RACES:
-        name = "Vessel" + race.capitalize()
+    for race, title in ({} if hunter else RACES).items():
+        name = "Vessel" + title
         if wanted(name):
             made.append(vessel(args.blender, env, work, race, args.out / f"{name}.png"))
-    for name, (layer, school, cell, gain) in SHEETS.items():
+    if hunter and wanted("Frame"):
+        made.append(vessel(args.blender, env, work, "human", args.out / "Frame.png", "bow", "hunter"))
+    for name, (layer, school, cell, gain) in (BOW if hunter else SHEETS).items():
         if wanted(name):
             # the glass's edge sits at 1/1.025 of the half cell (orb.py frames 2.05 glass radii); the core's rays fade out
             inner = 0.55 if layer == "core" else 0.95
-            frames = [fade(linear(f), inner) for f in render(args.blender, env, work, "human", layer, school, 1.0)]
-            # the barrage renders one exact turn of its bolts (orb.py); every other layer crossfades its two halves
-            frames = frames if layer == "barrage" else loop(frames)
+            frames = [fade(linear(f), inner) for f in render(args.blender, env, work, "human", layer, school, 1.0, args.klass)]
+            # the barrage and Rapid Killing render one exact turn of their bolts (orb.py); every other layer crossfades its two halves
+            frames = frames if layer in ("barrage", "rapid") else loop(frames)
             frames = [rim(f) for f in frames] if layer == "heat" else frames
             made.append(write_rgb(sheet(frames, cell, gain), args.out / f"{name}.png"))
-    if wanted("Glass"):
+    if not hunter and wanted("Glass"):
         glass = linear(render(args.blender, env, work, "human", "glass", "", 1.0)[0])
         made.append(write_rgb(shrink(glass, 256), args.out / "Glass.png"))
-    for school in SCHOOLS:
+    for school in TREES if hunter else SCHOOLS:
         name = "Meniscus" + school.capitalize()
         if wanted(name):
-            band = linear(render(args.blender, env, work, "human", "meniscus", school, 1.0)[0])
+            band = linear(render(args.blender, env, work, "human", "meniscus", school, 1.0, args.klass)[0])
             mid = band.shape[0] // 2
             strip = band[mid - MASTER // 16:mid + MASTER // 16]
             chans = [Image.fromarray(strip[..., k].astype(np.float32)).resize((256, 32), Image.LANCZOS) for k in range(3)]
             made.append(write_rgb(np.clip(np.stack([np.asarray(c) for c in chans], -1), 0, None), args.out / f"{name}.png"))
-    if wanted("Rime"):
+    if not hunter and wanted("Rime"):
         glass = linear(render(args.blender, env, work, "human", "glass", "frost", 1.0)[0])
         one = [linear(f) for f in render(args.blender, env, work, "human", "rime1", "frost", 1.0)]
         two = [linear(f) for f in render(args.blender, env, work, "human", "rime2", "frost", 1.0)]

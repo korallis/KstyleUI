@@ -342,6 +342,7 @@ end
 do
 	local env, K, ns = New("HUNTER", { known = { 3045 } })
 	K.Options.Write("ActionBars", "crestRail", false)
+	K.Options.Write("ActionBars", "crestOrb", false)
 	local volley = Piece(ns, "crestCooldowns").sigils[1]
 	Same("Rapid Fire's sigil stands in black under its light", { Drawn(volley, "Sigils\\Volley.png", false):GetVertexColor() }, 0, 0, 0)
 	local fire

@@ -1397,6 +1397,14 @@ if CLASS == "HUNTER" then
 		for _, id in ipairs(shot[1]) do SHOTS[id] = shot[2] end
 	end
 
+	local function Shown(spells, slot)
+		return ns.SlabRail.Holds(spells, slot) or ns.SlabOrb.Holds(spells)
+	end
+	local function Commit()
+		local rail, orb = ns.SlabRail.Commit(), ns.SlabOrb.Commit()
+		return rail or orb
+	end
+
 	ns.SlabRail.Register("HUNTER", {
 		color = "jewelHawk",
 		burst = "medBurstHunter",
@@ -1411,6 +1419,7 @@ if CLASS == "HUNTER" then
 			strider = { spells = { 1317257 }, sigil = "Strider" },
 		},
 		majors = { "rapid", "wrath", "deter", "intimidate" },
+		held = ns.SlabOrb.Expected,
 		trees = {
 			{ majors = { "wrath", "rapid", "intimidate" }, fill = { "trap" } },
 			{ majors = { "rapid" }, fill = { "trap", "sniper", "aimed" } },
@@ -1454,13 +1463,14 @@ if CLASS == "HUNTER" then
 		{ key = "crestPotion", seat = { -33, -24 }, size = GEM, build = Gem, look = "gem", feed = "item", items = POTIONS, color = "friendly", known = { 75 } },
 		{ key = "crestAutoShot", seat = "rim", build = Swing, color = "steelLit", known = { 75 } },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHawk", families = { { spells = { 3045 }, sigil = "Volley", major = true }, { spells = { 19263 }, sigil = "Deflect", major = true },
-			{ spells = { 19574 }, unit = "pet", sigil = "Paw", major = true } }, railed = ns.SlabRail.Holds },
+			{ spells = { 19574 }, unit = "pet", sigil = "Paw", major = true } }, railed = Shown },
 		{ key = "crestGust", seat = "rim", build = Moment, place = Ring, feed = "aura", color = "jewelHawk", ambient = "medAmbientHunter", gust = true, choices = {
 			{ spells = { 6150, 1299448, 469144, 3045 }, known = Railed(false, { 3045, 19552, 19553, 19554, 19555, 19556 }, { 3045 }) },
 			{ spells = { 6150, 1299448, 469144 }, known = Railed(true, { 19552, 19553, 19554, 19555, 19556 }, { 3045 }) },
 		} },
+		{ key = "crestOrb", seat = "rim", build = ns.SlabOrb.Build, place = ns.SlabOrb.Place, feed = "cooldown", choices = ns.SlabOrb.Choices("HUNTER"), crestOnly = true },
 		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
-	}, { burst = "medBurstHunter", pick = ns.SlabRail.Pick, commit = ns.SlabRail.Commit, rail = ns.SlabRail.Holds, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED", "PET_BAR_UPDATE" },
+	}, { burst = "medBurstHunter", pick = ns.SlabRail.Pick, commit = Commit, rail = Shown, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED", "PET_BAR_UPDATE" },
 		events = { "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" }, "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } },
 		kinds = {
 			pet = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], { "UNIT_POWER_UPDATE", "pet" }, { "UNIT_MAXPOWER", "pet" } },
@@ -1558,7 +1568,7 @@ if CLASS == "MAGE" then
 		{ key = "crestWard", seat = "rim", build = Ward, place = Ring, feed = "aura", spells = WARDS, color = "rim", ward = true },
 		{ key = "crestClearcasting", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 12536 },
 			known = CLEARCASTING, color = "schoolArcane", proc = "schoolArcane" },
-		{ key = "crestOrb", seat = "rim", build = ns.SlabOrb.Build, place = ns.SlabOrb.Place, feed = "cooldown", choices = ns.SlabOrb.Choices(), crestOnly = true },
+		{ key = "crestOrb", seat = "rim", build = ns.SlabOrb.Build, place = ns.SlabOrb.Place, feed = "cooldown", choices = ns.SlabOrb.Choices("MAGE"), crestOnly = true },
 		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
 	}, { burst = "medBurstMage", pick = ns.SlabRail.Pick, commit = Commit, rail = Shown, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" },
 		events = { { "UNIT_POWER_UPDATE", "player" }, "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } }, paint = Paint, motion = Motion,

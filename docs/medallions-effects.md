@@ -397,7 +397,7 @@ stateDiagram-v2
 
 ## Mage power orb
 
-`KstyleUI_ActionBars/SlabOrb.lua` fills the crest's opening with a mage's power orb (Action Bars > Slab and cooldowns > Power orb, on by default, Medallions only, mage only). It covers the painted crest inside the ring; the ring, rune band and every other tracker stay. The orb is a dark glass globe in a vessel for the player's race (`Vessel<Race>`: Human, Gnome, Orc, Undead, Troll and the Skyborne; any other race takes the human's), so each race and class pairing draws its own crest. The light inside is the talent tree's great cooldown, in the tree's school colour:
+`KstyleUI_ActionBars/SlabOrb.lua` fills the crest's opening with a mage's power orb (Action Bars > Slab and cooldowns > Power orb, on by default, Medallions only, mage only). It covers the painted crest inside the ring; the ring, rune band and every other tracker stay. The orb is a dark glass globe in a vessel for the player's race (`Vessel<Race>`: Human, Gnome, Orc, Undead, Troll, the Skyborne, Dwarf, Night Elf and Tauren; any other race takes the human's), so each race and class pairing draws its own crest. The light inside is the talent tree's great cooldown, in the tree's school colour:
 
 | Tree (as the rail reads it) | The orb holds | Light, core and meniscus |
 | --- | --- | --- |
@@ -426,6 +426,18 @@ The tree's procs light inside the glass (Clearcasting and Missile Barrage on eve
 The orb is 118 units across, its glass 0.72 to 0.78 of that by race; the light, the procs and the glass's highlight are framed on the glass, so one sheet fits every vessel. Every sheet is rendered in Blender (`Tools/media/forge/orb.py`, packed by `Tools/media/forge/orbs.py`): 16 frames over 1.6 s for every loop. The orb takes the tree's great cooldown from the rail, and from the crest's cooldown rim, so it is counted once; both leave it out while the orb is due to show, so neither loads a sheet the orb then covers, and an orb that fails to build gives the cooldown back to them at once. Under Frames, or with the orb switched off, there is no orb and that cooldown goes back to the rail or the rim.
 
 While auras are secret the orb reads none: the aura slots keep drawing what the engine shows, and the cooldown keeps its duration object. Nothing in the orb runs `OnUpdate`.
+
+## Hunter's bow
+
+The same file gives a hunter's crest its own centrepiece (Action Bars > Slab and cooldowns > Power orb, on by default, Medallions only). Each class has a row in `SlabOrb.lua`'s class table: its art, the tree it reads, its fallback, its procs and its layer order, so the mage's orb and the hunter's bow share one build. The hunter's is a drawn recurve bow with silver wings and a nocked arrow (`bowFrame`, drawn over the light rather than added), standing in the player's race vessel, with the tree's wind rising behind it:
+
+| Tree (as the rail reads it) | The wind follows | Light, core and meniscus |
+| --- | --- | --- |
+| Beast Mastery | Bestial Wrath 19574 | `LightBeast`, `CoreBeast`, `MeniscusBeast` (fire) |
+| Marksmanship | Rapid Fire 3045 | `LightMarks`, `CoreMarks`, `MeniscusMarks` (frost) |
+| Survival | Expose Prey's window (buff 1310726, while talent 1310532 is known) | `LightSurvival`, `CoreSurvival`, `MeniscusSurvival` (nature green) |
+
+Before a tree's spell is known the bow follows Rapid Fire, and before that Auto Shot 75, so a low hunter sees a full bow at rest. Bestial Wrath and Rapid Fire behave as the orb's cooldowns do: the core and the lit broadhead go out on the spend, the wind rises on the cooldown's duration and the hunter's burst (`medBurstHunter`, 1.35 times the light's width, so it clears the buttons under the crest) flares once when it returns. Survival has no great cooldown, so its bow shows Expose Prey's window instead: an aura slot on `"player"`, `"HELPFUL"` drives the wind with the buff's own duration (`SetDurationBar`, time remaining), full when the buff lands and running down to empty as it ends; with no window the bow stands empty. Rapid Killing (buff 415407) lights spectral arrows round the bow on Marksmanship only (`bowRapid`); Quick Shots and Quick Strikes keep their crest gusts. The Shot timer, the flashes, the range ring and Hunter's Mark draw above the bow. The bow takes its spell off the rail and the cooldown rim as the orb does, and under Frames or switched off the spell goes back to them. Only the player's vessel and the current tree's sheets load (`Media/Textures/Medallions/Bow/`, rendered by `Tools/media/forge/orb.py --klass hunter` and packed by `Tools/media/forge/orbs.py --klass hunter`).
 
 ## Mage crest rail
 

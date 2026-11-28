@@ -266,12 +266,14 @@ local function Key(path)
 	return tostring(path):gsub("\\", "/"):match("Media/.+$") or tostring(path)
 end
 
--- OrbSheets(ns, Tokens, orb) -> the Media key of every sheet the shown orb's tree builds: its race's vessel, its school's light,
--- core and meniscus, the glass, and each of the tree's procs (one sheet per stack where a proc draws its stacks apart).
-local function OrbSheets(ns, Tokens, orb)
-	local school = orb.school
-	local names = { "orbVessel" .. orb.race, "orbLight" .. school, "orbCore" .. school, "orbMeniscus" .. school, "orbGlass" }
-	for _, each in ipairs(ns.SlabOrb.PROCS) do
+-- OrbSheets(ns, Tokens, orb, class) -> the Media key of every sheet the shown centrepiece's tree builds: its race's vessel, its
+-- school's light, core and meniscus, the glass or the bow over them, and each of the tree's procs (one sheet per stack where a
+-- proc draws its stacks apart).
+local function OrbSheets(ns, Tokens, orb, class)
+	local school, own = orb.school, ns.SlabOrb.CLASSES[class]
+	local art = own.art
+	local names = { "orbVessel" .. orb.race, art .. "Light" .. school, art .. "Core" .. school, art .. "Meniscus" .. school, own.overlay }
+	for _, each in ipairs(own.procs) do
 		if not each.school or each.school == school then
 			for n = 1, each.stacks and not each.bands and each.stacks or 1 do
 				names[#names + 1] = each.token .. (each.stacks and not each.bands and n or "")
@@ -432,10 +434,10 @@ function Reach.Check(sizes, low, classes, trees, only)
 				end
 			end
 			assert(checked > ((low or only) and 10 or 20), where .. " " .. class .. ": the lit pieces are measured (" .. checked .. ")")
-			if class == "MAGE" then
+			if class == "MAGE" or class == "HUNTER" then
 				local Tokens, orb = measured.KstyleUI.Tokens, nil
 				for _, p in pairs(seated) do orb = p.spec.key == "crestOrb" and p:IsShown() and p or orb end
-				local need = OrbSheets(ns, Tokens, assert(orb, where .. ": the mage's orb shows"))
+				local need = OrbSheets(ns, Tokens, assert(orb, where .. ": the " .. class .. " centrepiece shows"), class)
 				for _, list in ipairs({ railPiece.order, railPiece.spare }) do
 					for _, seat in ipairs(list) do
 						-- Only the aura sheet each mage seat's sigil publishes; the rail's own sheets and its lookup order are test-actionbars-crest-rail's.

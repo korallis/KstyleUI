@@ -616,13 +616,14 @@ end
 -- an aura sheet that the crest rail does not hold. The rail takes the class's long cooldowns and the player's own racial, so the row keeps the potions and the
 -- other races' racials the fixture's spellbook knows (Perception and Will of the Forsaken where a mage or warlock race has them), and the warlock's Shadow Ward
 -- and sacrificed-demon sigils. A mage's second rail fills with its other cooldowns first (Blink, Frost Nova, Fire Blast and the rest) but keeps its first
--- racial, so the other major racials it would take fall back to the row, two more fires there.
+-- racial, so the other major racials it would take fall back to the row, two more fires there. The hunter's bow holds Bestial Wrath, so the rail seats
+-- one more of the row's cooldowns and the row keeps four.
 for _, build in ipairs({
 	{ "MAGE", { crestYourSpell = 1, crestCooldowns = 9 } },
 	{ "MAGE", { crestSchool = 5, crestManaGem = 1 }, Unknown({ 10054, 10053, 3552, 759 }, { 11095, 12872, 12873 }) },
 	{ "WARLOCK", { crestTorments = 4, crestCurse = 5, crestDemon = 1, crestCooldowns = 9 } },
 	{ "WARLOCK", { crestHealthstone = 1 }, Unknown({ 11730, 11729, 5699, 6202, 6201 }) },
-	{ "HUNTER", { crestGust = 1, crestCooldowns = 5 } },
+	{ "HUNTER", { crestGust = 1, crestCooldowns = 4 } },
 }) do
 	local class, want = build[1], build[2]
 	local env, K, ns = New(class, build[3])

@@ -579,6 +579,9 @@ TEXTURES.orbVesselOrc = { file = "Textures\\Medallions\\Orbs\\VesselOrc.png" }
 TEXTURES.orbVesselScourge = { file = "Textures\\Medallions\\Orbs\\VesselScourge.png" }
 TEXTURES.orbVesselTroll = { file = "Textures\\Medallions\\Orbs\\VesselTroll.png" }
 TEXTURES.orbVesselSkyborne = { file = "Textures\\Medallions\\Orbs\\VesselSkyborne.png" }
+TEXTURES.orbVesselDwarf = { file = "Textures\\Medallions\\Orbs\\VesselDwarf.png" }
+TEXTURES.orbVesselNightElf = { file = "Textures\\Medallions\\Orbs\\VesselNightElf.png" }
+TEXTURES.orbVesselTauren = { file = "Textures\\Medallions\\Orbs\\VesselTauren.png" }
 TEXTURES.orbLightArcane = { file = "Textures\\Medallions\\Orbs\\LightArcane.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 TEXTURES.orbCoreArcane = { file = "Textures\\Medallions\\Orbs\\CoreArcane.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 TEXTURES.orbMeniscusArcane = { file = "Textures\\Medallions\\Orbs\\MeniscusArcane.png" }
@@ -594,6 +597,17 @@ TEXTURES.orbHeat = { file = "Textures\\Medallions\\Orbs\\Heat.png", rows = 4, co
 TEXTURES.orbRime1 = { file = "Textures\\Medallions\\Orbs\\Rime1.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 TEXTURES.orbRime2 = { file = "Textures\\Medallions\\Orbs\\Rime2.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
 TEXTURES.orbGlass = { file = "Textures\\Medallions\\Orbs\\Glass.png" }
+TEXTURES.bowLightBeast = { file = "Textures\\Medallions\\Bow\\LightBeast.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.bowCoreBeast = { file = "Textures\\Medallions\\Bow\\CoreBeast.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.bowMeniscusBeast = { file = "Textures\\Medallions\\Bow\\MeniscusBeast.png" }
+TEXTURES.bowLightMarks = { file = "Textures\\Medallions\\Bow\\LightMarks.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.bowCoreMarks = { file = "Textures\\Medallions\\Bow\\CoreMarks.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.bowMeniscusMarks = { file = "Textures\\Medallions\\Bow\\MeniscusMarks.png" }
+TEXTURES.bowLightSurvival = { file = "Textures\\Medallions\\Bow\\LightSurvival.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.bowCoreSurvival = { file = "Textures\\Medallions\\Bow\\CoreSurvival.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.bowMeniscusSurvival = { file = "Textures\\Medallions\\Bow\\MeniscusSurvival.png" }
+TEXTURES.bowRapid = { file = "Textures\\Medallions\\Bow\\Rapid.png", rows = 4, columns = 4, frames = 16, seconds = 1.6 }
+TEXTURES.bowFrame = { file = "Textures\\Medallions\\Bow\\Frame.png" }
 for _, set in ipairs({
 	{ kind = "Sigil", names = { "Crossed", "Skull", "Wall", "Heart", "Sweep", "Thorns", "Bubble", "Aegis", "Sun", "Hand", "Wing", "Bulwark", "Voice",
 		"Flurry", "Rush", "Evade", "Drop", "Smoke", "Ghost", "Blink", "FrostNova", "FireBlast", "BlastWave", "ColdSnap", "IceBarrier", "IceLance" } },
