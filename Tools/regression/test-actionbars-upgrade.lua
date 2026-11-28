@@ -153,15 +153,16 @@ end
 -- An existing 10-button stance bar, Down columns first in Rows 5, with five forms known: the upgrade keeps Rows 5
 -- and the old fold, forms 1 to 3 in the first column and 4 and 5 in the second, until the shape is next edited;
 -- Rows 4 then fills the chosen rows, forms 1 to 4 in the first column and 5 at the top of the second. An attached
--- 7-in-7 consumables bar, taller than its old 6-row reserve, docks by that reserve while its outline and plate hold
--- 7 rows; its first shape edit, to 8 buttons, drops the mark and docks it by the 8-row bar.
+-- 7-in-7 consumables bar down columns first, taller than its old 6-row reserve, docks by that reserve while its
+-- outline and plate hold 7 rows; its first shape edit, to 8 buttons, keeps Rows 7, drops the mark and docks it by
+-- the 7-row bar, one row lower, where a dock still on the old reserve would not move.
 do
 	local old = AB.CoreEnv.DeepCopy(reload.KstyleUIDB)
 	old.version = 49
 	local bars = old.profiles.Default.ActionBars
 	for _, bar in pairs(bars) do if type(bar) == "table" then bar.perRow = nil end end
 	bars.stance.buttons, bars.stance.rows, bars.stance.orientation, bars.stance.growth, bars.stance.spacing = 10, 5, "VERTICAL", "RIGHTDOWN", 3
-	bars.consumables.buttons, bars.consumables.rows, bars.consumables.attached, bars.consumables.hideEmpty = 7, 7, true, false
+	bars.consumables.buttons, bars.consumables.rows, bars.consumables.orientation, bars.consumables.attached, bars.consumables.hideEmpty = 7, 7, "VERTICAL", true, false
 	local loaded, LK, LN = AB.New({ saved = old, setup = function(e)
 		e._game.forms = {}
 		for i = 1, 5 do e._game.forms[i] = { texture = 132349, spellID = 2457 + i } end
@@ -196,11 +197,11 @@ do
 	LK.Options.Write("ActionBars", "consumables.buttons", 8)
 	AB.W.Settle(loaded)
 	local edited = LN.Config("consumables")
-	assert(edited.legacyLayout == nil and edited.perRow == 1, "a consumables shape edit drops its mark and keeps 1 per row")
+	assert(edited.legacyLayout == nil and edited.rows == 7, "a consumables shape edit drops its mark and keeps Rows 7")
 	outline = layouts.Attached("DPS", "consumables.bar", nil, "medallions")
-	assert(near(outline.height, 8 * step) and snapped(bar.holder:GetHeight(), 8 * step), "after the edit the outline and the plate hold 8 rows")
-	assert(snapped(bottom - bar.holder:GetBottom(), 2 * step) and snapped(top - bar.holder:GetTop(), step) and snapped(first - slots[1]:GetTop(), 2 * step),
-		"the edit docks by the 8-row bar: two rows lower than the old 6-row reserve put it, its top one row lower")
+	assert(near(outline.height, 7 * step) and snapped(bar.holder:GetHeight(), 7 * step), "after the edit the outline and the plate still hold 7 rows")
+	assert(snapped(bottom - bar.holder:GetBottom(), step) and snapped(top - bar.holder:GetTop(), step) and snapped(first - slots[1]:GetTop(), step),
+		"the edit docks by the 7-row bar, one row lower than the old 6-row reserve put it")
 	assert(#loaded._errors == 0 and LK.ErrorCount() == 0, AB.Errors(loaded))
 end
 
