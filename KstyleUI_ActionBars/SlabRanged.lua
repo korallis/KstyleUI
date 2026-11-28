@@ -57,7 +57,7 @@ local ON = {
 
 local function Railed(on, spells, seated)
 	return function()
-		if ns.SlabRail.Holds(seated) == on then
+		if (ns.SlabRail.Holds(seated) or ns.SlabOrb.Holds(seated)) == on then
 			return Medals.Known(spells)
 		end
 	end
@@ -1468,7 +1468,7 @@ if CLASS == "HUNTER" then
 			{ spells = { 6150, 1299448, 469144, 3045 }, known = Railed(false, { 3045, 19552, 19553, 19554, 19555, 19556 }, { 3045 }) },
 			{ spells = { 6150, 1299448, 469144 }, known = Railed(true, { 19552, 19553, 19554, 19555, 19556 }, { 3045 }) },
 		} },
-		{ key = "crestOrb", seat = "rim", build = ns.SlabOrb.Build, place = ns.SlabOrb.Place, feed = "cooldown", choices = ns.SlabOrb.Choices("HUNTER"), crestOnly = true },
+		{ key = "crestOrb", seat = "rim", build = ns.SlabOrb.Build, place = ns.SlabOrb.Place, feed = "cooldown", choices = ns.SlabOrb.Choices("HUNTER"), hold = ns.SlabOrb.Holding, crestOnly = true },
 		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
 	}, { burst = "medBurstHunter", pick = ns.SlabRail.Pick, commit = Commit, rail = Shown, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED", "PET_BAR_UPDATE" },
 		events = { "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" }, "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } },
@@ -1568,7 +1568,7 @@ if CLASS == "MAGE" then
 		{ key = "crestWard", seat = "rim", build = Ward, place = Ring, feed = "aura", spells = WARDS, color = "rim", ward = true },
 		{ key = "crestClearcasting", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 12536 },
 			known = CLEARCASTING, color = "schoolArcane", proc = "schoolArcane" },
-		{ key = "crestOrb", seat = "rim", build = ns.SlabOrb.Build, place = ns.SlabOrb.Place, feed = "cooldown", choices = ns.SlabOrb.Choices("MAGE"), crestOnly = true },
+		{ key = "crestOrb", seat = "rim", build = ns.SlabOrb.Build, place = ns.SlabOrb.Place, feed = "cooldown", choices = ns.SlabOrb.Choices("MAGE"), hold = ns.SlabOrb.Holding, crestOnly = true },
 		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
 	}, { burst = "medBurstMage", pick = ns.SlabRail.Pick, commit = Commit, rail = Shown, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" },
 		events = { { "UNIT_POWER_UPDATE", "player" }, "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } }, paint = Paint, motion = Motion,

@@ -768,8 +768,9 @@ for class, keys in pairs({ HUNTER = { "crestShot", "crestAspect", "crestPet", "c
 	local fenv, FK, fns = New(class, { frames = true, bags = { [6265] = 2, [5512] = 1, [5514] = 1 }, pet = { max = 100, missing = 0 }, petSpells = { 24579, 14916 } })
 	local seen = 0
 	for _, p in pairs(fns.SlabTrackers.state.form.pieces) do seen = seen + (p:IsShown() and 1 or 0) end
-	-- The orb is the crest's alone, so Frames stands every other seat.
-	assert(fns.SlabTrackers.state.form == fns.SlabTrackers.state.forms.row and seen >= #keys - 1, class .. ": Frames stands every seat in the row")
+	-- The hunter's bow is the crest's alone, so Frames stands every other hunter seat.
+	local want = #keys - (class == "HUNTER" and 1 or 0)
+	assert(fns.SlabTrackers.state.form == fns.SlabTrackers.state.forms.row and seen >= want, class .. ": Frames stands every seat in the row")
 	local rects = {}
 	for _, p in pairs(fns.SlabTrackers.state.form.pieces) do
 		if p:IsShown() and not p.halo then

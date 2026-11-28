@@ -61,7 +61,10 @@ function Orb.School()
 end
 
 local function On()
-	return ns.SlabRail.form == "crest" and ns.Config("crestOrb") ~= false
+	if Orb.on == nil or not Medals.Locked() then
+		Orb.on = ns.SlabRail.form == "crest" and ns.Config("crestOrb") ~= false
+	end
+	return Orb.on
 end
 
 function Orb.Window()
@@ -82,11 +85,15 @@ function Orb.Spell()
 end
 
 function Orb.Want()
-	return On() and Orb.Spell() or nil
+	return CLASSES[ns.class] and On() and Orb.Spell() or nil
 end
 
 function Orb.Held()
 	return Orb.held
+end
+
+function Orb.Holding()
+	return Orb.held ~= nil and Medals.Locked()
 end
 
 function Orb.Expected()

@@ -112,8 +112,8 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 
 | # | Need | Home or reason |
 | --- | --- | --- |
-| 1 | Rapid Fire 3045 | The hunter's bow on Marksmanship and before a tree's own spell is known, else a hunter rail seat; its buff rises to the crown |
-| 2 | Bestial Wrath 19574 | The hunter's bow on Beast Mastery, else a hunter rail seat; the pet's buff rises to the crown |
+| 1 | Rapid Fire 3045 | The hunter's bow on Marksmanship and before a tree's own spell is known, its cooldown as the wind; else a hunter rail seat whose buff rises to the crown |
+| 2 | Bestial Wrath 19574 | The hunter's bow on Beast Mastery, its cooldown as the wind; else a hunter rail seat whose pet buff rises to the crown |
 | 3 | Deterrence 19263 | Hunter rail seat; its buff rises to the crown |
 | 4 | Intimidation 19577 | Hunter rail seat |
 | 5 | Feign Death 5384 | Short rail (Utility); the hunter rail's per-tree order has no seat for it |
@@ -142,11 +142,11 @@ The crest needs ledger (the 25 November 2026 audit of what each class tracks, 61
 | 28 | Lacerate bleed | The Sting fuse burns Lacerate 24118 to 24120 and 1299332; Lacerating Strikes 1310533 is not in the supported build's ability catalog |
 | 29 | Immolation Trap burn 13797 | The Sting fuse burns it in fire's colour with the fire trap's mark at its head, like the stings, through the same `HARMFUL|PLAYER` slot, so another hunter's trap never lights it. If the game credited the burn to the trap rather than to you, the fuse would stay dark; the in-game check settles which |
 | 30 | Mongoose Bite 1495 | Its fangs over the emblem when usable |
-| 31 | Expose Prey 1310532 | Not in the supported build's ability catalog, so no piece is drawn for it |
+| 31 | Expose Prey 1310532 | The hunter's bow on Survival follows its window (buff 1310726) while the talent is known; neither ID is in the supported build's ability catalog, so the in-game check confirms them |
 | 32 | Counterattack 19306 | Its blades over the emblem when usable |
 | 33 | Deadly Aspects (Quick Shots) 19552 | The feathered gust round the crest |
 | 34 | Sniper Shot range charges | The crown of three arrows |
-| 35 | Rapid Killing 415405 | Not in the supported build's ability catalog; its effect lands on Rapid Fire's cooldown, which the rail seat shows |
+| 35 | Rapid Killing 415405 | Its buff 415407 lights spectral arrows round the hunter's bow on Marksmanship; not in the supported build's ability catalog, so the in-game check confirms it |
 | 36 | Pet Frenzy 19621 | Deliberately quiet: a passive on the pet |
 | 37 | Proc roots and stuns 19184, 19407 | Deliberately quiet: passive control chances |
 | 38 | Active Aspect | The perched Aspect on the lower left |
