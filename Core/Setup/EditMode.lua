@@ -843,14 +843,16 @@ local function Read()
 	return all, #presetList, type(info.activeLayout) == "number" and info.activeLayout or 1
 end
 
-function EditMode.Write(name, story, replace)
+function EditMode.Write(name, story, replace, retry)
 	local all, presets, active = Read()
 	if not all then
 		return Fail(name, presets, active)
 	end
 	local layoutName = PREFIX .. name
-	if ns.Store.Module("ProfileTools").backups then
-		ns.Store.Account().editModeBackup = { name = L["Before setup"], profile = ns.Store.Account().restoreProfile, layouts = Copy(all), activeLayout = active }
+	local account = ns.Store.Account()
+	local kept = retry and account.editModeBackup
+	if ns.Store.Module("ProfileTools").backups and not (kept and kept.profile == account.restoreProfile) then
+		account.editModeBackup = { name = L["Before setup"], profile = account.restoreProfile, layouts = Copy(all), activeLayout = active }
 	end
 	local index, reason, why, full = Target(all, presets, layoutName, active, replace)
 	if not index then

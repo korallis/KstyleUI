@@ -241,11 +241,11 @@ local function Refresh()
 		end
 		panel.summary:SetText(panel.summaryTexts[1])
 		panel.summaryLayout.cap:SetText(string.format(L["%s layout"], Layouts.Label(choice.layout)))
-		panel.summaryHelp:SetText(applied
-			and L["Reload the interface to finish. Modules that replace Blizzard's frames need it."]
-			or L["Apply switches these modules on or off, moves every element to the layout, then asks for a reload."])
+		local help = not applied and L["Apply switches these modules on or off, moves every element to the layout, then asks for a reload."]
+			or not refused and L["Reload the interface to finish. Modules that replace Blizzard's frames need it."] or nil
 		local bars = ns.Store.Module("ActionBars")
-		if bars.bindingHints ~= false then panel.summaryHelp:SetText(panel.summaryHelp:GetText() .. "\n" .. L["Bind keys on the Action Bars page or the Layout Mode toolbar."]) end
+		if bars.bindingHints ~= false then help = (help and help .. "\n" or "") .. L["Bind keys on the Action Bars page or the Layout Mode toolbar."] end
+		panel.summaryHelp:SetText(help or "")
 	end
 	RefreshEditMode()
 	if step == STEPS then
@@ -1347,7 +1347,7 @@ function Setup.IsShown()
 	return open
 end
 
-ns.Callbacks.Register("SettingChanged", "SetupWindow", function(_, module)
+ns.Callbacks.Register("SettingChanged", "SetupWindow", function(_, module, key)
 	if panel and (module == "Setup" or module == "ProfileTools" or module == "OptionsPresentation") then
 		Widgets.RestyleUnder({ [panel] = true })
 		panel.pages[1]:Restyle()
@@ -1355,6 +1355,7 @@ ns.Callbacks.Register("SettingChanged", "SetupWindow", function(_, module)
 		PlaceLayouts()
 		PlaceModules()
 		panel.addons:Restyle()
+		if module == "Setup" and key == "replaceLayout" and panel:IsShown() then Refresh() end
 	end
 end)
 
