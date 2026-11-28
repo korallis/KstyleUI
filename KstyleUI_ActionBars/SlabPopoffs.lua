@@ -14,7 +14,6 @@ local SIZE, TRACK, BURST = 26, 4, 1.1
 local RISE, RISE_RUN, RISE_FROM, FLASH, POP, POP_RUN = 22, 0.32, 0.55, 0.05, 1.15, 0.35
 local ARRIVE = { { 0, 0, RISE_RUN - 0.08 }, { 0, 1, 0.1 } }
 local FOLD, FOLD_RUN = 1.4, 0.4
-local MOTE, TICK, TICK_RUN, TICK_OUT, TICK_FROM = 12, 2, 0.6, 0.2, 0.2
 local FORBEARANCE = 25771
 local OWNER = "ActionBars.SlabPopoffs"
 local pieces, watching = {}, false
@@ -63,20 +62,6 @@ local function Idle(flare)
 		group:HookScript("OnFinished", function() flare:Hide() end)
 		group:HookScript("OnStop", function() flare:Hide() end)
 	end
-end
-
-local function Ticks(piece, lit, spec, level)
-	local layer = Medals.Layer(lit, level)
-	piece.add(Medals.Texture(layer, "ARTWORK", 0, "glow", spec.color, MOTE, "ADD"))
-	layer:SetAlpha(0)
-	local g = ns.Slab.Group(layer, "REPEAT")
-	local dx, dy = -spec.seat[1] * TICK_FROM, -spec.seat[2] * TICK_FROM
-	Move(g, dx, dy, 0.01, 1, "NONE")
-	Move(g, -dx, -dy, TICK_RUN, 2, "IN")
-	ns.Slab.Fade(g, 0, 1, TICK_RUN, 2)
-	ns.Slab.Fade(g, 1, 0, TICK_OUT, 3)
-	ns.Slab.Fade(g, 0, 0, TICK - TICK_RUN - TICK_OUT - 0.01, 4)
-	return g
 end
 
 local function After(piece, spec, level)
@@ -239,7 +224,7 @@ local function Life(piece, lit, spec, size, level)
 	lit.timer = piece.add(Medals.Timer(lit, level + 1, "ringLine16", spec.color), spec.ring or size + TRACK)
 	lit:SetDurationCooldown(lit.timer)
 	piece.add(Medals.Ember(piece, lit, lit.timer, "RingLine16", level + 2, spec.ring or size + TRACK))
-	lit.loops = { Medals.Steps(lit, ARRIVE), spec.ticks and Ticks(piece, lit, spec, level + 2) or nil }
+	lit.loops = { Medals.Steps(lit, ARRIVE) }
 	for _, flare in ipairs(Medals.Flare(piece, lit, level + 4, "sigil" .. spec.art, spec.overlay and size / POP or size * BURST)) do
 		flare:SetVertexColor(K.Tokens.Color(spec.color))
 	end
@@ -313,10 +298,6 @@ local function Row(seat, art, color, spells, extra)
 end
 
 Popoffs.CLASSES = {
-	{ "MAGE", {
-		Row("emblem", "Crystal", "schoolFrost", { 11958, 27619 }, { known = { 11958 }, overlay = true, size = 84, ring = 62, from = { 0, 0 } }),
-		Row(Ranged.PENDANT, "Vortex", "schoolArcane", { 12051 }, { overlay = true, ticks = true, from = { 0, 0 } }),
-	} },
 	{ "PALADIN", {
 		Row("emblem", "Bubble", "schoolHoly", { 642, 1020 }, { overlay = true, size = 52, ring = 48, from = { 0, 0 }, after = { spell = FORBEARANCE, size = 44, color = "jewelHoly" } }),
 		Row("popRight", "Sun", "jewelHoly", { 20216 }),
@@ -329,10 +310,7 @@ Popoffs.CLASSES = {
 		} }),
 		Row("popRight", "Focus", "schoolArcane", { 14751 }),
 	} },
-	{ "WARLOCK", {
-		Row("popLeft", "Void", "schoolShadow", { 17941 }, { known = Ranged.NIGHTFALL }),
-		Row("popRight", "Curse", "jewelShard", { 18288 }),
-	} },
+	{ "WARLOCK", { Row("popLeft", "Void", "schoolShadow", { 17941 }, { known = Ranged.NIGHTFALL }) } },
 	{ "DRUID", { Row("popLeft", "Innervate", "schoolNature", { 29166 }), Row("popRight", "Swift", "schoolNature", { 17116 }) } },
 	{ "SHAMAN", { Row("popLeft", "Bolt", "schoolFrost", { 16246 }, { known = { 16164 } }), Row("popRight", "Swift", "schoolNature", { 16188 }) } },
 	{ "WARRIOR", { Row("popRight", "Sweep", "schoolPhysical", { 12292 }) } },

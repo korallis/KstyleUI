@@ -3312,7 +3312,7 @@ ns.Locale.Add({
 	["Raids"] = "Bandas",
 	["Raids and dungeons"] = "Bandas y mazmorras",
 	["Rail seat %d"] = "Puesto %d del riel",
-	["Raises your signature moments, such as Ice Block or Divine Shield, off the crest while they last."] = "Eleva tus momentos emblem\195\161ticos, como Bloque de hielo o Escudo divino, sobre el blas\195\179n mientras duran.",
+	["Raises your signature moments, such as Divine Shield or Stealth, off the crest while they last."] = "Eleva tus momentos emblem\195\161ticos, como Escudo divino o Sigilo, sobre el blas\195\179n mientras duran.",
 	["Range and highlight"] = "Alcance y resaltado",
 	["Range ring"] = "Anillo de alcance",
 	["Range spell"] = "Hechizo de alcance",

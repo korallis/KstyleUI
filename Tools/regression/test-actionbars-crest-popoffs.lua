@@ -1,4 +1,4 @@
--- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment and its review): every class but the hunter has one or two, the mage's listed first, and the hunter none (its crest rail, SlabRail.lua, crowns Bestial Wrath and Deterrence while they run), each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each class's pop-offs take seats of their own or the overlay seat they were chosen for; each lights from its own aura on its own unit and no other, and goes when the aura goes; at Full the flare rises, at Calm it is still and at Off it is dark; the aura's end folds it at Full only, and Calm, Off, the crest coming to rest or the piece hiding stop a fold already running or waiting for its frame; Ice Block covers the emblem, Evocation's ticks loop into the mana gem at Full only, Divine Shield's fold shrinks into the Forbearance ring that lights from the debuff, Power Infusion also lights when the priest casts it on a target, focus or, in a party or raid, a member they have not selected, with the same flare, ring, late warning and shared fold, keeps lighting through target and focus changes, draws once for one ally reached through two names, keeps a missing member's slot hidden and listens only while it shows, arms its late warning from the aura events of the player, the target and every party or raid member, a late joiner included, hears no member after the group is gone, and, joined in combat or turned into a raid while auras are secret, keeps the variant built before, builds nothing protected and lights the new member once when the restriction lifts, and either rank of Nightfall builds Shadow Trance; the switch hides them; while auras are secret, from before combat until the restriction lifts, nothing touches the slots and an aura's end still folds.
+-- test-actionbars-crest-popoffs.lua: the crest's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua, the crest plan's Part 5 with the KSTY-97 amendment and its review): every class but the hunter and the mage has one or two, the paladin's listed first, and the hunter and the mage none, nor the warlock for Amplify Curse (the crest rail, SlabRail.lua, crowns Bestial Wrath, Deterrence, Ice Block, Evocation and Amplify Curse while they run), each a known spell of Tools/data/abilities.json and none of the four the ledger could not confirm; each class's pop-offs take seats of their own or the overlay seat they were chosen for; each lights from its own aura on its own unit and no other, and goes when the aura goes; at Full the flare rises, at Calm it is still and at Off it is dark; the aura's end folds it at Full only, and Calm, Off, the crest coming to rest or the piece hiding stop a fold already running or waiting for its frame; Divine Shield's bubble covers the emblem and its fold shrinks into the Forbearance ring that lights from the debuff, Power Infusion also lights when the priest casts it on a target, focus or, in a party or raid, a member they have not selected, with the same flare, ring, late warning and shared fold, keeps lighting through target and focus changes, draws once for one ally reached through two names, keeps a missing member's slot hidden and listens only while it shows, arms its late warning from the aura events of the player, the target and every party or raid member, a late joiner included, hears no member after the group is gone, and, joined in combat or turned into a raid while auras are secret, keeps the variant built before, builds nothing protected and lights the new member once when the restriction lifts, and either rank of Nightfall builds Shadow Trance; the switch hides them; while auras are secret, from before combat until the restriction lifts, nothing touches the slots and an aura's end still folds.
 local F = dofile("Tools/regression/crest_armory_fixture.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local AB, Slots, New, Clean = F.AB, F.Slots, F.New, F.Clean
@@ -23,10 +23,9 @@ local UNCONFIRMED = { [407788] = "Avenging Wrath", [23989] = "Readiness", [40197
 -- Each class's signature moments as the plan and its amendment name them, typed from Wowhead Forever: the spell a character knows,
 -- the aura that lights the pop-off and the unit that carries it.
 local SIGNATURES = {
-	MAGE = { { art = "Crystal", known = 11958, aura = 11958 }, { art = "Vortex", known = 12051, aura = 12051 } },
 	PALADIN = { { art = "Bubble", known = 642, aura = 642 }, { art = "Sun", known = 20216, aura = 20216 } },
 	PRIEST = { { art = "Infusion", known = 10060, aura = 10060 }, { art = "Focus", known = 14751, aura = 14751 } },
-	WARLOCK = { { art = "Void", known = 18094, aura = 17941 }, { art = "Curse", known = 18288, aura = 18288 } },
+	WARLOCK = { { art = "Void", known = 18094, aura = 17941 } },
 	DRUID = { { art = "Innervate", known = 29166, aura = 29166 }, { art = "Swift", known = 17116, aura = 17116 } },
 	SHAMAN = { { art = "Bolt", known = 16164, aura = 16246 }, { art = "Swift", known = 16188, aura = 16188 } },
 	WARRIOR = { { art = "Sweep", known = 12292, aura = 12292 } },
@@ -78,11 +77,12 @@ local function Finish(env)
 	while W.FinishGroups(env) do end
 end
 
--- The rows: the mage first, one or two each, none for the hunter (its crest rail owns its two moments), known spells of their own class, seats of their own.
+-- The rows: the paladin first, one or two each, none for the hunter or the mage (the crest rail owns their moments), known spells of their own
+-- class, seats of their own.
 do
-	local _, _, ns = New("MAGE", {})
+	local _, _, ns = New("PALADIN", {})
 	local classes = ns.SlabPopoffs.CLASSES
-	assert(#classes == 8 and classes[1][1] == "MAGE", "every class but the hunter has pop-offs, the mage's first")
+	assert(#classes == 7 and classes[1][1] == "PALADIN", "every class but the hunter and the mage has pop-offs, the paladin's first")
 	local seen = {}
 	for _, entry in ipairs(classes) do
 		local class, rows = entry[1], entry[2]
@@ -106,18 +106,24 @@ do
 			end
 		end
 	end
-	assert(ns.SlabSeats.Name(classes[1][2][1].seat) == "emblem" and ns.SlabSeats.Name(classes[1][2][2].seat) == "perchRight", "Ice Block's shell sits over the emblem and Evocation over the mana gem's seat")
+	assert(ns.SlabSeats.Name(classes[1][2][1].seat) == "emblem" and ns.SlabSeats.Name(classes[1][2][2].seat) == "popRight", "Divine Shield's bubble sits over the emblem and Divine Favor on the right pop-off seat")
 end
 
--- The hunter's two moments belong to its crest rail (SlabRail.lua): Beast Mastery seats Bestial Wrath, read from the pet, and Survival seats
--- Deterrence, read from the hunter. With either buff running the rail's seat owns the crown and shows the aura there, and no pop-off is built.
+-- The hunter's two moments, the mage's two and the warlock's Amplify Curse belong to the crest rail (SlabRail.lua): Beast Mastery seats
+-- Bestial Wrath, read from the pet, and Survival seats Deterrence, read from the hunter; Frost seats Ice Block and Evocation beside the
+-- power orb's Cold Snap; Affliction seats Amplify Curse. With the buff running the rail's seat owns the crown and shows the aura there,
+-- and no pop-off reads it.
 do
 	local R = dofile("Tools/regression/ranged_env.lua")
+	local FROST = { 12042, 12043, 12051, 11129, 11958, 12472, 2136, 11113, 120, 11426 }
 	for _, case in ipairs({
-		{ tree = 1, known = { 13165, 883, 75, 19574, 3045, 19577, 14305 }, key = "wrath", spell = 19574, unit = "pet" },
-		{ tree = 3, known = { 13165, 883, 75, 3045, 19263, 14305, 1317257 }, key = "deter", spell = 19263, unit = "player" },
+		{ class = "HUNTER", tree = 1, known = { 13165, 883, 75, 19574, 3045, 19577, 14305 }, key = "wrath", spell = 19574, unit = "pet" },
+		{ class = "HUNTER", tree = 3, known = { 13165, 883, 75, 3045, 19263, 14305, 1317257 }, key = "deter", spell = 19263, unit = "player" },
+		{ class = "MAGE", tree = 3, known = FROST, key = "block", spell = 11958, unit = "player" },
+		{ class = "MAGE", tree = 3, known = FROST, key = "evocation", spell = 12051, unit = "player" },
+		{ class = "WARLOCK", tree = 1, known = { 603, 18288, 6789, 18708, 6353, 1122, 17877 }, key = "amplify", spell = 18288, unit = "player" },
 	}) do
-		local henv, hK, hns = R.New("HUNTER", { known = case.known, tree = case.tree })
+		local henv, hK, hns = R.New(case.class, { known = case.known, tree = case.tree })
 		henv.SetTarget(true)
 		henv.RunTimers()
 		local rail = assert(R.Seated(hns, "crestRail"), "the hunter's rail is seated")
@@ -126,7 +132,12 @@ do
 		R.Slots.Set(henv, case.unit, { { id = case.spell, auraInstanceID = 9, start = henv._now, duration = 10 } })
 		henv.RunTimers()
 		assert(rail.owner == seat and seat.gate:GetAlpha() == 1 and seat.crowned:IsShown(), case.key .. ": the running buff owns the rail's crown and shows there")
-		assert(#Pops(hns) == 0, case.key .. ": the hunter builds no pop-off; the rail shows the moment")
+		for _, p in ipairs(Pops(hns)) do
+			for _, id in ipairs(p.spec.spells) do
+				assert(id ~= case.spell, case.key .. ": no pop-off reads the moment; the rail shows it")
+			end
+		end
+		assert(case.class == "WARLOCK" or #Pops(hns) == 0, case.key .. ": the " .. case.class:lower() .. " builds no pop-off")
 		R.Clean(henv, hK)
 	end
 end
@@ -166,139 +177,92 @@ for class, signatures in pairs(SIGNATURES) do
 	Clean(cenv, cK, class)
 end
 
--- A mage: nothing known, no pop-offs; Ice Block and Evocation known, both overlays, unlit until their auras.
-local env, K, ns = New("MAGE", {})
+-- A paladin: nothing known, no pop-offs; Divine Shield, an overlay, and Divine Favor known, unlit until their auras.
+local env, K, ns = New("PALADIN", {})
 env.SetTarget(true)
 env.RunTimers()
 assert(#Pops(ns) == 0, "an unknown spell's pop-off is never built")
-env._known[11958], env._known[12051] = true, true
+env._known[642], env._known[20216] = true, true
 env.FireEvent("SPELLS_CHANGED")
 env.RunTimers()
-local block, evocation = Pop(ns, "Crystal"), Pop(ns, "Vortex")
-assert(block and evocation and #Pops(ns) == 2, "Ice Block and Evocation each build a pop-off once known")
-assert(#ns.SlabTrackers.state.forms.crest.refused == 0, "the overlays claim no seat, so no piece is refused")
-local lit = block.lits[1]
-assert(not lit:IsShown() and not block.fold:IsShown(), "with no aura the pop-off and its fold draw nothing")
-local w = block:GetWidth()
-assert(w >= 2 * evocation:GetWidth(), "the Ice Block shell is drawn round the emblem, wider than a seated pop-off")
-local _, shellAt, _, sx, sy = block:GetPoint(1)
-local _, gemAt, _, gx, gy = evocation:GetPoint(1)
-assert(shellAt == gemAt and sx == 0 and sy == 0 and (gx ~= 0 or gy ~= 0), "the shell is centred on the emblem, where Evocation sits off it on the gem")
+local shield, favor = Pop(ns, "Bubble"), Pop(ns, "Sun")
+assert(shield and favor and #Pops(ns) == 2, "Divine Shield and Divine Favor each build a pop-off once known")
+assert(#ns.SlabTrackers.state.forms.crest.refused == 0, "the overlay claims no seat and Divine Favor a free one, so no piece is refused")
+local lit = shield.lits[1]
+assert(not lit:IsShown() and not shield.fold:IsShown(), "with no aura the pop-off and its fold draw nothing")
+local w = shield:GetWidth()
+assert(w >= 2 * favor:GetWidth(), "the Divine Shield bubble is drawn round the emblem, at least twice a seated pop-off")
+local _, shieldAt, _, sx, sy = shield:GetPoint(1)
+local _, favorAt, _, gx, gy = favor:GetPoint(1)
+assert(shieldAt == favorAt and sx == 0 and sy == 0 and (gx ~= 0 or gy ~= 0), "the bubble is centred on the emblem, where Divine Favor sits off it on its seat")
 
 -- Full: the aura lights it, the flare plays in place over the emblem, the ring drains, and the end folds it.
 local full = lit.flareGate.lit
 local rise = full.flare.play
 for _, a in ipairs(rise._anims) do
-	assert(a._type ~= "Translation", "the Ice Block flare grows in place over the emblem, it does not travel")
+	assert(a._type ~= "Translation", "the Divine Shield flare grows in place over the emblem, it does not travel")
 end
-Gain(env, "player", 11958)
+Gain(env, "player", 642)
 assert(lit:IsShown() and rise:IsPlaying(), "at Full the aura lights the pop-off and its flare plays")
 assert(AB.W.LastCall(lit._cooldown, "SetCooldownFromDurationObject"), "its ring drains with the aura")
 local sheet = lit.auraLoops and lit.auraLoops[1]
-assert(sheet and sheet:IsPlaying() and sheet:GetParent():GetTexture():find("Auras\\Popoffs\\Crystal.png", 1, true), "at Full its Blender sheet loops in the lit slot")
-assert(next(block.ups) and not block.fold.play:IsPlaying(), "it is up and not folding")
+assert(sheet and sheet:IsPlaying() and sheet:GetParent():GetTexture():find("Auras\\Popoffs\\Bubble.png", 1, true), "at Full its Blender sheet loops in the lit slot")
+assert(next(shield.ups) and not shield.fold.play:IsPlaying(), "it is up and not folding")
 Gone(env)
-assert(not lit:IsShown() and block.fold:IsShown() and block.fold.play:IsPlaying(), "at Full the aura's end folds it")
+assert(not lit:IsShown() and shield.fold:IsShown() and shield.fold.play:IsPlaying(), "at Full the aura's end folds it")
 Finish(env)
-assert(not block.fold:IsShown(), "the fold hides its layer once it ends")
+assert(not shield.fold:IsShown(), "the fold hides its layer once it ends")
 Clean(env, K, "full")
 
 -- A fold already running stops when the player picks Calm or Off, and when the crest comes to rest.
 for _, level in ipairs({ "calm", "off" }) do
-	Gain(env, "player", 11958)
+	Gain(env, "player", 642)
 	Gone(env)
-	assert(block.fold.play:IsPlaying(), level .. ": the fold runs at Full")
+	assert(shield.fold.play:IsPlaying(), level .. ": the fold runs at Full")
 	Motion(env, K, level)
-	assert(not block.fold.play:IsPlaying() and not block.fold:IsShown(), "picking " .. level .. " stops the running fold")
+	assert(not shield.fold.play:IsPlaying() and not shield.fold:IsShown(), "picking " .. level .. " stops the running fold")
 	Motion(env, K, "full")
 	Finish(env)
 end
-Gain(env, "player", 11958)
+Gain(env, "player", 642)
 Gone(env)
-assert(block.fold.play:IsPlaying(), "the fold runs while the crest is awake")
+assert(shield.fold.play:IsPlaying(), "the fold runs while the crest is awake")
 env.SetTarget(false)
 env.FireEvent("PLAYER_TARGET_CHANGED")
 env.RunTimers()
-assert(ns.Slab.Resting() and not block.fold.play:IsPlaying(), "the crest coming to rest stops the running fold")
-Gain(env, "player", 11958)
+assert(ns.Slab.Resting() and not shield.fold.play:IsPlaying(), "the crest coming to rest stops the running fold")
+Gain(env, "player", 642)
 Gone(env)
-assert(not block.fold.play:IsPlaying(), "a resting crest does not fold")
+assert(not shield.fold.play:IsPlaying(), "a resting crest does not fold")
 env.SetTarget(true)
 env.FireEvent("PLAYER_TARGET_CHANGED")
 env.RunTimers()
 Finish(env)
 Clean(env, K, "fold stops")
 
--- Evocation's ticks run into the mana gem from the crest at Full only.
-local vlit = evocation.lits[1]
-local ticks
-for _, loop in ipairs(vlit.loops or {}) do
-	ticks = loop:GetLooping() == "REPEAT" and loop or ticks
-end
-assert(ticks, "Evocation has a repeating tick")
-local into = {}
-for _, a in ipairs(ticks._anims) do
-	if a._type == "Translation" then into[#into + 1] = { a:GetOffset() } end
-end
-local seat = evocation.spec.seat
-assert(#into == 2 and into[1][1] == -into[2][1] and into[2][1] * seat[1] > 0 and into[2][2] * seat[2] > 0, "each tick starts toward the crest's middle and runs out into the gem's seat")
-Gain(env, "player", 12051)
-assert(vlit:IsShown() and Slots.Engine(env, function() return F.Lit(evocation) end), "Evocation lights")
-assert(ticks:IsPlaying(), "at Full the ticks loop")
--- One tick every 2 s, as the plan's Evocation treatment says: the group's orders run one after another.
-local ends = {}
-for _, a in ipairs(ticks._anims) do
-	local order = a:GetOrder()
-	ends[order] = math.max(ends[order] or 0, a:GetDuration())
-end
-local period = 0
-for _, d in pairs(ends) do period = period + d end
-assert(math.abs(period - 2) < 0.001, "a tick runs every 2 s (" .. period .. ")")
-Gone(env)
-assert(not vlit:IsShown() and not ticks:IsPlaying(), "the channel's end stops the ticks")
-Finish(env)
-for _, level in ipairs({ "calm", "off" }) do
-	Motion(env, K, level)
-	Gain(env, "player", 12051)
-	-- Calm and Off show the twin faces whose hold layer the engine lights; the Full face keeps its loop but stays dark.
-	local looping = false
-	for _, face in ipairs({ evocation, unpack(evocation.twins or {}) }) do
-		local loop, alpha, node = face.lits[1].loops and face.lits[1].loops[#face.lits[1].loops], 1, face.lits[1].hold
-		while node do
-			alpha, node = alpha * node:GetAlpha(), node:GetParent()
-		end
-		looping = looping or loop ~= nil and loop:IsPlaying() and alpha > 0
-	end
-	assert(not looping and vlit:IsShown(), "at " .. level .. " Evocation lights and no shown face loops its ticks")
-	Gone(env)
-	Motion(env, K, "full")
-	Finish(env)
-end
-Clean(env, K, "evocation")
-
 -- Calm: the still flare and no fold.
 Motion(env, K, "calm")
-Gain(env, "player", 11958)
+Gain(env, "player", 642)
 assert(full.full == "calm" and full.flare.still and full.flare.still:IsPlaying() and not rise:IsPlaying(), "at Calm the pop-off shows the still flare")
 assert(lit:IsShown() and not sheet:IsPlaying(), "and lights, its Blender sheet held on its first frame")
 Gone(env)
-assert(not block.fold.play:IsPlaying(), "at Calm the end does not fold")
+assert(not shield.fold.play:IsPlaying(), "at Calm the end does not fold")
 Clean(env, K, "calm")
 
 -- Off: the end state only.
 Motion(env, K, "off")
 full.flare.still:Stop()
-Gain(env, "player", 11958)
+Gain(env, "player", 642)
 assert(lit:IsShown() and lit.flareGate:GetAlpha() == 0 and lit.flareGate.other:GetAlpha() == 0, "at Off the pop-off lights and both flare layers stay dark")
 Gone(env)
-assert(not block.fold.play:IsPlaying(), "at Off the end does not fold")
+assert(not shield.fold.play:IsPlaying(), "at Off the end does not fold")
 Motion(env, K, "full")
 Finish(env)
 Clean(env, K, "off")
 
 -- Secret auras: a boss pull turns auras secret before combat starts. An aura gained before stays lit by the engine, its end while still
 -- secret folds the pop-off's own frame without touching the slot, and once combat ends and the restriction lifts it rises again.
-Gain(env, "player", 11958)
+Gain(env, "player", 642)
 assert(lit:IsShown() and rise:IsPlaying(), "lit before the restriction")
 env._aurasSecret = true
 env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
@@ -310,14 +274,14 @@ K.Options.Write("Medallions", "motion", "full")
 ns.SlabMedals.Rest()
 Gone(env)
 assert(Slots.Engine(env, function() return not lit:IsShown() end), "secret, the engine hides the pop-off when its aura ends")
-assert(block.fold.play:IsPlaying(), "secret, the aura's end still folds the pop-off's own frame")
+assert(shield.fold.play:IsPlaying(), "secret, the aura's end still folds the pop-off's own frame")
 Finish(env)
 Clean(env, K, "secret")
 env.SetCombat(false)
 env._aurasSecret = false
 env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
 env.RunTimers()
-Gain(env, "player", 11958)
+Gain(env, "player", 642)
 assert(lit:IsShown() and rise:IsPlaying(), "when the restriction ends the pop-off rises again")
 Gone(env)
 Finish(env)
@@ -326,13 +290,13 @@ Clean(env, K, "after the restriction")
 -- The switch hides every pop-off, and a hidden one never folds.
 K.Options.Write("ActionBars", "crestPopoffs", false)
 env.RunTimers()
-assert(not block:IsShown() and not evocation:IsShown(), "the switch hides the pop-offs")
-Gain(env, "player", 11958)
+assert(not shield:IsShown() and not favor:IsShown(), "the switch hides the pop-offs")
+Gain(env, "player", 642)
 Gone(env)
-assert(not block.fold.play:IsPlaying(), "a hidden pop-off never folds")
+assert(not shield.fold.play:IsPlaying(), "a hidden pop-off never folds")
 K.Options.Write("ActionBars", "crestPopoffs", true)
 env.RunTimers()
-assert(block:IsShown() and evocation:IsShown(), "and turning it back on shows them again")
+assert(shield:IsShown() and favor:IsShown(), "and turning it back on shows them again")
 Finish(env)
 
 -- Hiding a pop-off, by its switch or by a style that has no crest, stops a running fold and a fold that waits for the next frame,
@@ -345,52 +309,52 @@ end
 local function Show(write)
 	write(true)
 	env.RunTimers()
-	assert(block:IsVisible(), "the pop-off shows again")
+	assert(shield:IsVisible(), "the pop-off shows again")
 	Finish(env)
 end
 for what, write in pairs({
 	switch = function(on) K.Options.Write("ActionBars", "crestPopoffs", on) end,
 	style = function(on) K.Options.Write("HudStyle", "style", on and "medallions" or "frames") end,
 }) do
-	Gain(env, "player", 11958)
+	Gain(env, "player", 642)
 	Gone(env)
-	assert(block.fold.play:IsPlaying(), what .. ": the fold runs")
+	assert(shield.fold.play:IsPlaying(), what .. ": the fold runs")
 	write(false)
 	env.RunTimers()
-	Hid(block)
-	assert(not block.fold.play:IsPlaying() and not block.fold:IsShown(), what .. ": hiding the pop-off stops its running fold")
+	Hid(shield)
+	assert(not shield.fold.play:IsPlaying() and not shield.fold:IsShown(), what .. ": hiding the pop-off stops its running fold")
 	Show(write)
-	Gain(env, "player", 11958)
+	Gain(env, "player", 642)
 	Slots.Set(env, "player", nil)
 	write(false)
-	Hid(block)
+	Hid(shield)
 	write(true)
 	env.RunTimers()
-	assert(not block.fold.play:IsPlaying() and not block.fold:IsShown(), what .. ": a fold that waited for the next frame does not play once the pop-off was hidden")
+	assert(not shield.fold.play:IsPlaying() and not shield.fold:IsShown(), what .. ": a fold that waited for the next frame does not play once the pop-off was hidden")
 	Finish(env)
 end
 -- In the game the switch hides the pop-off before its slots are disabled, so the slot's watch stops after the pop-off's OnHide; the stub
 -- disables the slots first, so the test hides the piece and then stops the watch the way the disabled slot does. It schedules nothing,
 -- and no fold plays when the pop-off shows again before the next frame.
-Gain(env, "player", 11958)
-block:Hide()
-Hid(block)
+Gain(env, "player", 642)
+shield:Hide()
+Hid(shield)
 lit.watch:Stop()
-assert(not block.settling, "an aura that ends on a hidden pop-off schedules no fold")
-block:Show()
+assert(not shield.settling, "an aura that ends on a hidden pop-off schedules no fold")
+shield:Show()
 env.RunTimers()
-assert(not block.fold.play:IsPlaying() and not block.fold:IsShown(), "and none plays when it shows again before the next frame")
+assert(not shield.fold.play:IsPlaying() and not shield.fold:IsShown(), "and none plays when it shows again before the next frame")
 Gone(env)
 Finish(env)
 -- Calm, then Full again, before the fold's frame: the waiting fold is dropped.
 for _, level in ipairs({ "calm", "off" }) do
-	Gain(env, "player", 11958)
+	Gain(env, "player", 642)
 	Slots.Set(env, "player", nil)
-	assert(block.settling, level .. ": the aura's end waits a frame to fold")
+	assert(shield.settling, level .. ": the aura's end waits a frame to fold")
 	K.Options.Write("Medallions", "motion", level)
 	K.Options.Write("Medallions", "motion", "full")
 	env.RunTimers()
-	assert(not block.fold.play:IsPlaying() and not block.fold:IsShown(), level .. ": a fold waiting for its frame is dropped when the motion level drops, even if Full returns first")
+	assert(not shield.fold.play:IsPlaying() and not shield.fold:IsShown(), level .. ": a fold waiting for its frame is dropped when the motion level drops, even if Full returns first")
 	Finish(env)
 end
 Clean(env, K, "switch")
