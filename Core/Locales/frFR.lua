@@ -3312,7 +3312,7 @@ ns.Locale.Add({
 	["Raids"] = "Raids",
 	["Raids and dungeons"] = "Raids et donjons",
 	["Rail seat %d"] = "Place %d du rail",
-	["Raises your signature moments, such as Divine Shield or Stealth, off the crest while they last."] = "Fait jaillir vos moments embl\195\169matiques, comme Bouclier divin ou Camouflage, au-dessus du blason tant qu'ils durent.",
+	["Raises your signature moments, such as Power Infusion or Stealth, off the crest while they last."] = "Fait jaillir vos moments embl\195\169matiques, comme Infusion de puissance ou Camouflage, au-dessus du blason tant qu'ils durent.",
 	["Range and highlight"] = "Port\195\169e et surbrillance",
 	["Range ring"] = "Anneau de port\195\169e",
 	["Range spell"] = "Sort de port\195\169e",

@@ -3312,7 +3312,7 @@ ns.Locale.Add({
 	["Raids"] = "Schlachtz\195\188ge",
 	["Raids and dungeons"] = "Schlachtz\195\188ge und Dungeons",
 	["Rail seat %d"] = "Leistenplatz %d",
-	["Raises your signature moments, such as Divine Shield or Stealth, off the crest while they last."] = "Hebt deine markanten Momente wie Gottesschild oder Verstohlenheit \195\188ber das Wappen, solange sie anhalten.",
+	["Raises your signature moments, such as Power Infusion or Stealth, off the crest while they last."] = "Hebt deine markanten Momente wie Seele der Macht oder Verstohlenheit \195\188ber das Wappen, solange sie anhalten.",
 	["Range and highlight"] = "Reichweite und Hervorhebung",
 	["Range ring"] = "Reichweitenring",
 	["Range spell"] = "Reichweitenzauber",

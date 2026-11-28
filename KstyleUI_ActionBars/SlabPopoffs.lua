@@ -14,7 +14,6 @@ local SIZE, TRACK, BURST = 26, 4, 1.1
 local RISE, RISE_RUN, RISE_FROM, FLASH, POP, POP_RUN = 22, 0.32, 0.55, 0.05, 1.15, 0.35
 local ARRIVE = { { 0, 0, RISE_RUN - 0.08 }, { 0, 1, 0.1 } }
 local FOLD, FOLD_RUN = 1.4, 0.4
-local FORBEARANCE = 25771
 local OWNER = "ActionBars.SlabPopoffs"
 local pieces, watching = {}, false
 local seen, present, live = { target = {}, focus = {}, roster = {} }, {}, {}
@@ -62,14 +61,6 @@ local function Idle(flare)
 		group:HookScript("OnFinished", function() flare:Hide() end)
 		group:HookScript("OnStop", function() flare:Hide() end)
 	end
-end
-
-local function After(piece, spec, level)
-	local after = spec.after
-	local lit = Medals.Lit(piece, setmetatable({ spells = { after.spell }, filter = "HARMFUL", unit = "player" }, { __index = spec }), level)
-	lit.timer = piece.add(Medals.Timer(lit, level + 1, "ringLine16", after.color), after.size)
-	lit:SetDurationCooldown(lit.timer)
-	return lit
 end
 
 local function Twin(twin)
@@ -163,7 +154,7 @@ local function Fold(piece, spec, size, level)
 	fold:SetAlpha(0)
 	fold:Hide()
 	fold.play = ns.Slab.Group(fold)
-	ns.Slab.Grow(fold.play, 1, spec.after and spec.after.size / size or spec.overlay and 1 / FOLD or FOLD, FOLD_RUN)
+	ns.Slab.Grow(fold.play, 1, FOLD, FOLD_RUN)
 	ns.Slab.Fade(fold.play, 1, 0, FOLD_RUN)
 	fold.play:SetScript("OnFinished", function() fold:Hide() end)
 	fold.play:SetScript("OnStop", function() fold:Hide() end)
@@ -221,17 +212,17 @@ end
 
 local function Life(piece, lit, spec, size, level)
 	Medals.Sheet(piece, lit, "pop" .. spec.art, size)
-	lit.timer = piece.add(Medals.Timer(lit, level + 1, "ringLine16", spec.color), spec.ring or size + TRACK)
+	lit.timer = piece.add(Medals.Timer(lit, level + 1, "ringLine16", spec.color), size + TRACK)
 	lit:SetDurationCooldown(lit.timer)
-	piece.add(Medals.Ember(piece, lit, lit.timer, "RingLine16", level + 2, spec.ring or size + TRACK))
+	piece.add(Medals.Ember(piece, lit, lit.timer, "RingLine16", level + 2, size + TRACK))
 	lit.loops = { Medals.Steps(lit, ARRIVE) }
-	for _, flare in ipairs(Medals.Flare(piece, lit, level + 4, "sigil" .. spec.art, spec.overlay and size / POP or size * BURST)) do
+	for _, flare in ipairs(Medals.Flare(piece, lit, level + 4, "sigil" .. spec.art, size * BURST)) do
 		flare:SetVertexColor(K.Tokens.Color(spec.color))
 	end
 	local gate, seat = lit.flareGate, spec.seat
 	local reach = math.sqrt(seat[1] * seat[1] + seat[2] * seat[2])
 	for _, each in ipairs(gate and { gate, gate.other } or {}) do
-		Travel(each.lit.flare, spec.from or { -seat[1] * RISE / reach, -seat[2] * RISE / reach })
+		Travel(each.lit.flare, { -seat[1] * RISE / reach, -seat[2] * RISE / reach })
 		Idle(each.lit.flare)
 	end
 	return lit
@@ -254,7 +245,7 @@ local function Ally(piece, spec, unit, others, size, level)
 end
 
 function Popoffs.Build(parent, spec, level)
-	local size = spec.size or SIZE
+	local size = SIZE
 	local piece = Medals.Piece(parent, level, size)
 	local lits = { Life(piece, Medals.Lit(piece, spec, level + 1), spec, size, level + 1) }
 	local others = { "player" }
@@ -264,9 +255,6 @@ function Popoffs.Build(parent, spec, level)
 	end
 	for _, unit in ipairs(spec.group or {}) do
 		lits[#lits + 1] = Ally(piece, spec, unit, spec.group == RAID and { "player", "target", "focus" } or { "target", "focus" }, size, level + 1)
-	end
-	if spec.after then
-		After(piece, spec, level + 1)
 	end
 	if not Medals.twin then
 		piece.fold, piece.ups = Fold(piece, spec, size, level + 4), {}
@@ -298,10 +286,6 @@ local function Row(seat, art, color, spells, extra)
 end
 
 Popoffs.CLASSES = {
-	{ "PALADIN", {
-		Row("emblem", "Bubble", "schoolHoly", { 642, 1020 }, { overlay = true, size = 52, ring = 48, from = { 0, 0 }, after = { spell = FORBEARANCE, size = 44, color = "jewelHoly" } }),
-		Row("popRight", "Sun", "jewelHoly", { 20216 }),
-	} },
 	{ "PRIEST", {
 		Row("popLeft", "Infusion", "schoolHoly", { 10060 }, { allies = { "target", "focus" }, choices = {
 			{ lazy = true, group = RAID, active = function() return Kind() == "raid" end },

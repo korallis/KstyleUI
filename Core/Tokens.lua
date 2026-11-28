@@ -611,7 +611,7 @@ for _, set in ipairs({
 		end
 	end
 end
-for _, name in ipairs({ "Bolt", "Bubble", "Focus", "Infusion", "Innervate", "Sun", "Sweep", "Swift", "Veil", "Void" }) do
+for _, name in ipairs({ "Bolt", "Focus", "Infusion", "Innervate", "Sweep", "Swift", "Veil", "Void" }) do
 	TEXTURES["pop" .. name] = { file = "Textures\\Sigils\\" .. name .. ".png", aura = "auraPopoff" .. name }
 	TEXTURES["auraPopoff" .. name] = { file = "Textures\\Auras\\Popoffs\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25 }
 end
