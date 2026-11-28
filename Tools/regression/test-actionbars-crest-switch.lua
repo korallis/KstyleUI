@@ -99,12 +99,12 @@ end
 
 local function Start(class, ab, opts)
 	opts = opts or {}
-	local seen, prompted = nil, {}
+	local prompted = {}
 	local saved = { version = 49, profiles = { Default = { HudStyle = { style = opts.style or "medallions" }, ActionBars = ab } } }
 	local env, K, ns = AB.New({ width = 2560, height = 1440, class = class, saved = saved, setup = function(e)
 		e.C_Secrets = { ShouldAurasBeSecret = function() return e._aurasSecret == true end }
 	end })
-	seen = Watch(env, K)
+	local seen = Watch(env, K)
 	K.Widgets.ReloadPrompt = function(text) prompted[#prompted + 1] = text end
 	AB.Enable(env, K)
 	env.FireEvent("PLAYER_ENTERING_WORLD", true, false)
