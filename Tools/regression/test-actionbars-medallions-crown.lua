@@ -187,6 +187,10 @@ for _, rule in ipairs({ "never", "noCombat" }) do
 	env.RunTimers()
 	assert(not C.shown and not K.Widgets.ClassCrown(), "split, the crest hidden (" .. rule .. "): the unit frames get the row back")
 	env.SetCombat(false)
+	env.RunTimers()
+	if rule == "noCombat" then
+		assert(C.shown and K.Widgets.ClassCrown() == line, "split, leaving combat under noCombat: the crest and its crown come back")
+	end
 	assert(K.Layout.Set("actionbars.crest", "shown", "always"))
 	env.RunTimers()
 	assert(C.shown and K.Widgets.ClassCrown() == line, "split, the crest shown again after " .. rule .. ": the crown")
