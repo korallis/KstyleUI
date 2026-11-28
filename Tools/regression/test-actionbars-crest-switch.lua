@@ -120,18 +120,28 @@ local function Start(class, ab, opts)
 	end, beforeAddon = function(e, core)
 		seen = Watch(e, core)
 		core.Widgets.ReloadPrompt = function(text) prompted[#prompted + 1] = text end
+		-- The rest callbacks' subscribe and unsubscribe are wrapped as SlabMedals.lua defines them, so a file that
+		-- subscribes while it loads is seen too.
+		local rest = {
+			OnRest = function(fn) return function(each)
+				if CrestFile() then seen.rest[each] = true end
+				return fn(each)
+			end end,
+			OffRest = function(fn) return function(each)
+				seen.rest[each] = nil
+				return fn(each)
+			end end,
+		}
+		e._addons = e._addons or {}
+		e._addons.KstyleUI_ActionBars = setmetatable({}, { __newindex = function(ns, key, value)
+			if key == "SlabMedals" then
+				setmetatable(value, { __newindex = function(medals, name, fn)
+					rawset(medals, name, rest[name] and rest[name](fn) or fn)
+				end })
+			end
+			rawset(ns, key, value)
+		end })
 	end })
-	-- The crest's rest callbacks subscribe when their owners start, after the files load.
-	local Medals = ns.SlabMedals
-	local onRest, offRest = Medals.OnRest, Medals.OffRest
-	Medals.OnRest = function(fn)
-		if CrestFile() then seen.rest[fn] = true end
-		return onRest(fn)
-	end
-	Medals.OffRest = function(fn)
-		seen.rest[fn] = nil
-		return offRest(fn)
-	end
 	AB.Enable(env, K)
 	env.FireEvent("PLAYER_ENTERING_WORLD", true, false)
 	env.RunTimers()
@@ -157,11 +167,37 @@ for _, class in ipairs(CLASSES) do
 	Clean(env, K, where)
 end
 
+-- A mage who can conjure a mana gem and carries one: the crest hangs the gem with its low-mana glow.
+local function Mage(e)
+	e._known = { [759] = true }
+	e.C_SpellBook = e.C_SpellBook or {}
+	e.C_SpellBook.IsSpellKnown = function(id) return e._known[id] == true end
+	e.C_Item = e.C_Item or {}
+	e.C_Item.GetItemCount = function(id) return id == 5514 and 1 or 0 end
+	e.C_Item.GetItemIconByID = function(id) return 5000000 + id end
+	e.C_Item.GetItemCooldown = function() return 0, 0, true end
+	e.C_Spell.IsSpellUsable = function() return false, false end
+	e.C_Spell.GetSpellCooldown = function() return { isActive = false, isOnGCD = false } end
+	e.C_Spell.GetSpellCooldownDuration = function() return { start = 0, finish = 0 } end
+	e.Enum.PowerType = e.Enum.PowerType or { Mana = 0 }
+	e.UnitPowerPercent = function() return 0.25 end
+	e.C_CurveUtil = { CreateCurve = function() return { AddPoint = function() end, SetType = function() end } end }
+	e.C_DurationUtil = { CreateDuration = function() return { SetTimeFromStart = function(d, start, duration) d.start, d.duration = start, duration end } end }
+end
+
+local function Gem(ns)
+	local form = ns.SlabTrackers.state.forms.crest
+	for _, p in pairs(form and form.pieces or {}) do
+		if p.lowMana then return p end
+	end
+end
+
 -- On, off, on again, out of combat.
 do
-	local env, K, ns, seen, prompted = Start("MAGE", { crest = false })
+	local env, K, ns, seen, prompted = Start("MAGE", { crest = false }, { setup = Mage })
 	K.Options.Write("ActionBars", "crest", true)
 	env.RunTimers()
+	assert(Gem(ns), "switched on, the mage's crest hangs the mana gem with its low-mana glow")
 	local hub = ns.Slab.hub
 	assert(hub and hub:IsShown(), "switched on, the crest builds and shows at once out of combat")
 	assert(seen.made > 0, "switched on, the crest files build their pieces")
@@ -305,6 +341,15 @@ do
 	env.RunTimers()
 	assert(not ns.Slab.hub:IsShown() and #Listening(seen) == 0, "a profile with the crest off hides it and stops its listeners")
 	assert(#prompted == 2, "each switch off after a build offers a reload")
+	assert(K.Store.SetProfile("Default"))
+	env.RunTimers()
+	env.SetCombat(true)
+	assert(K.Store.SetProfile("Plain"))
+	assert(not ns.Slab.hub:IsShown(), "a profile with the crest off, picked in combat, hides the crest at once")
+	OnlyWaiting(seen, "a profile picked in combat")
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(#Listening(seen) == 0, "when combat ends, nothing of the crest listens")
 	Clean(env, K, "profiles")
 end
 
@@ -365,10 +410,37 @@ do
 	end
 	assert(rows[true] ~= "" and rows[true] == rows[false], "Frames listens the same with the crest on or off: " .. rows[false])
 
-	local env, K, ns = Start("SHAMAN", { crest = false }, { style = "frames", setup = Shaman })
+	local env, K, ns, seen = Start("SHAMAN", { crest = false }, { style = "frames", setup = Shaman })
 	local st = ns.Totems.state
 	assert(st.shown and st.header:IsShown() and #st.sockets == 4, "Frames with the crest off keeps the shaman's totem bar")
-	Clean(env, K, "Frames totems")
+	K.Options.Write("HudStyle", "style", "medallions")
+	env.RunTimers()
+	assert(ns.Slab.hub == nil and not st.shown and not st.header:IsShown(), "moving to Medallions with the crest off closes the totem row with no crest to seat it")
+	assert(not seen.live["ActionBars.Totems PLAYER_TOTEM_UPDATE"], "and the totem row stops listening")
+	Clean(env, K, "Frames totems to Medallions")
+end
+
+-- A shaman's totems sit on the crest in secure frames anchored to it. Switched off in combat, the crest and the
+-- totems fade and stop listening at once; the protected hide and the totem frames wait for combat to end.
+do
+	local env, K, ns, seen = Start("SHAMAN", {}, { setup = Shaman })
+	local st, hub = ns.Totems.state, ns.Slab.hub
+	assert(st.shown and ns.Totems.OnCrest() and st.header:IsShown(), "the shaman's totems sit on the crest")
+	env.SetCombat(true)
+	K.Options.Write("ActionBars", "crest", false)
+	assert(hub:GetAlpha() == 0 and st.header:GetAlpha() == 0, "switched off in combat, the crest and its totems fade at once")
+	assert(hub:IsShown() and st.header:IsShown(), "the crest the totems are anchored to and the secure totems themselves wait for combat to end to hide")
+	assert(not seen.live["ActionBars.Totems PLAYER_TOTEM_UPDATE"] and not hub.glow.breath:IsPlaying(), "the totems stop listening and the crest stops moving at once")
+	OnlyWaiting(seen, "a shaman switched off in combat")
+	assert(#env._blocked == 0, "nothing protected is touched in combat: " .. table.concat(env._blocked, ", "))
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(not hub:IsShown() and hub:GetAlpha() == 1 and not st.shown and not st.header:IsShown(), "when combat ends, the crest and the totems hide")
+	assert(#Listening(seen) == 0 and not seen.live["ActionBars.Totems PLAYER_TOTEM_UPDATE"], "and nothing of them listens")
+	K.Options.Write("ActionBars", "crest", true)
+	env.RunTimers()
+	assert(hub:IsShown() and hub:GetAlpha() == 1 and st.shown and st.header:IsShown() and st.header:GetAlpha() == 1, "switched on again, the crest and its totems come back whole")
+	Clean(env, K, "shaman in combat")
 end
 
 print("ok crest switch")

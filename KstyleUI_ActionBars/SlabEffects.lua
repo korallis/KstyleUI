@@ -243,7 +243,7 @@ function Fx.UpdateCap()
 	local hub = slab and slab.hub
 	local curve = CapCurve()
 	local power = Fx.PowerType()
-	if not (hub and hub:IsShown() and Effects.Active() and curve and power) then
+	if not (hub and ns.Slab.HubShown() and Effects.Active() and curve and power) then
 		HideCap()
 		return
 	end

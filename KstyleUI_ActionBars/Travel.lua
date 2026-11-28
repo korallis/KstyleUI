@@ -155,7 +155,7 @@ end
 local function Refresh()
 	pending = false
 	local hub = ns.Slab.hub
-	local active = enabled and ns.Slab.Active() and hub and hub:IsShown() and ns.Config("crestTravel") ~= false and not ns.gamepad
+	local active = enabled and ns.Slab.Active() and hub and ns.Slab.HubShown() and ns.Config("crestTravel") ~= false and not ns.gamepad
 	if not active then
 		if Travel.crest then Travel.crest:Hide() end
 		if Travel.menu then Travel.menu:Hide() end

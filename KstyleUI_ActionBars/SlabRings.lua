@@ -567,7 +567,7 @@ end
 
 function Rings.Update()
 	local hub = state.enabled and ns.Slab.hub
-	local shown = hub and hub:IsShown() or false
+	local shown = hub and ns.Slab.HubShown() or false
 	local cast, spark = shown and ns.Config("crestCast") ~= false, shown and ns.Config("crestGcdSpark") == true
 	if (cast or spark) and not state.piece and not Medals.Locked() then
 		state.piece = Build(hub)

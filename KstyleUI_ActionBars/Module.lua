@@ -421,6 +421,7 @@ end
 local function OnProfile()
 	ns.SyncVisibilities()
 	OnLayoutMode()
+	ns.Slab.SyncCrest()
 	ApplyAll()
 	RefreshVisuals()
 end

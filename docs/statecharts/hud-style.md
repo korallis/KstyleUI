@@ -74,9 +74,11 @@ stateDiagram-v2
 ```
 
 - Off: no hub, sweeps, texture or animation exists until the first switch-on. The plate, the side plates and the buttons' Medallions dressing stay; the hub keeps only `PLAYER_ENTERING_WORLD` and its button-styling callbacks.
+- Leaving Frames with the crest off: `HideHub` updates the totems even when no hub was built, so the Frames totem row closes.
+- A profile picked in combat: the action bars' profile handler calls `SyncCrest` at once and queues only the bars' apply.
 - Waiting: the setting is saved but nothing builds. `Slab.Refresh` from a loading screen or a bar refresh still lays out only the plate, because it builds the hub only while the crest is live; one `Combat.Queue` entry runs `SyncCrest` again when combat ends.
 - Off to On: `SyncCrest` reads `InCombatLockdown` before the first paint, builds or shows the hub, registers its combat, level and target events, and enables the travel button, the effects layer and every crest owner (jewels, hawks, storm, trackers, rings, crown, heat, target lock, Unleashed, pop-offs and the glyph mantle).
-- On to Off: at once, even in combat, the hub hides, its loops, particles and sweeps stop, its ambient effect and any hub claim are released, and every crest listener and rest callback stops. Only the secure travel button waits for combat to end. If the hub was built, a reload is offered, because the game cannot free a built frame.
+- On to Off: at once, even in combat, the hub hides, its loops, particles and sweeps stop, its ambient effect and any hub claim are released, and every crest listener and rest callback stops. Only protected work waits for combat to end: the secure travel button and, for a shaman whose secure totem frames are anchored to the hub, the hub's own hide and the totem frames. Until then the hub and the totems fade to alpha 0, `Slab.HubShown` answers false and the totems stop listening; one `Combat.Queue` entry refreshes the slab, which hides the hub. If the hub was built, a reload is offered, because the game cannot free a built frame.
 
 ## Medallions in the module listeners
 

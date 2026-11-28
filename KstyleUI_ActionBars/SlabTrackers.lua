@@ -131,7 +131,7 @@ local function Form()
 		return nil
 	end
 	local hub = ns.Slab.hub
-	if hub and hub:IsShown() then
+	if hub and ns.Slab.HubShown() then
 		return "crest", hub
 	end
 	local stance = not ns.gamepad and K.HudStyle.Current() == "frames" and ns.bars.stance

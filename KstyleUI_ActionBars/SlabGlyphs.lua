@@ -439,7 +439,7 @@ end
 
 function Glyphs.Update()
 	local hub = ns.Slab and ns.Slab.hub
-	local crest = ns.running == true and hub ~= nil and hub:IsShown() and Effects.Active()
+	local crest = ns.running == true and hub ~= nil and ns.Slab.HubShown() and Effects.Active()
 	local _, class = UnitClass("player")
 	local on = ns.running == true and ns.Slab.CrestLive() and ns.Config("crestMantle") ~= false and not IsSecret(class) and Glyphs.CLASSES[class] == true
 	local flow = crest and ns.Config("crestTide") ~= false

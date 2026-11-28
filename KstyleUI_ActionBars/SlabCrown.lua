@@ -28,7 +28,7 @@ end
 
 local function Class()
 	local hub = ns.Slab and ns.Slab.hub
-	if not (state.enabled and hub and hub:IsShown() and Saved("enabled") and Saved("classPips") and UnitClass) then
+	if not (state.enabled and hub and ns.Slab.HubShown() and Saved("enabled") and Saved("classPips") and UnitClass) then
 		return nil
 	end
 	local _, class = UnitClass("player")

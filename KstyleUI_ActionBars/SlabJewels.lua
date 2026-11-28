@@ -39,7 +39,7 @@ end
 
 local function Class()
 	local hub = ns.Slab and ns.Slab.hub
-	if not (state.enabled and hub and hub:IsShown() and ns.Config("crestJewels") ~= false and UnitClass) then
+	if not (state.enabled and hub and ns.Slab.HubShown() and ns.Config("crestJewels") ~= false and UnitClass) then
 		return nil
 	end
 	local _, class = UnitClass("player")

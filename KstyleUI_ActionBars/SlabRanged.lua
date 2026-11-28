@@ -7,7 +7,7 @@ local cos, sin, rad, min, max = math.cos, math.sin, math.rad, math.min, math.max
 local IsSecret = Widgets.IsSecret
 local Medals, Trackers = ns.SlabMedals, ns.SlabTrackers
 local NIGHTFALL = { 18094, 18095 }
-ns.SlabRanged = { NIGHTFALL = NIGHTFALL }
+ns.SlabRanged = { NIGHTFALL = NIGHTFALL, SetEnabled = function() end }
 local CLASS = UnitClass and select(2, UnitClass("player"))
 if IsSecret(CLASS) or CLASS ~= "HUNTER" and CLASS ~= "MAGE" and CLASS ~= "WARLOCK" then
 	return
@@ -635,6 +635,22 @@ local function Pet(parent, spec, level, form)
 	return m
 end
 
+local gems = {}
+
+local function Pulse(still)
+	for _, m in ipairs(gems) do
+		if still or not m:IsVisible() then
+			m.pulse:Stop()
+		else
+			m.pulse:Play()
+		end
+	end
+end
+
+function ns.SlabRanged.SetEnabled(on)
+	if on then Medals.OnRest(Pulse) else Medals.OffRest(Pulse) end
+end
+
 local function Gem(parent, spec, level, form)
 	local m = Effect(parent, spec, level, form)
 	m.bail = m.add(Medals.Texture(m, "BORDER", 0, "glyphBail", "gilt", m.units))
@@ -643,13 +659,7 @@ local function Gem(parent, spec, level, form)
 		m.lowMana = Medals.Layer(m.ready, level + 1)
 		local glow = m.add(Medals.Texture(m.lowMana, "OVERLAY", 2, "glow", "magic", m.units * 2.2, "ADD"))
 		m.pulse = Medals.Steps(glow, { { 0.5, 1, 0.4 }, { 1, 0.5, 0.4 } }, true)
-		Medals.OnRest(function(still)
-			if still or not m:IsVisible() then
-				m.pulse:Stop()
-			else
-				m.pulse:Play()
-			end
-		end)
+		gems[#gems + 1] = m
 		m.curve = C_CurveUtil.CreateCurve()
 		local kinds = Enum and Enum.LuaCurveType
 		if kinds and kinds.Step and m.curve.SetType then

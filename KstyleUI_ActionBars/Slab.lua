@@ -46,7 +46,7 @@ local CLASS_NAMES = {
 
 Slab.RING, Slab.MARGIN, Slab.STRATA, Slab.RUNE_TURN = RING, MARGIN, STRATA, RUNE_TURN
 
-local state = { combat = false, built = false, class = nil, procs = {}, enabled = false, crest = false, waiting = false }
+local state = { combat = false, built = false, class = nil, procs = {}, enabled = false, crest = false, waiting = false, faded = false }
 
 local function IsSecret(v)
 	return ns.IsSecret(v)
@@ -66,6 +66,10 @@ end
 
 function Slab.CrestLive()
 	return state.crest == true
+end
+
+function Slab.HubShown()
+	return state.built and Slab.hub:IsShown() and not state.faded
 end
 
 local function Layouts()
@@ -718,7 +722,7 @@ local function Animate()
 	if changed then
 		ns.SlabMedals.Rest()
 	end
-	if not (Slab.Allows("ambient") and K.Store.Module("Medallions").ambient ~= false and hub:IsShown()) then
+	if not (Slab.Allows("ambient") and K.Store.Module("Medallions").ambient ~= false and Slab.HubShown()) then
 		Motionless()
 		return
 	end
@@ -752,7 +756,7 @@ local function Animate()
 end
 
 local function Wake()
-	if state.built and Resting(Held()) ~= state.rest and Slab.hub:IsShown() then Animate() end
+	if Slab.HubShown() and Resting(Held()) ~= state.rest then Animate() end
 end
 
 local function Edges(frame)
@@ -792,11 +796,29 @@ local function Yield()
 	end
 end
 
+local function Unfade()
+	state.fading = false
+	Slab.Refresh()
+end
+
 local function HideHub()
 	if not state.built then
+		ns.Totems.Update()
 		return
 	end
-	Slab.hub:Hide()
+	local hub = Slab.hub
+	if InCombatLockdown() and ns.Totems.OnCrest() then
+		state.faded = true
+		hub:SetAlpha(0)
+		if not state.fading then
+			state.fading = true
+			K.Combat.Queue(Unfade)
+		end
+	else
+		state.faded = false
+		hub:Hide()
+		hub:SetAlpha(1)
+	end
 	if ns.Travel then ns.Travel.Refresh() end
 	if K.Effects and K.Effects.Ambient then
 		K.Effects.Ambient("hub", nil, nil)
@@ -913,6 +935,8 @@ function Slab.Refresh()
 	SizeCrest(hub)
 	PaintLevel()
 	SizeBadge(hub)
+	state.faded = false
+	hub:SetAlpha(1)
 	hub:Show()
 	if K.Effects and K.Effects.Ambient then
 		K.Effects.Ambient("hub", Animate, Yield)
@@ -938,7 +962,7 @@ function Slab.SetCombat(on)
 		return
 	end
 	state.combat = on
-	if not (state.built and Slab.hub:IsShown()) then
+	if not Slab.HubShown() then
 		return
 	end
 	if on and Moving() then
@@ -957,7 +981,7 @@ function Slab.InCombat()
 end
 
 function Slab.Pulse()
-	if not (state.built and Slab.hub:IsShown()) then
+	if not Slab.HubShown() then
 		return
 	end
 	Play(Slab.hub.crest.pulse)
@@ -965,7 +989,7 @@ function Slab.Pulse()
 end
 
 function Slab.LevelUp(level)
-	if not (state.built and Slab.hub:IsShown()) then
+	if not Slab.HubShown() then
 		return
 	end
 	local hub = Slab.hub
@@ -1141,7 +1165,7 @@ function Slab.SetProc(b, on, refresh)
 	end
 	if not refresh and (fresh or not polished) then
 		Play(start.anim)
-		if state.built and Slab.hub:IsShown() then
+		if Slab.HubShown() then
 			local holder = K.Effects.Holder and K.Effects.Holder("hub")
 			if not polished or not holder or holder >= K.Effects.PRIORITY.proc then Slab.Pulse() end
 			ns.SlabEffects.Proc(Slab.hub)
@@ -1264,7 +1288,7 @@ function Slab.Dress(b)
 	Slab.Keybind(b)
 end
 
-local CREST_OWNERS = { "SlabUnleashed", "SlabJewels", "SlabHawks", "SlabStorm", "SlabTrackers", "SlabRings", "SlabCrown", "SlabHeat", "SlabTarget", "SlabPopoffs" }
+local CREST_OWNERS = { "SlabUnleashed", "SlabJewels", "SlabHawks", "SlabStorm", "SlabTrackers", "SlabRings", "SlabCrown", "SlabHeat", "SlabTarget", "SlabRanged", "SlabPopoffs" }
 
 local function Waited()
 	state.waiting = false
@@ -1336,7 +1360,7 @@ local function OnMotion(_, module, key)
 			end
 		end
 	end
-	if state.built and Slab.hub:IsShown() then
+	if Slab.HubShown() then
 		SizeBadge(Slab.hub)
 		Animate()
 	end

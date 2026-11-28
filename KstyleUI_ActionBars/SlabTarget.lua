@@ -280,7 +280,7 @@ end
 
 function Target.Update()
 	local hub = ns.Slab.hub
-	local on = hub ~= nil and hub:IsShown() and ns.Config("crestLock") ~= false
+	local on = hub ~= nil and ns.Slab.HubShown() and ns.Config("crestLock") ~= false
 	local locked = Medals.Locked()
 	local listen = on and locked and K.Events.Register or K.Events.Unregister
 	for _, event in ipairs(GATES) do
