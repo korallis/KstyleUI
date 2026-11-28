@@ -1126,7 +1126,7 @@ end
 
 local BAR_SHAPES = {
 	bar1 = { 12, 1, 12 }, bar2 = { 12, 1, 12 }, bar3 = { 12, 1, 12 }, bar4 = { 12, 12, 1 }, bar5 = { 12, 12, 1 }, bar6 = { 12, 12, 1 },
-	pet = { 10, 0, 0 }, stance = { 10, 0, 0 }, consumables = { 12, 2, 6 },
+	pet = { 10, 0, 0 }, stance = { 10, 0, 0 }, consumables = { 12, 2, 6, 12 },
 }
 
 local function BarShape(bar, shape)
@@ -1140,8 +1140,13 @@ local function BarShape(bar, shape)
 		return
 	end
 	local columns = math.ceil(count / math.min(count, math.max(1, math.floor(rows or shape[2]))))
+	local lines = math.ceil(count / columns)
+	if shape[4] then
+		local wide = math.ceil(shape[4] / math.min(shape[4], math.max(1, math.floor(rows or shape[2]))))
+		if bar.orientation == "VERTICAL" then columns = wide else lines = math.ceil(shape[4] / wide) end
+	end
 	if rows then
-		bar.perRow, bar.rows = columns, math.ceil(count / columns)
+		bar.perRow, bar.rows = columns, lines
 	elseif columns ~= shape[3] then
 		bar.perRow = columns
 	end

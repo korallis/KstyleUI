@@ -237,7 +237,7 @@ function Bar:Layout()
 	if def.kind == "stance" then
 		local full, fullRows = K.Setup.Layouts.BarShape(min(def.max, max(1, floor(cfg.buttons or def.max))), perRow, rows, orientation)
 		if fullRows > 1 then
-			cols, used = full, max(1, ceil(count / full))
+			cols, used = full, orientation == "VERTICAL" and min(fullRows, count) or max(1, ceil(count / full))
 			width, height = cols * size + (cols - 1) * gap, used * size + (used - 1) * gap
 		end
 	end

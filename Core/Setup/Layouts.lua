@@ -569,9 +569,10 @@ end
 
 function Layouts.ConsumableFootprint(class, style)
 	local rows, size, gap, perRow, orientation = Layouts.ConsumableGrid(class, style)
-	local columns
-	columns, rows = Layouts.BarShape(12, perRow, rows, orientation)
-	return columns * (size + gap) - gap, rows * (size + gap) - gap
+	local cfg = ns.Store.IsLoaded() and ns.Store.Module("ActionBars").consumables or {}
+	local columns, used = Layouts.BarShape(cfg.buttons or 12, perRow, rows, orientation)
+	local wide, tall = Layouts.BarShape(12, perRow, rows, orientation ~= "VERTICAL" and "VERTICAL" or nil)
+	return math.max(columns, wide) * (size + gap) - gap, math.max(used, tall) * (size + gap) - gap
 end
 
 function Layouts.PartyScale(width, height)

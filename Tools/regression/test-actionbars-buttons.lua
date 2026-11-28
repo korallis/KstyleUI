@@ -177,6 +177,35 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
+-- Five known forms on a 10-button stance bar (the per-bar Buttons per row plan): Down columns first keeps the chosen
+-- 5 rows with the full two-column width; Along rows first keeps 2 per row in 3 rows as before.
+do
+	local env, K, ns = new({ setup = function(e)
+		e._game.forms = {}
+		for i = 1, 5 do e._game.forms[i] = { texture = 132349, spellID = 2457 + i } end
+	end })
+	K.Options.Write("HudStyle", "style", "frames")
+	for _, write in ipairs({ { "buttons", 10 }, { "spacing", 3 }, { "orientation", "VERTICAL" }, { "growth", "RIGHTDOWN" }, { "rows", 5 } }) do
+		K.Options.Write("ActionBars", "stance." .. write[1], write[2])
+	end
+	AB.W.Settle(env)
+	local bar = ns.bars.stance
+	local cfg = ns.Config("stance")
+	local pitch = cfg.size + 3
+	assert(cfg.rows == 5 and cfg.perRow == 2, "Rows 5 on 10 buttons follows to 2 per row")
+	assert(near(bar.holder:GetWidth(), pitch + cfg.size) and near(bar.holder:GetHeight(), 4 * pitch + cfg.size), "two columns of five rows")
+	local first = bar.buttons[1]
+	for i = 2, 5 do
+		local b = bar.buttons[i]
+		assert(near(b:GetLeft(), first:GetLeft()) and near(first:GetTop() - b:GetTop(), (i - 1) * pitch), "form " .. i .. " stays in the first column, row " .. i)
+	end
+	K.Options.Write("ActionBars", "stance.orientation", "HORIZONTAL")
+	AB.W.Settle(env)
+	assert(near(bar.buttons[3]:GetLeft(), first:GetLeft()) and near(first:GetTop() - bar.buttons[3]:GetTop(), pitch), "along rows first, form 3 starts the second row")
+	assert(near(first:GetTop() - bar.buttons[5]:GetTop(), 2 * pitch), "and form 5 the third")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
 -- Empty buttons hidden by the setting stay hidden under the pointer, and show while dragging.
 do
 	local env, K, ns = new()

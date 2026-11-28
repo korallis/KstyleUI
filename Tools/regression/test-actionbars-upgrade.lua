@@ -86,6 +86,46 @@ do
 	assert(bars.consumables.perRow == 4 and bars.consumables.rows == nil and bars.bar4.perRow == nil, "running the upgrade twice changes nothing")
 end
 
+-- The consumables bar lays out its Buttons live but reserves twelve slots for Layout Mode and its attached anchor.
+-- Before Buttons per row both came from Rows alone: the reserve was ceil(12 / Rows) wide, the live bar
+-- ceil(Buttons / Rows) wide. After migration 50 each Buttons from 1 to 12 keeps the live shape it drew and, in both
+-- fill orders, the reserve and attached anchor that twelve buttons at the same Rows give. In 18 shapes, such as 7
+-- buttons in 7 rows, the old live bar was taller than its reserve; the reserve now holds the live bar instead.
+do
+	local live = RK.Store.Module("ActionBars").consumables
+	local class, compared, overflowed = RK.Scale.Aspect(), 0, 0
+	for rows = 1, 12 do
+		for _, orientation in ipairs({ "HORIZONTAL", "VERTICAL" }) do
+			local anchors = {}
+			for count = 12, 1, -1 do
+				local data = { profiles = { P = { ActionBars = { consumables = { buttons = count, rows = rows, orientation = orientation } } } } }
+				migrate(data)
+				local cfg = data.profiles.P.ActionBars.consumables
+				live.buttons, live.rows, live.perRow, live.orientation = count, cfg.rows, cfg.perRow, orientation
+				local _, size, gap = Layouts.ConsumableGrid(class, "medallions")
+				local columns, used = Layouts.BarShape(count, cfg.perRow, cfg.rows, orientation)
+				local wasColumns = math.ceil(count / math.min(count, rows))
+				assert(columns == wasColumns and used == math.ceil(count / wasColumns), string.format("%d consumables in %d rows %s: the live bar changed shape", count, rows, orientation))
+				local wasWide = math.ceil(12 / rows)
+				local wasTall = math.ceil(12 / wasWide)
+				local width, height = Layouts.ConsumableFootprint(class, "medallions")
+				local over = used > wasTall
+				local wantTall = over and used or wasTall
+				assert(width == wasWide * (size + gap) - gap and height == wantTall * (size + gap) - gap,
+					string.format("%d consumables in %d rows %s: the reserve changed size", count, rows, orientation))
+				for _, style in ipairs({ "medallions", "frames" }) do
+					local at = Layouts.Attached("DPS", "consumables.bar", class, style)
+					anchors[style] = anchors[style] or at
+					assert(over or at.x == anchors[style].x and at.y == anchors[style].y, string.format("%d consumables in %d rows %s: the %s anchor moved", count, rows, orientation, style))
+				end
+				compared, overflowed = compared + 1, overflowed + (over and 1 or 0)
+			end
+		end
+	end
+	assert(compared == 288 and overflowed == 36, "every consumables shape was compared, got " .. compared .. " with " .. overflowed .. " taller than the old reserve")
+	live.buttons, live.rows, live.perRow, live.orientation = 12, 2, 6, "HORIZONTAL"
+end
+
 -- A profile saved before Buttons per row upgrades on reload and on import.
 do
 	local old = AB.CoreEnv.DeepCopy(reload.KstyleUIDB)

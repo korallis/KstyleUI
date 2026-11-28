@@ -383,7 +383,7 @@ local function LinkShape(barKey, field)
 	local free, follower = vertical and "rows" or "perRow", vertical and "perRow" or "rows"
 	local columns, rows = K.Setup.Layouts.BarShape(count, cfg.perRow, cfg.rows, cfg.orientation)
 	local made = vertical and columns or rows
-	if field == follower and made ~= cfg[follower] then
+	if field == follower and (cfg[free] == 0 or made ~= cfg[follower]) then
 		local value = math.ceil(count / math.min(count, math.max(1, math.floor(cfg[follower]))))
 		if value ~= cfg[free] then return Write(free, value) end
 	end

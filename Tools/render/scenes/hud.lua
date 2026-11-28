@@ -298,7 +298,7 @@ local function applyPreset(env, opts)
 			K.Options.Write("ActionBars", "extraBarsLayout", extra)
 		else
 			cfg.extraBarsApplied = extra
-			cfg.bar4, cfg.bar5 = preset, preset
+			cfg.bar4, cfg.bar5 = preset, layouts.ExtraBarsPreset(extra, K.Scale.Aspect())
 			K.Callbacks.Fire("SettingChanged", "ActionBars", "extraBarsApplied", extra)
 		end
 	end
@@ -308,27 +308,20 @@ local function applyPreset(env, opts)
 	end
 	local bar2Buttons = tonumber(os.getenv("RENDER_BAR2_BUTTONS") or "")
 	if bar2Buttons and K.Modules.IsEnabled("ActionBars") then K.Options.Write("ActionBars", "bar2.buttons", bar2Buttons) end
-	for bar, rows in (os.getenv("RENDER_BAR_ROWS") or ""):gmatch("(bar%d)=(%d+)") do
-		if K.Modules.IsEnabled("ActionBars") then
-			K.Options.Write("ActionBars", bar .. ".rows", tonumber(rows))
-		else
-			local cfg = K.Store.Module("ActionBars")
-			cfg[bar] = cfg[bar] or {}
-			cfg[bar].rows = tonumber(rows)
-			K.Callbacks.Fire("SettingChanged", "ActionBars", bar .. ".rows", tonumber(rows))
-		end
+	-- Outside ActionBars no OnSetting links the pair, so this resolves the follower as it would.
+	local function WriteShape(bar, field, value)
+		if K.Modules.IsEnabled("ActionBars") then return K.Options.Write("ActionBars", bar .. "." .. field, value) end
+		local cfg = K.Store.Module("ActionBars")
+		cfg[bar] = cfg[bar] or {}
+		local c, n = cfg[bar], math.min(12, math.max(1, math.floor(cfg[bar].buttons or 12)))
+		local free = c.orientation == "VERTICAL" and "rows" or "perRow"
+		c[field] = value
+		if field ~= free then c[free] = math.ceil(n / math.min(n, math.max(1, value))) end
+		c.perRow, c.rows = K.Setup.Layouts.BarShape(n, c.perRow, c.rows, c.orientation)
+		K.Callbacks.Fire("SettingChanged", "ActionBars", bar .. "." .. field, value)
 	end
-	for bar, perRow in (os.getenv("RENDER_BAR_PER_ROW") or ""):gmatch("(bar%d)=(%d+)") do
-		if K.Modules.IsEnabled("ActionBars") then
-			K.Options.Write("ActionBars", bar .. ".perRow", tonumber(perRow))
-		else
-			local cfg = K.Store.Module("ActionBars")
-			cfg[bar] = cfg[bar] or {}
-			cfg[bar].perRow = tonumber(perRow)
-			cfg[bar].rows = select(2, K.Setup.Layouts.BarShape(cfg[bar].buttons or 12, cfg[bar].perRow, nil, cfg[bar].orientation))
-			K.Callbacks.Fire("SettingChanged", "ActionBars", bar .. ".perRow", cfg[bar].perRow)
-		end
-	end
+	for bar, rows in (os.getenv("RENDER_BAR_ROWS") or ""):gmatch("(bar%d)=(%d+)") do WriteShape(bar, "rows", tonumber(rows)) end
+	for bar, perRow in (os.getenv("RENDER_BAR_PER_ROW") or ""):gmatch("(bar%d)=(%d+)") do WriteShape(bar, "perRow", tonumber(perRow)) end
 	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" and K.Modules.IsEnabled("ActionBars") then
 		K.Options.Write("ActionBars", "bar3.enabled", true)
 		local buttons = tonumber(os.getenv("RENDER_BAR3_BUTTONS") or "")

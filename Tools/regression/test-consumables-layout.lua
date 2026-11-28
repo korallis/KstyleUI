@@ -66,9 +66,9 @@ do
 	settings.consumables = { perRow = 5, rows = 3, size = 38, spacing = 0, attached = true }
 	local w, h = L.ConsumableFootprint()
 	assert(math.abs(w - 190) < 0.01 and math.abs(h - 114) < 0.01, "5 per row of size 38 is 190 by 114, got " .. w .. " by " .. h)
-	settings.consumables.orientation = "VERTICAL"
+	settings.consumables.orientation, settings.consumables.perRow = "VERTICAL", 4
 	w, h = L.ConsumableFootprint()
-	assert(math.abs(w - 152) < 0.01 and math.abs(h - 114) < 0.01, "Down columns first, 3 rows of 12 is 4 columns: 152 by 114, got " .. w .. " by " .. h)
+	assert(math.abs(w - 152) < 0.01 and math.abs(h - 114) < 0.01, "Down columns first, 3 rows of 12 with Buttons per row following to 4 is 152 by 114, got " .. w .. " by " .. h)
 	settings.consumables = saved
 end
 -- A lone potion stays beside the player medallion on wide screens too: the bar keeps its 16:9 distance from the frame.
