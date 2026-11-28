@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor, huge = string.format, string.sub, math.floor, math.huge
 
-Store.DB_VERSION = 49
+Store.DB_VERSION = 50
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -1120,6 +1120,49 @@ Store.migrations[49] = function(data)
 		local pet = type(profile) == "table" and Table(Table(profile.UnitFrames).pet)
 		if pet and type(pet.happiness) == "boolean" then
 			pet.happiness = pet.happiness and "always" or "off"
+		end
+	end
+end
+
+local BAR_SHAPES = {
+	bar1 = { 12, 1, 12 }, bar2 = { 12, 1, 12 }, bar3 = { 12, 1, 12 }, bar4 = { 12, 12, 1 }, bar5 = { 12, 12, 1 }, bar6 = { 12, 12, 1 },
+	pet = { 10, 0, 0 }, stance = { 10, 0, 0, fold = true }, consumables = { 12, 2, 6, 12 },
+}
+
+local function BarShape(bar, shape)
+	if type(bar) ~= "table" or bar.perRow ~= nil then return end
+	if shape.fold and bar.orientation == "VERTICAL" then bar.legacyLayout = true end
+	local count, rows = bar.buttons, bar.rows
+	if type(count) ~= "number" or count ~= count then count = shape[1] end
+	if type(rows) ~= "number" or rows ~= rows then rows, bar.rows = nil, nil end
+	count = math.min(shape[1], math.max(1, math.floor(count)))
+	if (rows or shape[2]) == 0 then
+		if rows then bar.perRow = 0 end
+		return
+	end
+	local columns = math.ceil(count / math.min(count, math.max(1, math.floor(rows or shape[2]))))
+	local lines = math.ceil(count / columns)
+	if shape[4] then
+		local wide = math.ceil(shape[4] / math.min(shape[4], math.max(1, math.floor(rows or shape[2]))))
+		if lines > math.ceil(shape[4] / wide) then bar.legacyLayout = true end
+		if bar.orientation == "VERTICAL" then columns = wide else lines = math.ceil(shape[4] / wide) end
+	end
+	if rows then
+		bar.perRow, bar.rows = columns, lines
+	elseif columns ~= shape[3] then
+		bar.perRow = columns
+	end
+end
+
+Store.migrations[50] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local bars = type(profile) == "table" and type(profile.ActionBars) == "table" and profile.ActionBars
+		if bars then
+			for key, shape in pairs(BAR_SHAPES) do
+				BarShape(bars[key], shape)
+				local previous = type(bars.extraBarsPrevious) == "table" and bars.extraBarsPrevious[key]
+				if type(previous) == "table" then BarShape(previous.settings, shape) end
+			end
 		end
 	end
 end

@@ -668,8 +668,10 @@ do
 		local fw, fh = AK.Setup.Layouts.Footprint("DPS", def.element, AK.Scale.Aspect())
 		local cfg = ans.defaults[def.key]
 		assert(written[def.key .. ".rows"] == cfg.rows, def.key .. ": Apply writes the rows the bar has by default (" .. tostring(written[def.key .. ".rows"]) .. " against " .. tostring(cfg.rows) .. ")")
-		local count, rows, size, spacing = AK.Setup.Layouts.ActionBarGrid(AK.Scale.Aspect(), def.element, cfg)
-		local w, h = ans.GridSize(count, rows, size, spacing)
+		assert(written[def.key .. ".perRow"] == cfg.perRow, def.key .. ": Apply writes the buttons per row the bar has by default (" .. tostring(written[def.key .. ".perRow"]) .. " against " .. tostring(cfg.perRow) .. ")")
+		local count, rows, size, spacing, _, _, _, _, perRow = AK.Setup.Layouts.ActionBarGrid(AK.Scale.Aspect(), def.element, cfg)
+		local columns, lines = AK.Setup.Layouts.BarShape(count, perRow, rows, cfg.orientation)
+		local w, h = ans.GridSize(columns, lines, size, spacing)
 		assert(math.abs(w - fw) < 0.5 and math.abs(h - fh) < 0.5,
 			string.format("%s draws %.0f x %.0f in %d rows, but its footprint is %.0f x %.0f", def.key, w, h, rows, fw, fh))
 	end

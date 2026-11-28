@@ -1,4 +1,4 @@
--- test-hud-bar-shapes.lua: a bar shape the options offer never shrinks the HUD below the smallest Interface size, and a bar 1 or 2 in two rows stands clear of the other bar and the frames above it (a player's v0.3.5.1 report: Frames, bar 2 in two rows, the whole HUD at a quarter size with the bar's upper row under the player frame).
+-- test-hud-bar-shapes.lua: a bar shape the options offer never shrinks the HUD below the smallest Interface size, and a bar 1 or 2 in two rows (or at 8 per row, rows of 8 and 4) stands clear of the other bar and the frames above it (a player's v0.3.5.1 report: Frames, bar 2 in two rows, the whole HUD at a quarter size with the bar's upper row under the player frame).
 local Suite = dofile("Tools/regression/suite_env.lua")
 
 local function Fresh(width, height, style)
@@ -21,6 +21,7 @@ local TWO_ROWS = {
 	{ "Frames, bar 2 in two rows", "frames", { { "bar2.rows", 2 } } },
 	{ "Frames, bar 1 in two rows", "frames", { { "bar1.rows", 2 } } },
 	{ "Medallions without the slab, bar 2 in two rows", "medallions", { { "slab", false }, { "bar2.rows", 2 } } },
+	{ "Frames, bar 2 at 8 per row", "frames", { { "bar2.perRow", 8 } }, 8 },
 }
 local checked = 0
 for _, screen in ipairs({ { 3456, 2234, #TWO_ROWS, 1 }, { 1920, 1080, 1, 0 } }) do
@@ -33,6 +34,12 @@ for _, screen in ipairs({ { 3456, 2234, #TWO_ROWS, 1 }, { 1920, 1080, 1, 0 } }) 
 			env.RunTimers()
 		end
 		local label = case[1] .. where
+		if case[4] then
+			local live = env._addons.KstyleUI_ActionBars.bars.bar2.buttons
+			local cfg = K.Store.Module("ActionBars").bar2
+			assert(cfg.rows == 2, label .. ": Rows follows to 2")
+			assert(math.abs(live[case[4] + 1]:GetLeft() - live[1]:GetLeft()) < 0.01 and live[case[4]]:GetLeft() > live[1]:GetLeft(), label .. ": the second row starts at button " .. (case[4] + 1))
+		end
 		assert(K.Scale.AppliedUserScale() >= K.Scale.MIN_USER_SCALE, label .. ": the HUD must stay at or above the smallest Interface size, got " .. K.Scale.AppliedUserScale())
 		assert(Clear(K, "actionbars.bar1", "actionbars.bar2"), label .. ": bars 1 and 2 must not overlap")
 		for _, bar in ipairs({ "actionbars.bar1", "actionbars.bar2" }) do

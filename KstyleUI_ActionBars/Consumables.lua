@@ -135,9 +135,10 @@ function C.Apply()
 	if not holder and #selected == 0 and cfg.hideEmpty then applying = false; return end
 	Build()
 	local style, layouts = K.HudStyle.Current(), K.Setup.Layouts
-	local rows, size, gap = layouts.ConsumableGrid(nil, style)
+	local rows, size, gap, perRow = layouts.ConsumableGrid(nil, style)
 	local capacity = cfg.buttons or 12
-	local width, height, columns, used = ns.GridSize(capacity, rows, size, gap)
+	local columns, used = layouts.BarShape(capacity, perRow, rows, cfg.orientation)
+	local width, height = ns.GridSize(columns, used, size, gap)
 	holder:SetSize(width, height)
 	K.Layout.Register(holder, KEY, layouts.Default(KEY), { label = K.L["Consumables bar"], module = "ActionBars", scalable = true, plate = true })
 	K.Layout.SetLive(KEY, ns.running and cfg.enabled)

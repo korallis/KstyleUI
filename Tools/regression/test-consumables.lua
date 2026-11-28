@@ -205,7 +205,21 @@ for _, rows in ipairs({ 1, 2, 3 }) do
 	local x, y, _, dx, dy = C.buttons[math.min(12, math.ceil(12 / rows) + 1)]:GetPoint()
 	assert(x == "BOTTOMRIGHT" and y == C.header and near(dx, 0) and dy > 0 or rows == 1, "row-major fill starts a new row from the attached edge")
 end
+-- Buttons per row (the per-bar plan): 5 per row lays 12 consumables in rows of 5, 5 and 2, and the mover reserves that.
+K.Options.Write("ActionBars", "consumables.perRow", 5)
+assert(cfg.rows == 3, "5 per row on 12 consumables makes 3 rows")
+do
+	local w, h = K.Setup.Layouts.ConsumableFootprint()
+	local _, size, gap = K.Setup.Layouts.ConsumableGrid()
+	assert(near(w, 5 * size + 4 * gap) and near(h, 3 * size + 2 * gap), "the footprint is 5 wide and 3 tall")
+	assert(near(C.holder:GetWidth(), K.Widgets.Snap(C.holder, w)) and near(C.holder:GetHeight(), K.Widgets.Snap(C.holder, h)), "the mover reserves 5 by 3")
+	local x, y, _, dx, dy = C.buttons[6]:GetPoint()
+	assert(x == "BOTTOMRIGHT" and y == C.header and near(dx, 0) and dy > 0, "button 6 starts the second row")
+	_, _, _, dx = C.buttons[5]:GetPoint()
+	assert(dx < 0, "button 5 ends the first row")
+end
 K.Options.Write("ActionBars", "consumables.rows", 2)
+assert(cfg.perRow == 6, "Rows 2 sets 6 per row")
 K.Options.Write("ActionBars", "editBar", "consumables")
 local pane = env.CreateFrame("Frame", nil, K.Scale.Root())
 pane:SetSize(600, 300)

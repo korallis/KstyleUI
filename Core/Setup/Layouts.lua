@@ -286,7 +286,9 @@ for i = #GRID_ORDER, 1, -1 do
 	if grid.growth then
 		table.insert(SHARED_SETTINGS, 1, { module = "ActionBars", key = bar .. ".growth", value = grid.growth })
 	end
-	table.insert(SHARED_SETTINGS, 1, { module = "ActionBars", key = bar .. ".rows", value = (bar == "pet" or bar == "stance") and 0 or grid.rows })
+	local side = bar == "pet" or bar == "stance"
+	table.insert(SHARED_SETTINGS, 1, { module = "ActionBars", key = bar .. ".perRow", value = side and 0 or math.ceil(grid.buttons / grid.rows) })
+	table.insert(SHARED_SETTINGS, 1, { module = "ActionBars", key = bar .. ".rows", value = side and 0 or grid.rows })
 end
 
 local BOSS_LEFT = {
@@ -418,6 +420,20 @@ function Layouts.Grid(key)
 	return { buttons = grid.buttons, rows = grid.rows, growth = grid.growth, size = grid.size, spacing = grid.spacing }
 end
 
+function Layouts.BarShape(count, perRow, rows, orientation)
+	count = math.max(1, math.floor(count or 1))
+	if orientation == "VERTICAL" then
+		rows = math.min(count, math.max(1, math.floor(rows or 1)))
+		return math.ceil(count / rows), rows
+	end
+	local columns = math.min(count, math.max(1, math.floor(perRow or count)))
+	return columns, math.ceil(count / columns)
+end
+
+local function RowsPerRow(count, rows)
+	return math.ceil(count / math.min(count, math.max(1, math.floor(rows))))
+end
+
 function Layouts.ActionBarGrid(class, key, cfg, style)
 	style = style or ns.HudStyle.Current()
 	local grid = GRIDS[key]
@@ -428,24 +444,28 @@ function Layouts.ActionBarGrid(class, key, cfg, style)
 	local count = cfg.buttons or grid.buttons
 	if count ~= grid.buttons then count = math.min(grid.buttons, math.max(1, math.floor(count))) end
 	local rows = cfg.rows or (side and 0 or grid.rows)
+	local perRow = cfg.perRow or (rows == 0 and 0 or RowsPerRow(count, rows))
 	local size, gap = cfg.size or grid.size, cfg.spacing or (side and -1 or grid.spacing or PITCH)
-	if rows == 0 then rows = style == "medallions" and side and Layouts.MEDALLIONS_SIDE.rows or grid.rows end
+	if rows == 0 or perRow == 0 then
+		perRow = RowsPerRow(count, style == "medallions" and side and Layouts.MEDALLIONS_SIDE.rows or grid.rows)
+		rows = math.ceil(count / perRow)
+	end
 	if gap < 0 then gap = style == "medallions" and side and Layouts.MEDALLIONS_SIDE.gap * size / grid.size or PITCH end
 	if style == "medallions" and saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2") then
 		local _, _, _, _, cell, spacing = Layouts.MedallionsGroup(class)
 		size = saved.bar1 and saved.bar1.size or size
-		rows, gap, size = 1, spacing * size / grid.size, cell * size / grid.size
+		rows, perRow, gap, size = 1, count, spacing * size / grid.size, cell * size / grid.size
 	end
-	return count, rows, size, gap, saved, cfg, grid, side
+	return count, rows, size, gap, saved, cfg, grid, side, perRow
 end
 
 function Layouts.ActionBarFootprint(class, key, style)
 	style = style or ns.HudStyle.Current()
-	local count, rows, size, gap, saved, cfg, grid, side = Layouts.ActionBarGrid(class, key, nil, style)
+	local count, rows, size, gap, saved, cfg, grid, side, perRow = Layouts.ActionBarGrid(class, key, nil, style)
 	if not count then return end
 	local defaultRows, defaultGap = side and 0 or grid.rows, side and -1 or grid.spacing or PITCH
-	local defaultSplit = "off"
-	if (cfg.buttons == nil or cfg.buttons == grid.buttons) and (cfg.rows == nil or cfg.rows == defaultRows) and (cfg.size == nil or cfg.size == grid.size)
+	local defaultPerRow, defaultSplit = side and 0 or math.ceil(grid.buttons / grid.rows), "off"
+	if (cfg.buttons == nil or cfg.buttons == grid.buttons) and (cfg.rows == nil or cfg.rows == defaultRows) and (cfg.perRow == nil or cfg.perRow == defaultPerRow) and (cfg.size == nil or cfg.size == grid.size)
 		and (cfg.spacing == nil or cfg.spacing == defaultGap) and (cfg.split == nil or cfg.split == defaultSplit) then
 		if style == "medallions" then
 			if saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2") then
@@ -456,15 +476,14 @@ function Layouts.ActionBarFootprint(class, key, style)
 		end
 		return byKey[key].width, byKey[key].height
 	end
-	rows = math.min(count, math.max(1, math.floor(rows)))
-	local columns = math.ceil(count / rows)
-	rows = math.ceil(count / columns)
+	local grouped = style == "medallions" and saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2")
+	local columns
+	columns, rows = Layouts.BarShape(count, perRow, rows, not grouped and cfg.orientation or nil)
 	local height = rows * size + (rows - 1) * gap
 	if style == "frames" and saved.useTray ~= false and saved.trayColumn ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2") then
 		size, gap = size * 37.6 / grid.size, gap * 3.6 / grid.spacing
 	end
 	local width = columns * size + (columns - 1) * gap
-	local grouped = style == "medallions" and saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2")
 	if not grouped and columns > 1 and cfg.split == "on" then width = width + Layouts.SPLIT_GAP end
 	return width, height
 end
@@ -482,7 +501,7 @@ function Layouts.ActionBarSignature(style)
 	for _, key in ipairs(GRID_ORDER) do
 		local grid, cfg = GRIDS["actionbars." .. key], saved[key] or {}
 		local side = key == "pet" or key == "stance"
-		out[#out + 1] = table.concat({ cfg.buttons or grid.buttons, cfg.rows or (side and 0 or grid.rows), cfg.size or grid.size, cfg.spacing or (side and -1 or grid.spacing or PITCH), cfg.split or (key == "bar2" and "auto" or "off") }, "/")
+		out[#out + 1] = table.concat({ cfg.buttons or grid.buttons, cfg.rows or (side and 0 or grid.rows), cfg.perRow or "", cfg.orientation or "", cfg.size or grid.size, cfg.spacing or (side and -1 or grid.spacing or PITCH), cfg.split or (key == "bar2" and "auto" or "off") }, "/")
 	end
 	return table.concat(out, ":")
 end
@@ -544,14 +563,17 @@ function Layouts.ConsumableGrid(class, style)
 	local cfg = ns.Store.IsLoaded() and ns.Store.Module("ActionBars").consumables or {}
 	local size = (cfg.size or 26) * (style == "medallions" and (Layouts.MEDALLIONS_SLOT[class or ns.Scale.Aspect()] or Layouts.MEDALLIONS_SLOT.size) / BUTTON or 1)
 	local gap = (cfg.spacing or 0) < 0 and (style == "medallions" and Layouts.MEDALLIONS_SLOT.gap * size / Layouts.MEDALLIONS_SLOT.size or PITCH * size / BUTTON) or cfg.spacing or 0
-	return math.min(12, math.max(1, math.floor(cfg.rows or 2))), size, gap
+	local rows = math.min(12, math.max(1, math.floor(cfg.rows or 2)))
+	return rows, size, gap, cfg.perRow or RowsPerRow(cfg.buttons or 12, rows), cfg.orientation
 end
 
-function Layouts.ConsumableFootprint(class, style)
-	local rows, size, gap = Layouts.ConsumableGrid(class, style)
-	local columns = math.ceil(12 / rows)
-	rows = math.ceil(12 / columns)
-	return columns * (size + gap) - gap, rows * (size + gap) - gap
+function Layouts.ConsumableFootprint(class, style, docked)
+	local rows, size, gap, perRow, orientation = Layouts.ConsumableGrid(class, style)
+	local cfg = ns.Store.IsLoaded() and ns.Store.Module("ActionBars").consumables or {}
+	local columns, used = Layouts.BarShape(cfg.buttons or 12, perRow, rows, orientation)
+	local wide, tall = Layouts.BarShape(12, perRow, rows, orientation ~= "VERTICAL" and "VERTICAL" or nil)
+	if docked and cfg.legacyLayout then return wide * (size + gap) - gap, tall * (size + gap) - gap end
+	return math.max(columns, wide) * (size + gap) - gap, math.max(used, tall) * (size + gap) - gap
 end
 
 function Layouts.PartyScale(width, height)
@@ -917,7 +939,7 @@ function Layouts.ExtraBarsPreset(kind, class)
 	if kind ~= "rows" and kind ~= "beside" then return end
 	local _, _, size, gap = Layouts.ActionBarGrid(class, "actionbars.bar1", nil, "medallions")
 	if kind == "beside" then size, gap = size * 0.75, gap * 0.75 end
-	return { enabled = true, buttons = kind == "rows" and 12 or 8, rows = kind == "rows" and 1 or 2,
+	return { enabled = true, buttons = kind == "rows" and 12 or 8, rows = kind == "rows" and 1 or 2, perRow = kind == "rows" and 12 or 4,
 		size = size, spacing = gap, orientation = "HORIZONTAL", growth = "RIGHTDOWN", split = "off", showEmpty = true, backing = false }
 end
 
@@ -1152,7 +1174,7 @@ function Layouts.Attached(name, key, class, style)
 	style = style or ns.HudStyle.Current()
 	if not layouts[name] or not byKey[key] or not (style == "frames" or STYLES[style]) then return nil end
 	if key == "consumables.bar" then
-		local w, h = Layouts.ConsumableFootprint(class, style)
+		local w, h = Layouts.ConsumableFootprint(class, style, true)
 		local player = Layouts.Aspect(class, style, name, "unitframes.player") or Layouts.Style(name, "unitframes.player", style) or layouts[name]["unitframes.player"]
 		local pw, ph = player.width or COLUMN, player.height or 77.5
 		local reserve = style == "medallions" and 43 or 131.5
@@ -1166,6 +1188,7 @@ function Layouts.Attached(name, key, class, style)
 				if third and third.enabled then x, y = -480, player.y + 447 end
 			end
 		end
+		w, h = Layouts.ConsumableFootprint(class, style)
 		return { anchor = "BOTTOM", x = x, y = y, width = w, height = h }
 	end
 	local cooldown = key:match("^cooldowns%.") ~= nil
@@ -1255,9 +1278,10 @@ function Layouts.BarLift(class, key, style)
 	local above = key ~= "unitframes.boss" and (key:match("^unitframes%.") or key:match("^cooldowns%.") or key == "meters.swing" or key == "combattext.player")
 	if not (above or key == "actionbars.bar2" and style ~= "medallions") then return 0 end
 	local function Extra(bar)
-		local count, rows, size, gap, _, cfg = Layouts.ActionBarGrid(class, bar, nil, style)
+		local count, rows, size, gap, saved, cfg, _, _, perRow = Layouts.ActionBarGrid(class, bar, nil, style)
 		if cfg.enabled == false then return 0 end
-		rows = math.ceil(count / math.ceil(count / math.min(count, math.max(1, math.floor(rows)))))
+		local grouped = style == "medallions" and saved.slab ~= false
+		rows = select(2, Layouts.BarShape(count, perRow, rows, not grouped and cfg.orientation or nil))
 		return (rows - 1) * (size + gap)
 	end
 	local first, second = Extra("actionbars.bar1"), Extra("actionbars.bar2")
@@ -1267,7 +1291,7 @@ end
 
 function Layouts.LiftSetting(module, key)
 	local field = module == "ActionBars" and key:match("^bar[12]%.(.+)$")
-	return module == "ActionBars" and (key == "slab" or field == "rows" or field == "buttons" or field == "size" or field == "spacing" or field == "enabled") or false
+	return module == "ActionBars" and (key == "slab" or field == "rows" or field == "perRow" or field == "orientation" or field == "buttons" or field == "size" or field == "spacing" or field == "enabled") or false
 end
 
 function Layouts.Place(name, style, class, key, band)

@@ -90,9 +90,9 @@ function Slab.Side()
 	return Layouts().MEDALLIONS_SIDE or SIDE
 end
 
-function Slab.Rows(def, cfg)
-	if not Grouped(def) and cfg.rows ~= 0 then return cfg.rows end
-	return select(2, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg))
+function Slab.Shape(def, cfg, count)
+	local _, rows, _, _, _, _, _, _, perRow = Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg)
+	return Layouts().BarShape(count, perRow, rows, not Grouped(def) and cfg.orientation or nil)
 end
 
 function Slab.Size(def, cfg)

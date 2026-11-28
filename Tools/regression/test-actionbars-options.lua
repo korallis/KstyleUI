@@ -1,4 +1,4 @@
--- test-actionbars-options.lua: the real options controls select every bar and change only its own button count.
+-- test-actionbars-options.lua: the real options controls select every bar and change only its own button count, and each bar's Buttons per row and Rows sliders move together.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local O = dofile("Tools/regression/options_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
@@ -38,7 +38,7 @@ for _, def in ipairs(half) do
 	Settle()
 	K.Options.Write("ActionBars", def.key .. ".enabled", true)
 	Settle()
-	for _, field in ipairs({ "buttons", "rows", "orientation", "growth", "size", "spacing", "backing", "fade", "hotkey", "cooldown", "visibility", "reverse", "clickThrough", "visibilityBuilder.combat", "visibilityBuilder.mode" }) do
+	for _, field in ipairs({ "buttons", "perRow", "rows", "orientation", "growth", "size", "spacing", "backing", "fade", "hotkey", "cooldown", "visibility", "reverse", "clickThrough", "visibilityBuilder.combat", "visibilityBuilder.mode" }) do
 		local found
 		for _, item in ipairs(ns.Window.State().items) do if item.key == def.key .. "." .. field then found = true end end
 		assert(found, def.key .. " exposes " .. field)
@@ -47,6 +47,52 @@ for _, def in ipairs(half) do
 		local found
 		for _, item in ipairs(ns.Window.State().items) do if item.key == "bar3.finished" then found = true end end
 		assert(found, "the Finished third bar switch belongs below its own header")
+	end
+	-- The linked pair (the per-bar Buttons per row plan, as approved): the free slider moves alone and the other
+	-- follows; dragging the follower picks the free value that gives that count.
+	local function Slide(field, value)
+		Jump(def.key .. "." .. field).controls.slider:SetValue(value)
+		Settle()
+		local cfg = K.Store.Module("ActionBars")[def.key]
+		return cfg.perRow, cfg.rows
+	end
+	if def.key == "bar3" then
+		local perRow, rows = Slide("rows", 5)
+		assert(perRow == 3 and rows == 4, "Rows 5 on 12 buttons settles at 3 per row in 4 rows, got " .. perRow .. "x" .. rows)
+		perRow, rows = Slide("perRow", 5)
+		assert(perRow == 5 and rows == 3, "5 per row on 12 buttons makes 3 rows, got " .. perRow .. "x" .. rows)
+		local live = bars.bars.bar3.buttons
+		assert(math.abs(live[6]:GetLeft() - live[1]:GetLeft()) < 0.01 and live[6]:GetTop() < live[1]:GetTop(), "the live bar starts its second row at button 6")
+		assert(math.abs(live[11]:GetLeft() - live[1]:GetLeft()) < 0.01 and live[12]:GetLeft() > live[11]:GetLeft(), "the last row holds buttons 11 and 12")
+		K.Options.Write("ActionBars", "bar3.orientation", "VERTICAL")
+		Settle()
+		assert(K.Store.Module("ActionBars").bar3.perRow == 4, "Down columns first keeps 3 rows and Buttons per row follows to 4")
+		perRow, rows = Slide("rows", 5)
+		assert(rows == 5 and perRow == 3, "Down columns first, Rows moves freely to 5 and Buttons per row follows to 3, got " .. perRow .. "x" .. rows)
+		K.Options.Write("ActionBars", "bar3.orientation", "HORIZONTAL")
+		Slide("perRow", 12)
+		K.Options.Write("ActionBars", "bar3.buttons", 8)
+		Settle()
+		assert(K.Store.Module("ActionBars").bar3.perRow == 12 and Jump("bar3.perRow").controls.slider:GetValue() == 8, "a saved 12 per row stays saved and paints as the 8 buttons")
+		K.Options.Write("ActionBars", "bar3.buttons", 12)
+		Settle()
+		assert(K.Store.Module("ActionBars").bar3.rows == 1, "raising Buttons brings back one row of 12")
+	elseif def.key == "pet" then
+		local perRow, rows = Slide("perRow", 4)
+		assert(perRow == 4 and rows == 3, "4 per row on 10 pet buttons makes 3 rows")
+		perRow, rows = Slide("perRow", 0)
+		assert(perRow == 0 and rows == 0, "0 per row writes 0 rows: the HUD style's default")
+		local _, gridRows, _, _, _, _, _, _, gridPerRow = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars.pet")
+		assert(gridPerRow == 5 and gridRows == 2, "the Medallions default keeps 5 per row in 2 rows")
+		perRow, rows = Slide("rows", 10)
+		assert(perRow == 1 and rows == 10, "Rows 10 leaves the default along rows first at 1 per row, got " .. perRow .. "x" .. rows)
+		Slide("rows", 0)
+		K.Options.Write("ActionBars", "pet.orientation", "VERTICAL")
+		Settle()
+		perRow, rows = Slide("perRow", 10)
+		assert(perRow == 10 and rows == 1, "10 per row leaves the default down columns first at 1 row, got " .. perRow .. "x" .. rows)
+		K.Options.Write("ActionBars", "pet.orientation", "HORIZONTAL")
+		Slide("perRow", 0)
 	end
 	local before = K.Options.Copy(K.Store.Module("ActionBars"))
 	local row = Jump(def.key .. ".buttons")
@@ -108,6 +154,11 @@ K.Options.Write("ActionBars", "bar1.paging", "[mod:alt] 2; 1")
 assert(K.Options.Row("ActionBars", "bar1.pageForms").disableWhen(K.Store.Module("ActionBars")), "custom paging disables built-in paging rules")
 K.Options.Write("ActionBars", "slab", true)
 assert(not K.Options.Row("ActionBars", "bar1.rows").showWhen(K.Store.Module("ActionBars")), "slab hides fixed geometry")
+assert(not K.Options.Row("ActionBars", "bar1.perRow").showWhen(K.Store.Module("ActionBars")), "the slab keeps bar 1 at one row")
+K.Options.Write("ActionBars", "editBar", "bar2")
+K.Options.Write("ActionBars", "bar2.enabled", true)
+assert(not K.Options.Row("ActionBars", "bar2.perRow").showWhen(K.Store.Module("ActionBars")) and not K.Options.Row("ActionBars", "bar2.rows").showWhen(K.Store.Module("ActionBars")), "the slab keeps bar 2 at one row too")
+K.Options.Write("ActionBars", "editBar", "bar1")
 AB.W.Click(Jump("slab").controls.toggle)
 assert(K.Options.Row("ActionBars", "bar1.rows").showWhen(K.Store.Module("ActionBars")), "one click frees the slab's geometry")
 K.Options.Write("ActionBars", "bar2.enabled", true)

@@ -7,7 +7,7 @@ stateDiagram-v2
     [*] --> Off
     Off --> Waiting : choose C or D in combat
     Off --> Preset : choose C or D out of combat, snapshot bars and positions
-    Preset --> Preset : player edits rows, size, buttons or position
+    Preset --> Preset : player edits buttons per row, rows, size, buttons or position
     Preset --> Preset : choose the other preset, keep original snapshot
     Preset --> Off : choose Off out of combat, restore snapshot
     Preset --> Preset : switch to Frames, bars 4 and 5 stack on the right rail
@@ -18,4 +18,4 @@ stateDiagram-v2
     Waiting --> Preset : combat ends, apply latest C or D request
 ```
 
-Applying a preset refreshes Layout defaults for the additional rows and their clearance. Layout still resolves saved player positions on top. C's upper rows join the main slab only while their actual rectangles align with its sockets; reshaping or moving either row releases it to its own slab plate. D moves a conflicting default chat and loot-feed position; a saved chat position is never written, and a conflicting left bar moves above it instead. The normal [arrangement and layout-class flow](arrangement-layout-class.md) continues to preserve saved positions.
+C writes bars 4 and 5 as one row of 12 (12 per row); D writes 8 buttons at 4 per row in 2 rows. Applying a preset refreshes Layout defaults for the additional rows and their clearance. Layout still resolves saved player positions on top. C's upper rows join the main slab only while their actual rectangles align with its sockets; reshaping or moving either row releases it to its own slab plate. D moves a conflicting default chat and loot-feed position; a saved chat position is never written, and a conflicting left bar moves above it instead. The normal [arrangement and layout-class flow](arrangement-layout-class.md) continues to preserve saved positions.
