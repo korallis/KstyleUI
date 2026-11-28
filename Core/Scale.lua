@@ -261,7 +261,7 @@ local function Apply()
 		user, auto = parent / REFERENCE_SCALE, false
 	end
 	local last = state.applied
-	if not state.dirty and last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[6] == screen and last[7] == auto and last[8] == band then
+	if not state.dirty and last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[6] == screen and last[7] == auto and last[8] == band and last[9] == game then
 		return
 	end
 	if state.dirty then state.answers = {} end
@@ -292,13 +292,13 @@ local function Apply()
 		end
 	end
 	state.enabled = enabled
-	if last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[5] == maximum and last[6] == screen and last[7] == auto and last[8] == band and state.effectiveUser == effectiveUser then
+	if last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[5] == maximum and last[6] == screen and last[7] == auto and last[8] == band and last[9] == game and state.effectiveUser == effectiveUser then
 		return
 	end
 	local previous = state.effectiveUser
 	root:SetScale(game and 1 or REFERENCE_SCALE / parent * effectiveUser)
 	state.maximum, state.effectiveUser = maximum, effectiveUser
-	last[1], last[2], last[3], last[4], last[5], last[6], last[7], last[8] = height, parent, user, width, maximum, screen, auto, band
+	last[1], last[2], last[3], last[4], last[5], last[6], last[7], last[8], last[9] = height, parent, user, width, maximum, screen, auto, band, game
 	state.height = height
 	local effective = root:GetEffectiveScale()
 	if not IsPositive(effective) then
@@ -454,7 +454,7 @@ end
 
 function Scale.Sizing()
 	local last = state.applied
-	return last[2], last[3], last[7]
+	return last[2], last[3], last[7], last[9]
 end
 
 function Scale.IsAuto()

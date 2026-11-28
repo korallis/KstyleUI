@@ -44,12 +44,13 @@ do
 	assert(Scale.Root():GetScale() == 1 and near(Scale.AppliedUserScale(), 1.265625), "a 0.90 game scale grows the HUD past the fit cap to 1.265625, got " .. Scale.AppliedUserScale())
 	SetGameScale(env, 0.64, 2560, 1440)
 	env.SetCombat(true)
-	local rootScale = Scale.Root():GetScale()
+	local changes = 0
+	K.Callbacks.Register("ScaleChanged", "combat-test", function() changes = changes + 1 end)
 	SetGameScale(env, DEFAULT_GAME_SCALE, 2560, 1440)
-	assert(Scale.Root():GetScale() == rootScale, "a game scale change in combat waits")
+	assert(near(Scale.AppliedUserScale(), 0.9) and changes == 0, "a game scale change in combat waits to apply and redraw, got " .. Scale.AppliedUserScale() .. " and " .. changes .. " scale changes")
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(near(Scale.AppliedUserScale(), 1), "leaving combat applies the followed size, got " .. Scale.AppliedUserScale())
+	assert(near(Scale.AppliedUserScale(), 1) and changes == 1, "leaving combat applies the followed size and redraws once, got " .. Scale.AppliedUserScale() .. " and " .. changes)
 	SetGameScale(env, 0.64, 2560, 1440)
 	K.Options.Write("Appearance", "uiScaleGame", false)
 	assert(not Scale.IsGame() and near(Scale.AppliedUserScale(), 0.984375), "switching it off returns to the pixel-perfect size, got " .. Scale.AppliedUserScale())
@@ -257,24 +258,36 @@ do
 		local saves, bar = Change(change[1], change[2])
 		assert(saves == 1 and not near(bar, 100), string.format("%s %s re-places an unstamped viewer, as before this hotfix: %d saves, bar %s", change[1], change[2], saves, bar))
 	end
-	-- Over a manual 100%, Follow the game's UI scale at the game's default scale asks for the same size, so Scale applies
-	-- nothing and sends no scale change; the next arrangement change is still not a sizing change.
+	-- Over a manual 100%, which applies as step 21 (0.984375) at 1440 lines, switching Follow the game's UI scale on at the
+	-- game's default scale asks for the same 1.0 but is a different way of sizing: it applies the game's exact scale, and
+	-- switching back applies the manual size again, though the requested number never changed (review of the v0.3.5.4
+	-- Button size fix). Both are sizing changes, so their restyles keep a hand-moved, unstamped viewer in place; the next
+	-- arrangement change is still not a sizing change.
 	K.Options.Write("Appearance", "uiScaleAuto", false)
 	K.Options.Write("Appearance", "uiScale", 1)
 	env.RunTimers()
+	assert(near(K.Scale.AppliedUserScale(), 0.984375), "a manual 100% applies 0.984375 at 5120x1440, got " .. K.Scale.AppliedUserScale())
 	local changes = 0
 	K.Callbacks.Register("ScaleChanged", "follow-test", function() changes = changes + 1 end)
-	K.Options.Write("Appearance", "uiScaleGame", true)
-	env.RunTimers()
-	assert(K.Scale.IsGame() and changes == 0, "Follow at the game's default scale over a manual 100% sends no scale change, got " .. changes)
+	for _, follow in ipairs({ true, false }) do
+		K.Store.Account().editModeRows["KstyleUI DPS"][F.BUFF_BAR] = nil
+		F.Find(F.Named(state, "KstyleUI DPS"), F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX = 100
+		local before = changes
+		K.Options.Write("Appearance", "uiScaleGame", follow)
+		env.RunTimers()
+		local applied = follow and 1 or 0.984375
+		assert(K.Scale.IsGame() == follow and near(K.Scale.AppliedUserScale(), applied) and changes == before + 1, string.format("Follow %s over a manual 100%% applies %s with one scale change, got %s and %d", tostring(follow), applied, K.Scale.AppliedUserScale(), changes - before))
+		assert(near(F.Find(F.Named(state, "KstyleUI DPS"), F.VIEWER, F.BUFF_BAR).anchorInfo.offsetX, 100), "Follow " .. tostring(follow) .. " leaves a hand-moved, unstamped viewer in place")
+	end
+	local before = changes
 	local saves, bar = Change("arrangement", "spread")
-	assert(changes == 1 and saves == 1 and not near(bar, 100), string.format("after that switch, Spread re-places an unstamped viewer, as before this hotfix: %d changes, %d saves, bar %s", changes, saves, bar))
+	assert(changes == before + 1 and saves == 1 and not near(bar, 100), string.format("after those switches, Spread re-places an unstamped viewer, as before this hotfix: %d changes, %d saves, bar %s", changes - before, saves, bar))
 end
 
 -- Button size: a player's v0.3.5.4 report. After a clean first-run setup (Medallions, DPS) at 1920x1080 and the game's
 -- default scale, Follow on, raising bar 1's Button size past 50 shrank the whole HUD (root 0.9375 of the game's scale,
 -- then 0.875 at 52 and 0.5625 from 55), and a button got smaller on screen. Following now keeps the root at the
--- game's scale, so only the bar grows.
+-- game's scale, so only the buttons grow.
 do
 	local Suite = dofile("Tools/regression/suite_env.lua")
 	local env, K = Suite.New(nil, 1920, 1080, nil, function(_, kit)
@@ -285,18 +298,17 @@ do
 	env.RunTimers()
 	K.Options.Write("Appearance", "uiScaleGame", true)
 	env.RunTimers()
-	local root = K.Scale.Root()
-	local function BarPixels()
-		local _, _, width = K.Layout.Rect("actionbars.bar1")
-		return width * root:GetEffectiveScale() * 1080 / UI_HEIGHT
+	local root, button = K.Scale.Root(), env.KstyleUI_ActionBar1Button1
+	local function ButtonPixels()
+		return button:GetWidth() * button:GetEffectiveScale() * 1080 / UI_HEIGHT
 	end
-	local last = BarPixels()
+	local last = ButtonPixels()
 	for _, size in ipairs({ 50, 52, 54, 55, 64 }) do
 		K.Options.Write("ActionBars", "bar1.size", size)
 		env.RunTimers()
-		assert(root:GetScale() == 1, "Button size " .. size .. " leaves the root at the game's scale, got " .. root:GetScale())
-		local pixels = BarPixels()
-		assert(pixels > last, string.format("Button size %d widens bar 1 on screen, got %.1f px after %.1f px", size, pixels, last))
+		assert(root:GetScale() == 1 and near(K.Scale.AppliedUserScale(), 1), "Button size " .. size .. " leaves the HUD at the game's scale, got " .. root:GetScale() .. " and " .. K.Scale.AppliedUserScale())
+		local pixels = ButtonPixels()
+		assert(pixels > last, string.format("Button size %d makes bar 1's first button larger on screen, got %.1f px after %.1f px", size, pixels, last))
 		last = pixels
 	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
