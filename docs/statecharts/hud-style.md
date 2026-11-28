@@ -53,10 +53,30 @@ stateDiagram-v2
 | `Core/EffectModels.lua` | Leaving Medallions stops every live 3D model. |
 | `Core/Vignette.lua` | Listens to the player's health and death only under Medallions; shows or hides the low-health vignette. |
 | `Core/Layout/Rest.lua` | Listens to combat only under Medallions; leaving Medallions wakes any resting secondary frame at once. |
-| `KstyleUI_ActionBars/Slab.lua` | `OnStyle`: `Slab.Refresh` shows the action slab and the crest hub under Medallions while bars 1 and 2 stand on one baseline, hides them otherwise, and starts or stops each proc slot's Medallions loop. Bars 1 and 2 take the slab's one row (`Slab.Rows`) and its slot size (`Slab.Size`, from `Layouts.MedallionsGroup`), and at 16:9 the pet and stance bars its two rows of five, when Layout's `LayoutChanged` lays them out again. |
-| `KstyleUI_ActionBars/Totems.lua` | `Totems.Update`, from `Slab.Refresh`: a shaman's totem bar (Spirit Poles) shows on the crest hub under Medallions and as a row at the stance bar's place under Frames, and while it shows it hides Blizzard's `MultiCastActionBarFrame` and the Ghost Wolf stance bar; turning the totem bar off (or the slab off under Medallions) gives both back, out of combat. |
-| `KstyleUI_ActionBars/SlabTarget.lua` | `SlabTarget.Update`, from `Slab.Refresh`: the target lock's claws and rank gem show on the crest hub under Medallions and hide under Frames, which has none. The kill window is a tracker row, so `SlabTrackers.Update` moves it from the crest's inner rim to a red line under the Frames tracker row. |
-| `KstyleUI_ActionBars/SlabPopoffs.lua` | The signature pop-offs are crest-only tracker rows: `SlabTrackers.Update` builds and shows them on the crest hub under Medallions and has no Frames row for them, so Frames shows none and a running fold stops with the crest. |
+| `KstyleUI_ActionBars/Slab.lua` | `OnStyle`: `Slab.Refresh` shows the action slab plate under Medallions while bars 1 and 2 stand on one baseline, and the crest hub with it only while the crest is live; it hides them otherwise and starts or stops each proc slot's Medallions loop. `Slab.SyncCrest` then starts or stops the crest (see [the crest switch](#the-crest-switch)). Bars 1 and 2 take the slab's one row (`Slab.Rows`) and its slot size (`Slab.Size`, from `Layouts.MedallionsGroup`), and at 16:9 the pet and stance bars its two rows of five, when Layout's `LayoutChanged` lays them out again. |
+| `KstyleUI_ActionBars/Totems.lua` | `Totems.Update`, from `Slab.Refresh`: a shaman's totem bar (Spirit Poles) shows on the crest hub under Medallions while the crest is live, stays closed with Show the crest off, and shows as a row at the stance bar's place under Frames, and while it shows it hides Blizzard's `MultiCastActionBarFrame` and the Ghost Wolf stance bar; turning the totem bar off (or the slab off under Medallions) gives both back, out of combat. |
+| `KstyleUI_ActionBars/SlabTarget.lua` | `SlabTarget.Update`, from `Slab.Refresh`: the target lock's claws and rank gem show on the crest hub under Medallions and hide under Frames, which has none, and with Show the crest off, when `SlabTarget.SetEnabled(false)` also drops its target and health events. The kill window is a tracker row, so `SlabTrackers.Update` moves it from the crest's inner rim to a red line under the Frames tracker row. |
+| `KstyleUI_ActionBars/SlabPopoffs.lua` | The signature pop-offs are crest-only tracker rows: `SlabTrackers.Update` builds and shows them on the crest hub under Medallions and has no Frames row for them, so Frames shows none and a running fold stops with the crest. With Show the crest off its rest callback is unsubscribed (`SlabPopoffs.SetEnabled(false)`). |
+
+## The crest switch
+
+Show the crest (`ActionBars.crest`) decides whether the crest is live under Medallions; Frames ignores it. `Slab.SyncCrest` runs from `OnStyle`, the bars' apply and the setting itself, and moves only when the wanted state differs from the live one.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Off : login with the crest off, nothing built
+    [*] --> On : login with the crest on
+    Off --> Waiting : switched on in combat
+    Waiting --> Off : switched off again before combat ends
+    Waiting --> On : combat ends
+    Off --> On : switched on out of combat
+    On --> Off : switched off, in or out of combat
+```
+
+- Off: no hub, sweeps, texture or animation exists until the first switch-on. The plate, the side plates and the buttons' Medallions dressing stay; the hub keeps only `PLAYER_ENTERING_WORLD` and its button-styling callbacks.
+- Waiting: the setting is saved but nothing builds. `Slab.Refresh` from a loading screen or a bar refresh still lays out only the plate, because it builds the hub only while the crest is live; one `Combat.Queue` entry runs `SyncCrest` again when combat ends.
+- Off to On: `SyncCrest` reads `InCombatLockdown` before the first paint, builds or shows the hub, registers its combat, level and target events, and enables the travel button, the effects layer and every crest owner (jewels, hawks, storm, trackers, rings, crown, heat, target lock, Unleashed, pop-offs and the glyph mantle).
+- On to Off: at once, even in combat, the hub hides, its loops, particles and sweeps stop, its ambient effect and any hub claim are released, and every crest listener and rest callback stops. Only the secure travel button waits for combat to end. If the hub was built, a reload is offered, because the game cannot free a built frame.
 
 ## Medallions in the module listeners
 
