@@ -303,7 +303,7 @@ do
 		return button:GetWidth() * button:GetEffectiveScale() * 1080 / UI_HEIGHT
 	end
 	local last = ButtonPixels()
-	for _, size in ipairs({ 50, 52, 54, 55, 64 }) do
+	for _, size in ipairs({ 50, 52, 54, 55, 56, 64 }) do
 		K.Options.Write("ActionBars", "bar1.size", size)
 		env.RunTimers()
 		assert(root:GetScale() == 1 and near(K.Scale.AppliedUserScale(), 1), "Button size " .. size .. " leaves the HUD at the game's scale, got " .. root:GetScale() .. " and " .. K.Scale.AppliedUserScale())
