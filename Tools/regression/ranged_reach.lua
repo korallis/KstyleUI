@@ -1,4 +1,4 @@
--- ranged_reach.lua: Reach.Check(sizes, classes, trees) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture: an additive RGB aura sheet by its brightest channel, a flipbook sheet folded into one cell, a still cell through its texture coordinates; an addon file the reader cannot read stops the check) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The warlock knows every summon and Demonic Sacrifice, so its demon piece builds each demon's mark and each Sacrifice copy, and each of those aura sheets must be among the measured textures. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches. With trees, only the centred layout is built and the mage runs once per talent tree named, its shown orb and each of that tree's orb sheets and rail seat aura sheets among the measured textures.
+-- ranged_reach.lua: Reach.Check(sizes, low, classes, trees) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture: an additive RGB aura sheet by its brightest channel, a flipbook sheet folded into one cell, a still cell through its texture coordinates; an addon file the reader cannot read stops the check) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The warlock knows every summon and Demonic Sacrifice, so its demon piece builds each demon's mark and each Sacrifice copy, and each of those aura sheets must be among the measured textures. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column. With low true each screen is built with Cast bars on unit frames off instead, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too; each layout is a call of its own, so a test file can build one screen in one layout inside the hosted runner's CPU budget. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches. With trees, low must be true and the mage runs once per talent tree named, its shown orb and each of that tree's orb sheets and rail seat aura sheets among the measured textures.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Pose = dofile("Tools/regression/anim_pose.lua")
@@ -280,7 +280,8 @@ local function OrbSheets(ns, Tokens, orb)
 	return names
 end
 
-function Reach.Check(sizes, classes, trees)
+function Reach.Check(sizes, low, classes, trees)
+	assert(type(low) == "boolean" and (low or not trees), "Reach.Check takes low: true for the centred cast bars, which trees need, or false for the cast bars on the unit frames")
 	local original, measured = dofile, nil
 	_G.dofile = function(path)
 		local result = original(path)
@@ -294,10 +295,8 @@ function Reach.Check(sizes, classes, trees)
 		return result
 	end
 	_G.RENDER_SCENE_LIB, _G.RENDER_TRACKERS = true, "lit"
-	for _, run in ipairs(trees and { { sizes = sizes, low = true } } or { { sizes = sizes }, { sizes = sizes, low = true } }) do
-	for _, size in ipairs(run.sizes) do
-		local low = run.low == true
-		_G.RENDER_CAST_ON_FRAME = low and "off" or nil
+	_G.RENDER_CAST_ON_FRAME = low and "off" or nil
+	for _, size in ipairs(sizes) do
 		local at = size[1] .. "x" .. size[2] .. (low and " with the centred cast bars" or "")
 		_G.RENDER_SCREEN = { width = size[1], height = size[2], size = "auto" }
 		local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -490,7 +489,6 @@ function Reach.Check(sizes, classes, trees)
 		-- instead of drifting with the collector's phase towards the test runner's 4096 MB limit.
 		measured = nil
 		collectgarbage("collect")
-	end
 	end
 	_G.dofile, _G.RENDER_TRACKERS, _G.RENDER_CAST_ON_FRAME = original, nil, nil
 end
