@@ -77,6 +77,7 @@ do
 	migrate(data)
 	local bars = data.profiles.P.ActionBars
 	assert(bars.pet.perRow == 0 and bars.pet.rows == 0 and bars.stance.perRow == nil and bars.stance.rows == nil, "the HUD style's default stays the default")
+	assert(bars.stance.legacyLayout == nil, "a stance bar along rows first keeps its fold unmarked")
 	assert(bars.bar4.perRow == nil and bars.bar4.rows == nil, "bar 4 at its default rows keeps the defaults, whose 1 per row draws its old column")
 	assert(bars.bar1.perRow == 7 and bars.bar1.rows == nil, "an unreadable Rows resets to the default one row, here 7 per row")
 	assert(bars.consumables.perRow == 4 and bars.consumables.rows == nil, "8 consumables at the default 2 rows keep 4 per row")
@@ -152,14 +153,15 @@ end
 -- An existing 10-button stance bar, Down columns first in Rows 5, with five forms known: the upgrade keeps Rows 5
 -- and the old fold, forms 1 to 3 in the first column and 4 and 5 in the second, until the shape is next edited;
 -- Rows 4 then fills the chosen rows, forms 1 to 4 in the first column and 5 at the top of the second. An attached
--- consumables bar marked by the upgrade loses its mark on its own first shape edit too.
+-- 7-in-7 consumables bar, taller than its old 6-row reserve, docks by that reserve while its outline and plate hold
+-- 7 rows; its first shape edit, to 8 buttons, drops the mark and docks it by the 8-row bar.
 do
 	local old = AB.CoreEnv.DeepCopy(reload.KstyleUIDB)
 	old.version = 49
 	local bars = old.profiles.Default.ActionBars
 	for _, bar in pairs(bars) do if type(bar) == "table" then bar.perRow = nil end end
 	bars.stance.buttons, bars.stance.rows, bars.stance.orientation, bars.stance.growth, bars.stance.spacing = 10, 5, "VERTICAL", "RIGHTDOWN", 3
-	bars.consumables.buttons, bars.consumables.rows, bars.consumables.attached = 7, 7, true
+	bars.consumables.buttons, bars.consumables.rows, bars.consumables.attached, bars.consumables.hideEmpty = 7, 7, true, false
 	local loaded, LK, LN = AB.New({ saved = old, setup = function(e)
 		e._game.forms = {}
 		for i = 1, 5 do e._game.forms[i] = { texture = 132349, spellID = 2457 + i } end
@@ -182,9 +184,23 @@ do
 	AB.W.Settle(loaded)
 	assert(cfg.legacyLayout == nil and cfg.rows == 4 and cfg.perRow == 3, "a shape edit drops the mark and Rows 4 gives 3 per row")
 	assert(At(2, 0, 1) and At(3, 0, 2) and At(4, 0, 3) and At(5, 1, 0), "after the edit forms 1 to 4 fill the first column and form 5 starts the second")
-	LK.Options.Write("ActionBars", "consumables.buttons", 6)
+	LK.Options.Write("HudStyle", "style", "medallions")
 	AB.W.Settle(loaded)
-	assert(LN.Config("consumables").legacyLayout == nil, "a consumables shape edit drops its mark")
+	local layouts, bar = LK.Setup.Layouts, LN.Consumables
+	local slots = bar.buttons
+	local step = slots[2]:GetTop() - slots[1]:GetTop()
+	local function snapped(a, b) return math.abs(a - b) < 1 end
+	local bottom, top, first = bar.holder:GetBottom(), bar.holder:GetTop(), slots[1]:GetTop()
+	local outline = layouts.Attached("DPS", "consumables.bar", nil, "medallions")
+	assert(near(outline.height, 7 * step) and snapped(bar.holder:GetHeight(), 7 * step), "the outline and the plate hold all 7 rows while the dock keeps the old 6-row reserve")
+	LK.Options.Write("ActionBars", "consumables.buttons", 8)
+	AB.W.Settle(loaded)
+	local edited = LN.Config("consumables")
+	assert(edited.legacyLayout == nil and edited.perRow == 1, "a consumables shape edit drops its mark and keeps 1 per row")
+	outline = layouts.Attached("DPS", "consumables.bar", nil, "medallions")
+	assert(near(outline.height, 8 * step) and snapped(bar.holder:GetHeight(), 8 * step), "after the edit the outline and the plate hold 8 rows")
+	assert(snapped(bottom - bar.holder:GetBottom(), 2 * step) and snapped(top - bar.holder:GetTop(), step) and snapped(first - slots[1]:GetTop(), 2 * step),
+		"the edit docks by the 8-row bar: two rows lower than the old 6-row reserve put it, its top one row lower")
 	assert(#loaded._errors == 0 and LK.ErrorCount() == 0, AB.Errors(loaded))
 end
 
