@@ -74,22 +74,26 @@ local function Grouped(def)
 end
 Slab.Grouped = Grouped
 
+local function Paired(def)
+	return (def.key == "bar1" or def.key == "bar2") and K.HudStyle.Current() == STYLE
+end
+
 function Slab.Side()
 	return Layouts().MEDALLIONS_SIDE or SIDE
 end
 
 function Slab.Rows(def, cfg)
-	if not Grouped(def) and cfg.rows ~= 0 then return cfg.rows end
+	if not Paired(def) and cfg.rows ~= 0 then return cfg.rows end
 	return select(2, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg))
 end
 
 function Slab.Size(def, cfg)
-	if not Grouped(def) then return cfg.size end
+	if not Paired(def) then return cfg.size end
 	return select(3, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg))
 end
 
 function Slab.Spacing(def, cfg)
-	if not Grouped(def) and cfg.spacing >= 0 then return cfg.spacing end
+	if not Paired(def) and cfg.spacing >= 0 then return cfg.spacing end
 	return select(4, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg))
 end
 
@@ -794,30 +798,62 @@ local function Yield()
 	end
 end
 
+local GATE = [[
+	local split = self:GetAttribute("state-split") == "split"
+	if not split then
+		local a, b = self:GetFrameRef("bar1"), self:GetFrameRef("bar2")
+		split = not (a and b and a:IsVisible() and b:IsVisible())
+	end
+	if split and self:GetAttribute("state-crest") == "hide" then self:Hide() else self:Show() end
+]]
+local BAR_GATE = "local self = control\n" .. GATE
+
+local function Gated(gate)
+	state.gated = not gate:IsShown()
+	if ns.SlabCrown then ns.SlabCrown.Update() end
+end
+
 function Slab.Gate()
 	if not state.gate then
-		state.gate = CreateFrame("Frame", "KstyleUI_CrestGate", K.Scale.Root(), "SecureHandlerStateTemplate")
+		local gate = CreateFrame("Frame", "KstyleUI_CrestGate", K.Scale.Root(), "SecureHandlerStateTemplate")
+		gate:SetAttribute("_onstate-crest", GATE)
+		gate:SetAttribute("_onstate-split", GATE)
+		gate:HookScript("OnShow", Gated)
+		gate:HookScript("OnHide", Gated)
+		state.gate = gate
 	end
 	return state.gate
 end
 
+local function Watch(gate)
+	state.watched = state.watched or {}
+	for i, key in ipairs({ "bar1", "bar2" }) do
+		local bar = ns.bars and ns.bars[key]
+		if bar and not state.watched[bar] then
+			state.watched[bar] = true
+			SecureHandlerSetFrameRef(gate, "bar" .. i, bar.header)
+			for _, frame in ipairs({ bar.gate, bar.header }) do
+				SecureHandlerWrapScript(frame, "OnShow", gate, BAR_GATE)
+				SecureHandlerWrapScript(frame, "OnHide", gate, BAR_GATE)
+			end
+		end
+	end
+end
+
 local function Rule()
 	state.ruling = false
-	if type(RegisterStateDriver) ~= "function" or type(UnregisterStateDriver) ~= "function" then
+	if type(RegisterStateDriver) ~= "function" or type(UnregisterStateDriver) ~= "function"
+		or type(SecureHandlerWrapScript) ~= "function" or type(SecureHandlerSetFrameRef) ~= "function" then
 		return
 	end
 	local gate = Slab.Gate()
-	local driver = state.split and K.Layout.Rules.Driver(K.Layout.Get(CREST_KEY).shown) or nil
-	if driver == state.driver then
-		return
+	Watch(gate)
+	local driver = K.Layout.Rules.Driver(K.Layout.Get(CREST_KEY).shown) or "show"
+	if driver ~= state.driver then
+		state.driver = driver
+		RegisterStateDriver(gate, "crest", driver)
 	end
-	state.driver = driver
-	if driver then
-		RegisterStateDriver(gate, "visibility", driver)
-	else
-		UnregisterStateDriver(gate, "visibility")
-		gate:Show()
-	end
+	gate:SetAttribute("state-split", state.split and "split" or "joined")
 end
 
 local function Ruled()
@@ -837,14 +873,22 @@ local function Later()
 	end
 end
 
+local function Parent()
+	local hub = Slab.hub
+	local parent = state.split and Slab.crest or Slab.CrestCanHide() and Slab.Gate() or K.Scale.Root()
+	if hub:GetParent() ~= parent then
+		hub:SetParent(parent)
+		hub:SetFrameStrata(STRATA)
+	end
+end
+
 local function Seat(split)
 	if state.split == split then
 		return
 	end
 	state.split = split
 	local hub, rest = Slab.hub, K.Layout.Rest
-	hub:SetParent(split and Slab.crest or K.Scale.Root())
-	hub:SetFrameStrata(STRATA)
+	Parent()
 	if split then
 		rest.Unfollow("actionbars.bar1", hub)
 	else
@@ -861,12 +905,19 @@ function Slab.CrestShown()
 end
 
 function Slab.CrestVisible()
-	return Slab.CrestShown() and not (state.split and not Slab.crest:IsShown())
+	return not state.gated and Slab.CrestShown() and not (state.split and not Slab.crest:IsShown())
+end
+
+function Slab.CrestCanHide()
+	return K.Layout.Rules.Driver(K.Layout.Get(CREST_KEY).shown) ~= nil
 end
 
 function Slab.CrestMoved()
-	if state.split then
+	if state.built then
 		Ruled()
+		if not InCombatLockdown() then Parent() end
+	end
+	if state.split then
 		ns.Totems.Update()
 		ns.SlabCrown.Update()
 		if ns.Travel then ns.Travel.Refresh() end

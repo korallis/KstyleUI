@@ -143,7 +143,7 @@ do
 	end
 end
 -- KSTY-171: with the slab switched off the crest still shows, so the HUD size fit counts it at the Crest element's
--- place, the joined gap's centre; bars 1 and 2, which keep larger buttons there until they are joined again, do not count.
+-- place, the joined gap's centre; bars 1 and 2 do not count, since a bar with its own grid may reach under it.
 do
 	local _, K = New()
 	local Layouts = K.Setup.Layouts

@@ -68,7 +68,7 @@ end
 
 local function Seat()
 	local hub = ns.Slab.hub
-	if ns.Slab.CrestShown() then return hub end
+	if ns.Slab.CrestShown() and not ns.Slab.CrestCanHide() then return hub end
 	local stance = K.HudStyle.Current() == "frames" and ns.bars.stance
 	return stance and stance.holder or nil
 end

@@ -418,6 +418,19 @@ function Layouts.Grid(key)
 	return { buttons = grid.buttons, rows = grid.rows, growth = grid.growth, size = grid.size, spacing = grid.spacing }
 end
 
+local function Untouched(cfg, grid, side)
+	return (cfg.buttons == nil or cfg.buttons == grid.buttons) and (cfg.rows == nil or cfg.rows == (side and 0 or grid.rows)) and (cfg.size == nil or cfg.size == grid.size)
+		and (cfg.spacing == nil or cfg.spacing == (side and -1 or grid.spacing or PITCH))
+end
+
+local function Grouped(saved, key, style)
+	return style == "medallions" and saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2")
+end
+
+local function Sized(saved, cfg, grid, key, style)
+	return Grouped(saved, key, style) or style == "medallions" and (key == "actionbars.bar1" or key == "actionbars.bar2") and Untouched(cfg, grid, false)
+end
+
 function Layouts.ActionBarGrid(class, key, cfg, style)
 	style = style or ns.HudStyle.Current()
 	local grid = GRIDS[key]
@@ -431,9 +444,9 @@ function Layouts.ActionBarGrid(class, key, cfg, style)
 	local size, gap = cfg.size or grid.size, cfg.spacing or (side and -1 or grid.spacing or PITCH)
 	if rows == 0 then rows = style == "medallions" and side and Layouts.MEDALLIONS_SIDE.rows or grid.rows end
 	if gap < 0 then gap = style == "medallions" and side and Layouts.MEDALLIONS_SIDE.gap * size / grid.size or PITCH end
-	if style == "medallions" and saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2") then
+	if Sized(saved, cfg, grid, key, style) then
 		local _, _, _, _, cell, spacing = Layouts.MedallionsGroup(class)
-		size = saved.bar1 and saved.bar1.size or size
+		size = saved.slab ~= false and saved.bar1 and saved.bar1.size or size
 		rows, gap, size = 1, spacing * size / grid.size, cell * size / grid.size
 	end
 	return count, rows, size, gap, saved, cfg, grid, side
@@ -443,12 +456,9 @@ function Layouts.ActionBarFootprint(class, key, style)
 	style = style or ns.HudStyle.Current()
 	local count, rows, size, gap, saved, cfg, grid, side = Layouts.ActionBarGrid(class, key, nil, style)
 	if not count then return end
-	local defaultRows, defaultGap = side and 0 or grid.rows, side and -1 or grid.spacing or PITCH
-	local defaultSplit = "off"
-	if (cfg.buttons == nil or cfg.buttons == grid.buttons) and (cfg.rows == nil or cfg.rows == defaultRows) and (cfg.size == nil or cfg.size == grid.size)
-		and (cfg.spacing == nil or cfg.spacing == defaultGap) and (cfg.split == nil or cfg.split == defaultSplit) then
+	if Untouched(cfg, grid, side) and (cfg.split == nil or cfg.split == "off") then
 		if style == "medallions" then
-			if saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2") then
+			if Sized(saved, cfg, grid, key, style) then
 				local _, _, width, height = Layouts.MedallionsGroup(class)
 				return width, height
 			end
@@ -464,7 +474,7 @@ function Layouts.ActionBarFootprint(class, key, style)
 		size, gap = size * 37.6 / grid.size, gap * 3.6 / grid.spacing
 	end
 	local width = columns * size + (columns - 1) * gap
-	local grouped = style == "medallions" and saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2")
+	local grouped = Grouped(saved, key, style)
 	if not grouped and columns > 1 and cfg.split == "on" then width = width + Layouts.SPLIT_GAP end
 	return width, height
 end

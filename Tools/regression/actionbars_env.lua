@@ -108,6 +108,7 @@ local function Handle(env, frame)
 	h.GetWidth = function() return frame:GetWidth() end
 	h.GetHeight = function() return frame:GetHeight() end
 	h.IsShown = function() return frame:IsShown() == true end
+	h.IsVisible = function() return frame:IsVisible() == true end
 	h.Show = secure(function()
 		local was = frame:IsShown()
 		frame:Show()
@@ -175,16 +176,11 @@ local function MakeStateHandler(env, frame)
 		local state = type(name) == "string" and name:match("^state%-(.+)$")
 		local snippet = state and self._attributes["_onstate-" .. state]
 		if snippet then
-			local handle = {
-				SetAttribute = function(_, key, v)
-					self:SetAttribute(key, v)
-				end,
-				GetAttribute = function(_, key)
-					return self:GetAttribute(key)
-				end,
-			}
+			local handle = Handle(env, self)
+			local fenv = RestrictedEnv(env)
+			fenv.control = handle
 			local chunk = assert(loadstring("local self, stateid, newstate = ...\n" .. snippet))
-			setfenv(chunk, RestrictedEnv(env))
+			setfenv(chunk, fenv)
 			local was = env._secure
 			env._secure = true
 			chunk(handle, state, value)
@@ -653,6 +649,13 @@ local function InstallGame(env, opts)
 				MakeStateHandler(env, frame)
 			end
 			if template:find("SecureHandlerClickTemplate", 1, true) then frame._secureClick = true end
+			local show = frame.Show
+			frame.Show = function(self)
+				local wrap = self._wraps and self._wraps.OnShow
+				local shown = self:IsShown()
+				show(self)
+				if not shown and wrap then RunSnippet(env, "self", wrap.pre, wrap.header, self) end
+			end
 			local hide = frame.Hide
 			frame.Hide = function(self)
 				local wrap = self._wraps and self._wraps.OnHide

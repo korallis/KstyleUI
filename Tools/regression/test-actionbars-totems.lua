@@ -347,20 +347,26 @@ do
 	assert(Layout.Set("actionbars.crest", "shown", "always"))
 	env.RunTimers()
 	Seated("the crest shown again", crest)
-	-- A Crest element shown only out of combat takes the poles away with it in combat. Blizzard's bar cannot come
-	-- back in combat, so the shaman has no totem bar until combat ends, when the poles return.
+	-- A Crest element that can hide, here shown only out of combat, keeps Blizzard's totem bar and the stance bar, which
+	-- stay usable while combat hides the crest; Blizzard's bar could not come back in combat.
 	assert(Layout.Set("actionbars.crest", "shown", "noCombat"))
 	env.RunTimers()
+	local function Native(what)
+		assert(not state.header:IsShown() and not K.Safe.IsHidden(env.MultiCastActionBarFrame) and ns.bars.stance:Visibility() == "show", what .. ": Blizzard's totem bar and the stance bar")
+	end
+	Native("a crest shown only out of combat")
 	env.SetCombat(true)
 	env.RunTimers()
-	assert(not hub:IsVisible() and not state.header:IsVisible() and K.Safe.IsHidden(env.MultiCastActionBarFrame), "the crest hidden in combat: the poles go with it and Blizzard's bar stays away")
+	assert(not hub:IsVisible(), "the crest hides in combat")
+	Native("the crest hidden in combat")
 	assert(#env._blocked == 0, "the crest hidden in combat: nothing protected moved: " .. table.concat(env._blocked, ", "))
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(state.header:IsVisible(), "after combat the poles are back")
-	Seated("after a combat hide", crest)
+	assert(hub:IsVisible(), "after combat the crest is back")
+	Native("after combat")
 	assert(Layout.Set("actionbars.crest", "shown", "always"))
 	env.RunTimers()
+	Seated("the crest always shown takes the poles back", crest)
 	-- A crest whose place cannot be read keeps Blizzard's bar until a later layout gives one.
 	local rect = hub.GetRect
 	hub.GetRect = function() return nil end
