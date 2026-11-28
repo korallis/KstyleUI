@@ -367,8 +367,14 @@ class WorkflowsTest(unittest.TestCase):
                     with self.subTest(job=job, step=later.splitlines()[0], checkout=checkout, commit=commit, cancelled=cancelled):
                         check_zip = "success" if runs else "skipped"
                         self.assertEqual(step_guard_runs(guard.group(1), cancelled, checkout, commit, check_zip), runs)
-                if later.startswith("name: Upload the checked zip\n"):
-                    self.assertFalse(step_guard_runs(guard.group(1), False, "success", "success", "failure"))
+        package_steps = re.split(r"(?m)^      - ", jobs["lint-python-package"])
+        uploads = [step for step in package_steps if step.startswith("name: Upload the checked zip\n")]
+        self.assertEqual(len(uploads), 1)
+        upload_guard = re.search(r"(?m)^        if: (.*)$", uploads[0])
+        self.assertIsNotNone(upload_guard)
+        for outcome, expected in (("success", True), ("failure", False), ("skipped", False)):
+            with self.subTest(zip_check=outcome):
+                self.assertEqual(step_guard_runs(upload_guard.group(1), False, "success", "success", outcome), expected)
         self.assertEqual(scripts[0], scripts[1], "both jobs check the commit the same way")
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
