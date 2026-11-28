@@ -76,14 +76,14 @@ do
 	} } } }
 	migrate(data)
 	local bars = data.profiles.P.ActionBars
-	assert(bars.pet.perRow == 0 and bars.pet.rows == 0 and bars.stance.perRow == 0 and bars.stance.rows == 0, "the HUD style's default stays the default")
-	assert(bars.bar4.perRow == 1 and bars.bar4.rows == 8, "bar 4 keeps its old one column: " .. bars.bar4.perRow .. "x" .. bars.bar4.rows)
-	assert(bars.bar1.perRow == 7 and bars.bar1.rows == 1, "an unreadable Rows takes the old default one row")
-	assert(bars.consumables.perRow == 4 and bars.consumables.rows == 2, "8 consumables in 2 rows keep 4 per row")
+	assert(bars.pet.perRow == 0 and bars.pet.rows == 0 and bars.stance.perRow == nil and bars.stance.rows == nil, "the HUD style's default stays the default")
+	assert(bars.bar4.perRow == nil and bars.bar4.rows == nil, "bar 4 at its default rows keeps the defaults, whose 1 per row draws its old column")
+	assert(bars.bar1.perRow == 7 and bars.bar1.rows == nil, "an unreadable Rows resets to the default one row, here 7 per row")
+	assert(bars.consumables.perRow == 4 and bars.consumables.rows == nil, "8 consumables at the default 2 rows keep 4 per row")
 	local snapshot = bars.extraBarsPrevious.bar5.settings
 	assert(snapshot.perRow == 3 and snapshot.rows == 4, "an extra-bars snapshot restores its old shape: " .. snapshot.perRow .. "x" .. snapshot.rows)
 	migrate(data)
-	assert(bars.bar4.perRow == 1 and bars.bar4.rows == 8, "running the upgrade twice changes nothing")
+	assert(bars.consumables.perRow == 4 and bars.consumables.rows == nil and bars.bar4.perRow == nil, "running the upgrade twice changes nothing")
 end
 
 -- A profile saved before Buttons per row upgrades on reload and on import.

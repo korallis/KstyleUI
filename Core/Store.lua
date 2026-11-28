@@ -1125,22 +1125,26 @@ Store.migrations[49] = function(data)
 end
 
 local BAR_SHAPES = {
-	bar1 = { 12, 1 }, bar2 = { 12, 1 }, bar3 = { 12, 1 }, bar4 = { 12, 12 }, bar5 = { 12, 12 }, bar6 = { 12, 12 },
-	pet = { 10, 0 }, stance = { 10, 0 }, consumables = { 12, 2 },
+	bar1 = { 12, 1, 12 }, bar2 = { 12, 1, 12 }, bar3 = { 12, 1, 12 }, bar4 = { 12, 12, 1 }, bar5 = { 12, 12, 1 }, bar6 = { 12, 12, 1 },
+	pet = { 10, 0, 0 }, stance = { 10, 0, 0 }, consumables = { 12, 2, 6 },
 }
 
 local function BarShape(bar, shape)
 	if type(bar) ~= "table" or bar.perRow ~= nil then return end
 	local count, rows = bar.buttons, bar.rows
 	if type(count) ~= "number" or count ~= count then count = shape[1] end
-	if type(rows) ~= "number" or rows ~= rows then rows = shape[2] end
+	if type(rows) ~= "number" or rows ~= rows then rows, bar.rows = nil, nil end
 	count = math.min(shape[1], math.max(1, math.floor(count)))
-	if rows == 0 then
-		bar.perRow, bar.rows = 0, 0
+	if (rows or shape[2]) == 0 then
+		if rows then bar.perRow = 0 end
 		return
 	end
-	local columns = math.ceil(count / math.min(count, math.max(1, math.floor(rows))))
-	bar.perRow, bar.rows = columns, math.ceil(count / columns)
+	local columns = math.ceil(count / math.min(count, math.max(1, math.floor(rows or shape[2]))))
+	if rows then
+		bar.perRow, bar.rows = columns, math.ceil(count / columns)
+	elseif columns ~= shape[3] then
+		bar.perRow = columns
+	end
 end
 
 Store.migrations[50] = function(data)
