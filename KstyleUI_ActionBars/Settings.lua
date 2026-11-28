@@ -540,7 +540,8 @@ function ns.Schema()
 			showWhen = function(settings) return settings.crestRail ~= false and ns.SlabRail.data ~= nil end, options = function() return ns.SlabRail.Choices() end },
 		{ type = "dropdown", key = "crestRailSeat4", label = string.format(L["Rail seat %d"], 4), help = L["The known ability this seat of the cooldown rail shows; Tree's choice follows your talents."],
 			showWhen = function(settings) return settings.crestRail ~= false and ns.SlabRail.data ~= nil end, options = function() return ns.SlabRail.Choices() end },
-		{ type = "toggle", key = "crestOrb", label = L["Power orb"], help = L["Fills as your great cooldown returns or with Expose Prey's window, and lights your procs inside."], showWhen = function() return ns.class == "MAGE" or ns.class == "HUNTER" end },
+		{ type = "toggle", key = "crestOrb", label = L["Power orb"], help = (ns.class or select(2, UnitClass("player"))) == "HUNTER" and L["Fills as your great cooldown returns or with Expose Prey's window, and lights your procs inside."]
+			or L["Fills the crest's opening as your tree's great cooldown returns, and lights your procs inside it."], showWhen = function() return ns.class == "MAGE" or ns.class == "HUNTER" end },
 		{ type = "toggle", key = "crestArmor", label = L["Armor crystals"], help = L["Shows your Frost, Ice or Mage Armor and its time left on the crest, grey steel when none is up."], showWhen = function() return ns.class == "MAGE" end },
 		{ type = "toggle", key = "crestManaGem", label = L["Hanging mana gem"], help = L["Shows your mana gem lit, cooling or gone; Arcane Intellect and its time before you conjure one."], showWhen = function() return ns.class == "MAGE" end },
 		{ type = "toggle", key = "crestShot", label = L["Ready shots"], help = L["Lights Counterattack or Mongoose Bite when usable, else Aimed Shot or Multi-Shot when ready."], showWhen = function() return ns.class == "HUNTER" end },

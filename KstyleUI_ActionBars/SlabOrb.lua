@@ -93,7 +93,7 @@ function Orb.Held()
 end
 
 function Orb.Holding()
-	return Orb.held ~= nil and Medals.Locked()
+	return Orb.shown == true and Medals.Locked()
 end
 
 function Orb.Expected()
@@ -105,10 +105,11 @@ function Orb.Commit()
 		return false
 	end
 	local p, want = Orb.piece, Orb.Want()
-	local held = p and p:IsShown() and p.school == Orb.School() and want or nil
+	local shown = p ~= nil and p:IsShown() and p.school == Orb.School()
+	local held = shown and want or nil
 	local missed = want ~= nil and held == nil
 	local changed = held ~= Orb.held or missed ~= (Orb.missed == true)
-	Orb.held, Orb.missed = held, missed
+	Orb.held, Orb.missed, Orb.shown = held, missed, shown
 	return changed
 end
 

@@ -1533,6 +1533,7 @@ ns.Locale.Add({
 	["Fills the bars from the other end."] = "Llena las barras desde el otro extremo.",
 	["Fills the cast bar across or upward."] = "Llena la barra de lanzamiento a lo ancho o hacia arriba.",
 	["Fills the cast bar from the other end."] = "Llena la barra de lanzamiento desde el otro extremo.",
+	["Fills the crest's opening as your tree's great cooldown returns, and lights your procs inside it."] = "Llena la abertura del emblema a medida que vuelve el gran tiempo de reutilizaci\195\179n de tu rama, y enciende dentro tus efectos activados.",
 	["Fills the health bar across or upward."] = "Llena la barra de salud a lo ancho o hacia arriba.",
 	["Fills the health bar from left to right or from the bottom up."] = "Llena la barra de salud de izquierda a derecha o de abajo arriba.",
 	["Find Layout Mode elements"] = "Buscar elementos del modo Dise\195\177o",

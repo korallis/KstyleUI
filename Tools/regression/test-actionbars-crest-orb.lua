@@ -554,6 +554,23 @@ do
 	end
 end
 
+-- With the bow on, Quick Shots and either Quick Strikes buff each light the gust, and it clears when the buff falls.
+do
+	local known = { 19552 }
+	for _, id in ipairs(MM) do known[#known + 1] = id end
+	local env, K, ns = Hunter(known, 2)
+	env.SetTarget(true)
+	local gust = Seated(ns, "crestGust")
+	assert(Seated(ns, "crestOrb") and gust and not gust.lit:IsShown(), "the bow on and no buff: the gust is dark")
+	for _, id in ipairs({ 6150, 1299448, 469144 }) do
+		Slots.Set(env, "player", { { id = id, auraInstanceID = 1, start = env._now, duration = 12 } })
+		assert(gust.lit:IsShown() and gust.lits[#gust.lits]:IsShown(), id .. " up lights the gust beside the bow")
+		Slots.Set(env, "player", nil)
+		assert(not gust.lit:IsShown(), id .. " gone clears the gust")
+	end
+	Clean(env, K)
+end
+
 -- Survival's wind is Expose Prey's window: it fills when the buff comes up and runs down with its time, and the gust line rides it.
 do
 	local env, K, ns = Hunter(SV, 3)
@@ -645,11 +662,14 @@ do
 	Clean(env, K)
 end
 
--- Under Frames, with the bow still switched on, the row stands Bestial Wrath and Rapid Fire.
+-- Changing the style to Frames with the bow still switched on takes the bow away and the row stands Bestial Wrath and Rapid Fire.
 do
-	local env, K, ns = Hunter(BM, 1, nil, { frames = true })
+	local env, K, ns = Hunter(BM, 1, nil, { before = function(_, K) K.Options.Write("ActionBars", "crestRail", false) end })
+	assert(Seated(ns, "crestOrb") and not Rim(ns)[19574], "Medallions: the bow holds Bestial Wrath")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
 	local rim = Rim(ns)
-	assert(K.Options.Read("ActionBars", "crestOrb") ~= false and rim[19574] and rim[3045], "Frames: the row's cooldowns take Bestial Wrath and Rapid Fire")
+	assert(K.Options.Read("ActionBars", "crestOrb") ~= false and not Seated(ns, "crestOrb") and rim[19574] and rim[3045], "changed to Frames: the bow leaves and the row's cooldowns take Bestial Wrath and Rapid Fire")
 	Clean(env, K)
 end
 
@@ -676,6 +696,26 @@ do
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
 	env.RunTimers()
 	assert(Seated(ns, "crestOrb") and not Seats(ns):find(",rapid,", 1, true), "the restriction lifted, the bow takes Rapid Fire back")
+	Clean(env, K)
+end
+
+-- Survival's bow holds no cooldown, yet switched off mid-window while the game holds the crest it stays, window and all,
+-- until the restriction lifts.
+do
+	local env, K, ns = Hunter(SV, 3)
+	env.SetTarget(true)
+	env.RunTimers()
+	local orb = Seated(ns, "crestOrb")
+	Slots.Set(env, "player", { { id = 1310726, auraInstanceID = 1, start = env._now, duration = 10 } })
+	env._aurasSecret = true
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	K.Options.Write("ActionBars", "crestOrb", false)
+	env.RunTimers()
+	assert(orb and Seated(ns, "crestOrb") == orb and Slots.Engine(env, function(o) return o.fill:IsVisible() end, orb) == true, "switched off mid-window while restricted, the bow and its window stay")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+	env.RunTimers()
+	assert(not Seated(ns, "crestOrb"), "the restriction lifted, the bow goes")
 	Clean(env, K)
 end
 
