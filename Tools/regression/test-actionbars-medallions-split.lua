@@ -30,7 +30,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	AB.Enable(env, K)
 	env.RunTimers()
 	local Slab, Layout = ns.Slab, K.Layout
-	local bar1, bar2 = ns.bars.bar1, ns.bars.bar2
+	local bar2 = ns.bars.bar2
 	local hub, slab, crest = Slab.hub, Slab.frame, Slab.crest
 	local px = 768 / height * 1.01
 	local x0, y0, w0 = Centre(hub)
