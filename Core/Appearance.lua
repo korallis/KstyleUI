@@ -401,7 +401,7 @@ function Appearance.Schema()
 			help = L["Keep window borders and chat tab underlines on whole pixels. Off restores their original placement."] },
 		{
 			type = "toggle", key = "uiScaleGame", label = L["Follow the game's UI scale"],
-			help = L["Grow and shrink KstyleUI with the UI Scale in the game's options, up to the largest size that fits."],
+			help = L["Grow and shrink KstyleUI with the game's UI Scale, at the same size as the game's own windows."],
 		},
 		{
 			type = "toggle", key = "uiScaleAuto", label = L["Interface size: Auto (pixel perfect)"],
