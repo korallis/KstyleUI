@@ -91,12 +91,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 
 	-- The Crest element: moving, scaling and hiding it carries the crest and its secure travel button while split.
 	local travel = ns.Travel.crest
-	local function Travels(what)
+	local function Travels(case)
 		local tl, tb, tw, th = travel:GetRect()
 		local vl, vb, vw, vh = hub.crest:GetRect()
 		local ts, vs = travel:GetEffectiveScale(), hub.crest:GetEffectiveScale()
-		assert(travel:IsShown(), what .. ": the travel button is on the crest")
-		assert(math.abs(tl * ts - vl * vs) < 0.5 and math.abs(tb * ts - vb * vs) < 0.5 and math.abs(tw * ts - vw * vs) < 0.5 and math.abs(th * ts - vh * vs) < 0.5, what .. ": the travel button covers the crest")
+		assert(travel:IsShown(), case .. ": the travel button is on the crest")
+		assert(math.abs(tl * ts - vl * vs) < 0.5 and math.abs(tb * ts - vb * vs) < 0.5 and math.abs(tw * ts - vw * vs) < 0.5 and math.abs(th * ts - vh * vs) < 0.5, case .. ": the travel button covers the crest")
 	end
 	assert(Layout.Set("actionbars.bar2", "y", y + 14))
 	env.RunTimers()
