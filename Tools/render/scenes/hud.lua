@@ -306,20 +306,27 @@ local function applyPreset(env, opts)
 	if os.getenv("RENDER_CONTROLS") and K.Modules.IsEnabled("ActionBars") then
 		assert(K.Setup.Looks.ApplyControls(os.getenv("RENDER_CONTROLS")), "RENDER_CONTROLS must be Keyboard or Gamepad")
 	end
-	local bar2Buttons = tonumber(os.getenv("RENDER_BAR2_BUTTONS") or "")
-	if bar2Buttons and K.Modules.IsEnabled("ActionBars") then K.Options.Write("ActionBars", "bar2.buttons", bar2Buttons) end
-	-- Outside ActionBars no OnSetting links the pair, so this resolves the follower as it would.
+	-- Outside ActionBars no OnSetting links the pair, so this follows the same rule: a write to the follower moves
+	-- the free value only when it is 0 or does not give that count, then the follower takes the shape's count.
 	local function WriteShape(bar, field, value)
 		if K.Modules.IsEnabled("ActionBars") then return K.Options.Write("ActionBars", bar .. "." .. field, value) end
 		local cfg = K.Store.Module("ActionBars")
 		cfg[bar] = cfg[bar] or {}
-		local c, n = cfg[bar], math.min(12, math.max(1, math.floor(cfg[bar].buttons or 12)))
-		local free = c.orientation == "VERTICAL" and "rows" or "perRow"
+		local c = cfg[bar]
 		c[field] = value
-		if field ~= free then c[free] = math.ceil(n / math.min(n, math.max(1, value))) end
-		c.perRow, c.rows = K.Setup.Layouts.BarShape(n, c.perRow, c.rows, c.orientation)
+		local n = math.min(12, math.max(1, math.floor(c.buttons or 12)))
+		local vertical = c.orientation == "VERTICAL"
+		local free, follower = vertical and "rows" or "perRow", vertical and "perRow" or "rows"
+		local columns, rows = K.Setup.Layouts.BarShape(n, c.perRow, c.rows, c.orientation)
+		if field == follower and (c[free] == 0 or (vertical and columns or rows) ~= c[follower]) then
+			c[free] = math.ceil(n / math.min(n, math.max(1, math.floor(c[follower]))))
+			columns, rows = K.Setup.Layouts.BarShape(n, c.perRow, c.rows, c.orientation)
+		end
+		c[follower] = vertical and columns or rows
 		K.Callbacks.Fire("SettingChanged", "ActionBars", bar .. "." .. field, value)
 	end
+	local bar2Buttons = tonumber(os.getenv("RENDER_BAR2_BUTTONS") or "")
+	if bar2Buttons then WriteShape("bar2", "buttons", bar2Buttons) end
 	for bar, rows in (os.getenv("RENDER_BAR_ROWS") or ""):gmatch("(bar%d)=(%d+)") do WriteShape(bar, "rows", tonumber(rows)) end
 	for bar, perRow in (os.getenv("RENDER_BAR_PER_ROW") or ""):gmatch("(bar%d)=(%d+)") do WriteShape(bar, "perRow", tonumber(perRow)) end
 	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" and K.Modules.IsEnabled("ActionBars") then

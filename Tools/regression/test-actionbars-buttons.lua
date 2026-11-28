@@ -206,6 +206,19 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
+-- With no forms known, a stance bar down columns first keeps one cell of height, as it did before Buttons per row.
+do
+	local env, K, ns = new()
+	K.Options.Write("HudStyle", "style", "frames")
+	for _, write in ipairs({ { "buttons", 10 }, { "spacing", 3 }, { "orientation", "VERTICAL" }, { "rows", 5 } }) do
+		K.Options.Write("ActionBars", "stance." .. write[1], write[2])
+	end
+	AB.W.Settle(env)
+	local cfg = ns.Config("stance")
+	assert(near(ns.bars.stance.holder:GetHeight(), cfg.size), "no forms keep one row: " .. ns.bars.stance.holder:GetHeight())
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
 -- Empty buttons hidden by the setting stay hidden under the pointer, and show while dragging.
 do
 	local env, K, ns = new()
