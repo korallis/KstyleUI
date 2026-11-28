@@ -2,7 +2,7 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
-	{ "v0.3.5.4 (2026-11-27)", {
+	{ "v0.3.5.4 (2026-11-28)", {
 		L["Cooldown viewers an older setup placed follow the HUD again when you change its width or switch Centred and Spread."],
 	} },
 	{ "v0.3.5.3 (2026-11-27)", {
