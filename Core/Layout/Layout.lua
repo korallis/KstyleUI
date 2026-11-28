@@ -1963,7 +1963,7 @@ end)
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
 	if module == "ActionBars" and key == "extraBarsApplied" or ns.Setup and ns.Setup.Layouts.LiftSetting(module, key) then Restyle() end
 	local field = module == "ActionBars" and type(key) == "string" and key:match("^bar[45]%.(.+)$")
-	if (field == "rows" or field == "buttons" or field == "size" or field == "spacing" or field == "split" or field == "enabled")
+	if (field == "rows" or field == "perRow" or field == "buttons" or field == "size" or field == "spacing" or field == "split" or field == "enabled")
 		and ns.Store.Module("ActionBars").extraBarsApplied ~= "off" then
 		Combat.Queue(Restyle)
 	end
