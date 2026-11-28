@@ -152,6 +152,9 @@ local function Handle(env, frame)
 end
 AB.Handle = Handle
 
+-- Hidden(frame) runs OnHide below a frame that just hid; set by AB.Hiding's section.
+local Hidden
+
 -- RunSnippet(env, args, body, header, self, ...) runs a wrapped-script body as the restricted environment does.
 local function RunSnippet(env, args, body, header, selfFrame, ...)
 	local fenv = RestrictedEnv(env)
@@ -653,9 +656,10 @@ local function InstallGame(env, opts)
 			local hide = frame.Hide
 			frame.Hide = function(self)
 				local wrap = self._wraps and self._wraps.OnHide
-				local shown = self:IsShown()
+				local shown, visible = self:IsShown(), env._hiding and self:IsVisible()
 				hide(self)
 				if shown and wrap then RunSnippet(env, "self", wrap.pre, wrap.header, self) end
+				if visible and not self:IsVisible() then Hidden(self) end
 			end
 		end
 		return frame
@@ -667,11 +671,14 @@ AB.InstallGame = InstallGame
 
 -- The shared stub's Hide runs no OnHide. With AB.Hiding(env) a shown frame that hides, by Hide or SetShown(false), runs OnHide on
 -- itself and every shown descendant, as the client does, so a test reaches a hide handler only through the code that hides it.
-local function Hidden(frame)
+-- A descendant's secure OnHide wrap runs too; a secure frame's own wrap already ran in its Hide.
+Hidden = function(frame, below)
 	local fn = frame._scripts and frame._scripts.OnHide
 	if fn then fn(frame) end
+	local wrap = below and frame._wraps and frame._wraps.OnHide
+	if wrap then RunSnippet(rawget(frame, "_env"), "self", wrap.pre, wrap.header, frame) end
 	for _, kid in ipairs(frame._kids or {}) do
-		if kid._shown then Hidden(kid) end
+		if kid._shown then Hidden(kid, true) end
 	end
 end
 

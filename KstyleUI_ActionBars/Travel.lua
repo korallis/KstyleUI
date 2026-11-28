@@ -30,7 +30,7 @@ local TOGGLE = [[
 	return nil, true
 ]]
 local CLOSE = [[ local menu = control:GetFrameRef("menu") if menu then menu:Hide() end ]]
-local CLEAR = [[ self:ClearBindings() ]]
+local CLEAR = [[ self:ClearBindings() self:Hide() ]]
 local NEXT = [[
 	if down then return false end
 	local page = control:GetAttribute("page")

@@ -148,8 +148,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	assert(not hub:IsVisible() and not travel:IsVisible() and not ns.Travel.menu:IsVisible(), what .. ": in combat the crest, its travel button and the open menu are gone")
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(hub:IsVisible() and travel:IsVisible(), what .. ": after combat the crest and its button are back")
-	ns.Travel.menu:Hide()
+	assert(hub:IsVisible() and travel:IsVisible() and not ns.Travel.menu:IsShown(), what .. ": after combat the crest and its button are back and the menu stays shut")
+	AB.Click(env, travel, "RightButton", false)
+	assert(ns.Travel.menu:IsVisible(), what .. ": the travel menu opens again after combat")
+	assert(AB.PressKey(env, "ESCAPE", false) and not ns.Travel.menu:IsShown(), what .. ": Escape closes the reopened menu")
 	Travels(what .. " after a combat hide")
 	assert(Layout.Set(CREST, "shown", "always"))
 	env.RunTimers()
@@ -169,8 +171,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	local bx, by = Centre(hub)
 	assert(math.abs(bx - sx) <= px and math.abs(by - sy) <= px, string.format("%s: the crest keeps its moved place across profiles, %.2f %.2f against %.2f %.2f", what, bx, by, sx, sy))
 
-	-- In combat the crest never moves, so its secure controls stay over it: split, it stays on its element even
-	-- when the bars could join; joined, it keeps the gap; each moves once combat ends.
+	-- In combat the crest never moves, so its secure controls stay over it: split, it stays on its element; joined,
+	-- it keeps the gap; it moves once combat ends. The plates change at once.
 	env.SetCombat(true)
 	assert(AB.PressKey(env, "F10"))
 	env.RunTimers()
@@ -198,6 +200,21 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	assert(AB.PressKey(env, "F10"))
 	env.RunTimers()
 	Joined(what .. " bar 2 back")
+	assert(AB.PressKey(env, "F10"))
+	env.RunTimers()
+	Split(what .. " bar 2 toggled away, aligned", true, false)
+	env.SetCombat(true)
+	assert(AB.PressKey(env, "F10"))
+	env.RunTimers()
+	assert(slab:IsShown() and not Slab.sides.bar1:IsShown() and not (Slab.sides.bar2 and Slab.sides.bar2:IsShown()), what .. ": bar 2 back in line in combat brings the joined plate back at once")
+	assert(Layout.Live(CREST) and hub:GetParent() == crest and hub:IsVisible(), what .. ": the crest stays on its element until combat ends")
+	local cx, cy = Centre(hub)
+	assert(math.abs(cx - sx) <= px and math.abs(cy - sy) <= px, what .. ": the crest holds its saved place in combat")
+	Travels(what .. " rejoined in combat")
+	assert(#env._blocked == 0, what .. ": rejoining in combat moves nothing protected: " .. table.concat(env._blocked, ", "))
+	env.SetCombat(false)
+	env.RunTimers()
+	Joined(what .. " rejoined after combat")
 
 	-- A custom visibility rule that hides bar 2 in combat splits the aligned bars there and rejoins them after.
 	K.Options.Write("ActionBars", "bar2.visibility", "[combat] hide; show")
@@ -210,8 +227,32 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	env.SetCombat(false)
 	env.RunTimers()
 	Joined(what .. " the rule after combat")
-	K.Options.Write("ActionBars", "bar2.visibility", "")
+	-- The same split under a saved Crest rule of Out of combat only: the gate takes a rule only out of combat, and the
+	-- crest held in the gap still shows, so the rule first hides it in the next combat.
+	assert(Layout.Set(CREST, "shown", "noCombat"))
 	env.RunTimers()
+	Joined(what .. " a saved crest rule while joined")
+	env.SetCombat(true)
+	env.RunTimers()
+	Held(what .. " the first split in combat under the saved crest rule", true, false)
+	assert(travel:IsVisible(), what .. ": held in the gap, the crest and its travel button still show in that combat")
+	env.SetCombat(false)
+	env.RunTimers()
+	Joined(what .. " after that combat")
+	K.Options.Write("ActionBars", "bar2.visibility", "")
+	assert(AB.PressKey(env, "F10"))
+	env.RunTimers()
+	Split(what .. " split out of combat under the saved crest rule", true, false)
+	env.SetCombat(true)
+	env.RunTimers()
+	assert(not hub:IsVisible() and not travel:IsVisible(), what .. ": the next combat hides the split crest and its button")
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(AB.PressKey(env, "F10"))
+	env.RunTimers()
+	assert(Layout.Set(CREST, "shown", "always"))
+	env.RunTimers()
+	Joined(what .. " the crest rule back to always")
 
 	-- Gamepad mode keeps today's rule: neither the slab nor the crest.
 	ns.gamepad = true

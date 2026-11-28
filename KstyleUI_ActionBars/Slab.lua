@@ -560,6 +560,11 @@ local function Build()
 	})
 	K.Layout.SetLive(CREST_KEY, false)
 	Slab.crest = crest
+	local function Crowned()
+		if state.split then ns.SlabCrown.Update() end
+	end
+	crest:HookScript("OnShow", Crowned)
+	crest:HookScript("OnHide", Crowned)
 	local hub = CreateFrame("Frame", nil, root)
 	hub:SetFrameStrata(STRATA)
 	Widgets.Size(hub, RING, RING)
@@ -855,10 +860,15 @@ function Slab.CrestShown()
 	return hub ~= nil and hub:IsShown() and not (state.split and K.Layout.Get(CREST_KEY).shown == "never")
 end
 
+function Slab.CrestVisible()
+	return Slab.CrestShown() and not (state.split and not Slab.crest:IsShown())
+end
+
 function Slab.CrestMoved()
 	if state.split then
 		Ruled()
 		ns.Totems.Update()
+		ns.SlabCrown.Update()
 		if ns.Travel then ns.Travel.Refresh() end
 	end
 end
@@ -956,8 +966,8 @@ function Slab.Refresh()
 	if cfg.slab ~= false then
 		left, right, gapWidth, l1, r2 = Slab.Pair(cfg)
 	end
-	if left and state.split and InCombatLockdown() then
-		left = nil
+	local hold = left and state.split and InCombatLockdown()
+	if hold then
 		Later()
 	end
 	if not left then
@@ -975,7 +985,9 @@ function Slab.Refresh()
 	local slab, hub = Slab.frame, Slab.hub
 	state.class = select(2, UnitClass("player"))
 	state.apart = false
-	Seat(false)
+	if not hold then
+		Seat(false)
+	end
 	local spec = Slab.Spec()
 	local pad = Widgets.Snap(slab, spec.pad)
 	local rise = 0
@@ -1008,13 +1020,15 @@ function Slab.Refresh()
 	if not (Plain(unit) and unit > 0) then
 		unit = 1
 	end
-	hub:SetScale(max(0.01, min(1, (gapWidth / unit - 2 * MARGIN) / RING)))
-	hub:ClearAllPoints()
-	local lift = rise > 0 and (rise - left.holder:GetHeight() * Widgets.ScaleFactor(left.holder)) / 2 or 0
-	hub:SetPoint("CENTER", gap, "TOP", 0, Widgets.Snap(hub, lift))
 	slab:SetFrameLevel(K.Scale.Root():GetFrameLevel())
-	hub:SetFrameLevel(slab:GetFrameLevel() + HUB_LIFT)
-	hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
+	if not hold then
+		hub:SetScale(max(0.01, min(1, (gapWidth / unit - 2 * MARGIN) / RING)))
+		hub:ClearAllPoints()
+		local lift = rise > 0 and (rise - left.holder:GetHeight() * Widgets.ScaleFactor(left.holder)) / 2 or 0
+		hub:SetPoint("CENTER", gap, "TOP", 0, Widgets.Snap(hub, lift))
+		hub:SetFrameLevel(slab:GetFrameLevel() + HUB_LIFT)
+		hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
+	end
 	local slabScale = slab:GetEffectiveScale()
 	PlaceSweeps(slab, (r2 - l1) / 2 / (Plain(slabScale) and slabScale > 0 and slabScale or 1))
 	slab:Show()

@@ -27,8 +27,7 @@ local function Saved(key)
 end
 
 local function Class()
-	local hub = ns.Slab and ns.Slab.hub
-	if not (state.enabled and hub and hub:IsShown() and Saved("enabled") and Saved("classPips") and UnitClass) then
+	if not (state.enabled and ns.Slab and ns.Slab.hub and ns.Slab.CrestVisible() and Saved("enabled") and Saved("classPips") and UnitClass) then
 		return nil
 	end
 	local _, class = UnitClass("player")

@@ -347,6 +347,20 @@ do
 	assert(Layout.Set("actionbars.crest", "shown", "always"))
 	env.RunTimers()
 	Seated("the crest shown again", crest)
+	-- A Crest element shown only out of combat takes the poles away with it in combat. Blizzard's bar cannot come
+	-- back in combat, so the shaman has no totem bar until combat ends, when the poles return.
+	assert(Layout.Set("actionbars.crest", "shown", "noCombat"))
+	env.RunTimers()
+	env.SetCombat(true)
+	env.RunTimers()
+	assert(not hub:IsVisible() and not state.header:IsVisible() and K.Safe.IsHidden(env.MultiCastActionBarFrame), "the crest hidden in combat: the poles go with it and Blizzard's bar stays away")
+	assert(#env._blocked == 0, "the crest hidden in combat: nothing protected moved: " .. table.concat(env._blocked, ", "))
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(state.header:IsVisible(), "after combat the poles are back")
+	Seated("after a combat hide", crest)
+	assert(Layout.Set("actionbars.crest", "shown", "always"))
+	env.RunTimers()
 	-- A crest whose place cannot be read keeps Blizzard's bar until a later layout gives one.
 	local rect = hub.GetRect
 	hub.GetRect = function() return nil end

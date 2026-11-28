@@ -173,6 +173,27 @@ for _, key in ipairs({ "enabled", "comboPoints" }) do
 	assert(C.shown and K.Widgets.ClassCrown(), "resource." .. key .. " on: the crown")
 end
 
+-- KSTY-171 part 1: split bars keep the crest and its crown on the Crest element; while that element hides the crest,
+-- in Layout or in combat by its Shown rule, the crown gives the combo row back to the unit frames. The holder's OnHide
+-- carries the combat hide, so the stub runs it.
+AB.Hiding(env)
+K.Options.Write("ActionBars", "slab", false)
+env.RunTimers()
+assert(C.shown and K.Widgets.ClassCrown() == line, "split: the crest keeps the crown")
+for _, rule in ipairs({ "never", "noCombat" }) do
+	assert(K.Layout.Set("actionbars.crest", "shown", rule))
+	env.RunTimers()
+	env.SetCombat(rule == "noCombat")
+	env.RunTimers()
+	assert(not C.shown and not K.Widgets.ClassCrown(), "split, the crest hidden (" .. rule .. "): the unit frames get the row back")
+	env.SetCombat(false)
+	assert(K.Layout.Set("actionbars.crest", "shown", "always"))
+	env.RunTimers()
+	assert(C.shown and K.Widgets.ClassCrown() == line, "split, the crest shown again after " .. rule .. ": the crown")
+end
+K.Options.Write("ActionBars", "slab", true)
+env.RunTimers()
+
 -- Frames hides it with the hub.
 K.Options.Write("HudStyle", "style", "frames")
 assert(not C.shown and not C.pips[1].frame:IsShown() and not K.Widgets.ClassCrown(), "Frames has no crown")
