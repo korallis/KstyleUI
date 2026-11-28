@@ -805,7 +805,25 @@ end
 do
 	local env, K, ns = New("WARRIOR", { known = { 1719, 2687 }, tree = 1 })
 	local fang = Rail(ns).made.bloodrage.aura.moving
-	assert(fang._state.Texture[1]:find("Auras\\Sigils\\Fang.png", 1, true) and R.Tint(fang, K, "white"), "Bloodrage burns the fang sheet, baked in the warrior's colour")
+	assert(fang._state.Texture[1]:find("Auras\\Rail\\Fang.png", 1, true) and R.Tint(fang, K, "white"), "Bloodrage burns the fang sheet, baked in the warrior's colour")
+	Clean(env, K)
+end
+-- The healers' cooldown rows publish their own sheets on the sigils the melee rail borrows; the rail keeps its own sheet.
+do
+	local texture
+	local env, K, ns = New("WARRIOR", { known = { 1719, 2687 }, tree = 1, before = function(_, K)
+		texture = K.Tokens.Texture
+		K.Tokens.Texture = function(name)
+			if name == "sigilFang" then
+				local file, slice, units, forged = texture(name)
+				return file, slice, units, forged, "auraSigilVolley"
+			end
+			return texture(name)
+		end
+	end })
+	local fang = Rail(ns).made.bloodrage.aura.moving
+	assert(fang._state.Texture[1]:find("Auras\\Rail\\Fang.png", 1, true), "a sheet published on the fang sigil leaves Bloodrage's rail sheet in place")
+	K.Tokens.Texture = texture
 	Clean(env, K)
 end
 -- A shared sheet baked in neutral light (Sprint's, a racial's) takes the rail's colour, as the cooldown rim tints it.

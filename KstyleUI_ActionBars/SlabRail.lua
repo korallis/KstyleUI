@@ -396,9 +396,13 @@ local function Baked(sigil)
 	if not sigil then
 		return nil
 	end
-	local linked, _, _, _, _, aura = pcall(Tokens.Texture, "sigil" .. sigil)
-	local token = linked and aura or "auraSigil" .. sigil
+	local token = "auraRail" .. sigil
 	local found, _, _, _, _, span, tint = pcall(Tokens.Flipbook, token)
+	if not found then
+		local linked, _, _, _, _, aura = pcall(Tokens.Texture, "sigil" .. sigil)
+		token = linked and aura or "auraSigil" .. sigil
+		found, _, _, _, _, span, tint = pcall(Tokens.Flipbook, token)
+	end
 	if found then
 		return token, SIGIL * span, tint
 	end

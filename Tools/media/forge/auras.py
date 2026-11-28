@@ -65,15 +65,20 @@ MARKS = {}
 NEUTRAL = "white"
 
 # Warrior, paladin, rogue and the mage's rail (SlabRail.lua): each class's sigils in its rail's colour (SlabTrackers.lua
-# crestCooldowns and SlabRail.Register), the shared sigils and the crest objects in neutral light. The rail's other melee
-# abilities borrow sigils the healers' cooldown rows also draw; their sheets are the rail's alone, baked in that rail's colour.
-for colour, names in (("gilt", "Crossed Skull Wall Heart Sweep Thorns Fang Bolt Feedback Farseer Brave"),
-                      ("white", "Bubble Aegis Sun Hand Wing Bulwark Voice Mend Swift Sacrifice Infusion Lifeline"),
-                      ("pipPriestGlow", "Flurry Rush Evade Drop Smoke Ghost Focus Moon Veil"),
+# crestCooldowns and SlabRail.Register), the shared sigils and the crest objects in neutral light.
+for colour, names in (("gilt", "Crossed Skull Wall Heart Sweep Thorns"),
+                      ("white", "Bubble Aegis Sun Hand Wing Bulwark Voice"),
+                      ("pipPriestGlow", "Flurry Rush Evade Drop Smoke Ghost"),
                       ("pipMageGlow", "Blink FrostNova FireBlast BlastWave ColdSnap IceBarrier IceLance"),
                       (NEUTRAL, "Dash Axe Tusks Stone Eye Grave Shatter Star Gear Regen Potion Escape")):
     for name in names.split():
         MARKS[name] = ("sigils", colour, None)
+# The rail's other melee abilities borrow sigils the healers' cooldown rows also draw. Their sheets are the rail's alone,
+# baked in that rail's colour into Auras/Rail (auraRail<Name>), so a healer's own sheet of the same sigil never takes their place.
+for colour, names in (("gilt", "Fang Bolt Feedback Farseer Brave"), ("white", "Mend Swift Sacrifice Infusion Lifeline"),
+                      ("pipPriestGlow", "Focus Moon Veil")):
+    for name in names.split():
+        MARKS[name + "#rail"] = ("sigils", colour, None)
 for name, (art, threshold) in {"Horn": ("Horn.png", 0.5), "Sword": ("Sword.png", 0.5), "Axe": ("Axe.png", 0.5),
                                "Dagger": ("Dagger.png", 0.5), "Hammer": ("Hammer.png", 0.5), "Shield": ("Shield.png", 0.5),
                                "Seal": ("Seal.png", 0.5), "Brand": ("Brand.png", 0.5), "Drop": ("Drop.png", 0.5),
@@ -324,7 +329,7 @@ def main(argv=None):
                         "--palette", json.dumps(palette(hexes[colour])), "--fit", str(fit),
                         "--plate", str(RIM_INNER if seated else 0.0), "--pad", str(PAD / (N + 2 * PAD))],
                        check=True, stdout=subprocess.DEVNULL, env=env)
-        path = args.out / kind.capitalize() / f"{name}.png"
+        path = args.out / ("Rail" if key.endswith("#rail") else kind.capitalize()) / f"{name}.png"
         seam = bake([frames / f"{tag}_{i:02d}.png" for i in range(FRAMES)], seated, path, band)
         print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest(), f"seam {seam:.2f}x largest ordinary step",
               "seated" if seated else "bare")
