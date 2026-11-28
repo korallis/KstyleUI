@@ -212,6 +212,47 @@ do
 	Clean(env, K)
 end
 
+-- The crest's centre rest and the rail's motion are independent: out of combat with nothing targeted the centre calms while every
+-- ready medal on both rails keeps burning at Full and a buffed press still burns on the crown; Calm and Off still hold the still.
+-- A target, a cleared target and combat each change the rest, so each is followed back to it.
+do
+	local env, K, ns = New("HUNTER", { known = { 13165, 883, 75, 19574, 3045, 19263, 14305, 1317257 }, tree = 3, size = { 2560, 1440 } })
+	local rail = Rail(ns)
+	local seats = { rail.made.rapid, rail.made.trap, rail.spare[1] }
+	assert(Spares(rail) == "wrath" and seats[1].ready and seats[2].ready and seats[3].ready and K.Store.Module("Medallions").restingCrest ~= false,
+		"Rapid Fire, the trap and Bestial Wrath on the second rail are ready, and Calm crest at rest is on")
+	local function Rested(step)
+		assert(ns.Slab.Resting(), step .. ": the crest rests")
+		assert(not ns.Slab.hub.runes.turn:IsPlaying(), step .. ": the crest's rune ring holds still")
+		for _, seat in ipairs(seats) do
+			assert(Burning(seat) and seat.breath:IsPlaying(), step .. ": the ready " .. seat.key .. " medal burns and breathes")
+		end
+	end
+	Rested("logged in with no target")
+	Awake(env)
+	env.SetTarget(false)
+	env.RunTimers()
+	Rested("the target cleared")
+	env.SetCombat(true)
+	env.RunTimers()
+	env.SetCombat(false)
+	env.RunTimers()
+	Rested("out of combat again")
+	Cast(env, 3045)
+	assert(seats[1].rise:IsPlaying(), "pressed at rest: Rapid Fire rises to the crown")
+	Auras(env, { { 3045, 15 } })
+	assert(ns.Slab.Resting() and rail.owner == seats[1] and seats[1].crowned:IsShown() and seats[1].crowned.aura.loop:IsPlaying(),
+		"active at rest: the crowned Rapid Fire burns while the crest still rests")
+	Auras(env, {})
+	for _, level in ipairs({ "calm", "off" }) do
+		Motion(env, K, level)
+		for _, seat in ipairs(seats) do
+			assert(Still(seat), "at " .. level .. " with no target the " .. seat.key .. " medal holds its still")
+		end
+	end
+	Clean(env, K)
+end
+
 do
 	local env, K, ns = New("HUNTER", { known = BM })
 	Awake(env)

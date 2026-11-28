@@ -63,7 +63,7 @@ local function Ability(key)
 end
 
 local function Full()
-	return Effects.Allows("ambient") and not ns.Slab.Resting()
+	return Effects.Allows("ambient")
 end
 
 local function Trinket()

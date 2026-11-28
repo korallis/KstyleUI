@@ -3008,7 +3008,7 @@ ns.Locale.Add({
 	["Out of boss fights"] = "Fuera de combates contra jefes",
 	["Out of combat"] = "Fuera de combate",
 	["Out of combat only"] = "Solo fuera de combate",
-	["Out of combat with no target or proc, the crest only breathes slowly. Off keeps it in full motion."] = "Fuera de combate, sin objetivo ni activaci\195\179n, el emblema solo respira despacio. Desactivado, mantiene todo su movimiento.",
+	["Out of combat with no target or proc, the crest's centre breathes slowly; the rail keeps moving."] = "Fuera de combate, sin objetivo ni activaci\195\179n, el centro del emblema respira despacio; el riel de reutilizaci\195\179n sigue en movimiento.",
 	["Out of combat with no target, panels fade; hover, a target, a cast or combat brings them back."] = "Fuera de combate y sin objetivo, los paneles se aten\195\186an; pasar el rat\195\179n, un objetivo, un hechizo o el combate los recupera.",
 	["Out of combat, a card names a class buff of yours that is missing."] = "Fuera de combate, una tarjeta indica un beneficio de tu clase que te falta.",
 	["Out of range"] = "Fuera de alcance",

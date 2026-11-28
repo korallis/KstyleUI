@@ -3008,7 +3008,7 @@ ns.Locale.Add({
 	["Out of boss fights"] = "Au\195\159erhalb von Bossk\195\164mpfen",
 	["Out of combat"] = "Au\195\159erhalb des Kampfes",
 	["Out of combat only"] = "Nur au\195\159erhalb des Kampfes",
-	["Out of combat with no target or proc, the crest only breathes slowly. Off keeps it in full motion."] = "Au\195\159erhalb des Kampfes ohne Ziel und ohne Proc atmet das Wappen nur langsam. Aus l\195\164sst es voll bewegt.",
+	["Out of combat with no target or proc, the crest's centre breathes slowly; the rail keeps moving."] = "Au\195\159erhalb des Kampfes ohne Ziel und ohne Proc atmet die Mitte des Wappens nur langsam; die Abklingzeit-Leiste bleibt in Bewegung.",
 	["Out of combat with no target, panels fade; hover, a target, a cast or combat brings them back."] = "Au\195\159erhalb des Kampfes ohne Ziel blenden Elemente aus; Zeigen, Ziel, Zauber oder Kampf holt sie zur\195\188ck.",
 	["Out of combat, a card names a class buff of yours that is missing."] = "Au\195\159erhalb des Kampfes nennt eine Karte einen fehlenden St\195\164rkungszauber Eurer Klasse.",
 	["Out of range"] = "Au\195\159er Reichweite",

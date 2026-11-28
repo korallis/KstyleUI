@@ -3008,7 +3008,7 @@ ns.Locale.Add({
 	["Out of boss fights"] = "Hors combat de boss",
 	["Out of combat"] = "Hors combat",
 	["Out of combat only"] = "Hors combat uniquement",
-	["Out of combat with no target or proc, the crest only breathes slowly. Off keeps it in full motion."] = "Hors combat, sans cible ni d\195\169clenchement, le blason ne fait que respirer lentement. D\195\169sactiv\195\169, il reste pleinement anim\195\169.",
+	["Out of combat with no target or proc, the crest's centre breathes slowly; the rail keeps moving."] = "Hors combat, sans cible ni d\195\169clenchement, le centre du blason respire lentement ; le rail des temps de recharge reste anim\195\169.",
 	["Out of combat with no target, panels fade; hover, a target, a cast or combat brings them back."] = "Hors combat et sans cible, les panneaux s\226\128\153estompent ; survol, cible, sort ou combat les ram\195\168ne.",
 	["Out of combat, a card names a class buff of yours that is missing."] = "Hors combat, une carte indique une am\195\169lioration de votre classe qui vous manque.",
 	["Out of range"] = "Hors de port\195\169e",
