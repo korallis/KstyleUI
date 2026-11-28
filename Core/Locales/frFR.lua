@@ -1377,6 +1377,7 @@ ns.Locale.Add({
 	["Edit Mode saved it but did not switch to it. Try again, or pick it in Edit Mode."] = "Le mode \195\137dition l'a enregistr\195\169e sans passer dessus. R\195\169essayez, ou choisissez-la en mode \195\137dition.",
 	["Edit Mode's active layout could not be read."] = "La disposition active du mode \195\137dition n'a pas pu \195\170tre lue.",
 	["Edit Mode's layouts could not be read."] = "Les dispositions du mode \195\137dition n'ont pas pu \195\170tre lues.",
+	["Edit Mode's layouts could not be read. Press Try again."] = "Les dispositions du mode \195\137dition n'ont pas pu \195\170tre lues. Cliquez sur R\195\169essayer.",
 	["Edit Mode: %s is written when combat ends."] = "Mode \195\137dition : %s sera \195\169crite \195\160 la fin du combat.",
 	["Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands."] = "Mode \195\137dition : %s est votre disposition active, avec le suivi des qu\195\170tes dans la colonne R\195\169cit et les am\195\169liorations suivies de Blizzard autour de vos mains.",
 	["Edit Mode: %s is your active layout, with the quest tracker in the story rail."] = "Mode \195\137dition : %s est votre disposition active, avec le suivi des qu\195\170tes dans la colonne R\195\169cit.",

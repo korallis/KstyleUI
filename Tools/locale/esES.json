@@ -1370,6 +1370,7 @@
 	"Edit Mode saved it but did not switch to it. Try again, or pick it in Edit Mode.": "El modo edición lo guardó pero no cambió a él. Inténtalo de nuevo o elígelo en el modo edición.",
 	"Edit Mode's active layout could not be read.": "No se pudo leer el diseño activo del modo edición.",
 	"Edit Mode's layouts could not be read.": "No se pudieron leer los diseños del modo edición.",
+	"Edit Mode's layouts could not be read. Press Try again.": "No se pudieron leer los diseños del modo edición. Pulsa Reintentar.",
 	"Edit Mode: %s is written when combat ends.": "Modo edición: %s se escribirá cuando termine el combate.",
 	"Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands.": "Modo edición: %s es tu diseño activo, con el rastreador de misiones en la columna de historia y los beneficios rastreados de Blizzard alrededor de tus manos.",
 	"Edit Mode: %s is your active layout, with the quest tracker in the story rail.": "Modo edición: %s es tu diseño activo, con el rastreador de misiones en la columna de historia.",

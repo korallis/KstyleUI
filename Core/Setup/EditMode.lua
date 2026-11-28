@@ -912,7 +912,8 @@ function EditMode.Replacements()
 			end
 		end
 	end
-	return choices, count >= (MaxLayouts() or math.huge)
+	local limit = all and MaxLayouts()
+	return choices, limit ~= nil and count >= limit, limit ~= nil
 end
 
 function EditMode.ActiveName()

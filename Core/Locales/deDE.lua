@@ -1377,6 +1377,7 @@ ns.Locale.Add({
 	["Edit Mode saved it but did not switch to it. Try again, or pick it in Edit Mode."] = "Der Bearbeitungsmodus hat es gespeichert, aber nicht dazu gewechselt. Versucht es erneut oder w\195\164hlt es im Bearbeitungsmodus.",
 	["Edit Mode's active layout could not be read."] = "Das aktive Layout des Bearbeitungsmodus lie\195\159 sich nicht lesen.",
 	["Edit Mode's layouts could not be read."] = "Die Layouts des Bearbeitungsmodus lie\195\159en sich nicht lesen.",
+	["Edit Mode's layouts could not be read. Press Try again."] = "Die Layouts des Bearbeitungsmodus lie\195\159en sich nicht lesen. Klickt auf Erneut versuchen.",
 	["Edit Mode: %s is written when combat ends."] = "Bearbeitungsmodus: %s wird geschrieben, wenn der Kampf endet.",
 	["Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands."] = "Bearbeitungsmodus: %s ist Euer aktives Layout, mit der Questverfolgung in der Story-Leiste und Blizzards verfolgten St\195\164rkungszaubern um Eure H\195\164nde.",
 	["Edit Mode: %s is your active layout, with the quest tracker in the story rail."] = "Bearbeitungsmodus: %s ist Euer aktives Layout, mit der Questverfolgung in der Story-Leiste.",

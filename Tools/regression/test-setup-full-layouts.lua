@@ -117,9 +117,27 @@ do
 	assert(not Visible(panel.replace) and Visible(panel.apply) and Visible(panel.retry), "a free slot leaves Apply and Try again, without the picker")
 	W.Click(panel.apply)
 	W.Settle(env)
-	assert(Fake.Named(state, "KstyleUI DPS") and Fake.Named(state, "Mine 2") and Fake.Named(state, "Mine 5"), "Apply writes into the free slot and keeps every other layout")
+	assert(Fake.Named(state, "KstyleUI DPS"), "Apply writes the KstyleUI layout into the free slot")
+	for _, name in ipairs({ "Mine 1", "Mine 2", "Mine 3", "Mine 5" }) do
+		assert(Fake.Named(state, name), "Apply into the free slot keeps " .. name)
+	end
 	assert(#K.Store.ListProfiles() == profiles, "Apply into the free slot makes no second setup backup")
 	Finished(env, K, panel)
+end
+
+-- After the refusal Edit Mode's layouts cannot be read: the summary asks for Try again without claiming a free slot
+-- or naming the picker it hides.
+do
+	local env, K, _, panel = FullSetup(true)
+	Refuse(env, K, panel)
+	env.C_EditMode.GetLayouts = function() error("layouts unreadable") end
+	K.Setup.Go(5)
+	W.Settle(env)
+	local text = panel.editMode:GetText()
+	assert(text:find("could not be read. Press Try again", 1, true), "an unreadable layout list asks for Try again")
+	assert(not text:find("slot is free", 1, true) and not text:find("Choose Replace this one", 1, true), "an unreadable layout list claims no free slot and names no hidden picker")
+	assert(not Visible(panel.replace) and Visible(panel.retry), "an unreadable layout list hides the picker and keeps Try again")
+	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 -- After the refusal the player turns Choose an Edit Mode replacement off: the summary keeps the earlier full-list

@@ -1370,6 +1370,7 @@
 	"Edit Mode saved it but did not switch to it. Try again, or pick it in Edit Mode.": "编辑模式已保存但未切换到该布局。请重试，或在编辑模式中选择它。",
 	"Edit Mode's active layout could not be read.": "无法读取编辑模式的当前布局。",
 	"Edit Mode's layouts could not be read.": "无法读取编辑模式的布局。",
+	"Edit Mode's layouts could not be read. Press Try again.": "无法读取编辑模式的布局。请点击重试。",
 	"Edit Mode: %s is written when combat ends.": "编辑模式：%s将在战斗结束后写入。",
 	"Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands.": "编辑模式：%s是你的当前布局，任务追踪位于剧情侧栏，暴雪的追踪增益效果位于你的双手周围。",
 	"Edit Mode: %s is your active layout, with the quest tracker in the story rail.": "编辑模式：%s是你的当前布局，任务追踪位于剧情侧栏。",

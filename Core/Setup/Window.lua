@@ -85,9 +85,10 @@ local function GuideStep()
 	return applied and Setup.GuideLoaded() and not GuidePlaced()
 end
 
-local function FullWhy()
-	local choices, full = Setup.EditMode.Replacements()
-	if not full then
+local function FullWhy(choices, full, known)
+	if not known then
+		return L["Edit Mode's layouts could not be read. Press Try again."]
+	elseif not full then
 		return L["An account layout slot is free now. Press Try again."]
 	elseif ns.Store.Module("Setup").replaceLayout then
 		return L["All account layouts are in use. Choose Replace this one, then Apply."]
@@ -95,7 +96,7 @@ local function FullWhy()
 	return L["All %d account layouts are in use. Delete one in Edit Mode, then try again."]:format(#choices - 1)
 end
 
-local function EditModeText()
+local function EditModeText(choices, full, known)
 	local EditMode = Setup.EditMode
 	local last = EditMode and EditMode.Last()
 	local lines = {}
@@ -103,7 +104,7 @@ local function EditModeText()
 		if last.state == "waiting" then
 			lines[1] = string.format(L["Edit Mode: %s is written when combat ends."], last.layout)
 		elseif last.state == "failed" then
-			lines[1] = string.format(L["Edit Mode did not take %s. %s"], last.layout, last.full and FullWhy() or last.why)
+			lines[1] = string.format(L["Edit Mode did not take %s. %s"], last.layout, last.full and FullWhy(choices, full, known) or last.why)
 		else
 			lines[1] = string.format(#last.notes > 0 and L["Edit Mode: %s is your active layout, with the quest tracker in the story rail."] or L["Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands."], last.layout)
 			for _, note in ipairs(last.notes) do
@@ -155,13 +156,13 @@ local function Manager()
 end
 
 local function RefreshEditMode()
-	local text = EditModeText()
+	local choices, full, known = Setup.EditMode.Replacements()
+	local text = EditModeText(choices, full, known)
 	local last = Setup.EditMode and Setup.EditMode.Last()
 	panel.editMode:SetShown(text ~= nil)
 	panel.editMode:SetText(text or "")
 	panel.retry:SetShown(text ~= nil and last ~= nil and (last.state == "failed" or (last.state == "written" and #last.notes > 0)))
 	panel.manager:SetShown(text ~= nil and last ~= nil and last.state == "written" and #last.notes > 0 and Manager() ~= nil)
-	local choices, full = Setup.EditMode.Replacements()
 	panel.replace:SetOptions(choices)
 	panel.replace:SetValue(Setup.Choice().replaceLayout or "", true)
 	panel.replace:SetShown(full and ns.Store.Module("Setup").replaceLayout and (not applied or Refused()))

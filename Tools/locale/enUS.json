@@ -1370,6 +1370,7 @@
 	"Edit Mode saved it but did not switch to it. Try again, or pick it in Edit Mode.",
 	"Edit Mode's active layout could not be read.",
 	"Edit Mode's layouts could not be read.",
+	"Edit Mode's layouts could not be read. Press Try again.",
 	"Edit Mode: %s is written when combat ends.",
 	"Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands.",
 	"Edit Mode: %s is your active layout, with the quest tracker in the story rail.",

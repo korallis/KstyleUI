@@ -1377,6 +1377,7 @@ ns.Locale.Add({
 	["Edit Mode saved it but did not switch to it. Try again, or pick it in Edit Mode."] = "El modo edici\195\179n lo guard\195\179 pero no cambi\195\179 a \195\169l. Int\195\169ntalo de nuevo o el\195\173gelo en el modo edici\195\179n.",
 	["Edit Mode's active layout could not be read."] = "No se pudo leer el dise\195\177o activo del modo edici\195\179n.",
 	["Edit Mode's layouts could not be read."] = "No se pudieron leer los dise\195\177os del modo edici\195\179n.",
+	["Edit Mode's layouts could not be read. Press Try again."] = "No se pudieron leer los dise\195\177os del modo edici\195\179n. Pulsa Reintentar.",
 	["Edit Mode: %s is written when combat ends."] = "Modo edici\195\179n: %s se escribir\195\161 cuando termine el combate.",
 	["Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands."] = "Modo edici\195\179n: %s es tu dise\195\177o activo, con el rastreador de misiones en la columna de historia y los beneficios rastreados de Blizzard alrededor de tus manos.",
 	["Edit Mode: %s is your active layout, with the quest tracker in the story rail."] = "Modo edici\195\179n: %s es tu dise\195\177o activo, con el rastreador de misiones en la columna de historia.",
