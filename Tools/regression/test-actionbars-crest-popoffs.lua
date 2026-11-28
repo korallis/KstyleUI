@@ -111,7 +111,7 @@ end
 
 -- The hunter's two moments, the mage's two and the warlock's Amplify Curse belong to the crest rail (SlabRail.lua): Beast Mastery seats
 -- Bestial Wrath, read from the pet, and Survival seats Deterrence, read from the hunter; Frost seats Ice Block and Evocation beside the
--- power orb's Cold Snap; Affliction seats Amplify Curse. With the buff running the rail's seat owns the crown and shows the aura there,
+-- power orb's Cold Snap; Affliction seats Amplify Curse beside Shadow Trance's pop-off, which Nightfall builds. With the buff running the rail's seat owns the crown and shows the aura there,
 -- and no pop-off reads it.
 do
 	local R = dofile("Tools/regression/ranged_env.lua")
@@ -121,7 +121,7 @@ do
 		{ class = "HUNTER", tree = 3, known = { 13165, 883, 75, 3045, 19263, 14305, 1317257 }, key = "deter", spell = 19263, unit = "player" },
 		{ class = "MAGE", tree = 3, known = FROST, key = "block", spell = 11958, unit = "player" },
 		{ class = "MAGE", tree = 3, known = FROST, key = "evocation", spell = 12051, unit = "player" },
-		{ class = "WARLOCK", tree = 1, known = { 603, 18288, 6789, 18708, 6353, 1122, 17877 }, key = "amplify", spell = 18288, unit = "player" },
+		{ class = "WARLOCK", tree = 1, known = { 603, 18288, 6789, 18708, 6353, 1122, 17877, 18094 }, key = "amplify", spell = 18288, unit = "player" },
 	}) do
 		local henv, hK, hns = R.New(case.class, { known = case.known, tree = case.tree })
 		henv.SetTarget(true)
