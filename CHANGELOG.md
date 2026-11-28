@@ -2,7 +2,7 @@
 
 ## v0.3.5.6 (2026-11-28)
 
-A hotfix for setup's recovery when every Edit Mode account layout is in use: Restore keeps the layouts you had before setup, and the summary matches the buttons it shows.
+A hotfix for setup's recovery when every Edit Mode account layout is in use: Restore keeps the layouts you had before setup, and the summary matches the buttons it shows. It also brings the two v0.3.5.5 setup fixes, which were not released on their own: Replace this one and Apply stay on screen after a full-layouts refusal, and the Your addons step draws whole on its first open.
 
 Highlights:
 
@@ -14,6 +14,8 @@ Highlights:
 - Setup: after a full-layouts refusal, Apply or Try again keeps the Edit Mode layouts saved before setup, so Restore brings back a layout you deleted to free a slot.
 - Setup: turning General > Choose an Edit Mode replacement off while the summary is open brings back the delete-one message, Reload and Later at once.
 - Setup: while the summary waits for a layout to replace, it no longer asks you to reload the interface; the line returns with the Reload button.
+- Setup, first in v0.3.5.5: with all five Edit Mode account layouts in use, the summary keeps Replace this one and Apply on screen after a refusal; pick a layout, then Apply, and KstyleUI replaces only that one.
+- Setup, first in v0.3.5.5: the Your addons step lays its switches and dropdowns out again when it shows, so each switch's knob and the dropdown arrows draw on the first open.
 
 ## v0.3.5.5 (2026-11-28)
 
