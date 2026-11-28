@@ -30,14 +30,16 @@ def steps_after(text, start):
     return "\n".join(block)
 
 
-def step_guard_runs(expression, cancelled, checkout, commit):
-    """Evaluate a step's if: built only from !cancelled(), the checkout and commit steps' outcomes, ==, != and &&."""
+def step_guard_runs(expression, cancelled, checkout, commit, check_zip="success"):
+    """Evaluate supported step guards using the supplied outcomes."""
     inner = expression.strip()
     if not (inner.startswith("${{") and inner.endswith("}}")):
         raise ValueError("not a ${{ }} expression: " + expression)
     python = inner[3:-2].replace("!cancelled()", "(not cancelled)").replace("&&", " and ")
     python = python.replace("steps.checkout.outcome", "checkout").replace("steps.commit.outcome", "commit")
-    return eval(python, {"__builtins__": {}}, {"cancelled": cancelled, "checkout": checkout, "commit": commit})
+    python = python.replace("steps.check_zip.outcome", "check_zip")
+    return eval(python, {"__builtins__": {}},
+                {"cancelled": cancelled, "checkout": checkout, "commit": commit, "check_zip": check_zip})
 
 
 def jobs_of(text):
@@ -363,7 +365,16 @@ class WorkflowsTest(unittest.TestCase):
                         (False, "failure", "skipped", False),
                         (True, "success", "success", False)):
                     with self.subTest(job=job, step=later.splitlines()[0], checkout=checkout, commit=commit, cancelled=cancelled):
-                        self.assertEqual(step_guard_runs(guard.group(1), cancelled, checkout, commit), runs)
+                        check_zip = "success" if runs else "skipped"
+                        self.assertEqual(step_guard_runs(guard.group(1), cancelled, checkout, commit, check_zip), runs)
+        package_steps = re.split(r"(?m)^      - ", jobs["lint-python-package"])
+        uploads = [step for step in package_steps if step.startswith("name: Upload the checked zip\n")]
+        self.assertEqual(len(uploads), 1)
+        upload_guard = re.search(r"(?m)^        if: (.*)$", uploads[0])
+        self.assertIsNotNone(upload_guard)
+        for outcome, expected in (("success", True), ("failure", False), ("skipped", False)):
+            with self.subTest(zip_check=outcome):
+                self.assertEqual(step_guard_runs(upload_guard.group(1), False, "success", "success", outcome), expected)
         self.assertEqual(scripts[0], scripts[1], "both jobs check the commit the same way")
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
