@@ -18,29 +18,29 @@ local function CrestOwner(owner)
 	return owner == "ActionBars.Slab" or owner:find("^ActionBars%.Slab") ~= nil or owner:find("^ActionBars%.Travel") ~= nil or owner == "SlabEffects"
 end
 
+-- Slab.lua's region and animation helpers serve both; the builder that called them decides.
+local HELPERS = { Region = true, Group = true, Fade = true, Grow = true, Flipbook = true, Turn = true, Each = true, Play = true, Texture = true }
+
 -- The nearest action bars file on the stack owns a call: every Slab*.lua and the travel button's files are the
--- crest's, except Slab.lua's shared work above. The core's event dispatch frame is the listeners' check's, not this one's.
+-- crest's. In Slab.lua the nearest function past the helpers decides: the shared work above, or the crest's.
+-- The core's event dispatch frame is the listeners' check's, not this one's.
 local function CrestFile()
 	if (debug.getinfo(3, "S").source or ""):find("Core/Events.lua", 1, true) then return false end
-	local slab = false
 	for level = 3, 60 do
 		local info = debug.getinfo(level, "Sn")
-		if not info then return slab end
+		if not info then return false end
 		local file = (info.source or ""):match("KstyleUI_ActionBars/([%w_]+)%.lua")
 		if file == "Slab" then
-			if SHARED[info.name or ""] then return false end
-			slab = true
-		elseif slab then
-			return true
+			if not HELPERS[info.name or ""] then return not SHARED[info.name or ""] end
 		elseif file then
 			return file:find("^Slab") ~= nil or file:find("^Travel") ~= nil
 		end
 	end
-	return slab
+	return false
 end
 
 local function Watch(env, K)
-	local seen = { made = 0, live = {}, callbacks = {} }
+	local seen = { made = 0, live = {}, callbacks = {}, rest = {} }
 	local create = env.CreateFrame
 	env.CreateFrame = function(...)
 		if CrestFile() then seen.made = seen.made + 1 end
@@ -97,6 +97,7 @@ local function Listening(seen)
 	for key, owner in pairs(seen.callbacks) do
 		if CrestOwner(owner) and not KEPT_CALLBACKS[key] then list[#list + 1] = key end
 	end
+	for fn in pairs(seen.rest) do list[#list + 1] = "rest callback " .. tostring(debug.getinfo(fn, "S").short_src) .. ":" .. debug.getinfo(fn, "S").linedefined end
 	table.sort(list)
 	return list
 end
@@ -120,6 +121,17 @@ local function Start(class, ab, opts)
 		seen = Watch(e, core)
 		core.Widgets.ReloadPrompt = function(text) prompted[#prompted + 1] = text end
 	end })
+	-- The crest's rest callbacks subscribe when their owners start, after the files load.
+	local Medals = ns.SlabMedals
+	local onRest, offRest = Medals.OnRest, Medals.OffRest
+	Medals.OnRest = function(fn)
+		if CrestFile() then seen.rest[fn] = true end
+		return onRest(fn)
+	end
+	Medals.OffRest = function(fn)
+		seen.rest[fn] = nil
+		return offRest(fn)
+	end
 	AB.Enable(env, K)
 	env.FireEvent("PLAYER_ENTERING_WORLD", true, false)
 	env.RunTimers()
@@ -199,10 +211,13 @@ do
 
 	env.SetCombat(true)
 	assert(ns.Slab.InCombat() == true, "the shown crest hears combat start")
+	local sweeps = ns.Slab.frame.sweeps
+	assert(sweeps and sweeps[1].anim:IsPlaying(), "combat starts the crest's sweeps along the slab")
 	K.Options.Write("ActionBars", "crest", false)
 	env.RunTimers()
 	assert(not ns.Slab.hub:IsShown(), "switched off in combat, the crest hides at once")
 	assert(not ns.Slab.hub.glow.breath:IsPlaying() and K.Effects.Holder("hub") == nil, "switched off in combat, its motion and effects stop at once")
+	for _, sweep in ipairs(sweeps) do assert(not sweep.anim:IsPlaying() and sweep:GetAlpha() == 0, "switched off in combat, the sweeps stop at once") end
 	OnlyWaiting(seen, "switched off in combat")
 	assert(ns.Travel.crest:IsShown(), "the secure travel button waits for combat to end")
 	env.SetCombat(false)
@@ -221,18 +236,34 @@ do
 	Clean(env, K, "combat")
 end
 
--- A proc after the switch is off lights its slot but claims nothing on the hidden crest.
+-- A hidden hub claims nothing: a proc while the slab hides the crest, or after the switch is off, lights only its
+-- slot; switching off releases a claim already running; the rings stop listening whenever the hub hides.
 do
-	local env, K, ns = Start("PALADIN", {})
+	local env, K, ns, seen = Start("PALADIN", {})
 	local b = ns.actionButtons[1]
-	K.Options.Write("ActionBars", "crest", false)
+	local function Rings()
+		return seen.live["ActionBars.SlabRings UNIT_SPELLCAST_START"] ~= nil
+	end
+	assert(Rings(), "the shown crest's cast ring listens")
+	K.Options.Write("ActionBars", "slab", false)
+	env.RunTimers()
+	assert(not ns.Slab.hub:IsShown() and not Rings(), "with the slab off the hub hides and its cast ring stops listening")
+	ns.Button.SetProc(b, true)
+	assert(K.Effects.Holder("hub") == nil, "a proc claims nothing on the hub the slab hides")
+	ns.Button.SetProc(b, false)
+	K.Options.Write("ActionBars", "slab", true)
 	env.RunTimers()
 	ns.Button.SetProc(b, true)
-	env.RunTimers()
-	assert(b.medProc and b.medProc:IsShown(), "the slot still lights its proc")
-	assert(K.Effects.Holder("hub") == nil, "the hidden crest claims no effect for it")
+	assert(K.Effects.Holder("hub") ~= nil, "a proc claims the shown hub")
+	K.Options.Write("ActionBars", "crest", false)
+	assert(K.Effects.Holder("hub") == nil, "switching off releases the hub's running claim")
 	ns.Button.SetProc(b, false)
-	Clean(env, K, "proc while off")
+	env.RunTimers()
+	ns.Button.SetProc(b, true)
+	assert(b.medProc and b.medProc:IsShown(), "the slot still lights its proc")
+	assert(K.Effects.Holder("hub") == nil, "the switched-off crest claims no effect for it")
+	ns.Button.SetProc(b, false)
+	Clean(env, K, "hidden hub")
 end
 
 -- Restriction: aura data goes secret before combat; switching the crest while it is secret and after it lifts.
