@@ -147,10 +147,8 @@ do
 	local imported = LK.Store.Module("ActionBars").bar3
 	assert(imported.perRow == 2 and imported.rows == 6, "an imported older profile upgrades too: " .. tostring(imported.perRow) .. "x" .. tostring(imported.rows))
 end
--- An existing 10-button stance bar, Down columns first in Rows 5, with five forms known: before Buttons per row
--- the fold put forms 1 to 3 in the first column and 4 and 5 in the second. As built, the upgrade keeps Rows 5 and
--- the bar fills the chosen rows: all five forms in the first column, two columns wide. The reviewer has asked the
--- captain whether existing bars keep the old fill until a shape edit; this check types the answer built.
+-- An existing 10-button stance bar, Down columns first in Rows 5, with five forms known: the upgrade keeps Rows 5,
+-- and Down columns first fills the chosen rows, so all five forms stand in the first column of a bar two columns wide.
 do
 	local old = AB.CoreEnv.DeepCopy(reload.KstyleUIDB)
 	old.version = 49
