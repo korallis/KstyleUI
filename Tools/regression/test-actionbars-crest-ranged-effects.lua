@@ -372,6 +372,8 @@ do
 			if region.loop then return region end
 		end
 	end
+	assert(not Fire(), "while the mage's power orb holds Arcane Power, the rim's copy of its sigil loads no sheet")
+	K.Options.Write("ActionBars", "crestOrb", false)
 	assert(not Fire(), "while the mage's rail seats Arcane Power, the rim's copy of its sigil loads no sheet")
 	K.Options.Write("ActionBars", "crestRail", false)
 	local fire = Fire()

@@ -67,7 +67,7 @@ function Orb.Choices()
 end
 
 function Orb.Holds(spells)
-	local held = Orb.Held()
+	local held = Orb.Expected()
 	for _, id in ipairs(held and spells or NONE) do
 		if id == held then
 			return true
