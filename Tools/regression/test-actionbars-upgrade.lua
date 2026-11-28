@@ -147,4 +147,32 @@ do
 	local imported = LK.Store.Module("ActionBars").bar3
 	assert(imported.perRow == 2 and imported.rows == 6, "an imported older profile upgrades too: " .. tostring(imported.perRow) .. "x" .. tostring(imported.rows))
 end
+-- An existing 10-button stance bar, Down columns first in Rows 5, with five forms known: before Buttons per row
+-- the fold put forms 1 to 3 in the first column and 4 and 5 in the second. As built, the upgrade keeps Rows 5 and
+-- the bar fills the chosen rows: all five forms in the first column, two columns wide. The reviewer has asked the
+-- captain whether existing bars keep the old fill until a shape edit; this check types the answer built.
+do
+	local old = AB.CoreEnv.DeepCopy(reload.KstyleUIDB)
+	old.version = 49
+	local bars = old.profiles.Default.ActionBars
+	for _, bar in pairs(bars) do if type(bar) == "table" then bar.perRow = nil end end
+	bars.stance.buttons, bars.stance.rows, bars.stance.orientation, bars.stance.growth, bars.stance.spacing = 10, 5, "VERTICAL", "RIGHTDOWN", 3
+	local loaded, LK, LN = AB.New({ saved = old, setup = function(e)
+		e._game.forms = {}
+		for i = 1, 5 do e._game.forms[i] = { texture = 132349, spellID = 2457 + i } end
+	end })
+	AB.Enable(loaded, LK)
+	LK.Options.Write("HudStyle", "style", "frames")
+	AB.W.Settle(loaded)
+	assert(#loaded._errors == 0 and LK.ErrorCount() == 0, AB.Errors(loaded))
+	local cfg = LN.Config("stance")
+	assert(cfg.rows == 5 and cfg.perRow == 2, "the upgrade keeps Rows 5 and gives 2 per row, got " .. tostring(cfg.perRow) .. "x" .. tostring(cfg.rows))
+	local buttons, pitch = LN.bars.stance.buttons, cfg.size + 3
+	local function near(a, b) return math.abs(a - b) < 0.01 end
+	for i = 2, 5 do
+		assert(near(buttons[i]:GetLeft(), buttons[1]:GetLeft()) and near(buttons[1]:GetTop() - buttons[i]:GetTop(), (i - 1) * pitch), "form " .. i .. " stands in the first column, row " .. i)
+	end
+	assert(near(LN.bars.stance.holder:GetWidth(), pitch + cfg.size), "the bar keeps two columns of width")
+end
+
 print("actionbars upgrade ok: v0.2.7 profile and snapshots load and apply without errors; migration 50 keeps " .. placed .. " button places")
