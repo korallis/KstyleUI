@@ -258,7 +258,7 @@ local function Apply()
 	local width, band = CanvasWidth(screen, height), BandWidth(screen, height)
 	local parent, user, auto, game = ParentScale(), state.user, state.auto, state.game
 	if game then
-		user, auto = min(MAX_USER_SCALE, max(MIN_USER_SCALE, parent / REFERENCE_SCALE)), false
+		user, auto = parent / REFERENCE_SCALE, false
 	end
 	local last = state.applied
 	if not state.dirty and last[1] == height and last[2] == parent and last[3] == user and last[4] == width and last[6] == screen and last[7] == auto and last[8] == band then
@@ -267,16 +267,20 @@ local function Apply()
 	if state.dirty then state.answers = {} end
 	state.dirty = false
 	local maximum, enabled, effectiveUser
-	for _, answer in ipairs(state.answers) do
-		if answer[1] == width and answer[2] == height and answer[3] == screen and answer[4] == user and answer[5] == auto then
-			maximum, enabled, effectiveUser = answer[6], answer[7], answer[8]
-			break
+	if game then
+		maximum, effectiveUser = max(MAX_USER_SCALE, user), user
+	else
+		for _, answer in ipairs(state.answers) do
+			if answer[1] == width and answer[2] == height and answer[3] == screen and answer[4] == user and answer[5] == auto then
+				maximum, enabled, effectiveUser = answer[6], answer[7], answer[8]
+				break
+			end
 		end
-	end
-	if not maximum then
-		maximum, enabled, effectiveUser = Limit(width, height, screen, user, auto)
-		table.insert(state.answers, 1, { width, height, screen, user, auto, maximum, enabled, effectiveUser })
-		if #state.answers > CACHE_KEYS then state.answers[#state.answers] = nil end
+		if not maximum then
+			maximum, enabled, effectiveUser = Limit(width, height, screen, user, auto)
+			table.insert(state.answers, 1, { width, height, screen, user, auto, maximum, enabled, effectiveUser })
+			if #state.answers > CACHE_KEYS then state.answers[#state.answers] = nil end
+		end
 	end
 	local added = false
 	if state.enabled and enabled then
@@ -292,7 +296,7 @@ local function Apply()
 		return
 	end
 	local previous = state.effectiveUser
-	root:SetScale(REFERENCE_SCALE / parent * effectiveUser)
+	root:SetScale(game and 1 or REFERENCE_SCALE / parent * effectiveUser)
 	state.maximum, state.effectiveUser = maximum, effectiveUser
 	last[1], last[2], last[3], last[4], last[5], last[6], last[7], last[8] = height, parent, user, width, maximum, screen, auto, band
 	state.height = height

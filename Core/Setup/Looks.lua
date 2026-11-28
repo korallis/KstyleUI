@@ -103,7 +103,7 @@ end
 
 Looks.SIZES = {
 	{ value = "Pixel", label = L["Pixel perfect"], note = L["Sharp edges, sized for your screen. Pick it to go back."] },
-	{ value = "Game", label = L["Game's UI scale"], note = L["Grows and shrinks with the UI Scale in the game's options, up to the largest size that fits."] },
+	{ value = "Game", label = L["Game's UI scale"], note = L["Grows and shrinks with the UI Scale in the game's options, at the same size as the game's own windows."] },
 }
 Looks.SIZES_CUSTOM = { Looks.SIZES[1], Looks.SIZES[2], Looks.CUSTOM[4] }
 Looks.SIZES_STATUS = { Looks.SIZES[1], Looks.SIZES[2], Looks.STATUS[4] }

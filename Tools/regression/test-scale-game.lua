@@ -1,4 +1,4 @@
--- test-scale-game.lua: Interface size can follow the game's UI scale, in settings and in setup, up to the size that fits; setup's Edit Mode places stay put when the game's UI scale changes.
+-- test-scale-game.lua: Interface size can follow the game's UI scale exactly, in settings and in setup, whatever the bar settings; setup's Edit Mode places stay put when the game's UI scale changes.
 -- Intent: the owner asked for an option to turn off the automatic pixel-perfect size for players who use the game's
 -- UI scale, offered in the setup too; the accepted plan includes re-placing setup's Edit Mode windows on a scale change.
 local W = dofile("Tools/regression/widget_env.lua")
@@ -20,9 +20,9 @@ local function SetGameScale(env, scale, width, height)
 	env.RunTimers()
 end
 
--- At 2560x1440 a step is 1080 / (16 * 1440) = 0.046875. Following the game's scale s asks for s / (768 / 1080):
--- 0.64 asks 0.9, nearest step 19 (0.890625); 0.71 asks 1.0, nearest step 21 (0.984375), which is Auto's size;
--- 0.90 asks 1.2656 but the DPS layout fits only up to 0.9982, so it stays at step 21.
+-- Following the game's scale s puts the root at scale 1 under UIParent, a size of s / (768 / 1080): 0.71 gives 1.0,
+-- 0.64 gives 0.9 and 0.90 gives 1.265625, past the 0.9982 where the DPS layout fits at 2560x1440 (a player's v0.3.5.4
+-- report: the fit cap made Follow shrink the whole HUD). Auto's size there is step 21 of 1080 / (16 * 1440), 0.984375.
 do
 	local env, K = CoreEnv.New({
 		width = 2560, height = 1440, uiScale = DEFAULT_GAME_SCALE, size = "auto", fit = true,
@@ -36,13 +36,12 @@ do
 	assert(K.Appearance.Get("uiScaleGame") == false and not Scale.IsGame(), "a new profile does not follow the game's UI scale")
 	assert(near(Scale.AppliedUserScale(), 0.984375), "Auto applies 0.984375 at 2560x1440, got " .. Scale.AppliedUserScale())
 	K.Options.Write("Appearance", "uiScaleGame", true)
-	assert(Scale.IsGame() and near(Scale.AppliedUserScale(), 0.984375), "at the game's default scale the size is Auto's, got " .. Scale.AppliedUserScale())
+	assert(Scale.IsGame() and Scale.Root():GetScale() == 1 and near(Scale.AppliedUserScale(), 1), "at the game's default scale the root takes the game's scale, size 1, got " .. Scale.AppliedUserScale())
 	SetGameScale(env, 0.64, 2560, 1440)
-	assert(near(Scale.AppliedUserScale(), 0.890625), "a 0.64 game scale shrinks the HUD to 0.890625, got " .. Scale.AppliedUserScale())
-	local perUnit = 1440 * Scale.Root():GetEffectiveScale() / UI_HEIGHT
-	assert(near(perUnit * Scale.STEPS_PER_PIXEL, 19), "the followed size is 19 sixteenths of a pixel per unit, got " .. perUnit * 16)
+	assert(Scale.Root():GetScale() == 1 and near(Scale.AppliedUserScale(), 0.9), "a 0.64 game scale shrinks the HUD to 0.9, got " .. Scale.AppliedUserScale())
+	assert(near(Scale.Pixel(1), UI_HEIGHT / (1440 * 0.64)), "pixel maths reads the followed scale, got " .. Scale.Pixel(1))
 	SetGameScale(env, 0.9, 2560, 1440)
-	assert(near(Scale.AppliedUserScale(), 0.984375), "a 0.90 game scale stops at the largest size that fits, got " .. Scale.AppliedUserScale())
+	assert(Scale.Root():GetScale() == 1 and near(Scale.AppliedUserScale(), 1.265625), "a 0.90 game scale grows the HUD past the fit cap to 1.265625, got " .. Scale.AppliedUserScale())
 	SetGameScale(env, 0.64, 2560, 1440)
 	env.SetCombat(true)
 	local rootScale = Scale.Root():GetScale()
@@ -50,7 +49,7 @@ do
 	assert(Scale.Root():GetScale() == rootScale, "a game scale change in combat waits")
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(near(Scale.AppliedUserScale(), 0.984375), "leaving combat applies the followed size, got " .. Scale.AppliedUserScale())
+	assert(near(Scale.AppliedUserScale(), 1), "leaving combat applies the followed size, got " .. Scale.AppliedUserScale())
 	SetGameScale(env, 0.64, 2560, 1440)
 	K.Options.Write("Appearance", "uiScaleGame", false)
 	assert(not Scale.IsGame() and near(Scale.AppliedUserScale(), 0.984375), "switching it off returns to the pixel-perfect size, got " .. Scale.AppliedUserScale())
@@ -270,6 +269,37 @@ do
 	assert(K.Scale.IsGame() and changes == 0, "Follow at the game's default scale over a manual 100% sends no scale change, got " .. changes)
 	local saves, bar = Change("arrangement", "spread")
 	assert(changes == 1 and saves == 1 and not near(bar, 100), string.format("after that switch, Spread re-places an unstamped viewer, as before this hotfix: %d changes, %d saves, bar %s", changes, saves, bar))
+end
+
+-- Button size: a player's v0.3.5.4 report. After a clean first-run setup (Medallions, DPS) at 1920x1080 and the game's
+-- default scale, Follow on, raising bar 1's Button size past 50 shrank the whole HUD (root 0.9375 of the game's scale,
+-- then 0.875 at 52 and 0.5625 from 55), and a button got smaller on screen. Following now keeps the root at the
+-- game's scale, so only the bar grows.
+do
+	local Suite = dofile("Tools/regression/suite_env.lua")
+	local env, K = Suite.New(nil, 1920, 1080, nil, function(_, kit)
+		local choice = kit.Setup.NewChoice()
+		choice.hudStyle, choice.layout = "medallions", "DPS"
+		assert(kit.Setup.Apply(choice), "the first-run setup must apply")
+	end)
+	env.RunTimers()
+	K.Options.Write("Appearance", "uiScaleGame", true)
+	env.RunTimers()
+	local root = K.Scale.Root()
+	local function BarPixels()
+		local _, _, width = K.Layout.Rect("actionbars.bar1")
+		return width * root:GetEffectiveScale() * 1080 / UI_HEIGHT
+	end
+	local last = BarPixels()
+	for _, size in ipairs({ 50, 52, 54, 55, 64 }) do
+		K.Options.Write("ActionBars", "bar1.size", size)
+		env.RunTimers()
+		assert(root:GetScale() == 1, "Button size " .. size .. " leaves the root at the game's scale, got " .. root:GetScale())
+		local pixels = BarPixels()
+		assert(pixels > last, string.format("Button size %d widens bar 1 on screen, got %.1f px after %.1f px", size, pixels, last))
+		last = pixels
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
 print("scale game ok")
