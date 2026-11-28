@@ -1,4 +1,4 @@
--- test-setup-motion-cards.lua: with Motion on and client animations that never step from before the window opens, the HUD style and layout cards draw their title, note and edge with the accent painted on the pick, and Your addons draws its controls on its first open as on a reopen.
+-- test-setup-motion-cards.lua: with Motion on and client animations that never step from before the window opens, the HUD style and layout cards draw their title, note and edge with the accent painted on the pick, and Your addons draws its controls, with valid rects, on its first open as on a reopen.
 local Suite = dofile("Tools/regression/suite_env.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local Fake = dofile("Tools/regression/addons_fake.lua")
@@ -76,12 +76,16 @@ local tracker = panel.addons.groups.Questie.items["Integrations.questTracker"].c
 Drawn(tracker, "On Your addons' first open, Questie's quest tracker dropdown")
 Drawn(tracker.text, "On Your addons' first open, Questie's quest tracker choice")
 assert(tracker:GetWidth() > 0 and tracker:GetHeight() > 0, "Questie's quest tracker dropdown has a size on the first open")
+-- The owner's in-game reading (2026-11-27): built while the page was hidden, these textures read IsRectValid false on
+-- the first open and were not drawn, leaving each switch a half stub and the dropdown without its arrow and text.
+assert(tracker.chevron:IsRectValid(), "On Your addons' first open, Questie's quest tracker arrow has a valid rect; lay the page out again when it shows")
 for _, group in ipairs(panel.addons.active) do
 	for _, item in ipairs(group.active) do
 		local name, knob, track = item.row.module .. "." .. item.row.key, item.control.knob, item.control.trackBox
 		Drawn(item.control, "On Your addons' first open, " .. name)
 		if knob then
 			Drawn(knob, "On Your addons' first open, the knob of " .. name)
+			assert(knob:IsRectValid() and item.control.track[3]:IsRectValid(), "On Your addons' first open, the knob and right end of " .. name .. " have valid rects; lay the page out again when it shows")
 			assert(knob:GetWidth() > 0 and knob:GetLeft() >= track:GetLeft() and knob:GetRight() <= track:GetRight()
 				and knob:GetBottom() >= track:GetBottom() and knob:GetTop() <= track:GetTop(), "On Your addons' first open, the knob of " .. name .. " sits inside its track")
 		end

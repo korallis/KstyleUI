@@ -134,6 +134,15 @@ local function SummaryTitle()
 	return L["Applied"]
 end
 
+local function Refused()
+	local last = Setup.EditMode and Setup.EditMode.Last()
+	if not applied or not last or last.state ~= "failed" or not ns.Store.Module("Setup").replaceLayout then
+		return false
+	end
+	local _, full = Setup.EditMode.Replacements()
+	return full
+end
+
 local function Manager()
 	local settings = CooldownViewerSettings
 	return type(settings) == "table" and type(settings.ShowUIPanel) == "function" and settings or nil
@@ -149,7 +158,7 @@ local function RefreshEditMode()
 	local choices, full = Setup.EditMode.Replacements()
 	panel.replace:SetOptions(choices)
 	panel.replace:SetValue(Setup.Choice().replaceLayout or "", true)
-	panel.replace:SetShown(full and not applied and ns.Store.Module("Setup").replaceLayout)
+	panel.replace:SetShown(full and ns.Store.Module("Setup").replaceLayout and (not applied or Refused()))
 	if step == STEPS then
 		panel.summaryStatus.cap:SetText(SummaryTitle())
 	end
@@ -180,9 +189,10 @@ local function Refresh()
 	panel.back:SetShown(step > 1)
 	panel.skip:SetShown(step == 1)
 	panel.next:SetShown(step < STEPS)
-	panel.apply:SetShown(step == STEPS and not applied)
-	panel.reload:SetShown(step == STEPS and applied)
-	panel.later:SetShown(step == STEPS and applied)
+	local refused = Refused()
+	panel.apply:SetShown(step == STEPS and (not applied or refused))
+	panel.reload:SetShown(step == STEPS and applied and not refused)
+	panel.later:SetShown(step == STEPS and applied and not refused)
 	Select(panel.cards, choice.layout)
 	Select(panel.styleCards, choice.hudStyle)
 	local arrangement = choice.arrangement or Scale.Arrangement()
@@ -1170,7 +1180,7 @@ local function BuildSummary(page, width)
 	local help = Paragraph(status, "body", "muted", width, true)
 	panel.replace = Widgets.Dropdown(status, { width = 260, placeholder = L["Replace this one"], onChange = function(value)
 		Setup.Choice().replaceLayout = value
-		Changed()
+		if Refused() then Refresh() else Changed() end
 	end })
 	panel.replace:Hide()
 	panel.summaryChoices, panel.summaryLayout, panel.summaryStatus, panel.summaryWidth = choices, layout, status, width
@@ -1257,6 +1267,7 @@ local function Build()
 	Widgets.Fill(panel.addonsPage, panel.pages[4])
 	panel.addonsPage:Hide()
 	panel.addons = Setup.AddonsPage(panel.addonsPage, width, Changed)
+	panel.addonsPage:SetScript("OnShow", function() panel.addons:Restyle() end)
 	panel.back = Widgets.Button(content, { text = L["Back"], onClick = function() Setup.Go(step - 1) end })
 	Widgets.Point(panel.back, "BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
 	panel.skip = Widgets.Button(content, {
@@ -1273,7 +1284,9 @@ local function Build()
 		text = L["Apply"],
 		primary = true,
 		onClick = function()
-			if Setup.Apply(Setup.Choice()) then
+			if Refused() then
+				Setup.RetryEditMode()
+			elseif Setup.Apply(Setup.Choice()) then
 				applied = true
 				Refresh()
 			end

@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The release workflow hands the packager the tagged version's section of that file, so CurseForge, Wago and the GitHub release each show that version's notes; the zip carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.3.5.5: setup offers its replacement again (2026-11-28)
+
+When all five Edit Mode account layouts are in use, setup cannot add its own layout, so its summary offers Replace this one. After Apply refused with nothing picked, the summary told you to choose Replace this one, then Apply, but hid both and showed only Try again, which repeated the refusal. Now the summary keeps Replace this one and Apply on screen until Edit Mode takes the layout. Picking a layout keeps the settings setup already applied, and Apply or Try again writes the KstyleUI layout over only the one you picked, with no second setup backup. Reload and Later return once Edit Mode took it. The same version carries a fix already on the staging line: the Your addons step lays its switches and dropdowns out again each time it shows, so they draw whole on the first open.
+
 ## 0.3.5.4: older cooldown viewers follow the HUD again (2026-11-28)
 
 v0.3.5.3 keeps a cooldown viewer you moved yourself in place when the game's UI Scale changes. It also kept viewers in place when you changed the HUD width, or switched an ultrawide screen between Centred and Spread, because it read the HUD's new size as a UI Scale change. A setup from before v0.3.5.3 left no record of where it put the viewers, so on those layouts the viewers stayed behind while the HUD moved. Now only a change of the game's UI Scale or of KstyleUI's Interface size (Follow the game's UI scale, Auto or the size slider) keeps unrecorded viewers in place. A HUD width or arrangement change moves them with the HUD again, as in v0.3.5.2.
