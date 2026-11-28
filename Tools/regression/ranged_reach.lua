@@ -1,4 +1,4 @@
--- ranged_reach.lua: Reach.Check(sizes) builds the HUD scene's action bars for a hunter, mage and warlock with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture: an additive RGB aura sheet by its brightest channel, a flipbook sheet folded into one cell, a still cell through its texture coordinates; an addon file the reader cannot read stops the check) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The warlock knows every summon and Demonic Sacrifice, so its demon piece builds each demon's mark and each Sacrifice copy, and each of those aura sheets must be among the measured textures. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches.
+-- ranged_reach.lua: Reach.Check(sizes, classes, trees) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture: an additive RGB aura sheet by its brightest channel, a flipbook sheet folded into one cell, a still cell through its texture coordinates; an addon file the reader cannot read stops the check) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The warlock knows every summon and Demonic Sacrifice, so its demon piece builds each demon's mark and each Sacrifice copy, and each of those aura sheets must be among the measured textures. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches. With trees, only the centred layout is built and the mage runs once per talent tree named, its shown orb and each of that tree's orb sheets and rail seat aura sheets among the measured textures.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Pose = dofile("Tools/regression/anim_pose.lua")
@@ -194,12 +194,35 @@ end
 -- piece builds each demon's mark and each Sacrifice copy (SlabRanged.lua's Pet).
 local WIDEST = {
 	HUNTER = { 1293241, 19574, 3045, 19577, 14305, 19263, 20572, 20554, 20594, 1259799, 20600, 1260270, 13795, 24579, 14916, 19801 },
-	MAGE = { 12042, 12043, 12051, 11129, 11958, 12472, 2136, 20572, 20554, 1260270 },
+	MAGE = { 12042, 12043, 12051, 11129, 11958, 12472, 10199, 1953, 10230, 13033, 13021, 1240047, 20589, 20572, 20554, 1260270 },
 	WARLOCK = { 6789, 1122, 18288, 18708, 6353, 20572, 20554, 1259821, 1299026, 7744, 1260270, 688, 697, 712, 691, 18788 },
 }
 local SPARES = 6
 
-function Reach.Check(sizes)
+-- Key(path) -> the texture's path from Media/ on, so a forged face and its aura sheet of the same file name stay apart.
+local function Key(path)
+	return tostring(path):gsub("\\", "/"):match("Media/.+$") or tostring(path)
+end
+
+-- OrbSheets(ns, Tokens, orb) -> the Media key of every sheet the shown orb's tree builds: its race's vessel, its school's light,
+-- core and meniscus, the glass, and each of the tree's procs (one sheet per stack where a proc draws its stacks apart).
+local function OrbSheets(ns, Tokens, orb)
+	local school = orb.school
+	local names = { "orbVessel" .. orb.race, "orbLight" .. school, "orbCore" .. school, "orbMeniscus" .. school, "orbGlass" }
+	for _, each in ipairs(ns.SlabOrb.PROCS) do
+		if not each.school or each.school == school then
+			for n = 1, each.stacks and not each.bands and each.stacks or 1 do
+				names[#names + 1] = each.token .. (each.stacks and not each.bands and n or "")
+			end
+		end
+	end
+	for i, name in ipairs(names) do
+		names[i] = Key((Tokens.Texture(name)))
+	end
+	return names
+end
+
+function Reach.Check(sizes, classes, trees)
 	local original, measured = dofile, nil
 	_G.dofile = function(path)
 		local result = original(path)
@@ -213,7 +236,7 @@ function Reach.Check(sizes)
 		return result
 	end
 	_G.RENDER_SCENE_LIB, _G.RENDER_TRACKERS = true, "lit"
-	for _, run in ipairs({ { sizes = sizes }, { sizes = sizes, low = true } }) do
+	for _, run in ipairs(trees and { { sizes = sizes, low = true } } or { { sizes = sizes }, { sizes = sizes, low = true } }) do
 	for _, size in ipairs(run.sizes) do
 		local low = run.low == true
 		_G.RENDER_CAST_ON_FRAME = low and "off" or nil
@@ -239,7 +262,16 @@ function Reach.Check(sizes)
 			local x, y = (cast[1] + cast[3]) / 2 + (place.x - from.x) * k, cast[2] + (place.y - from.y) * k
 			rail[#rail + 1] = { x - box.width * k / 2, y, x + box.width * k / 2, y + box.height * k }
 		end
-		for _, class in ipairs({ "HUNTER", "MAGE", "WARLOCK" }) do
+		local runs = {}
+		for _, class in ipairs(classes or { "HUNTER", "MAGE", "WARLOCK" }) do
+			-- The mage's trees are measured in the centred layout, where the rail's flat row sits lowest. Each tree is a whole HUD
+			-- build, so Fire and Frost run in their own files (trees) to keep every file inside its wall-clock guard.
+			for _, tree in ipairs(class == "MAGE" and low and (trees or { 1 }) or { false }) do
+				runs[#runs + 1] = { class = class, tree = tree or nil }
+			end
+		end
+		for _, each in ipairs(runs) do
+			local class, tree = each.class, each.tree
 			SAMPLES = {}
 			local _, ns = Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 			local known, widest = measured.C_SpellBook.IsSpellKnown, {}
@@ -248,6 +280,11 @@ function Reach.Check(sizes)
 			measured.GetInventoryItemID = function(_, slot) return slot == 13 and 5002 or nil end
 			measured.C_Item.GetItemSpell = function(id) if id == 5002 then return "Use", 9002 end end
 			measured.GetTotemInfo = measured.GetTotemInfo or function() return false, "", 0, 0, 0, 1, 0 end
+			if tree then
+				measured.C_SpecializationInfo = measured.C_SpecializationInfo or {}
+				measured.C_SpecializationInfo.GetSpecialization = function() return tree end
+			end
+			local where = at .. (tree and " tree " .. tree or "")
 			for i = 3, low and 4 or 0 do
 				measured.KstyleUI.Layout.Register(measured.CreateFrame("Frame"), FRAMES[i], measured.KstyleUI.Setup.Layouts.Default(FRAMES[i]))
 			end
@@ -265,7 +302,9 @@ function Reach.Check(sizes)
 			local railed = { unpack(avoid) }
 			for _, box in ipairs(frames) do avoid[#avoid + 1] = box end
 			for _, box in ipairs(rail) do railed[#railed + 1] = box end
-			assert(#avoid > 16, at .. " " .. class .. ": the action slots, badge, unit frames and cast bars are placed")
+			local orbed = { unpack(avoid) }
+			for _, box in ipairs(rail) do orbed[#orbed + 1] = box end
+			assert(#avoid > 16, where .. " " .. class .. ": the action slots, badge, unit frames and cast bars are placed")
 			local checked, demons = 0, {}
 			local pieces = {}
 			for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
@@ -274,29 +313,37 @@ function Reach.Check(sizes)
 			for i, p in ipairs(not low and ns.SlabHawks and ns.SlabHawks.state.perches or {}) do
 				pieces[#pieces + 1] = { key = "hawk perch " .. i, regions = Textures(p.holder, {}) }
 			end
-			assert(class ~= "HUNTER" or low or #pieces > 2 and pieces[#pieces].key == "hawk perch 2", at .. ": the hunter's hawk perches are measured")
+			assert(class ~= "HUNTER" or low or #pieces > 2 and pieces[#pieces].key == "hawk perch 2", where .. ": the hunter's hawk perches are measured")
 			local seated = ns.SlabTrackers.state.forms.crest.pieces
 			local railPiece
 			for _, p in pairs(seated) do railPiece = p.spec.key == "crestRail" and p or railPiece end
 			assert(railPiece and railPiece:IsShown() and #railPiece.order == 5 and #railPiece.spare == SPARES and #rail >= #ROW,
-				at .. " " .. class .. ": the rail's five seats and full second rail are measured against the cooldown row")
-			assert(railPiece.low == low, at .. ": the rail takes its own flat row exactly while the centred cast bars show")
+				where .. " " .. class .. ": the rail's five seats and full second rail are measured against the cooldown row")
+			assert(railPiece.low == low, where .. ": the rail takes its own flat row exactly while the centred cast bars show")
 			local flying = {}
 			for _, seat in ipairs(railPiece.spare) do
 				for _, layer in ipairs(seat.lift and { seat.lift, seat.ghost } or {}) do
 					for _, region in ipairs(Textures(layer, {})) do flying[region] = true end
 				end
 			end
+			local sampled = {}
 			for _, p in ipairs(pieces) do
+				local strict = p.key == "crestOrb" or p.key == "crestRail"
 				for _, region in ipairs(p.regions) do
 					local texture = (region._barOwner and region or region)._state.Texture
 					local box, content = solver:rect(region._barOwner or region), texture and Content(region)
+					-- A layer pinned to a status bar's fill (the orb's light and its meniscus) has no rectangle of its own; it never
+					-- leaves the frame it is drawn on, so that frame's whole rectangle stands in for it.
+					box = box or strict and region.GetParent and solver:rect(region:GetParent()) or box
+					assert(not (strict and texture and tostring(texture[1]):match("Media[\\/]")) or box,
+						where .. " " .. class .. " " .. p.key .. "'s " .. tostring(texture and tostring(texture[1]):match("[^\\/]+$")) .. " is placed")
 					if box and content and not flying[region] then
+						sampled[Key(texture[1])] = true
 						checked = checked + 1
 						if p.key == "crestDemon" then demons[tostring(texture[1]):gsub("\\", "/"):match("Auras/Glyphs/(.+)%.png$") or ""] = true end
 						local w, h = box[3] - box[1], box[4] - box[2]
-						local name = at .. " " .. class .. " " .. p.key .. "'s " .. tostring(texture[1]):match("[^\\/]+$")
-						local own = p.key == "crestRail" and railed or avoid
+						local name = where .. " " .. class .. " " .. p.key .. "'s " .. tostring(texture[1]):match("[^\\/]+$")
+						local own = p.key == "crestRail" and railed or p.key == "crestOrb" and orbed or avoid
 						for _, swept in ipairs(Sweep(solver, region, box[1] + content[1] * w, box[1] + content[2] * w, box[4] - content[3] * h, box[4] - content[4] * h, unit)) do
 							local l, r, t, b = swept[1], swept[2], swept[3], swept[4]
 							assert(own == railed or math.abs(l - cx) <= 80 * unit and math.abs(r - cx) <= 80 * unit, name .. " stays inside the crest's column")
@@ -307,7 +354,23 @@ function Reach.Check(sizes)
 					end
 				end
 			end
-			assert(checked > (low and 10 or 20), at .. " " .. class .. ": the lit pieces are measured (" .. checked .. ")")
+			assert(checked > (low and 10 or 20), where .. " " .. class .. ": the lit pieces are measured (" .. checked .. ")")
+			if class == "MAGE" then
+				local Tokens, orb = measured.KstyleUI.Tokens, nil
+				for _, p in pairs(seated) do orb = p.spec.key == "crestOrb" and p:IsShown() and p or orb end
+				local need = OrbSheets(ns, Tokens, assert(orb, where .. ": the mage's orb shows"))
+				for _, list in ipairs({ railPiece.order, railPiece.spare }) do
+					for _, seat in ipairs(list) do
+						-- The seat's aura sheet, found as the rail's Baked finds it: the sheet its forged sigil names.
+						local sigil = seat.ability.sigil
+						local found, _, _, _, _, aura = pcall(Tokens.Texture, "sigil" .. tostring(sigil))
+						if sigil and found and aura then need[#need + 1] = Key((Tokens.Texture(aura))) end
+					end
+				end
+				for _, name in ipairs(need) do
+					assert(sampled[name], where .. ": " .. name .. " is measured")
+				end
+			end
 			for _, sheet in ipairs(class == "WARLOCK" and DEMON_SHEETS or {}) do
 				assert(demons[sheet], at .. " WARLOCK: the demon piece's " .. sheet .. " aura sheet is measured")
 			end
@@ -341,7 +404,7 @@ function Reach.Check(sizes)
 						local box, reach = solver:rect(region), texture and Spread(texture[1], rows, columns, region._state.TexCoord)
 						if box and reach then
 							local rx, ry, across = (box[1] + box[3]) / 2 - lx, (box[2] + box[4]) / 2 - ly, math.max(box[3] - box[1], box[4] - box[2])
-							local name = at .. " " .. class .. " second-rail " .. seat.key .. "'s flight " .. tostring(texture[1]):match("[^\\/]+$")
+							local name = where .. " " .. class .. " second-rail " .. seat.key .. "'s flight " .. tostring(texture[1]):match("[^\\/]+$")
 							for _, sample in ipairs(Samples(leg[2])) do
 								local x, y, c, s, scale = sample[1], sample[2], sample[3], sample[4], sample[5]
 								local px = lx + (rx * c - ry * s) * scale + x * unit
@@ -361,7 +424,9 @@ function Reach.Check(sizes)
 					end
 				end
 			end
-			assert(fliers > 0, at .. " " .. class .. ": a second-rail medal's flight is measured against the other medals")
+			-- The Fire mage's orb holds Combustion and its main seats take Arcane Power and Presence of Mind, so its second rail holds
+			-- no buff to fly to the crown.
+			assert(fliers > 0 or tree == 2, where .. " " .. class .. ": a second-rail medal's flight is measured against the other medals")
 		end
 		-- A full collect once each screen is done frees its scene before the next is built: the peak then stays near 2 GB
 		-- instead of drifting with the collector's phase towards the test runner's 4096 MB limit.
