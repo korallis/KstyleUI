@@ -7,9 +7,9 @@ local Png = dofile("Tools/regression/png.lua")
 -- then added its two seats' cooldown repaint, measured at 269,700 instructions, and the hunter's crest needs
 -- (staging b107b6f0) added 2,400 to the mage's path there (226,800 to 229,200), measured on top of the rail at 271,900. The
 -- mage's power orb then took the tree's great cooldown from the rail and added its fill, 274,900. The widest mage rail, four
--- seats, the trinket and six round medals on the second rail, measured 336,200 and 3,100. These fixtures have no target, so
--- until the rail stopped resting with the crest (KSTY-168) its ready seats were still; burning, each asks once per update
--- whether its breath still plays: 1,900 calls for this fixture's two seats and 4,100 for the widest rail's ten.
+-- seats, the trinket and six round medals on the second rail, measured 336,200 and 3,100. The rail's ready seats burn at Full
+-- whether or not the crest rests, and each asks once per cooldown update whether its breath still plays, so with no target
+-- these fixtures measure 1,900 calls for two seats and 4,100 for the widest rail's ten.
 local BUDGET_COOLDOWN, BUDGET_RAIL, BUDGET_HEALTH = { 274900, 1900 }, { 336200, 4100 }, { 46100, 2000 }
 local AB, Slots, New, Piece, Seated, Shown, Clean, Tint, Icons = R.AB, R.Slots, R.New, R.Piece, R.Seated, R.Shown, R.Clean, R.Tint, R.Icons
 local Aura = R.Aura
@@ -43,7 +43,7 @@ for class, light in pairs(LIGHT) do
 		else
 			assert(rail and rail.made.trinket and rail.made.trinket:IsShown() and not Seated(ns, "crestTrinkets"), class .. " on the crest: an on-use trinket in slot 13 stands on the class's rail")
 		end
-		assert(Seated(ns, "crestShot") ~= false, class .. ": the update runs to the end")
+		assert(Seated(ns, "crestCooldowns"), class .. ": the update runs to the end and seats the cooldown row, one of its last rows")
 		local function Check(state)
 			local found, sockets = {}, {}
 			for _, p in pairs(ns.SlabTrackers.state.form.pieces) do

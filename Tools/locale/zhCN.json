@@ -3001,7 +3001,7 @@
 	"Out of boss fights": "非首领战",
 	"Out of combat": "非战斗状态",
 	"Out of combat only": "仅战斗外",
-	"Out of combat with no target or proc, the crest only breathes slowly. Off keeps it in full motion.": "脱离战斗且没有目标或触发时，纹章只缓慢呼吸。关闭后保持完整动效。",
+	"Out of combat with no target or proc, the crest's centre breathes slowly; the rail keeps moving.": "脱离战斗且没有目标或触发时，纹章中心缓慢呼吸；冷却轨道保持动效。",
 	"Out of combat with no target, panels fade; hover, a target, a cast or combat brings them back.": "脱战且无目标时面板淡化；悬停、选中目标、施法或进入战斗时立即恢复。",
 	"Out of combat, a card names a class buff of yours that is missing.": "脱战时，卡片会显示你缺少的本职业增益。",
 	"Out of range": "超出范围",

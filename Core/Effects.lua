@@ -232,7 +232,7 @@ function Effects.Schema()
 		},
 		{
 			type = "toggle", key = "restingCrest", label = L["Calm crest at rest"],
-			help = L["Out of combat with no target or proc, the crest only breathes slowly. Off keeps it in full motion."],
+			help = L["Out of combat with no target or proc, the crest's centre breathes slowly; the rail keeps moving."],
 		},
 	}
 	return Effects.schema
