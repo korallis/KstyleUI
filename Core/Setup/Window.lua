@@ -136,11 +136,7 @@ end
 
 local function Refused()
 	local last = Setup.EditMode and Setup.EditMode.Last()
-	if not applied or not last or last.state ~= "failed" or not ns.Store.Module("Setup").replaceLayout then
-		return false
-	end
-	local _, full = Setup.EditMode.Replacements()
-	return full
+	return applied and last ~= nil and last.state == "failed" and last.full == true and ns.Store.Module("Setup").replaceLayout == true
 end
 
 local function Manager()
@@ -1180,7 +1176,7 @@ local function BuildSummary(page, width)
 	local help = Paragraph(status, "body", "muted", width, true)
 	panel.replace = Widgets.Dropdown(status, { width = 260, placeholder = L["Replace this one"], onChange = function(value)
 		Setup.Choice().replaceLayout = value
-		if Refused() then Refresh() else Changed() end
+		if applied then Refresh() else Changed() end
 	end })
 	panel.replace:Hide()
 	panel.summaryChoices, panel.summaryLayout, panel.summaryStatus, panel.summaryWidth = choices, layout, status, width
@@ -1284,7 +1280,7 @@ local function Build()
 		text = L["Apply"],
 		primary = true,
 		onClick = function()
-			if Refused() then
+			if applied then
 				Setup.RetryEditMode()
 			elseif Setup.Apply(Setup.Choice()) then
 				applied = true
