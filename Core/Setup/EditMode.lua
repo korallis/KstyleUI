@@ -761,7 +761,7 @@ local function Target(all, presets, layoutName, active, replace)
 				return i
 			end
 		end
-		return nil, "every one of the " .. limit .. " account layouts is taken", ns.Store.Module("Setup").replaceLayout and L["All account layouts are in use. Choose Replace this one, then Apply."] or L["All %d account layouts are in use. Delete one in Edit Mode, then try again."]:format(limit)
+		return nil, "every one of the " .. limit .. " account layouts is taken", ns.Store.Module("Setup").replaceLayout and L["All account layouts are in use. Choose Replace this one, then Apply."] or L["All %d account layouts are in use. Delete one in Edit Mode, then try again."]:format(limit), true
 	end
 	if Fn(C_EditMode, "IsValidLayoutName") then
 		local ok, valid = pcall(C_EditMode.IsValidLayoutName, layoutName)
@@ -814,10 +814,10 @@ local function Tell(notes)
 	end
 end
 
-local function Fail(name, reason, why)
+local function Fail(name, reason, why, full)
 	log("Edit Mode: " .. reason .. "; the quest tracker keeps the story hint")
 	ns.Print(L["Edit Mode did not take the KstyleUI layout. Open /kstyle setup and press Try again on its summary."])
-	last = { state = "failed", name = name, layout = PREFIX .. name, reason = reason, why = why or L["Edit Mode could not save the layout."], notes = {} }
+	last = { state = "failed", name = name, layout = PREFIX .. name, reason = reason, why = why or L["Edit Mode could not save the layout."], full = full, notes = {} }
 	return false
 end
 
@@ -843,18 +843,20 @@ local function Read()
 	return all, #presetList, type(info.activeLayout) == "number" and info.activeLayout or 1
 end
 
-function EditMode.Write(name, story, replace)
+function EditMode.Write(name, story, replace, retry)
 	local all, presets, active = Read()
 	if not all then
 		return Fail(name, presets, active)
 	end
 	local layoutName = PREFIX .. name
-	if ns.Store.Module("ProfileTools").backups then
-		ns.Store.Account().editModeBackup = { name = L["Before setup"], profile = ns.Store.Account().restoreProfile, layouts = Copy(all), activeLayout = active }
+	local account = ns.Store.Account()
+	local kept = retry and account.editModeBackup
+	if ns.Store.Module("ProfileTools").backups and not (kept and kept.profile == account.restoreProfile) then
+		account.editModeBackup = { name = L["Before setup"], profile = account.restoreProfile, layouts = Copy(all), activeLayout = active }
 	end
-	local index, reason, why = Target(all, presets, layoutName, active, replace)
+	local index, reason, why, full = Target(all, presets, layoutName, active, replace)
 	if not index then
-		return Fail(name, reason, why)
+		return Fail(name, reason, why, full)
 	end
 	local placed, notes, rows = {}, {}, {}
 	local viewer = Enum.EditModeSystem.CooldownViewer
@@ -912,7 +914,8 @@ function EditMode.Replacements()
 			end
 		end
 	end
-	return choices, count >= (MaxLayouts() or math.huge)
+	local limit = all and MaxLayouts()
+	return choices, limit ~= nil and count >= limit, limit ~= nil
 end
 
 function EditMode.ActiveName()
