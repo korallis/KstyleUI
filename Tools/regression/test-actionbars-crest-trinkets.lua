@@ -32,6 +32,8 @@ local function New(opts)
 	})
 	env._collisions = Guard.Install(K)
 	AB.Enable(env, K)
+	-- The crest rail carries the trinket while it shows (test-actionbars-crest-rail owns that hand-back), so the socket is read with the rail off.
+	K.Options.Write("ActionBars", "crestRail", false)
 	if opts.frames then K.Options.Write("HudStyle", "style", "frames") end
 	env.RunTimers()
 	return env, K, ns

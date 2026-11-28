@@ -29,7 +29,7 @@ local PIECES = {
 	{ "PALADIN", { 20049 }, 0, "crestRing", nil, "flame", player = { 20050 } },
 	{ "ROGUE", { 8676 }, 30, "crestSlice", "dagger", "dagger", usable = 8676 },
 	{ "ROGUE", { 5171 }, 0, "crestSlice", nil, "dagger", player = { 6774 }, ring = "Fuse.png" },
-	{ "ROGUE", { 1856 }, 30, "crestRupture", "stain", "stain", cooling = 1856 },
+	{ "ROGUE", { 1856 }, 30, "crestRupture", "stain", "stain", cooling = 1856, unrailed = true },
 	{ "ROGUE", { 1943 }, 0, "crestRupture", "stain", "stain", target = { 11275 } },
 	{ "ROGUE", { 2842 }, 0, "crestPoisons", "vial", "vial", enchant = 1, slot = "MainHand" },
 	{ "ROGUE", { 2842 }, 0, "crestPoisons", "vial", "vial", enchant = 2, slot = "OffHand" },
@@ -55,6 +55,8 @@ for _, row in ipairs(PIECES) do
 	local class, known, form, key, crest, frames = row[1], row[2], row[3], row[4], row[5], row[6]
 	local where = class .. " " .. key .. " " .. tostring(crest or frames) .. (row.slot and " " .. row.slot or "")
 	local env, K, ns = New(class, known)
+	-- A cooldown the crest rail holds is not drawn twice, so the piece that counts it is read with the rail off.
+	if row.unrailed then K.Options.Write("ActionBars", "crestRail", false) end
 	env._form = form
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	local p = Find(ns, key, nil, row.slot)
@@ -144,9 +146,11 @@ do
 	Clean(env, K, "fuse")
 end
 
--- The trinket's ember burns on the central ring it qualifies, not round the moved jewel (review of 6fc9d08a #1).
+-- The trinket's ember burns on the central ring it qualifies, not round the moved jewel (review of 6fc9d08a #1). The crest's rail carries the trinket while it
+-- shows, so the socket is read with the rail switched off.
 do
 	local env, K, ns = New("ROGUE", { 5171, 13877 })
+	K.Options.Write("ActionBars", "crestRail", false)
 	env._resolveRects = true
 	local jewel = Find(ns, "crestTrinkets")
 	local hot

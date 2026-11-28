@@ -619,6 +619,106 @@ def Farseer(p):
     eye(p, 0.5, 0.58, 0.18, 0.1)
 
 
+# The melee crest rail's own copies of the healer sigils it borrows (KstyleUI_ActionBars/SlabRail.lua, Core/Tokens.lua rail<Name>),
+# drawn as they were when the rail's sheets were approved. A healer redraw changes only the healer's sigil; the rail's steel marks
+# (Media/Textures/Sigils/Rail) and its baked aura sheets (Tools/media/forge/auras.py, Media/Textures/Auras/Rail) keep these.
+RAIL = {}
+
+
+def rail(fn):
+    RAIL[fn.__name__.removeprefix("rail_")] = fn
+    return fn
+
+
+@rail
+def rail_Fang(p):
+    for x in (0.34, 0.66):
+        p.line((x - 0.1, 0.22), (x, 0.8), (x + 0.1, 0.22))
+    p.line((0.18, 0.22), (0.82, 0.22))
+
+
+@rail
+def rail_Bolt(p):
+    bolt(p)
+
+
+@rail
+def rail_Feedback(p):
+    p.ring(0.5, 0.5, 0.36)
+    bolt(p, 0.5, 0.7)
+
+
+@rail
+def rail_Farseer(p):
+    p.poly((0.5, 0.14), (0.86, 0.8), (0.14, 0.8))
+    eye(p, 0.5, 0.58, 0.18, 0.1)
+
+
+@rail
+def rail_Brave(p):
+    shield(p)
+    star(p, 0.5, 0.45, 0.17, 0.07, 5)
+
+
+@rail
+def rail_Mend(p):
+    heart(p)
+    p.line((0.5, 0.38), (0.5, 0.62))
+    p.line((0.38, 0.5), (0.62, 0.5))
+
+
+@rail
+def rail_Swift(p):
+    for k, y in enumerate((0.26, 0.5, 0.74)):
+        x0 = 0.14 + 0.1 * (k % 2)
+        bezier(p, (x0, y + 0.06), (0.5, y - 0.1), (0.78, y))
+        p.arc(0.74, y + 0.07, 0.07, -60, 160)
+
+
+@rail
+def rail_Sacrifice(p):
+    heart(p, 0.5, 0.56, 0.017)
+    blade(p, 0.5, 0.9, 0.5, 0.12)
+
+
+@rail
+def rail_Infusion(p):
+    arrow(p, 0.5, 0.84, 0.5, 0.2, 0.16)
+    star(p, 0.26, 0.38, 0.1, 0.035, 4)
+    star(p, 0.74, 0.58, 0.1, 0.035, 4)
+
+
+@rail
+def rail_Lifeline(p):
+    p.ring(0.5, 0.5, 0.34)
+    p.line((0.5, 0.3), (0.5, 0.7))
+    p.line((0.3, 0.5), (0.7, 0.5))
+
+
+@rail
+def rail_Focus(p):
+    p.ring(0.5, 0.5, 0.33)
+    p.ring(0.5, 0.5, 0.18)
+    p.dot(0.5, 0.5, 0.06)
+    for a in (0, 90, 180, 270):
+        r = math.radians(a)
+        p.line((0.5 + 0.33 * math.cos(r), 0.5 + 0.33 * math.sin(r)), (0.5 + 0.42 * math.cos(r), 0.5 + 0.42 * math.sin(r)))
+
+
+@rail
+def rail_Moon(p):
+    p.arc(0.5, 0.5, 0.33, 60, 300)
+    p.arc(0.7, 0.5, 0.288, 97, 263)
+
+
+@rail
+def rail_Veil(p):
+    p.ring(0.5, 0.3, 0.13)
+    p.arc(0.5, 0.92, 0.32, 200, 340)
+    for k, x in enumerate((0.7, 0.8, 0.88)):
+        p.dot(x, 0.34 + 0.12 * k, 0.04 - 0.008 * k)
+
+
 # Races
 @glyph
 def Axe(p):
@@ -744,7 +844,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
     images = {}
-    for name, draw in GLYPHS.items():
+    (args.out / "Rail").mkdir(exist_ok=True)
+    for name, draw in [*GLYPHS.items(), *((f"Rail/{name}", draw) for name, draw in RAIL.items())]:
         if name in FORGED:
             continue
         images[name] = render(draw)

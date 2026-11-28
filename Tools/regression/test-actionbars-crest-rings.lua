@@ -113,8 +113,10 @@ for _, file in ipairs({ "EmberBandAmber.png", "EmberBandRed.png", "EmberRingLine
 end
 
 -- Expiring ember on a warrior's cooldown ring and sigils; Battle Shout's horn and Enrage's cracks warn through their last fifth on themselves (they drain as objects and along their own art, with no 112 line).
+-- The crest's rail carries these long cooldowns while it shows, so the ring's sigils are read with the rail switched off.
 do
 	local env, K, ns = New("WARRIOR", { SHOUT, 2687, RECKLESS, WALL })
+	K.Options.Write("ActionBars", "crestRail", false)
 	local shout, rim, cooldowns = Piece(ns, "crestShout"), Piece(ns, "crestEnrage"), Piece(ns, "crestCooldowns")
 	local hot, gate = Hot(cooldowns.lit)
 	assert(hot and tostring(hot._state.SwipeTexture[1]):find("EmberRingLine16Amber.png", 1, true), "the cooldown ring gets the thin ring's amber ember")
@@ -340,8 +342,10 @@ do
 end
 
 -- Two cooldowns of one sigil family at once (a paladin's two ranks of Divine Shield): the sigil's own slot, both its ember slots and the warning's schedule follow the same one.
+-- The rail carries Divine Shield while it shows, so the row's sigil is read with the rail switched off.
 do
 	local env, K, ns = New("PALADIN", { 642, 1020 })
+	K.Options.Write("ActionBars", "crestRail", false)
 	local cooldowns = Piece(ns, "crestCooldowns")
 	local sigil
 	for _, s in ipairs(cooldowns.sigils) do

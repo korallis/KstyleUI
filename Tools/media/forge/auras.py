@@ -64,14 +64,22 @@ EDGE = 3                  # cell pixels over which a bare figure's light fades b
 MARKS = {}
 NEUTRAL = "white"
 
-# Warrior, paladin, rogue and the mage's rail (SlabRail.lua): each class's sigils in its rail's colour (SlabTrackers.lua crestCooldowns), the shared
-# sigils and the crest objects in neutral light.
-for colour, names in (("gilt", "Crossed Skull Wall Heart Sweep Thorns"), ("white", "Bubble Aegis Sun Hand Wing Bulwark Voice"),
+# Warrior, paladin, rogue and the mage's rail (SlabRail.lua): each class's sigils in its rail's colour (SlabTrackers.lua
+# crestCooldowns and SlabRail.Register), the shared sigils and the crest objects in neutral light.
+for colour, names in (("gilt", "Crossed Skull Wall Heart Sweep Thorns"),
+                      ("white", "Bubble Aegis Sun Hand Wing Bulwark Voice"),
                       ("pipPriestGlow", "Flurry Rush Evade Drop Smoke Ghost"),
                       ("pipMageGlow", "Blink FrostNova FireBlast BlastWave ColdSnap IceBarrier IceLance"),
                       (NEUTRAL, "Dash Axe Tusks Stone Eye Grave Shatter Star Gear Regen Potion Escape")):
     for name in names.split():
         MARKS[name] = ("sigils", colour, None)
+# The rail's other melee abilities borrow sigils the healers' cooldown rows also draw. Their sheets are the rail's alone,
+# baked in that rail's colour into Auras/Rail (auraRail<Name>) from the rail's own copies of those drawings (sigils.RAIL), so a
+# healer's own sheet or redrawing of the same sigil never changes them.
+for colour, names in (("gilt", "Fang Bolt Feedback Farseer Brave"), ("white", "Mend Swift Sacrifice Infusion Lifeline"),
+                      ("pipPriestGlow", "Focus Moon Veil")):
+    for name in names.split():
+        MARKS[name + "#rail"] = ("sigils", colour, None)
 for name, (art, threshold) in {"Horn": ("Horn.png", 0.5), "Sword": ("Sword.png", 0.5), "Axe": ("Axe.png", 0.5),
                                "Dagger": ("Dagger.png", 0.5), "Hammer": ("Hammer.png", 0.5), "Shield": ("Shield.png", 0.5),
                                "Seal": ("Seal.png", 0.5), "Brand": ("Brand.png", 0.5), "Drop": ("Drop.png", 0.5),
@@ -174,11 +182,11 @@ def palette(hexv):
     return [[pos, "".join(f"{int(round(v * 255)):02x}" for v in np.clip(col, 0, 1))] for pos, col in stops]
 
 
-def figure(name, kind, design, work):
+def figure(name, kind, design, work, rail=False):
     """The mark's figure mask and relief height in its own unit box, and whether it sits on a plate."""
     if kind == "sigils":
         pen = sigils.Pen()
-        sigils.GLYPHS[design or name](pen)
+        (sigils.RAIL if rail else sigils.GLYPHS)[design or name](pen)
         e = forge_lineart(name, pen.image, work / "maps")
         return e.M, e.H, False
     if kind == "effects":
@@ -306,7 +314,7 @@ def main(argv=None):
         if only and key not in only:
             continue
         name, tag = key.split("#")[0].split("/")[-1], key.replace("#", "-").replace("/", "")
-        mask, height, seated = figure(name, kind, design, work)
+        mask, height, seated = figure(name, kind, design, work, key.endswith("#rail"))
         band = BANDS.get(key, 0)
         if band:
             # the rig's light rises up the frame; a strip lies on its side so its light streams back along it, and its
@@ -322,7 +330,7 @@ def main(argv=None):
                         "--palette", json.dumps(palette(hexes[colour])), "--fit", str(fit),
                         "--plate", str(RIM_INNER if seated else 0.0), "--pad", str(PAD / (N + 2 * PAD))],
                        check=True, stdout=subprocess.DEVNULL, env=env)
-        path = args.out / kind.capitalize() / f"{name}.png"
+        path = args.out / ("Rail" if key.endswith("#rail") else kind.capitalize()) / f"{name}.png"
         seam = bake([frames / f"{tag}_{i:02d}.png" for i in range(FRAMES)], seated, path, band)
         print(path.relative_to(args.out), hashlib.sha256(path.read_bytes()).hexdigest(), f"seam {seam:.2f}x largest ordinary step",
               "seated" if seated else "bare")

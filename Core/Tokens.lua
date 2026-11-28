@@ -518,6 +518,10 @@ for _, name in ipairs({
 }) do
 	TEXTURES["sigil" .. name] = { file = "Textures\\Sigils\\" .. name .. ".png" }
 end
+local RAIL_SIGILS = { "Fang", "Bolt", "Feedback", "Farseer", "Brave", "Mend", "Swift", "Sacrifice", "Infusion", "Lifeline", "Focus", "Moon", "Veil" }
+for _, name in ipairs(RAIL_SIGILS) do
+	TEXTURES["rail" .. name] = { file = "Textures\\Sigils\\Rail\\" .. name .. ".png" }
+end
 for _, name in ipairs({
 	"Ankh", "Bud", "Charge", "Dome", "Faerie", "Fangs", "Fiend", "Growl", "Growth", "Lance", "Mending", "MindOrb", "Moon", "Plague",
 	"Rake", "Reaper", "Renew", "Rip", "Roar", "Shock", "Shroud", "Sprout", "Strike", "Swarm", "Tide", "Wolf"
@@ -594,12 +598,13 @@ for _, set in ipairs({
 	{ kind = "Sigil", names = { "Crossed", "Skull", "Wall", "Heart", "Sweep", "Thorns", "Bubble", "Aegis", "Sun", "Hand", "Wing", "Bulwark", "Voice",
 		"Flurry", "Rush", "Evade", "Drop", "Smoke", "Ghost", "Blink", "FrostNova", "FireBlast", "BlastWave", "ColdSnap", "IceBarrier", "IceLance" } },
 	{ kind = "Sigil", tint = true, names = { "Dash", "Axe", "Tusks", "Stone", "Eye", "Grave", "Shatter", "Star", "Gear", "Regen", "Potion", "Escape" } },
+	{ kind = "Rail", folder = "Rail", names = RAIL_SIGILS },
 	{ kind = "Effect", tint = true, names = { "Horn", "Sword", "Axe", "Dagger", "Hammer", "Shield", "Seal", "Brand", "Drop", "Vial", "Ward", "Oath", "Stain" } },
 }) do
 	for _, name in ipairs(set.names) do
 		local token = "aura" .. set.kind .. name
 		TEXTURES[token] = {
-			file = "Textures\\Auras\\" .. set.kind .. "s\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25, tint = set.tint,
+			file = "Textures\\Auras\\" .. (set.folder or set.kind .. "s") .. "\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25, tint = set.tint,
 		}
 		if set.kind == "Sigil" then
 			TEXTURES["sigil" .. name].aura = token

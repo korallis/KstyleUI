@@ -17,12 +17,12 @@ local AURAS = {
 	target = { 772, 11581, 355, 20185, 20186, 1328548, 1310909, 11275, 703, 2818, 16511, 1316709 },
 }
 
--- The seats every case must show, in every form, on the crest and in the row: a piece that fails to build is missing, not passing.
+-- The seats every case must show, in every form, on the crest and in the row: a piece that fails to build is missing, not passing. The crest's rail carries
+-- the on-use trinket with the class's long cooldowns, so there the rail stands in the trinket socket's place; the Frames row has no rail and keeps the socket.
 local SEATS = {
-	WARRIOR = { "crestShout", "crestOpening", "crestHipLeft", "crestHipRight", "crestFootLeft", "crestFootRight", "crestTrinkets" },
-	PALADIN = { "crestFiveSecond", "crestSeal", "crestJudgement", "crestJudged", "crestHipLeft", "crestHipRight", "crestFootLeft",
-		"crestTrinkets" },
-	ROGUE = { "crestSlice", "crestRupture", "crestPoisons", "crestFootLeft", "crestFootRight", "crestTrinkets" },
+	WARRIOR = { "crestShout", "crestOpening", "crestHipLeft", "crestHipRight", "crestFootLeft", "crestFootRight" },
+	PALADIN = { "crestFiveSecond", "crestSeal", "crestJudgement", "crestJudged", "crestHipLeft", "crestHipRight", "crestFootLeft" },
+	ROGUE = { "crestSlice", "crestRupture", "crestPoisons", "crestFootLeft", "crestFootRight" },
 }
 
 for _, case in ipairs(CASES) do
@@ -55,6 +55,7 @@ for _, case in ipairs(CASES) do
 				end)
 			end
 			assert(next(f.failed) == nil, where .. ": piece " .. tostring(next(f.failed)) .. " failed to build")
+			assert(shown[frames and "crestTrinkets" or "crestRail"], where .. ": " .. (frames and "crestTrinkets" or "crestRail") .. " shows")
 			for _, key in ipairs(SEATS[case[1]]) do
 				assert(shown[key], where .. ": " .. key .. " shows")
 			end

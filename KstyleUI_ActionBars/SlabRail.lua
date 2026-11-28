@@ -23,7 +23,18 @@ local DIP, DIP_RUN, BURST, BURST_RUN = 0.86, 0.12, { 0.85, 1.45 }, 0.4
 local LIFT_RUN, TURN, POP, POP_RUN, SETTLE_RUN, FOLD_RUN, HOME_RUN = 0.28, 16, 1.29 / 1.21, 0.2, 0.16, 0.35, 0.3
 local CASTS = { "unitframes.castbar.player", "unitframes.castbar.target" }
 local OWNER, NONE = "ActionBars.SlabRail", {}
-local RACIALS = ns.SlabTrackers.RACIALS
+local RACIALS = {
+	{ key = "bloodFury", spells = { 20572 }, sigil = "Axe", major = true, race = true, unit = "player" },
+	{ key = "berserking", spells = { 20554 }, sigil = "Tusks", major = true, race = true, unit = "player" },
+	{ key = "stoneform", spells = { 20594 }, sigil = "Stone", major = true, race = true, unit = "player" },
+	{ key = "perception", spells = { 20600 }, sigil = "Eye", race = true, unit = "player" },
+	{ key = "forsaken", spells = { 7744 }, sigil = "Grave", race = true, unit = "player" },
+	{ key = "shatterCurse", spells = { 1299026 }, sigil = "Shatter", race = true, unit = "player" },
+	{ key = "eluneLight", spells = { 1259799 }, sigil = "Star", race = true, unit = "player" },
+	{ key = "eureka", spells = { 1259812, 1259813, 1259817, 1259821, 1259823 }, sigil = "Gear", race = true, unit = "player" },
+	{ key = "rapidRegen", spells = { 1260270 }, sigil = "Regen", race = true, unit = "player" },
+}
+Rail.RACIALS = RACIALS
 local RACIAL = {}
 for _, racial in ipairs(RACIALS) do
 	RACIAL[racial.key] = true
@@ -197,8 +208,15 @@ local function Order(data)
 	for i, key in ipairs(held) do
 		table.insert(spare, at + i - 1, key)
 	end
-	for i = #spare, SPARES + 1, -1 do
-		spare[i] = nil
+	local racial
+	for _, key in ipairs(spare) do
+		if RACIAL[key] then
+			racial = key
+			break
+		end
+	end
+	while #spare > SPARES do
+		table.remove(spare, spare[#spare] == racial and #spare - 1 or #spare)
 	end
 	return seats, spare, places
 end
@@ -354,7 +372,8 @@ end
 local function Mark(piece, parent, layer, sublevel, seat, color, size)
 	local sigil = seat.ability.sigil
 	if sigil then
-		return piece.add(Medals.Texture(parent, layer, sublevel, "sigil" .. sigil, color, size))
+		local own = pcall(Tokens.Texture, "rail" .. sigil)
+		return piece.add(Medals.Texture(parent, layer, sublevel, (own and "rail" or "sigil") .. sigil, color, size))
 	end
 	local t = Medals.Round(parent)
 	t:SetDrawLayer(layer, sublevel)
@@ -378,23 +397,29 @@ local function Baked(sigil)
 	if not sigil then
 		return nil
 	end
-	local found, _, _, _, _, aura = pcall(Tokens.Texture, "sigil" .. sigil)
-	if found and aura then
-		local _, _, _, _, span = Tokens.Flipbook(aura)
-		return aura, SIGIL * span
+	local token = "auraRail" .. sigil
+	local found, _, _, _, _, span, tint = pcall(Tokens.Flipbook, token)
+	if not found then
+		local linked, _, _, _, _, aura = pcall(Tokens.Texture, "sigil" .. sigil)
+		token = linked and aura or "auraSigil" .. sigil
+		found, _, _, _, _, span, tint = pcall(Tokens.Flipbook, token)
+	end
+	if found then
+		return token, SIGIL * span, tint
 	end
 end
 
 local function Aura(piece, parent, size, seat)
 	local sigil = seat.ability.sigil
-	local token, span = Baked(sigil)
+	local token, span, tint = Baked(sigil)
 	if not token then
 		Mark(piece, parent, "ARTWORK", 1, seat, "white", size * (sigil and SIGIL or ICON))
 		return { still = false, moving = false, loop = false }
 	end
-	local still = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, "white", size * span, "ADD"))
+	local color = tint and Data().tint and Data().color or "white"
+	local still = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, color, size * span, "ADD"))
 	still:SetTexCoord(0, 0.25, 0, 0.25)
-	local moving = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, "white", size * span, "ADD"))
+	local moving = piece.add(Medals.Texture(parent, "ARTWORK", 1, token, color, size * span, "ADD"))
 	moving:SetAlpha(0)
 	return { still = still, moving = moving, loop = Medals.Flip(moving, token, 1) }
 end
