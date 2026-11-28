@@ -137,7 +137,8 @@ local function Inflate(s)
 				while have < FAST do
 					buf, pos, have = buf + byte(s, pos) * POW[have], pos + 1, have + 8
 				end
-				local sym, entry = nil, fast[buf % SPAN]
+				local sym
+				local entry = fast[buf % SPAN]
 				if entry then
 					local len = entry % 16
 					local p = POW[len]

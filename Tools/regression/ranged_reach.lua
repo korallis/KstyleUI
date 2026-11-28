@@ -150,7 +150,8 @@ local function Content(region)
 					if lo <= hi then
 						drawn = true
 						for k = 1, 2 do
-							local x, sx, ex = k == 1 and lo or hi, nil, nil
+							local x = k == 1 and lo or hi
+							local sx, ex
 							if cells then
 								sx = ((x - x0) % cw) / cw
 								ex = sx + 1 / cw
