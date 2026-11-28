@@ -85,6 +85,16 @@ local function GuideStep()
 	return applied and Setup.GuideLoaded() and not GuidePlaced()
 end
 
+local function FullWhy()
+	local choices, full = Setup.EditMode.Replacements()
+	if not full then
+		return L["An account layout slot is free now. Press Try again."]
+	elseif ns.Store.Module("Setup").replaceLayout then
+		return L["All account layouts are in use. Choose Replace this one, then Apply."]
+	end
+	return L["All %d account layouts are in use. Delete one in Edit Mode, then try again."]:format(#choices - 1)
+end
+
 local function EditModeText()
 	local EditMode = Setup.EditMode
 	local last = EditMode and EditMode.Last()
@@ -93,7 +103,7 @@ local function EditModeText()
 		if last.state == "waiting" then
 			lines[1] = string.format(L["Edit Mode: %s is written when combat ends."], last.layout)
 		elseif last.state == "failed" then
-			lines[1] = string.format(L["Edit Mode did not take %s. %s"], last.layout, last.why)
+			lines[1] = string.format(L["Edit Mode did not take %s. %s"], last.layout, last.full and FullWhy() or last.why)
 		else
 			lines[1] = string.format(#last.notes > 0 and L["Edit Mode: %s is your active layout, with the quest tracker in the story rail."] or L["Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands."], last.layout)
 			for _, note in ipairs(last.notes) do

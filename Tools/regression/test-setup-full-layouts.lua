@@ -103,6 +103,39 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- After the refusal the player frees a slot in Edit Mode: the summary drops the picker, says the slot is free, and
+-- Apply writes the KstyleUI layout into it without a second backup.
+do
+	local env, K, state, panel = FullSetup(true)
+	Refuse(env, K, panel)
+	local profiles = #K.Store.ListProfiles()
+	table.remove(state.saved, 4)
+	K.Setup.Go(5)
+	W.Settle(env)
+	assert(panel.editMode:GetText():find("slot is free now", 1, true), "the summary says a slot is free once one is")
+	assert(not panel.editMode:GetText():find("Choose Replace this one", 1, true), "the summary no longer names Replace this one once a slot is free")
+	assert(not Visible(panel.replace) and Visible(panel.apply) and Visible(panel.retry), "a free slot leaves Apply and Try again, without the picker")
+	W.Click(panel.apply)
+	W.Settle(env)
+	assert(Fake.Named(state, "KstyleUI DPS") and Fake.Named(state, "Mine 2") and Fake.Named(state, "Mine 5"), "Apply writes into the free slot and keeps every other layout")
+	assert(#K.Store.ListProfiles() == profiles, "Apply into the free slot makes no second setup backup")
+	Finished(env, K, panel)
+end
+
+-- After the refusal the player turns Choose an Edit Mode replacement off: the summary keeps the earlier full-list
+-- message and the usual Reload and Later.
+do
+	local env, K, _, panel = FullSetup(true)
+	Refuse(env, K, panel)
+	K.Options.Write("Setup", "replaceLayout", false)
+	K.Setup.Go(5)
+	W.Settle(env)
+	assert(panel.editMode:GetText():find("Delete one in Edit Mode", 1, true), "with the replacement off, the summary says to delete a layout")
+	assert(not panel.editMode:GetText():find("Choose Replace this one", 1, true), "with the replacement off, the summary no longer names Replace this one")
+	assert(not Visible(panel.replace) and not Visible(panel.apply) and Visible(panel.reload) and Visible(panel.later), "with the replacement off, Reload and Later return")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- A failure that is not the full-list refusal keeps the usual Reload and Later, even with every slot in use: here
 -- KstyleUI DPS already has its slot, so Edit Mode needs no replacement, and only the save fails.
 do

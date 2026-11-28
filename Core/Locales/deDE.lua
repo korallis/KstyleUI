@@ -356,6 +356,7 @@ ns.Locale.Add({
 	["Ambience"] = "Umgebung",
 	["Ambient hub effects"] = "Umgebungseffekte der Nabe",
 	["Ammunition"] = "Munition",
+	["An account layout slot is free now. Press Try again."] = "Ein Accountlayout-Platz ist jetzt frei. Klickt auf Erneut versuchen.",
 	["An outline helps the %s read over bright terrain."] = "Ein Umriss hilft, %s \195\188ber hellem Gel\195\164nde zu lesen.",
 	["An outline instead of the soft shadow, for busy backgrounds."] = "Ein Umriss statt des weichen Schattens, f\195\188r unruhige Hintergr\195\188nde.",
 	["An outline keeps text readable over the game world."] = "Ein Umriss h\195\164lt Text \195\188ber der Spielwelt lesbar.",

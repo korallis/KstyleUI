@@ -356,6 +356,7 @@ ns.Locale.Add({
 	["Ambience"] = "Ambiance",
 	["Ambient hub effects"] = "Effets d\226\128\153ambiance du moyeu",
 	["Ammunition"] = "Munitions",
+	["An account layout slot is free now. Press Try again."] = "Un emplacement de disposition du compte est maintenant libre. Cliquez sur R\195\169essayer.",
 	["An outline helps the %s read over bright terrain."] = "Un contour aide \195\160 lire %s sur un terrain clair.",
 	["An outline instead of the soft shadow, for busy backgrounds."] = "Un contour au lieu de l'ombre douce, pour les fonds charg\195\169s.",
 	["An outline keeps text readable over the game world."] = "Un contour garde le texte lisible sur le monde du jeu.",
