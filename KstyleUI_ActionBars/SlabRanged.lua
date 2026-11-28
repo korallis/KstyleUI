@@ -1464,6 +1464,14 @@ if CLASS == "MAGE" then
 	local IGNITE = { 11119, 11120, 12846, 12847, 12848 }
 	local FIRE = { 412538, 11366, 12505, 12522, 12523, 12524, 12525, 12526, 18809, 133, 143, 145, 3140, 8400, 8401, 8402, 10148, 10149, 10150, 10151, 25306 }
 	local WINTERS = { 11180, 28592, 28593, 28594, 28595 }
+	local CLEARCASTING = { 11213, 12574, 12575, 12576, 12577 }
+	local function Shown(spells, slot)
+		return ns.SlabRail.Holds(spells, slot) or ns.SlabOrb.Holds(spells)
+	end
+	local function Commit()
+		local rail, orb = ns.SlabRail.Commit(), ns.SlabOrb.Commit()
+		return rail or orb
+	end
 
 	local FIRE_BLAST = { 10199, 10197, 8413, 8412, 2138, 2137, 2136, 400623, 400622, 400621, 400620, 400616, 400619, 400618 }
 	ns.SlabRail.Register("MAGE", {
@@ -1475,12 +1483,19 @@ if CLASS == "MAGE" then
 			combustion = { spells = { 11129 }, buffs = { 11129, 28682 }, sigil = "Flame", unit = "player" },
 			block = { spells = { 11958 }, buffs = { 11958, 27619 }, sigil = "Crystal", unit = "player" },
 			evocation = { spells = { 12051 }, sigil = "Vortex", unit = "player" },
-			snap = { spells = { 12472 } },
-			blast = { spells = FIRE_BLAST },
+			snap = { spells = { 12472 }, sigil = "ColdSnap" },
+			blast = { spells = FIRE_BLAST, sigil = "FireBlast" },
 			cone = { spells = { 10161, 10160, 10159, 8492, 120 } },
-			barrier = { spells = { 13033, 13032, 13031, 11426 } },
+			barrier = { spells = { 13033, 13032, 13031, 11426 }, sigil = "IceBarrier" },
+			blink = { spells = { 1953 }, sigil = "Blink" },
+			nova = { spells = NOVA, sigil = "FrostNova" },
+			blastWave = { spells = { 13021, 13020, 13019, 13018, 11113 }, sigil = "BlastWave" },
+			lance = { spells = { 1240047, 1240046, 1240045, 1240044, 400640, 1312002 }, sigil = "IceLance" },
+			escape = { spells = { 20589 }, sigil = "Escape", race = true, unit = "player" },
 		},
-		majors = { "power", "presence", "combustion", "block", "snap", "evocation" },
+		majors = { "power", "presence", "combustion", "block", "snap", "evocation", "blastWave", "blink", "nova", "lance", "blast" },
+		overflow = { "escape" },
+		held = ns.SlabOrb.Expected,
 		trees = {
 			{ majors = { "power", "presence", "evocation" }, fill = { "blast" } },
 			{ majors = { "combustion", "block", "evocation" }, fill = { "cone" } },
@@ -1500,7 +1515,7 @@ if CLASS == "MAGE" then
 		} },
 		{ key = "crestCounterspell", seat = PERCH_LEFT, build = Effect, look = "shard", feed = "cooldown", choices = {
 			{ known = { 2139 }, color = "magic" },
-			{ known = { 10199, 10197, 8413, 8412, 2138, 2137, 2136 }, look = "orb", color = "schoolFire" },
+			{ known = Railed(false, FIRE_BLAST, FIRE_BLAST), look = "orb", color = "schoolFire" },
 		} },
 		{ key = "crestSchool", seat = At(BAND.left), choices = {
 			{ build = Stacks, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 22959 }, known = { 11095, 12872, 12873 }, color = "schoolFire",
@@ -1508,7 +1523,7 @@ if CLASS == "MAGE" then
 			{ build = Stacks, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 12579 }, known = WINTERS, color = "schoolFrost", stacks = 5,
 				ember = "glyphChillShard" },
 			{ build = Charge, feed = "cooldown", known = { 1326079 }, color = "schoolArcane" },
-			{ build = Charge, feed = "cooldown", known = NOVA, color = "schoolFrost" },
+			{ build = Charge, feed = "cooldown", known = Railed(false, NOVA, NOVA), color = "schoolFrost" },
 		} },
 		{ key = "crestFrozen", seat = At(BAND.frost), build = Frozen, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER",
 			color = "schoolFrost", choices = {
@@ -1522,13 +1537,15 @@ if CLASS == "MAGE" then
 		} },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "pipMageGlow", families = { { spells = { 12042 }, sigil = "Arcane", major = true },
 			{ spells = { 12043 }, sigil = "Hourglass", major = true }, { spells = { 11129, 28682 }, known = { 11129 }, sigil = "Flame", major = true }, { spells = { 12051 }, sigil = "Vortex", major = true },
-			{ spells = { 11958, 27619 }, known = { 11958 }, sigil = "Crystal", major = true } }, railed = ns.SlabRail.Holds },
+			{ spells = { 11958, 27619 }, known = { 11958 }, sigil = "Crystal", major = true } }, railed = Shown },
 		{ key = "crestWard", seat = "rim", build = Ward, place = Ring, feed = "aura", spells = WARDS, color = "rim", ward = true },
-		{ key = "crestClearcasting", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 12536 }, known = { 11213, 12574, 12575, 12576, 12577 },
-			color = "schoolArcane", proc = "schoolArcane" },
+		{ key = "crestClearcasting", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 12536 },
+			known = CLEARCASTING, color = "schoolArcane", proc = "schoolArcane" },
+		{ key = "crestOrb", seat = "rim", build = ns.SlabOrb.Build, place = ns.SlabOrb.Place, feed = "cooldown", choices = ns.SlabOrb.Choices(), crestOnly = true },
 		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
-	}, { burst = "medBurstMage", pick = ns.SlabRail.Pick, commit = ns.SlabRail.Commit, rail = ns.SlabRail.Holds, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" },
-		events = { { "UNIT_POWER_UPDATE", "player" }, "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } }, paint = Paint, motion = Motion, figures = true })
+	}, { burst = "medBurstMage", pick = ns.SlabRail.Pick, commit = Commit, rail = Shown, update = { "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED" },
+		events = { { "UNIT_POWER_UPDATE", "player" }, "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN", { "UNIT_SPELLCAST_SUCCEEDED", "player" } }, paint = Paint, motion = Motion,
+		figures = true })
 end
 
 if CLASS == "WARLOCK" then

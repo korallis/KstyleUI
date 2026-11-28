@@ -88,14 +88,21 @@ end
 
 local function Burn(fire, moving)
 	moving = moving and not fire.settled
+	local idle = fire.slow and not moving and Effects.Allows("ambient")
+	local loop = idle and fire.slow or fire.loop
+	moving = moving or idle
 	fire:SetAlpha((moving or fire.gated) and 1 or 0)
 	fire.still:SetAlpha((moving and not fire.calm) and 0 or 1)
 	if fire.fed then
 		return
-	elseif not (moving and fire:IsVisible()) then
-		fire.loop:Stop()
-	elseif not fire.loop:IsPlaying() then
-		fire.loop:Play()
+	end
+	if fire.slow then
+		(idle and fire.loop or fire.slow):Stop()
+	end
+	if not (moving and fire:IsVisible()) then
+		loop:Stop()
+	elseif not loop:IsPlaying() then
+		loop:Play()
 	end
 end
 
@@ -127,6 +134,9 @@ end
 local function Hiding(host)
 	for _, fire in ipairs(host.fires) do
 		fire.loop:Stop()
+		if fire.slow then
+			fire.slow:Stop()
+		end
 	end
 end
 
@@ -1363,12 +1373,39 @@ function Medals.Rest()
 	end
 end
 
+function Medals.Spent(cd, fresh)
+	local active = type(cd) == "table" and cd.isActive
+	if IsSecret(active) then
+		return nil
+	elseif active ~= true then
+		return false
+	end
+	local consts = Constants and Constants.SpellCooldownConsts
+	local gcd, global = cd.isOnGCD, consts and consts.GLOBAL_RECOVERY_CATEGORY
+	if not fresh then
+		gcd = cd.activeCategory
+		if IsSecret(gcd) or type(global) ~= "number" then
+			return nil, true
+		end
+		gcd = gcd == global
+	end
+	if IsSecret(gcd) then
+		return nil, true
+	end
+	return gcd ~= true
+end
+
 local function Cooling(m, id, event)
 	m.cooling = m.cooling or {}
-	if event == "SPELL_UPDATE_COOLDOWN" or event == nil and m.cooling[id] == nil then
+	if event == "SPELL_UPDATE_COOLDOWN" or event == nil or m.cooling[id] == nil then
 		local get = C_Spell and C_Spell.GetSpellCooldown
-		local cd = type(get) == "function" and get(id)
-		m.cooling[id] = type(cd) == "table" and cd.isActive == true and (event == nil or IsSecret(cd.isOnGCD) or cd.isOnGCD ~= true)
+		local spent, active = Medals.Spent(type(get) == "function" and get(id), event == "SPELL_UPDATE_COOLDOWN")
+		if spent == nil and active and not m.keeps then
+			spent = true
+		end
+		if spent ~= nil then
+			m.cooling[id] = spent
+		end
 	end
 	return m.cooling[id] == true
 end
@@ -1417,6 +1454,29 @@ local function PetCooling(m, spell, event)
 	return true
 end
 
+function Medals.Confirm(m, cooling)
+	local spell = m.spec and m.spec.spell
+	m.cooled = cooling
+	if m.cooling and spell and not cooling then
+		m.cooling[spell] = false
+	end
+	if m.keeps and cooling then
+		m.armed = spell
+	elseif m.armed ~= nil and not cooling then
+		local due = m.armed == spell
+		m.armed = nil
+		if due then
+			Medals.Fire(m)
+		end
+	end
+	if m.ready then
+		m.ready:SetShown(not cooling)
+	end
+	if m.spent then
+		m.spent:SetShown(cooling)
+	end
+end
+
 function Medals.Refresh(m, event)
 	local spec = m.spec
 	if spec.feed == "cooldown" then
@@ -1433,14 +1493,12 @@ function Medals.Refresh(m, event)
 			end
 			cooling = (m.bar or m.ready) and duration and Cooling(m, spec.spell, event) or false
 		end
-		if cooling ~= m.cooled then
-			m.cooled = cooling
-			if m.bar then
-				Refill(m.bar, cooling and duration)
-			end
-			if m.ready then
-				m.ready:SetShown(not cooling)
-			end
+		local refill = m.bar and (cooling ~= m.cooled or cooling and (event == nil or event == "SPELL_UPDATE_COOLDOWN"))
+		if refill then
+			Refill(m.bar, cooling and duration)
+		end
+		if cooling ~= m.cooled or cooling and m.keeps and m.armed ~= spec.spell then
+			Medals.Confirm(m, cooling)
 		end
 		return
 	end

@@ -12,15 +12,18 @@
 -- felhunter (Spell Lock cooling), imp, voidwalker or succubus (that demon out, chosen through the pet's spellbook as the felhunter's Spell Lock
 -- chooses it), curses (each of the five curses on the target in turn, one at a time as
 -- the game allows: RENDER_TRACKERS=moment at RENDER_TRACKERS_T 1.5, 3.5, 5.5, 7.5 and 9.5), sacrifice (Demonic Sacrifice of the Imp, Death Coil cooling;
--- every summon known, so RENDER_TRACKERS_SWAP=18789:18790, 18789:18791 or 18789:18792 sacrifices the Voidwalker, Succubus or Felhunter instead), nodemon or level 8 build, each caster's sigils build (every
+-- every summon known, so RENDER_TRACKERS_SWAP=18789:18790, 18789:18791 or 18789:18792 sacrifices the Voidwalker, Succubus or Felhunter instead), nodemon or level 8 build, the mage's orb_arcane, orb_fire and orb_frost builds (the power orb in each tree's light, its great cooldown filling or full, its procs lit, and the mage's rail beside it), each caster's sigils build (every
 -- cooldown sigil of the class up at once: the mage's Arcane Power, Presence of Mind, Combustion, Evocation and Ice Block, the warlock's
 -- Amplify Curse, Fel Domination, Shadow Ward and the Voidwalker's Sacrifice), the hunter's bite (Mongoose Bite ready), aimed (Aimed Shot ready, no Multi-Shot) or raptor
 -- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
 -- breakout_fire), timed as the break-out design's clips: an aura's warn time puts it in its pandemic window, a usable
 -- spell's window and the pet's health steps and leaving time play out on the clock. RENDER_TRACKERS_OFF=1 turns the class's
--- tracker switches off first, for a pixel diff against a build without them. RENDER_TRACKERS_SWAP=from:to[,from:to] plays the
+-- tracker switches off first, for a pixel diff against a build without them; RENDER_TRACKERS_OFF=key[,key] turns off only
+-- those switches (crestOrb for the mage's orb alone). RENDER_TRACKERS_SWAP=from:to[,from:to] plays the
 -- story with other aura spell IDs, so one seat shows each of its choices: 13165:13163 perches Aspect of the Monkey for
--- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
+-- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_TRACKERS_COUNT=id:count[,id:count] gives
+-- an aura of the story another stack count, and RENDER_TRACKERS_COOL=id:start:seconds[,...] casts that spell at start,
+-- in place of the story's own cast of it, and cools it for that long, so one orb or seat can be drawn ready, spent, refilling and relit at its own times. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
 -- Content, Happy) in place of the story's own, so the haunch shows or goes; RENDER_PET_DEAD=1 lays the pet dead, so its perch shows the red
 -- hound. The hunter's story also carries Trueshot Aura from 3 s and Track Beasts from 0.2 s on a hostile beast target (creature type 1), for Improved Tracking's
 -- compass, a pet that knows Screech (its debuff on the target from 5.5 s) and Growl at 70 focus, and three Healing Potions, one drunk at 5 s.
@@ -102,6 +105,18 @@ local STORIES = {
 		},
 		builds = {
 			arcane = {},
+			orb_arcane = { known = { 7302, 759, 11426, 118, 116, 12042, 12043, 12051, 1953, 10230, 10199, 2139, 11958, 12574, 20589, 1259817 },
+				cooling = { [12042] = { -67, 180 }, [12043] = { 1, 180 }, [1953] = { 3, 15 } }, casts = { { 1, 12043 }, { 3, 1953 }, { 2, 9002 } },
+				trinket = { item = 5002, spell = 9002, used = 2, cooldown = 120 },
+				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "player", id = 12536, icon = 136170, at = 3, duration = 15 },
+					{ unit = "player", id = 400589, icon = 236221, at = 4, duration = 15 } } },
+			orb_fire = { known = { 7302, 759, 11426, 118, 116, 11129, 13021, 10199, 1953, 10230, 2139, 12051, 11958, 20589, 1259817 },
+				cooling = { [10199] = { 4, 8 }, [12051] = { -200, 480 } }, casts = { { 4, 10199 } },
+				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "player", id = 400625, icon = 135808, at = 4, duration = 20, count = 2 } } },
+			orb_frost = { known = { 7302, 759, 13033, 118, 116, 12472, 11958, 1240047, 10230, 1953, 10199, 2139, 12051, 20589, 1259817 },
+				cooling = { [12472] = { -300, 600 }, [10230] = { 3.5, 25 } }, casts = { { 3.5, 10230 } },
+				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "player", id = 13033, icon = 135988, at = 2, duration = 60 },
+					{ unit = "player", id = 400670, icon = 132189, at = 4, duration = 15, count = 2 } } },
 			sigils = { known = { 7302, 759, 118, 116, 12042, 12043, 11129, 12051, 11958 }, cooling = {},
 				auras = { { unit = "player", id = 12042, icon = 136048, at = 1, duration = 15 }, { unit = "player", id = 12043, icon = 136031, at = 1.5, duration = 30 },
 					{ unit = "player", id = 11129, icon = 135824, at = 2, duration = 15 }, { unit = "player", id = 12051, icon = 136075, at = 2.5, duration = 8 },
@@ -201,6 +216,13 @@ local SWAP = {}
 for from, to in (os.getenv("RENDER_TRACKERS_SWAP") or ""):gmatch("(%d+):(%d+)") do
 	SWAP[tonumber(from)] = tonumber(to)
 end
+local COUNT, COOL = {}, {}
+for id, n in (os.getenv("RENDER_TRACKERS_COUNT") or ""):gmatch("(%d+):(%d+)") do
+	COUNT[tonumber(id)] = tonumber(n)
+end
+for id, from, span in (os.getenv("RENDER_TRACKERS_COOL") or ""):gmatch("(%d+):([%d.]+):([%d.]+)") do
+	COOL[tonumber(id)] = { tonumber(from), tonumber(span) }
+end
 
 local function Of(class)
 	local s = STORIES[class]
@@ -212,6 +234,20 @@ local function Of(class)
 			auras[i] = setmetatable({ id = SWAP[a.id] or a.id }, { __index = a })
 		end
 		story.auras, story.swapped = auras, true
+	end
+	if story and (next(COUNT) or next(COOL)) and not rawget(story, "retimed") then
+		local auras, cooling, casts = {}, {}, {}
+		for i, a in ipairs(story.auras) do
+			auras[i] = setmetatable({ count = COUNT[a.id] or a.count }, { __index = a })
+		end
+		for id, c in pairs(story.cooling or {}) do cooling[id] = c end
+		for _, cast in ipairs(story.casts or {}) do
+			if not COOL[cast[2]] then casts[#casts + 1] = cast end
+		end
+		for id, c in pairs(COOL) do
+			cooling[id], casts[#casts + 1] = c, { c[1], id }
+		end
+		story.auras, story.cooling, story.casts, story.retimed = auras, cooling, casts, true
 	end
 	return story
 end
@@ -255,8 +291,13 @@ function Ranged.Install(env, class)
 	end
 	spell.GetSpellCooldownDuration = function(id)
 		local c = (s.cooling or {})[id]
-		local start = c and env._story >= c[1] and env._story < c[1] + c[2] and (env._now or 0) - (env._story - c[1])
-		return start and { start = start, finish = start + c[2] } or { start = 0, finish = 0 }
+		if not (c and env._story >= c[1] and env._story < c[1] + c[2]) then return { start = 0, finish = 0 } end
+		-- Dated when read, on the scene's clock (env._time, which Play also runs on), so a cooldown the build starts before
+		-- the story, first read while the crest is built and before that clock is set, fills its bar from the right start.
+		return setmetatable({}, { __index = function(_, key)
+			local start = (env._time or env._now or 0) - (select(2, Ranged.Story(class)) - c[1])
+			return key == "start" and start or key == "finish" and start + c[2] or nil
+		end })
 	end
 	local trinket = s.trinket
 	if trinket then
@@ -329,8 +370,11 @@ end
 -- Play(env, K, ns, notes) runs the story up to its time, each change at its own time on the clock.
 function Ranged.Play(env, K, ns, notes)
 	local story, at = Ranged.Story(ns.class)
-	if os.getenv("RENDER_TRACKERS_OFF") == "1" then
+	local off = os.getenv("RENDER_TRACKERS_OFF") or ""
+	if off == "1" then
 		for _, row in ipairs(ns.SlabTrackers.CLASSES[ns.class] or {}) do K.Options.Write("ActionBars", row.key, false) end
+	else
+		for key in off:gmatch("%a%w*") do K.Options.Write("ActionBars", key, false) end
 	end
 	if (rawget(_G, "RENDER_CAST_ON_FRAME") or os.getenv("RENDER_CAST_ON_FRAME")) == "off" and not K.Layout.Live("unitframes.castbar.player") then
 		for _, key in ipairs({ "unitframes.castbar.player", "unitframes.castbar.target" }) do

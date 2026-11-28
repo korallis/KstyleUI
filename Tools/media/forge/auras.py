@@ -64,11 +64,12 @@ EDGE = 3                  # cell pixels over which a bare figure's light fades b
 MARKS = {}
 NEUTRAL = "white"
 
-# Warrior, paladin and rogue: each class's sigils in its rail's colour (SlabTrackers.lua crestCooldowns), the shared
+# Warrior, paladin, rogue and the mage's rail (SlabRail.lua): each class's sigils in its rail's colour (SlabTrackers.lua crestCooldowns), the shared
 # sigils and the crest objects in neutral light.
 for colour, names in (("gilt", "Crossed Skull Wall Heart Sweep Thorns"), ("white", "Bubble Aegis Sun Hand Wing Bulwark Voice"),
                       ("pipPriestGlow", "Flurry Rush Evade Drop Smoke Ghost"),
-                      (NEUTRAL, "Dash Axe Tusks Stone Eye Grave Shatter Star Gear Regen Potion")):
+                      ("pipMageGlow", "Blink FrostNova FireBlast BlastWave ColdSnap IceBarrier IceLance"),
+                      (NEUTRAL, "Dash Axe Tusks Stone Eye Grave Shatter Star Gear Regen Potion Escape")):
     for name in names.split():
         MARKS[name] = ("sigils", colour, None)
 for name, (art, threshold) in {"Horn": ("Horn.png", 0.5), "Sword": ("Sword.png", 0.5), "Axe": ("Axe.png", 0.5),

@@ -45,7 +45,7 @@ Twenty-four major cooldowns in the sets had no crest piece matched by spell ID w
 | Druid | Rebirth 20484 | 1800 s | Row candidate | A resurrection on another player, out of the combat rotation |
 | Rogue | Preparation 14185 | 600 s | Row candidate | Its effect is a reset, which the crest shows on the cooldowns it resets |
 | Rogue | Premeditation 14183 | 120 s | Row candidate | Adds combo points, which the crest's combo pips already show |
-| Mage | Cold Snap 12472 | 600 s | Dedicated crest | A Frost seat on the crest rail (the second rail for the other trees); its reset also shows on the cooldowns it resets |
+| Mage | Cold Snap 12472 | 600 s | Dedicated crest | A Frost mage's power orb fills over it (`crestOrb`); in the other trees it stands on the crest rail (the second rail when the four seats are full) |
 
 Matched by hand rather than by spell ID:
 
@@ -93,9 +93,9 @@ Forty-four procs in the sets had no crest piece. The Cooldown Manager hides 21 o
 | Mage | Impact 11103 | Yes | Deliberately quiet | A passive stun chance |
 | Mage | Improved Blizzard 11185 | Yes | Deliberately quiet | A passive slow |
 | Mage | Improved Counterspell 11255 | Yes | Deliberately quiet | A passive silence |
-| Mage | Fingers of Frost 400647 | No | Row candidate | Changes the next frost spell; the button's overlay glow can show it, not yet traced in the live client |
-| Mage | Heating Up 400624 | No | Row candidate | The step before a proc, with no button of its own to press |
-| Mage | Missile Barrage 400588 | No | Row candidate | Changes Arcane Missiles; the button's overlay glow can show it, not yet traced in the live client |
+| Mage | Fingers of Frost 400647 | No | Dedicated crest | Its buff 400670 lights rime inside the power orb (`crestOrb`), a layer per charge; the buff ID is not yet traced in the live client |
+| Mage | Heating Up 400624 | No | Dedicated crest | Its buff 400625 burns a third of the power orb's rim per stack (`crestOrb`); the buff ID is not yet traced in the live client |
+| Mage | Missile Barrage 400588 | No | Dedicated crest | Its buffs 400589 and 1326083 circle missiles inside the power orb (`crestOrb`); the buff IDs are not yet traced in the live client |
 | Warlock | Aftermath 18119 | Yes | Deliberately quiet | A passive daze chance |
 | Warlock | Decimation 440870 | Yes | Deliberately quiet | Hidden by the client; changes Soul Fire, whose button's overlay glow can show it, not yet traced in the live client |
 | Warlock | Demonic Brand 1293695 | No | Row candidate | Its trigger is not confirmed in the live client |
@@ -183,7 +183,7 @@ The crest rail ([medallions-effects.md](medallions-effects.md#crest-rail)) seats
 | Hunter | Readiness | Not confirmed for any Forever tree by the guides or the client's spell data |
 | Mage | Icy Veins | As above |
 | Mage | Arcane Wrath | Already the crest's own charge piece (`crestSchool`); a medal would show it twice |
-| Mage | Blast Wave | A Fire rotation button under 60 s, outside the ledger's rail order; Cone of Cold fills Fire's free seat |
+| Mage | The tree's great cooldown (Arcane Power, Combustion, Cold Snap) | Held by the power orb (`crestOrb`) while it shows; with the orb off it takes its seat |
 | Warlock | Metamorphosis, Demonic Howl | Not confirmed for any Forever tree by the guides or the client's spell data |
 | Warlock | Conflagrate | Already the crest's own socket (`crestConflagrate`) |
 | Warlock | Bane of Doom | Already the crest's Bane torment spire, which times it; a medal would show it twice |

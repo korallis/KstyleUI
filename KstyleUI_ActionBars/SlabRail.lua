@@ -105,11 +105,21 @@ local function Learned(key)
 	return ability and ability.spells and Medals.Known(ability.spells)
 end
 
+local function Taken(data, key)
+	local held = data.held and data.held()
+	for _, id in ipairs(held and data.abilities[key].spells or NONE) do
+		if id == held then
+			return true
+		end
+	end
+	return false
+end
+
 local function Picked(data)
 	local picks, used = {}, {}
 	for i = 1, SEATS do
 		local key = ns.Config("crestRailSeat" .. i)
-		if type(key) == "string" and key ~= "" and not used[key] and data.abilities[key] and key ~= "trinket" and not data.second[key] and Learned(key) then
+		if type(key) == "string" and key ~= "" and not used[key] and data.abilities[key] and key ~= "trinket" and not data.second[key] and Learned(key) and not Taken(data, key) then
 			picks[i], used[key] = key, true
 		end
 	end
@@ -120,7 +130,7 @@ local function Order(data)
 	local tree = data.trees[Rail.Tree()] or NONE
 	local seats, spare, held, used, places = {}, {}, {}, {}, nil
 	local function take(key, list)
-		if not used[key] and Learned(key) then
+		if not used[key] and Learned(key) and not Taken(data, key) then
 			used[key] = true
 			list[#list + 1] = key
 		end
@@ -217,7 +227,7 @@ function Rail.Choices()
 	local out, data, seen = { { value = "", label = L["Tree's choice"] } }, Data(), {}
 	local get = C_Spell and C_Spell.GetSpellName
 	local function add(key)
-		local id = not seen[key] and Learned(key)
+		local id = not seen[key] and not Taken(data, key) and Learned(key)
 		seen[key] = true
 		local name = id and type(get) == "function" and get(id)
 		if name and not IsSecret(name) then
@@ -253,6 +263,7 @@ end
 
 function Rail.Pick(form)
 	if not Medals.Locked() then
+		Rail.form = form
 		local was = Named(Rail.picked) .. "|" .. Named(Rail.spared)
 		if form == "crest" and ns.Config("crestRail") ~= false then
 			Rail.picked, Rail.spared = Rail.Seats()
