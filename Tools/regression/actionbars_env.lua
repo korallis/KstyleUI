@@ -662,7 +662,8 @@ local function InstallGame(env, opts)
 	end
 end
 
--- New(opts) -> env, KstyleUI, ns. opts: class, maxSlot, saved, setup(env), and the widget_env options.
+-- New(opts) -> env, KstyleUI, ns. opts: class, maxSlot, saved, setup(env), beforeAddon(env, K) (the core is loaded,
+-- the module's files are not), and the widget_env options.
 AB.InstallGame = InstallGame
 
 -- The shared stub's Hide runs no OnHide. With AB.Hiding(env) a shown frame that hides, by Hide or SetShown(false), runs OnHide on
@@ -723,6 +724,9 @@ function AB.New(opts)
 		if path:match("^KstyleUI_ActionBars/") then
 			files[#files + 1] = path
 		end
+	end
+	if opts.beforeAddon then
+		opts.beforeAddon(env, K)
 	end
 	Load(files, env)
 	CoreEnv.LoadSaved(env)

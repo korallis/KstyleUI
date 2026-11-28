@@ -199,10 +199,21 @@ function Crown.Update(event)
 	end
 end
 
+local function Rest(still)
+	local c = state.crown
+	if c then
+		c:SetBurning(not still)
+	end
+	if c and state.enabled and not (Widgets.CrownOpen() and c:SetMotion(Effects.Allows("flare"), not still)) then
+		Listen(state.class, state.shown, true)
+	end
+end
+
 function Crown.SetEnabled(on)
 	state.enabled = on
 	local Callbacks = K.Callbacks
 	if on then
+		ns.SlabMedals.OnRest(Rest)
 		Callbacks.Register("EffectsLevelChanged", OWNER, function()
 			Crown.Update()
 			Points()
@@ -214,19 +225,10 @@ function Crown.SetEnabled(on)
 			end
 		end)
 	else
+		ns.SlabMedals.OffRest(Rest)
 		Callbacks.Unregister("EffectsLevelChanged", OWNER)
 		Callbacks.Unregister("ThemeChanged", OWNER)
 		Callbacks.Unregister("SettingChanged", OWNER)
 	end
 	Crown.Update()
 end
-
-ns.SlabMedals.OnRest(function(still)
-	local c = state.crown
-	if c then
-		c:SetBurning(not still)
-	end
-	if c and state.enabled and not (Widgets.CrownOpen() and c:SetMotion(Effects.Allows("flare"), not still)) then
-		Listen(state.class, state.shown, true)
-	end
-end)

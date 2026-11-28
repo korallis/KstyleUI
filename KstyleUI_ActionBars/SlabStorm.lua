@@ -372,11 +372,12 @@ function Storm.Recheck()
 	end
 end
 
-Medals.OnRest(function()
+local function Rest()
 	if state.listening then Motion() end
-end)
+end
 
 function Storm.SetEnabled(on)
 	state.enabled = on
+	if on then Medals.OnRest(Rest) else Medals.OffRest(Rest) end
 	Storm.Update()
 end

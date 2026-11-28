@@ -1329,7 +1329,16 @@ function Medals.Still(piece, still, alpha)
 end
 
 function Medals.OnRest(fn)
+	for _, each in ipairs(watchers) do
+		if each == fn then return end
+	end
 	watchers[#watchers + 1] = fn
+end
+
+function Medals.OffRest(fn)
+	for i = #watchers, 1, -1 do
+		if watchers[i] == fn then table.remove(watchers, i) end
+	end
 end
 
 function Medals.Rest()

@@ -596,9 +596,10 @@ end
 
 function Trackers.SetEnabled(on)
 	state.enabled = on
-	if on and CLASSES[ns.class] and not state.resting then
-		state.resting = true
+	if on and CLASSES[ns.class] then
 		Medals.OnRest(Motion)
+	else
+		Medals.OffRest(Motion)
 	end
 	if on and CLASSES[ns.class] then
 		K.Callbacks.Register("SettingChanged", OWNER, OnSetting)

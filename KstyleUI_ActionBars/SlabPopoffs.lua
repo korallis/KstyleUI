@@ -15,7 +15,7 @@ local RISE, RISE_RUN, RISE_FROM, FLASH, POP, POP_RUN = 22, 0.32, 0.55, 0.05, 1.1
 local ARRIVE = { { 0, 0, RISE_RUN - 0.08 }, { 0, 1, 0.1 } }
 local FOLD, FOLD_RUN = 1.4, 0.4
 local OWNER = "ActionBars.SlabPopoffs"
-local pieces, watching = {}, false
+local pieces = {}
 local seen, present, live = { target = {}, focus = {}, roster = {} }, {}, {}
 local PARTY, RAID, kind = {}, {}, nil
 for i = 1, 4 do
@@ -167,6 +167,10 @@ local function Calm(still)
 	end
 end
 
+function Popoffs.SetEnabled(on)
+	if on then Medals.OnRest(Calm) else Medals.OffRest(Calm) end
+end
+
 local function Moving(piece)
 	return piece:IsVisible() and Effects.Allows("ambient") and not ns.Slab.Resting()
 end
@@ -264,10 +268,6 @@ function Popoffs.Build(parent, spec, level)
 			piece:HookScript("OnShow", function() Listening(piece, true) end)
 			piece:HookScript("OnHide", function() Listening(piece, false) end)
 			Listening(piece, piece:IsVisible())
-		end
-		if not watching then
-			watching = true
-			Medals.OnRest(Calm)
 		end
 	end
 	piece.spec = spec

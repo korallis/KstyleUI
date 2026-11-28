@@ -614,10 +614,6 @@ end
 
 function Rings.SetEnabled(on)
 	state.enabled = on
-	if on and not state.hooked then
-		state.hooked = true
-		hooksecurefunc(ns.Slab, "Refresh", Rings.Update)
-	end
 	if on then
 		K.Callbacks.Register("SettingChanged", OWNER, OnSetting)
 		K.Callbacks.Register("EffectsLevelChanged", OWNER, OnMotion)

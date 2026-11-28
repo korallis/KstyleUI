@@ -46,7 +46,7 @@ local CLASS_NAMES = {
 
 Slab.RING, Slab.MARGIN, Slab.STRATA, Slab.RUNE_TURN = RING, MARGIN, STRATA, RUNE_TURN
 
-local state = { combat = false, built = false, class = nil, procs = {}, enabled = false, crest = false }
+local state = { combat = false, built = false, class = nil, procs = {}, enabled = false, crest = false, waiting = false }
 
 local function IsSecret(v)
 	return ns.IsSecret(v)
@@ -62,6 +62,10 @@ end
 
 function Slab.CrestOff()
 	return K.HudStyle.Current() == STYLE and ns.Config("crest") == false
+end
+
+function Slab.CrestLive()
+	return state.crest == true
 end
 
 local function Layouts()
@@ -365,6 +369,11 @@ end
 
 local function BuildSlab(root)
 	local slab = Plate(root)
+	slab.gap = CreateFrame("Frame", nil, slab)
+	return slab
+end
+
+local function BuildSweeps(slab)
 	slab.sweeps = {}
 	for i = 1, 2 do
 		local sweep = Region(slab, "OVERLAY", 0, Slab.Texture("medCombatSweep"), true)
@@ -382,8 +391,6 @@ local function BuildSlab(root)
 		sweep.anim = g
 		slab.sweeps[i] = sweep
 	end
-	slab.gap = CreateFrame("Frame", nil, slab)
-	return slab
 end
 
 local function BuildRing(hub)
@@ -568,6 +575,7 @@ local function Build()
 	BuildCrest(hub)
 	hub.particles = BuildParticles(hub)
 	BuildMoments(hub)
+	BuildSweeps(Slab.frame)
 	Slab.hub = hub
 	K.Layout.Rest.Follow("actionbars.bar1", hub)
 	Slab.PaintPlaque(false)
@@ -793,7 +801,15 @@ local function HideHub()
 	if K.Effects and K.Effects.Ambient then
 		K.Effects.Ambient("hub", nil, nil)
 	end
+	if K.Effects and K.Effects.Stop then
+		K.Effects.Stop("hub")
+	end
 	Motionless()
+	Each(Slab.frame.sweeps, function(sweep)
+		sweep.anim:Stop()
+		sweep:SetAlpha(0)
+	end)
+	ns.SlabRings.Update()
 	ns.SlabEffects.UpdateCap()
 	ns.SlabJewels.Update()
 	ns.SlabHawks.Update()
@@ -839,7 +855,7 @@ function Slab.Refresh()
 	if not Slab.frame then
 		BuildPlate()
 	end
-	local crest = not Slab.CrestOff()
+	local crest = state.crest and not Slab.CrestOff()
 	if crest and not state.built then
 		Build()
 	elseif not crest then
@@ -876,13 +892,13 @@ function Slab.Refresh()
 	gap:SetPoint("TOPLEFT", left.holder, "TOPRIGHT", 0, 0)
 	gap:SetPoint("BOTTOMRIGHT", right.holder, "BOTTOMLEFT", 0, 0)
 	slab:SetFrameLevel(K.Scale.Root():GetFrameLevel())
-	local slabScale = slab:GetEffectiveScale()
-	PlaceSweeps(slab, (r2 - l1) / 2 / (Plain(slabScale) and slabScale > 0 and slabScale or 1))
 	slab:Show()
 	if not hub then
 		Slab.PlaceSides(true, cfg)
 		return true
 	end
+	local slabScale = slab:GetEffectiveScale()
+	PlaceSweeps(slab, (r2 - l1) / 2 / (Plain(slabScale) and slabScale > 0 and slabScale or 1))
 	local unit = K.Scale.Root():GetEffectiveScale()
 	if not (Plain(unit) and unit > 0) then
 		unit = 1
@@ -911,6 +927,7 @@ function Slab.Refresh()
 	ns.SlabTarget.Update()
 	ns.SlabCrown.Update()
 	ns.Totems.Update()
+	ns.SlabRings.Update()
 	if ns.Travel then ns.Travel.Refresh() end
 	return true
 end
@@ -1124,9 +1141,11 @@ function Slab.SetProc(b, on, refresh)
 	end
 	if not refresh and (fresh or not polished) then
 		Play(start.anim)
-		local holder = K.Effects.Holder and K.Effects.Holder("hub")
-		if not polished or not holder or holder >= K.Effects.PRIORITY.proc then Slab.Pulse() end
-		ns.SlabEffects.Proc(Slab.hub)
+		if state.built and Slab.hub:IsShown() then
+			local holder = K.Effects.Holder and K.Effects.Holder("hub")
+			if not polished or not holder or holder >= K.Effects.PRIORITY.proc then Slab.Pulse() end
+			ns.SlabEffects.Proc(Slab.hub)
+		end
 	end
 end
 
@@ -1245,16 +1264,29 @@ function Slab.Dress(b)
 	Slab.Keybind(b)
 end
 
-local CREST_OWNERS = { "SlabJewels", "SlabHawks", "SlabStorm", "SlabTrackers", "SlabRings", "SlabCrown", "SlabHeat", "SlabTarget" }
+local CREST_OWNERS = { "SlabJewels", "SlabHawks", "SlabStorm", "SlabTrackers", "SlabRings", "SlabCrown", "SlabHeat", "SlabTarget", "SlabUnleashed", "SlabPopoffs" }
+
+local function Waited()
+	state.waiting = false
+	Slab.SyncCrest()
+end
 
 function Slab.SyncCrest()
 	local on = state.enabled and ns.running == true and not Slab.CrestOff()
 	if on == state.crest then
 		return
 	end
+	if on and InCombatLockdown() then
+		if not state.waiting then
+			state.waiting = true
+			K.Combat.Queue(Waited)
+		end
+		return
+	end
 	state.crest = on
 	if on then
 		state.combat = InCombatLockdown() == true
+		Slab.Refresh()
 		K.Events.Register(OWNER, "PLAYER_REGEN_DISABLED", OnCombat)
 		K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", OnCombat)
 		K.Events.Register(OWNER, "PLAYER_LEVEL_UP", OnLevel)
@@ -1271,6 +1303,7 @@ function Slab.SyncCrest()
 		ns[name].SetEnabled(on)
 	end
 	if not on then
+		HideHub()
 		ns.Travel.Disable()
 		if state.built and state.enabled and ns.running then
 			K.Widgets.ReloadPrompt(L["The crest is hidden. Reload to free its memory."])

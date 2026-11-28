@@ -394,7 +394,10 @@ local function OnSetting(_, module, key)
 		end
 		ApplyAll()
 		return
-	elseif key == "trayColumn" or key == "useTray" or key == "slab" or key == "crest" or key == "safeDragging" then
+	elseif key == "crest" then
+		ns.Slab.SyncCrest()
+		return
+	elseif key == "trayColumn" or key == "useTray" or key == "slab" or key == "safeDragging" then
 		ApplyAll()
 		return
 	elseif barKey and ns.BAR[barKey] then
