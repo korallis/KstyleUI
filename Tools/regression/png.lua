@@ -1,6 +1,6 @@
--- png.lua: Png.Alpha(path) decodes an 8-bit RGBA, non-interlaced PNG (zlib inflate and row filters in plain Lua 5.1) and returns alpha(x, y), width, height.
+-- png.lua: Png.Alpha(path) decodes an 8-bit RGBA or RGB, non-interlaced PNG (zlib inflate and row filters in plain Lua 5.1) and returns alpha(x, y), width, height. An RGB file has no alpha: the addon's only RGB files are the aura sheets under Media/Textures/Auras, drawn with the ADD blend, where black adds nothing, so its alpha is its brightest channel. Only that coverage is kept, one byte per pixel in a string per row, so the reach check can hold every crest texture it reads at once under the test runner's 4096 MB limit. Bits are shifted with a table of powers of two, not the ^ operator, and each row filter has its own loop: that halves the decode time the reach check spends under the hosted runner's 120 s hang guard.
 local Png = {}
-local floor = math.floor
+local floor, max = math.floor, math.max
 
 local LBASE, LEXT, DBASE, DEXT = {}, {}, {}, {}
 do
@@ -31,22 +31,29 @@ local function Huffman(lengths, n)
 	return { count = count, symbol = symbol }
 end
 
+local POW = {}
+for i = 0, 31 do POW[i] = 2 ^ i end
+
 local function Inflate(s)
-	local pos, buf, have, out = 3, 0, 0, {}
-	local function bits(n)
-		while have < n do
-			buf, pos, have = buf + s:byte(pos) * 2 ^ have, pos + 1, have + 8
+	local byte = string.byte
+	local pos, buf, have, out, n = 3, 0, 0, {}, 0
+	local function bits(k)
+		while have < k do
+			buf, pos, have = buf + byte(s, pos) * POW[have], pos + 1, have + 8
 		end
-		local v = buf % 2 ^ n
-		buf, have = (buf - v) / 2 ^ n, have - n
+		local v = buf % POW[k]
+		buf, have = (buf - v) / POW[k], have - k
 		return v
 	end
 	local function decode(h)
+		local count, symbol = h.count, h.symbol
 		local code, first, index = 0, 0, 0
 		for len = 1, 15 do
-			code = code + bits(1)
-			local c = h.count[len]
-			if code - c < first then return h.symbol[index + code - first] end
+			if have == 0 then buf, pos, have = byte(s, pos), pos + 1, 8 end
+			local bit = buf % 2
+			buf, have, code = (buf - bit) / 2, have - 1, code + bit
+			local c = count[len]
+			if code - c < first then return symbol[index + code - first] end
 			index, first, code = index + c, (first + c) * 2, code * 2
 		end
 		error("png.lua: bad Huffman code")
@@ -55,8 +62,9 @@ local function Inflate(s)
 		local last, kind = bits(1), bits(2)
 		if kind == 0 then
 			buf, have = 0, 0
-			local len = s:byte(pos) + 256 * s:byte(pos + 1)
-			for i = pos + 4, pos + 3 + len do out[#out + 1] = s:byte(i) end
+			local len = byte(s, pos) + 256 * byte(s, pos + 1)
+			for i = 1, len do out[n + i] = byte(s, pos + 3 + i) end
+			n = n + len
 			pos = pos + 4 + len
 		else
 			local lengths, nlen, ndist = {}, 288, 30
@@ -84,12 +92,14 @@ local function Inflate(s)
 				local sym = decode(lit)
 				if sym == 256 then break end
 				if sym < 256 then
-					out[#out + 1] = sym
+					n = n + 1
+					out[n] = sym
 				else
 					local len = LBASE[sym - 257] + bits(LEXT[sym - 257])
 					local d = decode(dists)
 					local back = DBASE[d] + bits(DEXT[d])
-					for _ = 1, len do out[#out + 1] = out[#out + 1 - back] end
+					for i = n + 1, n + len do out[i] = out[i - back] end
+					n = n + len
 				end
 			end
 		end
@@ -107,36 +117,49 @@ function Png.Alpha(path)
 	local s = file:read("*a")
 	file:close()
 	assert(s:sub(1, 8) == "\137PNG\r\n\26\n", path .. " is no PNG")
-	local pos, idat, w, h = 9, {}, nil, nil
+	local pos, idat, w, h, depth = 9, {}, nil, nil, nil
 	while pos < #s do
 		local len, kind = U32(s, pos), s:sub(pos + 4, pos + 7)
 		if kind == "IHDR" then
 			w, h = U32(s, pos + 8), U32(s, pos + 12)
-			assert(s:byte(pos + 16) == 8 and s:byte(pos + 17) == 6 and s:byte(pos + 20) == 0, path .. ": png.lua reads 8-bit RGBA, non-interlaced PNGs only")
+			local color = s:byte(pos + 17)
+			assert(s:byte(pos + 16) == 8 and (color == 6 or color == 2) and s:byte(pos + 20) == 0, path .. ": png.lua reads 8-bit RGBA or RGB, non-interlaced PNGs only")
+			depth = color == 6 and 4 or 3
 		elseif kind == "IDAT" then
 			idat[#idat + 1] = s:sub(pos + 8, pos + 7 + len)
 		end
 		pos = pos + 12 + len
 	end
-	local raw, stride, rows, prev = Inflate(table.concat(idat)), w * 4, {}, {}
+	local raw, stride, rows, prev, cur, cover = Inflate(table.concat(idat)), w * depth, {}, {}, {}, {}
 	for y = 0, h - 1 do
-		local base, cur = y * (stride + 1) + 1, {}
+		local base = y * (stride + 1) + 1
 		local filter = raw[base]
-		for i = 1, stride do
-			local x, a, b, c = raw[base + i], cur[i - 4] or 0, prev[i] or 0, prev[i - 4] or 0
-			if filter == 1 then x = x + a
-			elseif filter == 2 then x = x + b
-			elseif filter == 3 then x = x + floor((a + b) / 2)
-			elseif filter == 4 then
+		if filter == 0 then
+			for i = 1, stride do cur[i] = raw[base + i] end
+		elseif filter == 1 then
+			for i = 1, stride do cur[i] = (raw[base + i] + (cur[i - depth] or 0)) % 256 end
+		elseif filter == 2 then
+			for i = 1, stride do cur[i] = (raw[base + i] + (prev[i] or 0)) % 256 end
+		elseif filter == 3 then
+			for i = 1, stride do cur[i] = (raw[base + i] + floor(((cur[i - depth] or 0) + (prev[i] or 0)) / 2)) % 256 end
+		else
+			assert(filter == 4, "png.lua: bad row filter")
+			for i = 1, stride do
+				local a, b, c = cur[i - depth] or 0, prev[i] or 0, prev[i - depth] or 0
 				local p = a + b - c
 				local pa, pb, pc = math.abs(p - a), math.abs(p - b), math.abs(p - c)
-				x = x + ((pa <= pb and pa <= pc) and a or pb <= pc and b or c)
+				cur[i] = (raw[base + i] + ((pa <= pb and pa <= pc) and a or pb <= pc and b or c)) % 256
 			end
-			cur[i] = x % 256
 		end
-		rows[y], prev = cur, cur
+		if depth == 4 then
+			for x = 1, w do cover[x] = cur[x * 4] end
+		else
+			for x = 1, w do cover[x] = max(cur[x * 3 - 2], cur[x * 3 - 1], cur[x * 3]) end
+		end
+		rows[y], prev, cur = string.char(unpack(cover, 1, w)), cur, prev
 	end
-	return function(x, y) return rows[y][x * 4 + 4] end, w, h
+	local byte = string.byte
+	return function(x, y) return byte(rows[y], x + 1) end, w, h
 end
 
 return Png
