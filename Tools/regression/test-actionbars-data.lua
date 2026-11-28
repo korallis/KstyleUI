@@ -22,38 +22,63 @@ do
 	assert(ns.BAR.pet.max == 10 and ns.BAR.stance.max == 10 and ns.BAR.bar1.max == 12)
 end
 
--- GridSize: columns come from the button count and the rows; a short last row does not widen the bar.
+-- GridSize: a shape of columns and rows measures its buttons and the gaps between them.
 do
-	local w, h, cols, rows = ns.GridSize(12, 1, 34, 3)
-	assert(w == 441 and h == 34 and cols == 12 and rows == 1, "one row of 12 is the 441 by 34 footprint")
-	w, h, cols, rows = ns.GridSize(12, 12, 34, 3)
-	assert(w == 34 and h == 441 and cols == 1 and rows == 12, "twelve rows make the 34 by 441 column")
-	w, h, cols = ns.GridSize(10, 1, 30, 3)
-	assert(w == 327 and h == 30 and cols == 10, "the pet bar's 327 by 30 footprint")
-	w, h, cols, rows = ns.GridSize(12, 5, 10, 2)
-	assert(cols == 3 and rows == 4 and w == 34 and h == 46, "five rows of 12 need three columns, which fill four rows")
-	cols, rows = select(3, ns.GridSize(3, 9, 10, 2))
-	assert(cols == 1 and rows == 3, "rows never exceed the buttons")
-	w, h = ns.GridSize(0, 1, 30, 3)
-	assert(w == 30 and h == 30, "an empty bar keeps one button's footprint")
+	local w, h = ns.GridSize(12, 1, 34, 3)
+	assert(w == 441 and h == 34, "one row of 12 is the 441 by 34 footprint")
+	w, h = ns.GridSize(1, 12, 34, 3)
+	assert(w == 34 and h == 441, "twelve rows make the 34 by 441 column")
+	w, h = ns.GridSize(10, 1, 30, 3)
+	assert(w == 327 and h == 30, "the pet bar's 327 by 30 footprint")
+	w, h = ns.GridSize(5, 3, 10, 2)
+	assert(w == 58 and h == 34, "five per row in three rows")
 end
 
--- Cell: the fill order and the growth direction place each button.
+-- Cell: the fill order and the growth direction place each button in its shape.
 do
-	local function cells(count, rows, orientation, growth)
+	local function cells(count, columns, rows, orientation, growth)
 		local out = {}
 		for i = 1, count do
-			local col, row = ns.Cell(i, count, rows, orientation, growth)
+			local col, row = ns.Cell(i, columns, rows, orientation, growth)
 			out[i] = col .. "," .. row
 		end
 		return table.concat(out, " ")
 	end
-	assert(cells(6, 2, "HORIZONTAL", "RIGHTDOWN") == "0,0 1,0 2,0 0,1 1,1 2,1", "across, then down")
-	assert(cells(6, 2, "VERTICAL", "RIGHTDOWN") == "0,0 0,1 1,0 1,1 2,0 2,1", "down the columns first")
-	assert(cells(6, 2, "HORIZONTAL", "LEFTDOWN") == "2,0 1,0 0,0 2,1 1,1 0,1", "growing left mirrors the columns")
-	assert(cells(6, 2, "HORIZONTAL", "RIGHTUP") == "0,1 1,1 2,1 0,0 1,0 2,0", "growing up mirrors the rows")
-	assert(cells(3, 1, "HORIZONTAL", "LEFTUP") == "2,0 1,0 0,0")
-	assert(cells(3, 1, "BOGUS", "BOGUS") == "0,0 1,0 2,0", "unknown values fall back to across and right-down")
+	assert(cells(6, 3, 2, "HORIZONTAL", "RIGHTDOWN") == "0,0 1,0 2,0 0,1 1,1 2,1", "across, then down")
+	assert(cells(6, 3, 2, "VERTICAL", "RIGHTDOWN") == "0,0 0,1 1,0 1,1 2,0 2,1", "down the columns first")
+	assert(cells(6, 3, 2, "HORIZONTAL", "LEFTDOWN") == "2,0 1,0 0,0 2,1 1,1 0,1", "growing left mirrors the columns")
+	assert(cells(6, 3, 2, "HORIZONTAL", "RIGHTUP") == "0,1 1,1 2,1 0,0 1,0 2,0", "growing up mirrors the rows")
+	assert(cells(3, 3, 1, "HORIZONTAL", "LEFTUP") == "2,0 1,0 0,0")
+	assert(cells(3, 3, 1, "BOGUS", "BOGUS") == "0,0 1,0 2,0", "unknown values fall back to across and right-down")
+	assert(cells(12, 5, 3, "HORIZONTAL", "RIGHTDOWN") == "0,0 1,0 2,0 3,0 4,0 0,1 1,1 2,1 3,1 4,1 0,2 1,2", "five per row leaves a short last row of two")
+end
+
+-- BarShape (Core/Setup/Layouts.lua, the plan for per-bar Buttons per row): Along rows first, every Buttons per row
+-- stop from 1 to the button count is its own shape; Down columns first, every Rows stop is. The shapes are typed
+-- from the rule: columns = per row, rows = ceil(buttons / columns), or rows, then columns = ceil(buttons / rows).
+do
+	local K = select(2, dofile("Tools/regression/core_env.lua").New())
+	local BarShape = K.Setup.Layouts.BarShape
+	local ALONG = {
+		[12] = { "1x12", "2x6", "3x4", "4x3", "5x3", "6x2", "7x2", "8x2", "9x2", "10x2", "11x2", "12x1" },
+		[10] = { "1x10", "2x5", "3x4", "4x3", "5x2", "6x2", "7x2", "8x2", "9x2", "10x1" },
+	}
+	local DOWN = {
+		[12] = { "12x1", "6x2", "4x3", "3x4", "3x5", "2x6", "2x7", "2x8", "2x9", "2x10", "2x11", "1x12" },
+		[10] = { "10x1", "5x2", "4x3", "3x4", "2x5", "2x6", "2x7", "2x8", "2x9", "1x10" },
+	}
+	for count, shapes in pairs(ALONG) do
+		for stop = 1, count do
+			local columns, rows = BarShape(count, stop, 99, "HORIZONTAL")
+			assert(columns .. "x" .. rows == shapes[stop], count .. " buttons at " .. stop .. " per row: " .. columns .. "x" .. rows)
+			local downColumns, downRows = BarShape(count, 99, stop, "VERTICAL")
+			assert(downColumns .. "x" .. downRows == DOWN[count][stop], count .. " buttons in " .. stop .. " rows: " .. downColumns .. "x" .. downRows)
+		end
+	end
+	local columns, rows = BarShape(8, 12, 1, "HORIZONTAL")
+	assert(columns == 8 and rows == 1, "a saved Buttons per row above the button count draws as the button count")
+	columns, rows = BarShape(0, 0, 0, "VERTICAL")
+	assert(columns == 1 and rows == 1, "an empty bar keeps one button's footprint")
 end
 
 -- Slot: a button's action slot on a page.

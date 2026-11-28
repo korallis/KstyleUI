@@ -38,6 +38,7 @@ local function BarDefaults(def)
 		enabled = ON_BY_DEFAULT[def.key] == true,
 		buttons = def.max,
 		rows = action and (grid.rows or 1) or 0,
+		perRow = action and math.ceil(def.max / (grid.rows or 1)) or 0,
 		orientation = "HORIZONTAL",
 		growth = grid.growth or "RIGHTDOWN",
 		size = grid.size,
@@ -206,6 +207,7 @@ for _, def in ipairs(ns.BARS) do
 	if def.key == "bar3" then defaults[def.key].finished = true end
 end
 defaults.consumables = { enabled = true, attached = true, buttons = 12, visibility = "", rows = 2, size = 26, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = 0, fade = false, fadeAlpha = 0, count = true, hotkey = false, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = true }
+defaults.consumables.perRow = math.ceil(defaults.consumables.buttons / defaults.consumables.rows)
 defaults.consumables.visibilityBuilder = ns.VisibilityDefaults()
 defaults.consumables.clickThrough, defaults.consumables.reverse = false, false
 TextDefaults(defaults.consumables)
@@ -344,6 +346,16 @@ local function VisibilityRows(add, key)
 	add({ type = "note", label = L["Bind Toggle Action Bar in Blizzard's Key Bindings under KstyleUI."] })
 end
 
+local function Shape(key, part)
+	return function(value)
+		local cfg = value ~= 0 and K.Store.IsLoaded() and ns.Config(key)
+		if type(cfg) ~= "table" or cfg.perRow == 0 or cfg.rows == 0 then return value end
+		local perRow, rows = cfg.perRow, cfg.rows
+		if part == 1 then perRow = value else rows = value end
+		return (select(part, K.Setup.Layouts.BarShape(cfg.buttons, perRow, rows, cfg.orientation)))
+	end
+end
+
 local function BarRows(schema, def)
 	local key = def.key
 	local editing = Editing(key)
@@ -356,7 +368,7 @@ local function BarRows(schema, def)
 		end
 		if key == "bar1" or key == "bar2" then
 			local field = row.key and row.key:match("%.(.+)$")
-			if field == "rows" or field == "orientation" or field == "growth" or field == "spacing" or field == "split" or field == "showEmpty" or field == "backing" or field == "reverse" then
+			if field == "perRow" or field == "rows" or field == "orientation" or field == "growth" or field == "spacing" or field == "split" or field == "showEmpty" or field == "backing" or field == "reverse" then
 				row.showWhen = function(settings) return editing(settings) and settings[key].enabled and not (K.HudStyle.Current() == "medallions" and settings.slab ~= false) end
 			end
 		end
@@ -374,11 +386,13 @@ local function BarRows(schema, def)
 	add({ type = "toggle", key = key .. ".enabled", label = L["Show this bar"], help = help })
 	if key == "bar3" then add({ type = "toggle", key = "bar3.finished", label = L["Finished third bar"], help = L["Seats bar 3 clear of the HUD, with a Medallions slab. Off restores its old place and finish."] }) end
 	if key == "bar1" or key == "bar2" then
-		add({ type = "note", label = L["The slab joins bars 1 and 2 into one row each, with fixed spacing and backing. Turn off Use the Medallions slab above to unlock rows, spacing, growth and split. Button size scales both sides."], showWhen = function(settings) return editing(settings) and K.HudStyle.Current() == "medallions" and settings.slab ~= false end })
+		add({ type = "note", label = L["The slab joins bars 1 and 2 into one row each, with fixed spacing and backing. Turn off Use the Medallions slab above to unlock buttons per row, rows, spacing, growth and split. Button size scales both sides."], showWhen = function(settings) return editing(settings) and K.HudStyle.Current() == "medallions" and settings.slab ~= false end })
 		add({ type = "note", label = L["The slab fixes button order. Turn it off above to reverse these bars."], showWhen = function(settings) return editing(settings) and K.HudStyle.Current() == "medallions" and settings.slab ~= false end })
 	end
 	add({ type = "slider", key = key .. ".buttons", label = L["Buttons"], help = L["How many buttons the bar shows."], min = 1, max = def.max, step = 1 })
-	add({ type = "slider", key = key .. ".rows", label = L["Rows"], help = (def.kind == "action" or def.kind == "consumable") and L["12 buttons in 2 rows gives 6 buttons per row."] or L["12 buttons in 2 rows gives 6 buttons per row. 0 keeps the HUD style's default rows."], min = (def.kind == "action" or def.kind == "consumable") and 1 or 0, max = def.max, step = 1 })
+	local fixed = def.kind == "action" or def.kind == "consumable"
+	add({ type = "slider", key = key .. ".perRow", label = L["Buttons per row"], help = fixed and L["How many buttons each row holds. A shorter last row takes the rest."] or L["How many buttons each row holds. 0 keeps the HUD style's default."], min = fixed and 1 or 0, max = def.max, step = 1, shown = Shape(key, 1) })
+	add({ type = "slider", key = key .. ".rows", label = L["Rows"], help = fixed and L["Follows Buttons per row. Drag it to pick a row count."] or L["Follows Buttons per row. Drag it to pick a row count. 0 keeps the HUD style's default."], min = fixed and 1 or 0, max = def.max, step = 1, shown = Shape(key, 2) })
 	add({ type = "dropdown", key = key .. ".orientation", label = L["Fill order"], help = L["Whether buttons fill each row or each column first."], options = ORIENTATION_OPTIONS })
 	add({ type = "dropdown", key = key .. ".growth", label = L["Growth"], help = L["The direction the buttons grow from the first one."], options = GROWTH_OPTIONS })
 	add({ type = "toggle", key = key .. ".reverse", label = L["Reverse button order"], help = L["Places the first slot at the other end. Each key stays bound to its original slot."] })

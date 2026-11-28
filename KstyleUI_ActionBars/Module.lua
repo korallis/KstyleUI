@@ -364,6 +364,32 @@ local function OnTransition()
 	ApplyAll()
 end
 
+local SHAPE_FIELDS = { perRow = "rows", rows = "perRow", buttons = true, orientation = true }
+
+local function LinkShape(barKey, field)
+	local other, cfg = SHAPE_FIELDS[field], ns.Config(barKey)
+	if not other or type(cfg) ~= "table" or type(cfg.perRow) ~= "number" or type(cfg.rows) ~= "number" then return false end
+	local function Write(name, value)
+		K.Options.Write(MODULE, barKey .. "." .. name, value)
+		return true
+	end
+	if cfg.perRow == 0 or cfg.rows == 0 then
+		if other == true then return false end
+		if cfg[field] == 0 then return cfg[other] ~= 0 and Write(other, 0) end
+	end
+	local def = ns.BAR[barKey] or ns.Consumables.def
+	local count = math.min(def.max, math.max(1, math.floor(cfg.buttons or def.max)))
+	local vertical = cfg.orientation == "VERTICAL"
+	local free, follower = vertical and "rows" or "perRow", vertical and "perRow" or "rows"
+	local columns, rows = K.Setup.Layouts.BarShape(count, cfg.perRow, cfg.rows, cfg.orientation)
+	local made = vertical and columns or rows
+	if field == follower and made ~= cfg[follower] then
+		local value = math.ceil(count / math.min(count, math.max(1, math.floor(cfg[follower]))))
+		if value ~= cfg[free] then return Write(free, value) end
+	end
+	return made ~= cfg[follower] and Write(follower, made)
+end
+
 local function OnSetting(_, module, key)
 	if module ~= MODULE or type(key) ~= "string" or key == "editBar" or key == "tooltips" then
 		return
@@ -385,6 +411,7 @@ local function OnSetting(_, module, key)
 	end
 	local barKey, field = key:match("^(%w+)%.(.+)$")
 	if field and field:match("^visibilityBuilder%.") then return end
+	if barKey and (ns.BAR[barKey] or barKey == "consumables") and LinkShape(barKey, field) then return end
 	if barKey and field == "size" and (barKey == "bar1" or barKey == "bar2") and ns.Slab.Grouped(ns.BAR[barKey]) then
 		local other = barKey == "bar1" and "bar2" or "bar1"
 		if ns.Config(other).size ~= ns.Config(barKey).size then

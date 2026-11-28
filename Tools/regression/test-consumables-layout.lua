@@ -58,6 +58,19 @@ for _, rows in ipairs({ 1, 2, 3 }) do
 		end
 	end
 end
+-- Buttons per row (the per-bar plan): 5 per row reserves 5 columns in 3 rows, the shape 12 consumables need.
+do
+	K.Options.Write("HudStyle", "style", "frames")
+	local settings = K.Store.Module("ActionBars")
+	local saved = settings.consumables
+	settings.consumables = { perRow = 5, rows = 3, size = 38, spacing = 0, attached = true }
+	local w, h = L.ConsumableFootprint()
+	assert(math.abs(w - 190) < 0.01 and math.abs(h - 114) < 0.01, "5 per row of size 38 is 190 by 114, got " .. w .. " by " .. h)
+	settings.consumables.orientation = "VERTICAL"
+	w, h = L.ConsumableFootprint()
+	assert(math.abs(w - 152) < 0.01 and math.abs(h - 114) < 0.01, "Down columns first, 3 rows of 12 is 4 columns: 152 by 114, got " .. w .. " by " .. h)
+	settings.consumables = saved
+end
 -- A lone potion stays beside the player medallion on wide screens too: the bar keeps its 16:9 distance from the frame.
 K.Options.Write("HudStyle", "style", "medallions")
 for _, name in ipairs(L.Names()) do

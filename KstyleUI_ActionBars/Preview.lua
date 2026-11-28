@@ -36,29 +36,29 @@ function Preview:Refresh()
 	local key = ns.Config("editBar")
 	local def = ns.BAR[key] or key == "consumables" and ns.Consumables.def or ns.BAR.bar1
 	local cfg = ns.Config(def.key)
-	local rowCount, cell, spacing
-	if def.kind == "consumable" then rowCount, cell, spacing = K.Setup.Layouts.ConsumableGrid()
-	else local _; _, rowCount, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg) end
+	local rowCount, cell, spacing, perRow, _
+	if def.kind == "consumable" then rowCount, cell, spacing, perRow = K.Setup.Layouts.ConsumableGrid()
+	else _, rowCount, cell, spacing, _, _, _, _, perRow = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg) end
 	cell, spacing = ns.Tray.Grid(def, cell, spacing)
 	local size, gap = Widgets.Snap(self, cell), Widgets.Snap(self, spacing)
 	local centre = def.key == "bar1" or def.key == "bar2"
 	local count = Fits(self.parentFrame, centre and cell or size, centre and spacing or gap, min(def.max, cfg.buttons or def.max))
-	local rows = min(rowCount, count)
-	local width, height = ns.GridSize(count, rows, size, gap)
+	local grouped = ns.Slab.Grouped(def)
+	local orientation = grouped and "HORIZONTAL" or cfg.orientation
+	local columns, lines = K.Setup.Layouts.BarShape(count, perRow, rowCount, orientation)
+	local width, height = ns.GridSize(columns, lines, size, gap)
 	local pitch = size + gap
 	if centre then
-		local _, _, columns, used = ns.GridSize(count, rows, cell, spacing)
 		pitch = cell + spacing
 		width = Widgets.Snap(self, (columns - 1) * pitch) + size
-		height = Widgets.Snap(self, (used - 1) * pitch) + size
+		height = Widgets.Snap(self, (lines - 1) * pitch) + size
 	end
 	self:SetSize(width, height)
 	local r, g, b = ns.AccentRGB()
 	for i, button in ipairs(self.buttons) do
 		if i <= count then
-			local grouped = ns.Slab.Grouped(def)
 			local position = cfg.reverse and not grouped and count + 1 - i or i
-			local col, row = ns.Cell(position, count, rows, grouped and "HORIZONTAL" or cfg.orientation, grouped and "RIGHTDOWN" or cfg.growth)
+			local col, row = ns.Cell(position, columns, lines, orientation, grouped and "RIGHTDOWN" or cfg.growth)
 			button.opts.size = cell
 			button.kind, button.opts.hideNumbers = def.kind, cfg.cooldown ~= true
 			button:ClearAllPoints()

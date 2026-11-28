@@ -217,32 +217,33 @@ function Bar:Layout()
 		count = min(count, NumForms())
 	end
 	self.count = count
-	local _, rows, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg)
+	local _, rows, cell, spacing, _, _, _, _, perRow = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg)
+	local columns, lines = K.Setup.Layouts.BarShape(count, perRow, rows, orientation)
 	local wide, wideGap = cell, spacing
 	cell, spacing = ns.Tray.Grid(def, cell, spacing)
 	local size, gap = Widgets.Snap(header, cell), Widgets.Snap(header, spacing)
-	local width, height = ns.GridSize(count, rows, size, gap)
+	local width, height = ns.GridSize(columns, lines, size, gap)
 	local pitch, drop = size + gap, 0
 	if CUMULATIVE[def.key] and (def.key ~= "bar3" or cfg.finished) then
-		local _, _, columns, used = ns.GridSize(count, rows, cell, spacing)
 		pitch = cell + spacing
 		width = Widgets.Snap(header, (columns - 1) * pitch) + size
-		height = Widgets.Snap(header, (used - 1) * pitch) + size
+		height = Widgets.Snap(header, (lines - 1) * pitch) + size
 		if cell ~= wide then
-			local tall = Widgets.Snap(header, (used - 1) * (wide + wideGap)) + Widgets.Snap(header, wide)
+			local tall = Widgets.Snap(header, (lines - 1) * (wide + wideGap)) + Widgets.Snap(header, wide)
 			drop, height = def.key == "bar2" and tall - height or 0, tall
 		end
 	end
 	local cols, used
-	if def.kind == "stance" and (rows or 1) > 1 then
-		local _, _, full = ns.GridSize(min(def.max, max(1, floor(cfg.buttons or def.max))), rows, 1, 0)
-		cols, used = full, max(1, ceil(count / full))
-		width, height = cols * size + (cols - 1) * gap, used * size + (used - 1) * gap
+	if def.kind == "stance" then
+		local full, fullRows = K.Setup.Layouts.BarShape(min(def.max, max(1, floor(cfg.buttons or def.max))), perRow, rows, orientation)
+		if fullRows > 1 then
+			cols, used = full, max(1, ceil(count / full))
+			width, height = cols * size + (cols - 1) * gap, used * size + (used - 1) * gap
+		end
 	end
 	local split = not grouped and cfg.split == "on" and K.Setup.Layouts.SPLIT_GAP or 0
 	local half = math.huge
 	if split > 0 and def.kind == "action" then
-		local _, _, columns = ns.GridSize(count, rows, 1, 0)
 		if columns > 1 then
 			half = ceil(columns / 2)
 			split = Widgets.Snap(header, split)
@@ -277,7 +278,7 @@ function Bar:Layout()
 					row = used - 1 - row
 				end
 			else
-				col, row = ns.Cell(position, count, rows, orientation, growth)
+				col, row = ns.Cell(position, columns, lines, orientation, growth)
 			end
 			b:ClearAllPoints()
 			b:SetPoint("TOPLEFT", header, "TOPLEFT", Widgets.Snap(header, col * pitch) + (col >= half and split or 0), -Widgets.Snap(header, row * pitch) - drop)

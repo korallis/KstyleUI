@@ -53,8 +53,8 @@ for _, screen in ipairs(screens) do
 		local schema = K.Options.Row("ActionBars", "bar4.rows")
 		cfg.editBar = "bar4"
 		assert(schema.showWhen(cfg), "preset bars keep row controls")
-		K.Options.Write("ActionBars", "bar4.rows", 4)
 		K.Options.Write("ActionBars", "bar4.buttons", 4)
+		K.Options.Write("ActionBars", "bar4.rows", 4)
 		K.Options.Write("ActionBars", "bar4.size", 24)
 		assert(K.Layout.Update("actionbars.bar4", { anchor = "TOPLEFT", x = 600, y = -250, scale = 1.2 }))
 		K.Callbacks.Fire("ProfileChanged")

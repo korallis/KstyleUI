@@ -318,6 +318,10 @@ local function applyPreset(env, opts)
 			K.Callbacks.Fire("SettingChanged", "ActionBars", bar .. ".rows", tonumber(rows))
 		end
 	end
+	for bar, perRow in (os.getenv("RENDER_BAR_PER_ROW") or ""):gmatch("(bar%d)=(%d+)") do
+		assert(K.Modules.IsEnabled("ActionBars"), "RENDER_BAR_PER_ROW needs the ActionBars module, which links Rows to it")
+		K.Options.Write("ActionBars", bar .. ".perRow", tonumber(perRow))
+	end
 	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" and K.Modules.IsEnabled("ActionBars") then
 		K.Options.Write("ActionBars", "bar3.enabled", true)
 		local buttons = tonumber(os.getenv("RENDER_BAR3_BUTTONS") or "")

@@ -1,7 +1,7 @@
 -- Data.lua: the bar table and the pure parts of the action bars: grid maths, slots, paging drivers and the page snippet.
 local _, ns = ...
 
-local ceil, floor, max, min = math.ceil, math.floor, math.max, math.min
+local floor = math.floor
 
 ns.BUTTONS_PER_PAGE = 12
 ns.FIRST_BONUS_PAGE = 6
@@ -29,16 +29,11 @@ ns.BLIZZARD_BARS = {
 	"MultiBar5", "MultiBar6", "MultiBar7", "StanceBar", "PetActionBar",
 }
 
-function ns.GridSize(count, rows, size, spacing)
-	count = max(1, count or 1)
-	rows = min(count, max(1, floor(rows or 1)))
-	local cols = ceil(count / rows)
-	rows = ceil(count / cols)
-	return cols * size + (cols - 1) * spacing, rows * size + (rows - 1) * spacing, cols, rows
+function ns.GridSize(cols, rows, size, spacing)
+	return cols * size + (cols - 1) * spacing, rows * size + (rows - 1) * spacing
 end
 
-function ns.Cell(index, count, rows, orientation, growth)
-	local _, _, cols, used = ns.GridSize(count, rows, 1, 0)
+function ns.Cell(index, cols, used, orientation, growth)
 	local col, row
 	if orientation == "VERTICAL" then
 		row, col = (index - 1) % used, floor((index - 1) / used)
