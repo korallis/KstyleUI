@@ -808,7 +808,8 @@ do
 	assert(fang._state.Texture[1]:find("Auras\\Rail\\Fang.png", 1, true) and R.Tint(fang, K, "white"), "Bloodrage burns the fang sheet, baked in the warrior's colour")
 	Clean(env, K)
 end
--- The healers' cooldown rows publish their own sheets on the sigils the melee rail borrows; the rail keeps its own sheet.
+-- The healers' cooldown rows publish their own sheets on the sigils the melee rail borrows, and may redraw those sigils; the
+-- rail keeps its own sheet and draws its steel, cooling and crown marks from its own copy of the sigil.
 do
 	local texture
 	local env, K, ns = New("WARRIOR", { known = { 1719, 2687 }, tree = 1, before = function(_, K)
@@ -823,6 +824,17 @@ do
 	end })
 	local fang = Rail(ns).made.bloodrage.aura.moving
 	assert(fang._state.Texture[1]:find("Auras\\Rail\\Fang.png", 1, true), "a sheet published on the fang sigil leaves Bloodrage's rail sheet in place")
+	local own, shared = 0, 0
+	local function Walk(frame)
+		for _, region in ipairs(frame._regions or {}) do
+			local file = region._state and region._state.Texture and region._state.Texture[1]
+			if type(file) == "string" and file:find("Sigils\\Rail\\Fang.png", 1, true) then own = own + 1 end
+			if type(file) == "string" and file:find("Sigils\\Fang.png", 1, true) then shared = shared + 1 end
+		end
+		for _, kid in ipairs(frame._kids or {}) do Walk(kid) end
+	end
+	Walk(Rail(ns))
+	assert(own >= 2 and shared == 0, "Bloodrage's steel and cooling marks draw the rail's own fang (" .. own .. "), never the healers' (" .. shared .. ")")
 	K.Tokens.Texture = texture
 	Clean(env, K)
 end

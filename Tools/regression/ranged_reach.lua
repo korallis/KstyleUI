@@ -437,7 +437,7 @@ function Reach.Check(sizes, low, classes, trees, only)
 				local need = OrbSheets(ns, Tokens, assert(orb, where .. ": the mage's orb shows"))
 				for _, list in ipairs({ railPiece.order, railPiece.spare }) do
 					for _, seat in ipairs(list) do
-						-- The seat's aura sheet, found as the rail's Baked finds it: the sheet its forged sigil names.
+						-- Only the aura sheet each mage seat's sigil publishes; the rail's own sheets and its lookup order are test-actionbars-crest-rail's.
 						local sigil = seat.ability.sigil
 						local found, _, _, _, _, aura = pcall(Tokens.Texture, "sigil" .. tostring(sigil))
 						if sigil and found and aura then need[#need + 1] = Key((Tokens.Texture(aura))) end

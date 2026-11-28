@@ -372,7 +372,8 @@ end
 local function Mark(piece, parent, layer, sublevel, seat, color, size)
 	local sigil = seat.ability.sigil
 	if sigil then
-		return piece.add(Medals.Texture(parent, layer, sublevel, "sigil" .. sigil, color, size))
+		local own = pcall(Tokens.Texture, "rail" .. sigil)
+		return piece.add(Medals.Texture(parent, layer, sublevel, (own and "rail" or "sigil") .. sigil, color, size))
 	end
 	local t = Medals.Round(parent)
 	t:SetDrawLayer(layer, sublevel)
