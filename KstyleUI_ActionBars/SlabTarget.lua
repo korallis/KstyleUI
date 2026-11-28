@@ -145,6 +145,15 @@ local function Listen()
 	K.Events.RegisterUnit(OWNER, "UNIT_HEALTH", OnEvent, "target")
 end
 
+function Target.SetEnabled(on)
+	if on and (Target.lock or kills[1]) then
+		Listen()
+	elseif not on then
+		K.Events.Unregister(OWNER, "PLAYER_TARGET_CHANGED")
+		K.Events.Unregister(OWNER, "UNIT_HEALTH")
+	end
+end
+
 local function Arc(parent, token, color, size, feather)
 	local t = parent:CreateTexture(nil, "ARTWORK")
 	local share = 0.5 - CUT / size

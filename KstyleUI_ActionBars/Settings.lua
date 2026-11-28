@@ -87,6 +87,7 @@ local defaults = {
 	tray = true,
 	useTray = true,
 	slab = true,
+	crest = true,
 	extraBarsLayout = "off",
 	extraBarsApplied = "off",
 	extraBarsPrevious = {},
@@ -469,6 +470,7 @@ function ns.Schema()
 	local schema = {
 		{ type = "segmented", key = "editBar", pin = true, label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },
 		{ type = "toggle", key = "slab", label = L["Use the Medallions slab"], help = L["Seats bars 1 and 2 in the connected slab. Off gives both bars every arrangement option."], showWhen = function(settings) return (settings.editBar == "bar1" or settings.editBar == "bar2") and K.HudStyle.Current() == "medallions" end },
+		{ type = "toggle", key = "crest", label = L["Show the crest"], help = L["Shows the crest between bars 1 and 2. Off builds none; once shown, a reload frees it."], showWhen = function(settings) return (settings.editBar == "bar1" or settings.editBar == "bar2") and K.HudStyle.Current() == "medallions" and settings.slab ~= false end },
 	}
 	for _, def in ipairs(ns.BARS) do BarRows(schema, def) end
 	BarRows(schema, ns.Consumables.def)

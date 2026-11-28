@@ -107,6 +107,7 @@ local function ApplyAll(geometryOnly)
 	end
 	if not geometryOnly then ns.ApplyBindings() end
 	ns.Vehicle.Update()
+	ns.Slab.SyncCrest()
 end
 
 function ns.QueueApply()
@@ -393,7 +394,7 @@ local function OnSetting(_, module, key)
 		end
 		ApplyAll()
 		return
-	elseif key == "trayColumn" or key == "useTray" or key == "slab" or key == "safeDragging" then
+	elseif key == "trayColumn" or key == "useTray" or key == "slab" or key == "crest" or key == "safeDragging" then
 		ApplyAll()
 		return
 	elseif barKey and ns.BAR[barKey] then
@@ -525,15 +526,6 @@ local function Enable()
 	ns.StylePossess()
 	UpdateAll()
 	ns.Slab.Enable()
-	ns.Travel.Enable()
-	ns.SlabEffects.Enable()
-	ns.SlabJewels.SetEnabled(true)
-	ns.SlabHawks.SetEnabled(true)
-	ns.SlabStorm.SetEnabled(true)
-	ns.SlabTrackers.SetEnabled(true)
-	ns.SlabRings.SetEnabled(true)
-	ns.SlabCrown.SetEnabled(true)
-	ns.SlabHeat.SetEnabled(true)
 	ns.Totems.SetEnabled(true)
 	ns.enabling = false
 	ns.Keybind.Enable()
@@ -554,17 +546,8 @@ local function Disable()
 		end
 	end
 	ns.Flyout.Close()
-	ns.SlabEffects.Disable()
-	ns.SlabJewels.SetEnabled(false)
-	ns.SlabHawks.SetEnabled(false)
-	ns.SlabStorm.SetEnabled(false)
-	ns.SlabTrackers.SetEnabled(false)
-	ns.SlabRings.SetEnabled(false)
-	ns.SlabCrown.SetEnabled(false)
-	ns.SlabHeat.SetEnabled(false)
 	ns.Totems.SetEnabled(false)
 	ns.Slab.Disable()
-	ns.Travel.Disable()
 	ns.Ranks.Stop()
 	ns.RestoreBlizzard()
 	gridShown.action, gridShown.pet, ns.grid, ns.layout = false, false, 0, false
