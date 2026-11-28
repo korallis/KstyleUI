@@ -142,7 +142,7 @@ local function Textures(frame, list)
 	return list
 end
 
--- Light(env, ns, class): the character knows every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua) and has each one's aura on its unit, its allies' and its after debuff too, and the buff of the moment its rail crowns (RAIL).
+-- Light(env, ns, class): the character knows every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua) and has each one's aura on its unit, its allies' too, and the buff of the moment its rail crowns (RAIL).
 local function Light(env, ns, class)
 	local rows, known, auras = {}, {}, {}
 	for _, entry in ipairs(ns.SlabPopoffs.CLASSES) do
@@ -156,7 +156,6 @@ local function Light(env, ns, class)
 		for _, id in ipairs(row.known or row.spells) do known[id] = true end
 		Give(row.unit or "player", { id = row.spells[1], start = env._now, duration = 30 })
 		for _, unit in ipairs(row.allies or {}) do Give(unit, { id = row.spells[1], start = env._now, duration = 30 }) end
-		if row.after then Give("player", { id = row.after.spell, start = env._now, duration = 60, harmful = true }) end
 	end
 	if RAIL[class] then Give("player", { id = RAIL[class].spell, start = env._now, duration = 30 }) end
 	assert(#rows > 0, class .. " has pop-offs")

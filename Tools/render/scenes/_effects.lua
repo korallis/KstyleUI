@@ -30,8 +30,8 @@ local HAWKS = {
 -- 1 s and its second at 4 s, each for POP_LIFE seconds, so neither rise shares the crest's one flare place. For the
 -- first: 1.2 s catches the rise, 6 s the aura running, 11.4 s its amber last fifth (from 10.6 s), 12.5 s its red last
 -- twelfth (from 12 s) and 13.2 s the fold; the second's beats are 3 s later. Stealth is gained with no duration, as
--- the game gives it, and a pop-off with an aftermath (Divine Shield's Forbearance) gains that debuff with it.
-local POP_START, POP_GAP, POP_LIFE, POP_HELD, POP_AFTER = 1, 3, 12, 0.7, 60
+-- the game gives it.
+local POP_START, POP_GAP, POP_LIFE, POP_HELD = 1, 3, 12, 0.7
 local UNTIMED = { [1784] = true, [1785] = true, [1786] = true, [1787] = true }
 
 -- The Lightning Shield story RENDER_FX=storm plays, as the shield's charges and the player's casts in order: a cast at
@@ -264,9 +264,6 @@ function Effects.Apply(env, module, ns, notes)
 			for i, row in ipairs(rows or {}) do
 				local start = POP_START + (i - 1) * POP_GAP
 				local auras = { { unit = row.unit or "player", id = row.spells[1], duration = not UNTIMED[row.spells[1]] and POP_LIFE or nil } }
-				if row.after then
-					auras[2] = { unit = "player", id = row.after.spell, duration = POP_AFTER, harmful = true, after = true }
-				end
 				beats[#beats + 1] = { start, auras, true }
 				beats[#beats + 1] = { start + POP_LIFE, auras, false }
 			end
@@ -282,7 +279,7 @@ function Effects.Apply(env, module, ns, notes)
 						if beat[3] then
 							aura.start = env._now
 							live[aura] = true
-						elseif not aura.after then
+						else
 							live[aura] = nil
 						end
 					end

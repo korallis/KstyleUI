@@ -77,7 +77,6 @@ local function Run(class, group)
 		for _, unit in ipairs(row.allies and { "target", "focus", member } or {}) do
 			Give(unit, { id = row.spells[1], mine = true })
 		end
-		if row.after then Give("player", { id = row.after.spell, duration = 60, harmful = true }) end
 	end
 	local exists, here = env.UnitExists, { focus = true }
 	if member then
