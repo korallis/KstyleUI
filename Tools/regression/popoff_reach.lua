@@ -1,4 +1,4 @@
--- popoff_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for each class named with every crest tracker lit (RENDER_TRACKERS=lit), the hunter's hawk perches out and every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua) known and lit on top, at each screen size, with the cast bars on the unit frames. A mage or warlock also knows its widest crest rail (ranged_reach.lua's Reach.WIDEST), so the rail's medals stand where they reach furthest; the warlock's Amplify Curse also runs, so the rail's crown shows beside Shadow Trance. It asserts that no pop-off texture, at full alpha, in any pose its own animations and its parents' reach together (anim_pose.lua's sampled poses, scale about each one's pivot), draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column, and, pixel by pixel, that it draws on no texture another named-seat piece, hawk perch, crown point, the rail's running crown or pop-off draws at rest (shown at an alpha above 0), with no exemption, Divine Shield's dome over the emblem included. The pieces that ring the whole crest (rim seats) are no peer.
+-- popoff_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for each class named with every crest tracker lit (RENDER_TRACKERS=lit), the hunter's hawk perches out and every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua) known and lit on top, at each screen size, with the cast bars on the unit frames. A class with a crest rail also knows its widest one (ranged_reach.lua's Reach.WIDEST), so the rail's medals stand where they reach furthest, and the warlock's Amplify Curse, the warrior's Bloodrage and the rogue's Adrenaline Rush also run, so the rail's crown shows beside the pop-offs. It asserts that no pop-off texture, at full alpha, in any pose its own animations and its parents' reach together (anim_pose.lua's sampled poses, scale about each one's pivot), draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column, and, pixel by pixel, that it draws on no texture another named-seat piece, hawk perch, crown point, the rail's shown medals and running crown or pop-off draws at rest (shown at an alpha above 0), with no exemption. The pieces that ring the whole crest (rim seats) are no peer; the rail, which claims no named seat, is one.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Pose = dofile("Tools/regression/anim_pose.lua")
@@ -9,8 +9,9 @@ local Reach = {}
 local RING = { crestGust = true, crestClearcasting = true, crestTrance = true, crestWard = true, crestAutoShot = true, crestCooldowns = true, crestFiveSecond = true }
 local FRAMES = { "unitframes.player", "unitframes.target", "unitframes.castbar.player", "unitframes.castbar.target" }
 local CONTENT = {}
--- The moment a class's crest rail crowns beside its pop-offs (SlabRanged.lua's rail abilities): the rail seat's key and its buff.
-local RAIL = { WARLOCK = { key = "amplify", spell = 18288 } }
+-- The moment a class's crest rail crowns beside its pop-offs (the rail abilities in SlabRanged.lua and SlabTrackers.lua): the rail
+-- seat's key, its buff and the spell cast last, so it owns the crown over the lit fixture's other running buffs.
+local RAIL = { WARLOCK = { key = "amplify", spell = 18288, cast = 18288 }, WARRIOR = { key = "bloodrage", spell = 29131, cast = 2687 }, ROGUE = { key = "rush", spell = 13750, cast = 13750 } }
 
 -- Grid(coords) -> columns and rows of the even grid a flipbook cell's texture coordinates (left, right, top, bottom) pick from;
 -- 1, 1 for the whole texture or a crop that is no grid cell.
@@ -174,6 +175,10 @@ local function Light(env, ns, class)
 		if p.spec.key == "crestPopoffs" and p.lits[1]:IsShown() then lit = lit + 1 end
 	end
 	assert(lit == #rows, class .. ": every pop-off is built and lit (" .. lit .. " of " .. #rows .. ")")
+	if RAIL[class] then
+		env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-" .. RAIL[class].cast, RAIL[class].cast)
+		env.RunTimers()
+	end
 end
 
 -- Drawn(region) -> whether the texture draws at rest: shown, under shown frames, at an alpha above 0 through every parent.
@@ -264,7 +269,7 @@ function Reach.Check(sizes, classes)
 			assert(#avoid > 16, at .. " " .. class .. ": the action slots, badge, unit frames and cast bars are placed")
 			local pieces = {}
 			for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-				pieces[#pieces + 1] = { key = p.spec.key, rim = not ns.SlabSeats.Name(p.spec.seat), regions = RING[p.spec.key] and {} or Textures(p, {}) }
+				pieces[#pieces + 1] = { key = p.spec.key, rim = p.spec.key ~= "crestRail" and not ns.SlabSeats.Name(p.spec.seat), regions = RING[p.spec.key] and {} or Textures(p, {}) }
 			end
 			for i, p in ipairs(ns.SlabHawks and ns.SlabHawks.state.perches or {}) do
 				pieces[#pieces + 1] = { key = "hawk perch " .. i, regions = Textures(p.holder, {}) }
@@ -302,6 +307,9 @@ function Reach.Check(sizes, classes)
 				end
 			end
 			assert(#peers > 8, at .. " " .. class .. ": the other drawn crest pieces are measured (" .. #peers .. ")")
+			local railed = 0
+			for _, a in ipairs(peers) do railed = railed + (a.key == "crestRail" and 1 or 0) end
+			assert(not moment or railed > 0, at .. " " .. class .. ": the rail's shown medals are measured (" .. railed .. ")")
 			local checked, crowned = 0, 0
 			for _, p in ipairs(pieces) do
 				for _, region in ipairs(p.key == "crestPopoffs" and p.regions or {}) do

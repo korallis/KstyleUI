@@ -46,12 +46,9 @@ local function Pop(ns, art)
 end
 
 -- The lit of a piece whose aura container reads this unit.
-local function On(p, unit, n)
+local function On(p, unit)
 	for _, lit in ipairs(p.lits) do
-		if lit.container._unit == unit then
-			n = (n or 1) - 1
-			if n == 0 then return lit end
-		end
+		if lit.container._unit == unit then return lit end
 	end
 end
 
@@ -119,7 +116,7 @@ do
 		{ class = "HUNTER", tree = 3, known = { 13165, 883, 75, 3045, 19263, 14305, 1317257 }, key = "deter", spell = 19263, unit = "player" },
 		{ class = "MAGE", tree = 3, known = FROST, key = "block", spell = 11958, unit = "player" },
 		{ class = "MAGE", tree = 3, known = FROST, key = "evocation", spell = 12051, unit = "player" },
-		{ class = "PALADIN", tree = 1, known = { 642, 20216 }, key = "shield", spell = 642, unit = "player" },
+		{ class = "PALADIN", tree = 1, known = { 642, 20216 }, key = "shield", spell = 642, unit = "player", others = { [1020] = true } },
 		{ class = "PALADIN", tree = 1, known = { 642, 20216 }, key = "favor", spell = 20216, unit = "player" },
 		{ class = "WARLOCK", tree = 1, known = { 603, 18288, 6789, 18708, 6353, 1122, 17877, 18094 }, key = "amplify", spell = 18288, unit = "player" },
 	}) do
@@ -132,9 +129,13 @@ do
 		R.Slots.Set(henv, case.unit, { { id = case.spell, auraInstanceID = 9, start = henv._now, duration = 10 } })
 		henv.RunTimers()
 		assert(rail.owner == seat and seat.gate:GetAlpha() == 1 and seat.crowned:IsShown(), case.key .. ": the running buff owns the rail's crown and shows there")
-		for _, p in ipairs(Pops(hns)) do
-			for _, id in ipairs(p.spec.spells) do
-				assert(id ~= case.spell, case.key .. ": no pop-off reads the moment; the rail shows it")
+		for _, entry in ipairs(hns.SlabPopoffs.CLASSES) do
+			for _, row in ipairs(entry[2]) do
+				for _, list in ipairs({ row.spells, row.known or {} }) do
+					for _, id in ipairs(list) do
+						assert(not (case.others or {})[id] and id ~= case.spell, case.key .. ": no class's pop-off row reads the moment; the rail shows it (" .. entry[1] .. " " .. row.art .. ")")
+					end
+				end
 			end
 		end
 		assert(case.class == "WARLOCK" or #Pops(hns) == 0, case.key .. ": the " .. case.class:lower() .. " builds no pop-off")

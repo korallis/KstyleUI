@@ -40,11 +40,8 @@ end
 
 local function Travel(flare, from)
 	local play = ns.Slab.Group(flare)
-	local dx, dy = from[1], from[2]
-	if dx ~= 0 or dy ~= 0 then
-		Move(play, dx, dy, 0.01, 1, "NONE")
-		Move(play, -dx, -dy, RISE_RUN, 2, "OUT")
-	end
+	Move(play, from[1], from[2], 0.01, 1, "NONE")
+	Move(play, -from[1], -from[2], RISE_RUN, 2, "OUT")
 	ns.Slab.Grow(play, RISE_FROM, RISE_FROM, 0.01, 1, "NONE")
 	ns.Slab.Grow(play, 1, 1 / RISE_FROM, RISE_RUN, 2, "OUT")
 	ns.Slab.Fade(play, 0, 1, FLASH, 2)
