@@ -113,6 +113,7 @@ do
 	assert(K.Setup.EditMode.Last().state == "failed" and not K.Setup.EditMode.Last().full, "a failed save is not the full-list refusal")
 	assert(Visible(panel.retry) and Visible(panel.reload) and Visible(panel.later), "a failed save keeps Try again, Reload and Later")
 	assert(not Visible(panel.apply) and not Visible(panel.replace), "a failed save offers no replacement")
+	assert(Fake.Named(state, "Mine 2") and Fake.Named(state, "KstyleUI DPS"), "a failed save keeps every layout")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
