@@ -127,6 +127,13 @@ MARKS.update({
     "Gust": ("trackers", "jewelHawk", casters.D["Gust"]),
 })
 BANDS = {"Gust": 4}  # mark: its strip's length over its height
+# the signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua), each sigil in its spell's school. A "popoffs" mark (named
+# Pop/<Art>) draws the sigil of its name as a "sigils" mark does and bakes it into Popoffs/, apart from the crest marks'
+# sheets of the same sigils in their seats' colours.
+for name, colour in (("Infusion", "schoolHoly"), ("Focus", "schoolArcane"),
+                     ("Void", "schoolShadow"), ("Sweep", "schoolPhysical"), ("Veil", "schoolShadow"), ("Innervate", "schoolNature"),
+                     ("Swift", "schoolNature"), ("Bolt", "schoolFrost")):
+    MARKS["Pop/" + name] = ("popoffs", colour, None)
 
 
 def picture(path, mirror=False):
@@ -184,7 +191,7 @@ def palette(hexv):
 
 def figure(name, kind, design, work, rail=False):
     """The mark's figure mask and relief height in its own unit box, and whether it sits on a plate."""
-    if kind == "sigils":
+    if kind in ("sigils", "popoffs"):
         pen = sigils.Pen()
         (sigils.RAIL if rail else sigils.GLYPHS)[design or name](pen)
         e = forge_lineart(name, pen.image, work / "maps")

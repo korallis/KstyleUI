@@ -16,6 +16,8 @@
 --   local Slots = dofile("Tools/regression/aura_slots.lua")
 --   Slots.Install(env)                                   -- in an env's setup, before the addon loads
 --   Slots.Set(env, "target", { { id = 7386, count = 3, harmful = true } })   -- feeds every slot; nil clears
+--   Slots.Readings(env)                                  -- C_UnitAuras.GetUnitAuraBySpellID answers from the slots' auras
+--   Slots.Deliver(env, "party2", { { id = 10060, start = env._now, duration = 30 } })   -- Set, then UNIT_AURA as the client fires it
 --
 -- SetAuraSlotEnabled(key, false) stops a slot reading auras. SetIcon, SetDurationCooldown, SetApplicationCount and SetDurationBar take regions the button owns and show the aura's icon, its stacks above one and its
 -- { start, finish } duration (an aura's start and duration, seconds); AddItemEnchantment's button shows the enchant
@@ -368,6 +370,49 @@ function Slots.Rebuild(env)
 			Slots.Engine(env, Rebuild, env, c)
 		end
 	end
+end
+
+-- Readings(env) answers C_UnitAuras.GetUnitAuraBySpellID from the helpful auras Set gave each unit, as the client reads them out of combat:
+-- one instance id per aura table, the priest's own unless the aura says mine = false, and no expiration time for an aura with no duration.
+function Slots.Readings(env)
+	local ids, serial = setmetatable({}, { __mode = "k" }), 0
+	env.C_UnitAuras = env.C_UnitAuras or {}
+	env.C_UnitAuras.GetUnitAuraBySpellID = function(unit, id)
+		for _, a in ipairs(env._slotAuras[unit] or {}) do
+			if a.id == id and not a.harmful then
+				if not ids[a] then serial = serial + 1 ids[a] = serial end
+				local length = a.duration or 0
+				return { auraInstanceID = ids[a], spellId = id, sourceUnit = a.mine == false and "party9" or "player", expirationTime = length > 0 and (a.start or 0) + length or 0, duration = length }
+			end
+		end
+	end
+end
+
+-- Deliver(env, unit, auras) sets the unit's auras and fires the UNIT_AURA the client sends for that unit alone: the auras it gained and
+-- the ones it lost (by Readings' instance ids), or a full update when the list is cleared.
+function Slots.Deliver(env, unit, auras)
+	local kept, removed = {}, {}
+	for _, a in ipairs(auras or {}) do kept[a] = true end
+	for _, a in ipairs(env._slotAuras[unit] or {}) do
+		local read = not kept[a] and not a.harmful and env.C_UnitAuras.GetUnitAuraBySpellID(unit, a.id)
+		if read then removed[#removed + 1] = read.auraInstanceID end
+		kept[a] = nil
+	end
+	local fresh = {}
+	for _, a in ipairs(auras or {}) do
+		if kept[a] then fresh[#fresh + 1] = a end
+	end
+	Slots.Set(env, unit, auras)
+	if not auras then
+		env.FireEvent("UNIT_AURA", unit, { isFullUpdate = true })
+		return
+	end
+	local added = {}
+	for _, a in ipairs(fresh) do
+		local read = not a.harmful and env.C_UnitAuras.GetUnitAuraBySpellID(unit, a.id)
+		if read then added[#added + 1] = { spellId = a.id, auraInstanceID = read.auraInstanceID } end
+	end
+	env.FireEvent("UNIT_AURA", unit, { isFullUpdate = false, addedAuras = added, removedAuraInstanceIDs = removed })
 end
 
 return Slots

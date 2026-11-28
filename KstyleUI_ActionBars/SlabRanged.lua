@@ -6,6 +6,8 @@ local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
 local cos, sin, rad, min, max = math.cos, math.sin, math.rad, math.min, math.max
 local IsSecret = Widgets.IsSecret
 local Medals, Trackers = ns.SlabMedals, ns.SlabTrackers
+local NIGHTFALL = { 18094, 18095 }
+ns.SlabRanged = { NIGHTFALL = NIGHTFALL }
 local CLASS = UnitClass and select(2, UnitClass("player"))
 if IsSecret(CLASS) or CLASS ~= "HUNTER" and CLASS ~= "MAGE" and CLASS ~= "WARLOCK" then
 	return
@@ -1290,9 +1292,24 @@ end
 
 local PAINT = { tracking = PaintTrack, orders = PaintOrders, range = PaintReach }
 
+local function Painters(form)
+	if not form.painters or form.paintersFor ~= form.lua then
+		local list = {}
+		for _, p in pairs(form.pieces) do
+			if p.swing or p.health or p.curve or p.kind or p.shots or p.seats or p.rail or p.spires then
+				list[#list + 1] = p
+			end
+		end
+		form.painters, form.paintersFor = list, form.lua
+	end
+	return form.painters
+end
+
 local function Paint(form, event, ...)
 	local all = event == nil
-	for _, p in pairs(form.pieces) do
+	local painters = Painters(form)
+	for i = 1, #painters do
+		local p = painters[i]
 		if p.swing then
 			if (all or ON.swing[event]) and p:IsShown() then
 				PaintSwing(p, event, ...)
@@ -1644,7 +1661,7 @@ if CLASS == "WARLOCK" then
 				if id then return id end
 			end
 		end },
-		{ key = "crestTrance", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 17941 }, known = { 18094, 18095 },
+		{ key = "crestTrance", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 17941 }, known = NIGHTFALL,
 			color = "jewelShard", proc = "jewelShard" },
 		{ key = "crestRail", seat = "rim", build = ns.SlabRail.Build, place = ns.SlabRail.Place, known = ns.SlabRail.Known, hold = ns.SlabRail.Holding, crestOnly = true },
 	}, {

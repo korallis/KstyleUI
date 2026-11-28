@@ -611,6 +611,10 @@ for _, set in ipairs({
 		end
 	end
 end
+for _, name in ipairs({ "Bolt", "Focus", "Infusion", "Innervate", "Sweep", "Swift", "Veil", "Void" }) do
+	TEXTURES["pop" .. name] = { file = "Textures\\Sigils\\" .. name .. ".png", aura = "auraPopoff" .. name }
+	TEXTURES["auraPopoff" .. name] = { file = "Textures\\Auras\\Popoffs\\" .. name .. ".png", rows = 4, columns = 4, frames = 16, seconds = 1.44, span = 1.25 }
+end
 local BARE_AURAS = { Counter = true, Mongoose = true, Raptor = true }
 for kind, names in pairs({
 	Glyph = { "Beast", "BlackArrow", "Cheetah", "Compass", "Counter", "Haunch", "Hawk", "Hound", "Lacerate", "Mongoose", "Monkey", "Pack",

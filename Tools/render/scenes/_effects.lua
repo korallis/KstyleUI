@@ -4,7 +4,7 @@ local Scene = dofile("Tools/render/scene.lua")
 
 local Effects = {}
 
-local STATES = { ready = true, cap = true, tide = true, mantle = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true, storm = true, crest = true, kill = true, lock = true }
+local STATES = { ready = true, cap = true, tide = true, mantle = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true, storm = true, popoffs = true, crest = true, kill = true, lock = true }
 
 -- The crest story RENDER_FX=crest plays: a target at 0 s, the target lost at 4 s (the crest settles), combat at 10 s.
 -- The hub's loops run at each phase's speed, which the harness's clock does not scale, so the story starts each loop
@@ -26,6 +26,14 @@ local HAWKS = {
 	{ at = 44.5, slot = 3 },
 }
 
+-- The pop-off story RENDER_FX=popoffs plays, as aura slot changes: the class's first signature aura is gained at
+-- 1 s and its second at 4 s, each for POP_LIFE seconds, so neither rise shares the crest's one flare place. For the
+-- first: 1.2 s catches the rise, 6 s the aura running, 11.4 s its amber last fifth (from 10.6 s), 12.5 s its red last
+-- twelfth (from 12 s) and 13.2 s the fold; the second's beats are 3 s later. Stealth is gained with no duration, as
+-- the game gives it.
+local POP_START, POP_GAP, POP_LIFE, POP_HELD = 1, 3, 12, 0.7
+local UNTIMED = { [1784] = true, [1785] = true, [1786] = true, [1787] = true }
+
 -- The Lightning Shield story RENDER_FX=storm plays, as the shield's charges and the player's casts in order: a cast at
 -- 1 s, then three strikes at least the shield's 3.5 s proc recovery apart, the last ending the shield.
 local STORM = {
@@ -46,7 +54,7 @@ function Effects.State()
 	if not state or state == "" then
 		return nil
 	end
-	assert(STATES[state], "RENDER_FX must be one of ready, cap, tide, mantle, levelup, cast, stopped, vignette, burst, rest, jewels, hawks, storm, crest, kill or lock")
+	assert(STATES[state], "RENDER_FX must be one of ready, cap, tide, mantle, levelup, cast, stopped, vignette, burst, rest, jewels, hawks, storm, popoffs, crest, kill or lock")
 	local t = tonumber(rawget(_G, "RENDER_FX_T") or os.getenv("RENDER_FX_T") or "")
 	return state, t
 end
@@ -221,6 +229,89 @@ function Effects.Apply(env, module, ns, notes)
 			end
 			env.GetTime = clock
 			notes[#notes + 1] = "fx: the hawk perches " .. at .. " s into the story"
+		elseif state == "popoffs" then
+			-- A character who knows every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua),
+			-- RENDER_FX_T seconds into the pop-off story (1.2 when unset): the aura slots gain each pop-off's aura at
+			-- POP_START and lose it POP_LIFE seconds later. RENDER_POPOFF_MOTION sets Medallions motion, and
+			-- RENDER_POPOFFS=off turns the setting off.
+			local at = t or 1.2
+			local _, class = env.UnitClass("player")
+			local rows
+			for _, entry in ipairs(ns.SlabPopoffs.CLASSES) do
+				rows = entry[1] == class and entry[2] or rows
+			end
+			local known = {}
+			for _, row in ipairs(rows or {}) do
+				for _, id in ipairs(row.known or row.spells) do known[id] = true end
+			end
+			env.C_SpellBook = env.C_SpellBook or {}
+			local before = env.C_SpellBook.IsSpellKnown
+			env.C_SpellBook.IsSpellKnown = function(id, bank) return known[id] == true or before ~= nil and before(id, bank) end
+			local Slots = dofile("Tools/regression/aura_slots.lua")
+			if not env._slotContainers then Slots.Install(env) end
+			Slots.Readings(env)
+			local motion = os.getenv("RENDER_POPOFF_MOTION")
+			if motion and motion ~= "" then
+				K.Options.Write("Medallions", "motion", motion)
+			end
+			if os.getenv("RENDER_POPOFFS") == "off" then
+				K.Options.Write("ActionBars", "crestPopoffs", false)
+			end
+			ns.SlabTrackers.Update()
+			local clock = env.GetTime
+			env.GetTime = function() return env._now end
+			local beats = {}
+			for i, row in ipairs(rows or {}) do
+				local start = POP_START + (i - 1) * POP_GAP
+				local auras = { { unit = row.unit or "player", id = row.spells[1], duration = not UNTIMED[row.spells[1]] and POP_LIFE or nil } }
+				beats[#beats + 1] = { start, auras, true }
+				beats[#beats + 1] = { start + POP_LIFE, auras, false }
+			end
+			table.sort(beats, function(a, b) return a[1] < b[1] end)
+			local live, last = {}, nil
+			for _, beat in ipairs(beats) do
+				if beat[1] <= at then
+					if last and beat[1] - last > POP_HELD then
+						env.RunTimers()
+					end
+					env._now = env._time - (at - beat[1])
+					for _, aura in ipairs(beat[2]) do
+						if beat[3] then
+							aura.start = env._now
+							live[aura] = true
+						else
+							live[aura] = nil
+						end
+					end
+					local units = {}
+					for aura in pairs(live) do
+						units[aura.unit] = units[aura.unit] or {}
+						table.insert(units[aura.unit], aura)
+					end
+					for _, unit in ipairs({ "player", "pet" }) do
+						Slots.Deliver(env, unit, units[unit])
+					end
+					if not beat[3] then
+						env.RunTimers()
+					end
+					last = beat[1]
+				end
+			end
+			-- The stub runs every pending timer at once, so the crest's flare claims end only once a flare is over.
+			if last and at - last > POP_HELD then
+				env.RunTimers()
+			end
+			env.GetTime = clock
+			notes[#notes + 1] = "fx: the " .. tostring(class) .. " pop-offs " .. at .. " s into the story"
+			-- Each timed ring's late warning as the renderer draws it at this time, so a capture named amber or red can be checked.
+			local warned = dofile("Tools/regression/popoff_warnings.lua").Read(env, ns, env._time)
+			local keys = {}
+			for key in pairs(warned) do keys[#keys + 1] = key end
+			table.sort(keys)
+			for _, key in ipairs(keys) do
+				local w = warned[key]
+				notes[#notes + 1] = "fx: " .. key .. " ring " .. (w[2] > 0 and "red" or w[1] > 0 and "amber" or "without a warning")
+			end
 		elseif state == "storm" then
 			-- A shaman who knows Lightning Shield, RENDER_FX_T seconds into the STORM story (2.5 when unset): the aura
 			-- slots take each charge count and the addon's own handler each cast, at its own time on the clock.

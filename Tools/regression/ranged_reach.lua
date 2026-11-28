@@ -259,6 +259,7 @@ local WIDEST = {
 	ROGUE = { 13750, 13877, 14177, 1856, 5277, 2983, 14183, 14185, 2094, 20554, 20572 },
 }
 local SPARES = 6
+Reach.WIDEST = WIDEST
 
 -- Key(path) -> the texture's path from Media/ on, so a forged face and its aura sheet of the same file name stay apart.
 local function Key(path)

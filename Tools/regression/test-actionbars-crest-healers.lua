@@ -75,7 +75,7 @@ local function Tracker(ns, class)
 				for key, piece in pairs(f.pieces) do
 					local row, choice = key:match("^(%d+):(%d+)$")
 					local name = row == "1" and "fiveSecond" or NAMES[class][(row - 1) .. ":" .. choice]
-					if piece.spec.key ~= "crestSwing" then built[name .. (form == "row" and "Row" or "")] = piece end
+					if piece.spec.key ~= "crestSwing" and piece.spec.key ~= "crestPopoffs" then built[name .. (form == "row" and "Row" or "")] = piece end
 				end
 			end
 			return built
@@ -178,7 +178,7 @@ do
 	assert(pain.lit:IsShown() and AB.W.LastCall(pain.bar, "SetTimerDuration"), "your Pain on the target fills the gem and drains it")
 
 	-- Each switch hides its own piece and stops its feed; turning it back shows it again.
-	for _, key in ipairs({ "crestInnerFire", "crestPenance", "crestShadowfiend", "crestPain", "crestCooldowns", "crestFiveSecond" }) do
+	for _, key in ipairs({ "crestInnerFire", "crestPenance", "crestShadowfiend", "crestPain", "crestCooldowns", "crestFiveSecond", "crestPopoffs" }) do
 		K.Options.Write("ActionBars", key, false)
 		env.RunTimers()
 	end
