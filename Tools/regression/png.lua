@@ -1,22 +1,32 @@
--- png.lua: Png.Alpha(path) decodes an 8-bit RGBA or RGB, non-interlaced PNG (zlib inflate and row filters in plain Lua 5.1) and returns alpha(x, y), width, height. An RGB file has no alpha: the addon's only RGB files are the aura sheets under Media/Textures/Auras, drawn with the ADD blend, where black adds nothing, so its alpha is its brightest channel. Only that coverage is kept, one byte per pixel in a string per row, so the reach check can hold every crest texture it reads at once under the test runner's 4096 MB limit. Bits are shifted with a table of powers of two, not the ^ operator, and each row filter has its own loop: that halves the decode time the reach check spends under the hosted runner's 120 s hang guard.
+-- png.lua: Png.Coverage(path) decodes an 8-bit RGBA or RGB, non-interlaced PNG (zlib inflate and row filters in plain Lua 5.1) and returns rows, width, height, where rows[y] (from 0) holds one coverage byte per pixel; Png.Alpha(path) returns alpha(x, y), width, height over the same rows. An RGB file has no alpha: the addon's only RGB files are the aura sheets under Media/Textures/Auras, drawn with the ADD blend, where black adds nothing, so its coverage is its brightest channel. Each file keeps only its coverage rows, and the reader keeps one inflate buffer that every file reuses, so the reach check can hold every crest texture it reads at once under the test runner's 4096 MB limit. Each reach test file has to read every crest texture inside its CPU budget on the hosted runner, so the reader is built for speed: a Huffman code of up to nine bits is read through one table lookup instead of a bit at a time, bits are shifted with a table of powers of two, not the ^ operator, the shared inflate buffer saves growing a new table per file for the collector to sweep, and each row filter has its own loop with no function call in it.
 local Png = {}
-local floor, max = math.floor, math.max
+local byte, char, unpack = string.byte, string.char, unpack
 
 local LBASE, LEXT, DBASE, DEXT = {}, {}, {}, {}
 do
 	local b = 3
 	for i = 0, 27 do
-		LEXT[i] = i < 8 and 0 or floor(i / 4) - 1
+		LEXT[i] = i < 8 and 0 or math.floor(i / 4) - 1
 		LBASE[i], b = b, b + 2 ^ LEXT[i]
 	end
 	LBASE[28], LEXT[28], b = 258, 0, 1
 	for i = 0, 29 do
-		DEXT[i] = i < 4 and 0 or floor(i / 2) - 1
+		DEXT[i] = i < 4 and 0 or math.floor(i / 2) - 1
 		DBASE[i], b = b, b + 2 ^ DEXT[i]
 	end
 end
 local ORDER = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 }
 
+local POW = {}
+for i = 0, 31 do POW[i] = 2 ^ i end
+
+-- A code of FAST bits or fewer is found in one lookup of the stream's next FAST bits; a longer one is read a bit at a
+-- time. Nine bits cover every literal of the fixed code and nearly all of a dynamic one.
+local FAST = 9
+local SPAN = POW[FAST]
+
+-- Huffman(lengths, n) -> count and symbol, the canonical code read a bit at a time (zlib's puff.c), and fast:
+-- fast[next FAST bits of the stream, first bit lowest] = symbol * 16 + length, for every code of FAST bits or fewer.
 local function Huffman(lengths, n)
 	local count, symbol, offs = {}, {}, { 0 }
 	for len = 0, 15 do count[len] = 0 end
@@ -28,15 +38,33 @@ local function Huffman(lengths, n)
 			symbol[offs[len]], offs[len] = i, offs[len] + 1
 		end
 	end
-	return { count = count, symbol = symbol }
+	-- Canonical codes in symbol order (RFC 1951 3.2.2). The stream sends a code's first bit first, so the table is
+	-- indexed by the code's bits reversed, and every index whose low bits are that reversal holds the symbol.
+	local fast, nextCode, code = {}, {}, 0
+	for len = 1, FAST do
+		code = (code + (len > 1 and count[len - 1] or 0)) * 2
+		nextCode[len] = code
+	end
+	for i = 0, n - 1 do
+		local len = lengths[i]
+		if len ~= 0 and len <= FAST then
+			local c, reversed = nextCode[len], 0
+			nextCode[len] = c + 1
+			for _ = 1, len do
+				local bit = c % 2
+				reversed, c = reversed * 2 + bit, (c - bit) / 2
+			end
+			for at = reversed, SPAN - 1, POW[len] do fast[at] = i * 16 + len end
+		end
+	end
+	return { count = count, symbol = symbol, fast = fast }
 end
 
-local POW = {}
-for i = 0, 31 do POW[i] = 2 ^ i end
-
+-- Inflate(s) -> out, n: the zlib stream s (from its third byte, past the header) inflated into out[1..n]. out is the
+-- one buffer every call reuses, so its contents past n are another file's.
+local OUT = {}
 local function Inflate(s)
-	local byte = string.byte
-	local pos, buf, have, out, n = 3, 0, 0, {}, 0
+	local pos, buf, have, n, out = 3, 0, 0, 0, OUT
 	local function bits(k)
 		while have < k do
 			buf, pos, have = buf + byte(s, pos) * POW[have], pos + 1, have + 8
@@ -45,7 +73,19 @@ local function Inflate(s)
 		buf, have = (buf - v) / POW[k], have - k
 		return v
 	end
+	-- decode(h) -> the next symbol of code h. The lookup reads ahead up to FAST bits; a valid stream always has them,
+	-- since the zlib stream ends with its four-byte checksum after the last code.
 	local function decode(h)
+		while have < FAST do
+			buf, pos, have = buf + byte(s, pos) * POW[have], pos + 1, have + 8
+		end
+		local entry = h.fast[buf % SPAN]
+		if entry then
+			local len = entry % 16
+			local p = POW[len]
+			buf, have = (buf - buf % p) / p, have - len
+			return (entry - len) / 16
+		end
 		local count, symbol = h.count, h.symbol
 		local code, first, index = 0, 0, 0
 		for len = 1, 15 do
@@ -61,6 +101,8 @@ local function Inflate(s)
 	repeat
 		local last, kind = bits(1), bits(2)
 		if kind == 0 then
+			-- A stored block starts on a byte: the partial byte's bits are dropped, and whole bytes read ahead go back.
+			pos = pos - (have - have % 8) / 8
 			buf, have = 0, 0
 			local len = byte(s, pos) + 256 * byte(s, pos + 1)
 			for i = 1, len do out[n + i] = byte(s, pos + 3 + i) end
@@ -88,23 +130,40 @@ local function Inflate(s)
 			local dist = {}
 			for i = 0, ndist - 1 do dist[i] = lengths[nlen + i] end
 			local lit, dists = Huffman(lengths, nlen), Huffman(dist, ndist)
+			local fast = lit.fast
 			while true do
-				local sym = decode(lit)
-				if sym == 256 then break end
+				-- decode(lit)'s lookup, written out: most of a file's bytes are literals, and a call each costs a third
+				-- of the inflate time.
+				while have < FAST do
+					buf, pos, have = buf + byte(s, pos) * POW[have], pos + 1, have + 8
+				end
+				local sym
+				local entry = fast[buf % SPAN]
+				if entry then
+					local len = entry % 16
+					local p = POW[len]
+					buf, have, sym = (buf - buf % p) / p, have - len, (entry - len) / 16
+				else
+					sym = decode(lit)
+				end
 				if sym < 256 then
 					n = n + 1
 					out[n] = sym
+				elseif sym == 256 then
+					break
 				else
-					local len = LBASE[sym - 257] + bits(LEXT[sym - 257])
+					local len, extra = LBASE[sym - 257], LEXT[sym - 257]
+					if extra > 0 then len = len + bits(extra) end
 					local d = decode(dists)
-					local back = DBASE[d] + bits(DEXT[d])
+					local back = DBASE[d]
+					if DEXT[d] > 0 then back = back + bits(DEXT[d]) end
 					for i = n + 1, n + len do out[i] = out[i - back] end
 					n = n + len
 				end
 			end
 		end
 	until last == 1
-	return out
+	return out, n
 end
 
 local function U32(s, i)
@@ -112,7 +171,11 @@ local function U32(s, i)
 	return ((a * 256 + b) * 256 + c) * 256 + d
 end
 
-function Png.Alpha(path)
+-- HALF[v] = floor(v / 2), for the Average filter's sum of two bytes.
+local HALF = {}
+for v = 0, 510 do HALF[v] = (v - v % 2) / 2 end
+
+function Png.Coverage(path)
 	local file = assert(io.open(path, "rb"), "png.lua: cannot open " .. path)
 	local s = file:read("*a")
 	file:close()
@@ -130,35 +193,71 @@ function Png.Alpha(path)
 		end
 		pos = pos + 12 + len
 	end
-	local raw, stride, rows, prev, cur, cover = Inflate(table.concat(idat)), w * depth, {}, {}, {}, {}
+	local stride = w * depth
+	local raw, n = Inflate(table.concat(idat))
+	-- The reused buffer holds another file's bytes past n, so a short stream must stop here rather than be read past.
+	assert(n == h * (stride + 1), path .. ": png.lua inflated " .. n .. " bytes, not the " .. h * (stride + 1) .. " its size needs")
+	local rows, prev, cur, cover = {}, {}, {}, {}
+	for i = 1, stride do prev[i] = 0 end
 	for y = 0, h - 1 do
 		local base = y * (stride + 1) + 1
 		local filter = raw[base]
+		-- The filters add modulo 256 by subtracting 256 from a sum over 255; a byte to the left of the row is 0.
 		if filter == 0 then
 			for i = 1, stride do cur[i] = raw[base + i] end
 		elseif filter == 1 then
-			for i = 1, stride do cur[i] = (raw[base + i] + (cur[i - depth] or 0)) % 256 end
+			for i = 1, depth do cur[i] = raw[base + i] end
+			for i = depth + 1, stride do
+				local v = raw[base + i] + cur[i - depth]
+				cur[i] = v > 255 and v - 256 or v
+			end
 		elseif filter == 2 then
-			for i = 1, stride do cur[i] = (raw[base + i] + (prev[i] or 0)) % 256 end
+			for i = 1, stride do
+				local v = raw[base + i] + prev[i]
+				cur[i] = v > 255 and v - 256 or v
+			end
 		elseif filter == 3 then
-			for i = 1, stride do cur[i] = (raw[base + i] + floor(((cur[i - depth] or 0) + (prev[i] or 0)) / 2)) % 256 end
+			for i = 1, depth do
+				local v = raw[base + i] + HALF[prev[i]]
+				cur[i] = v > 255 and v - 256 or v
+			end
+			for i = depth + 1, stride do
+				local v = raw[base + i] + HALF[cur[i - depth] + prev[i]]
+				cur[i] = v > 255 and v - 256 or v
+			end
 		else
 			assert(filter == 4, "png.lua: bad row filter")
-			for i = 1, stride do
-				local a, b, c = cur[i - depth] or 0, prev[i] or 0, prev[i - depth] or 0
-				local p = a + b - c
-				local pa, pb, pc = math.abs(p - a), math.abs(p - b), math.abs(p - c)
-				cur[i] = (raw[base + i] + ((pa <= pb and pa <= pc) and a or pb <= pc and b or c)) % 256
+			-- Paeth with the left and upper-left bytes 0 predicts the byte above.
+			for i = 1, depth do
+				local v = raw[base + i] + prev[i]
+				cur[i] = v > 255 and v - 256 or v
+			end
+			for i = depth + 1, stride do
+				local a, b, c = cur[i - depth], prev[i], prev[i - depth]
+				local pa, pb, pc = b - c, a - c, a + b - c - c
+				if pa < 0 then pa = -pa end
+				if pb < 0 then pb = -pb end
+				if pc < 0 then pc = -pc end
+				local v = raw[base + i] + ((pa <= pb and pa <= pc) and a or pb <= pc and b or c)
+				cur[i] = v > 255 and v - 256 or v
 			end
 		end
 		if depth == 4 then
 			for x = 1, w do cover[x] = cur[x * 4] end
 		else
-			for x = 1, w do cover[x] = max(cur[x * 3 - 2], cur[x * 3 - 1], cur[x * 3]) end
+			for x = 1, w do
+				local r, g, b = cur[x * 3 - 2], cur[x * 3 - 1], cur[x * 3]
+				if g > r then r = g end
+				cover[x] = b > r and b or r
+			end
 		end
-		rows[y], prev, cur = string.char(unpack(cover, 1, w)), cur, prev
+		rows[y], prev, cur = char(unpack(cover, 1, w)), cur, prev
 	end
-	local byte = string.byte
+	return rows, w, h
+end
+
+function Png.Alpha(path)
+	local rows, w, h = Png.Coverage(path)
 	return function(x, y) return byte(rows[y], x + 1) end, w, h
 end
 

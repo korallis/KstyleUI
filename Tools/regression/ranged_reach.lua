@@ -1,4 +1,4 @@
--- ranged_reach.lua: Reach.Check(sizes, classes, trees) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture: an additive RGB aura sheet by its brightest channel, a flipbook sheet folded into one cell, a still cell through its texture coordinates; an addon file the reader cannot read stops the check) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The warlock knows every summon and Demonic Sacrifice, so its demon piece builds each demon's mark and each Sacrifice copy, and each of those aura sheets must be among the measured textures. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column; each screen is built a second time with Cast bars on unit frames off, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches. With trees, only the centred layout is built and the mage runs once per talent tree named, its shown orb and each of that tree's orb sheets and rail seat aura sheets among the measured textures.
+-- ranged_reach.lua: Reach.Check(sizes, low, classes, trees) builds the HUD scene's action bars for a hunter, mage and warlock (or the classes named) with every crest tracker lit (RENDER_TRACKERS=lit), and the hunter's hawk perches with their summon lift, at each screen size and asserts that no texture of a break-out piece, at full alpha (a waiting flare at its peak), swept through every pass of the Scale, Rotation and Translation animations on it and on every frame above it, draws a pixel (alpha at least a quarter, read from the texture: an additive RGB aura sheet by its brightest channel, a flipbook sheet folded into one cell, a still cell through its texture coordinates; an addon file the reader cannot read stops the check) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column. The warlock knows every summon and Demonic Sacrifice, so its demon piece builds each demon's mark and each Sacrifice copy, and each of those aura sheets must be among the measured textures. Each class's cooldown rail is measured at its widest, four abilities, the trinket and six round medals on its second rail, with the hunter's pet, its family ability and orders, Immolation Trap, Tranquilizing Shot and a potion known too, against the Medallions cooldown row's placed rows and may reach past the crest's column. With low true each screen is built with Cast bars on unit frames off instead, where the rail must take its own flat row and every crest piece, the rail included, must clear the centred cast bars too; each layout is a call of its own, so a test file can build one screen in one layout inside the hosted runner's CPU budget. The pieces that ring the whole crest (moments, the ward, the Auto Shot ring, the cooldown sigils, the five-second ring) are the ring itself and are left out. Each second-rail medal's flight to the crown and its fold home are swept apart from the rest, through the lift's own animation alone, as the circle its drawn pixels reach from their centre, against those obstacles and every other rail medal (each the circle of its seat), at every sample from leaving its seat to settling in the crown and back. Only its own seat is left out, and in the crown only the other medals, and only while each of its textures stays inside the crown's own texture of that name at the largest scale a main seat's landing reaches. With trees, low must be true and the mage runs once per talent tree named, its shown orb and each of that tree's orb sheets and rail seat aura sheets among the measured textures.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Pose = dofile("Tools/regression/anim_pose.lua")
@@ -7,14 +7,44 @@ local Reach = {}
 local RING = { crestGust = true, crestClearcasting = true, crestTrance = true, crestWard = true, crestAutoShot = true, crestCooldowns = true, crestFiveSecond = true }
 local FRAMES = { "unitframes.player", "unitframes.target", "unitframes.castbar.player", "unitframes.castbar.target" }
 local ROW = { "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars" }
-local DECODED, CONTENT, SAMPLES = {}, {}, {}
+local RUNS, CONTENT, SAMPLES = {}, {}, {}
 local DEMON_SHEETS = { "HornsPet", "Imp", "Voidwalker", "Succubus", "Fangs", "ImpFel", "VoidwalkerFel", "SuccubusFel", "FangsFel" }
+local floor, min, max, abs, find = math.floor, math.min, math.max, math.abs, string.find
 
--- Decoded(file) -> alpha(x, y), width and height of an addon file, read once for both sweeps; a file the reader cannot read stops
--- the check.
-local function Decoded(file)
-	DECODED[file] = DECODED[file] or { Png.Alpha(file) }
-	return DECODED[file][1], DECODED[file][2], DECODED[file][3]
+-- Runs(file) -> runs, width and height of an addon file, read once for both sweeps: runs[y] holds row y's spans of pixels of alpha
+-- 64 or more as first and last x, in pairs. A file the reader cannot read stops the check. The runs hold only the texture's own
+-- pixels, so Content and Spread stop on texture coordinates past its edge instead of measuring nothing there.
+local function Runs(file)
+	if not RUNS[file] then
+		local rows, w, h = Png.Coverage(file)
+		local runs = {}
+		for y = 0, h - 1 do
+			local row, list, at = rows[y], {}, 1
+			while true do
+				local first, last = find(row, "[\64-\255]+", at)
+				if not first then break end
+				list[#list + 1], list[#list + 2] = first - 1, last - 1
+				at = last + 1
+			end
+			runs[y] = list
+		end
+		RUNS[file] = { runs, w, h }
+	end
+	return RUNS[file][1], RUNS[file][2], RUNS[file][3]
+end
+
+-- Cuts(x0, x1, cw) -> the first x of each cell of width cw from x0 to x1, then x1 + 1. A cell is the one x % cw measures x in
+-- (Lua's floor((x - x0) / cw)), so inside each piece of a run cut here a pixel's place in its cell grows with x, and the per-pixel
+-- measures below reach their extremes at the piece's two ends: Content and Spread read only those, which gives the same answer
+-- as reading every pixel.
+local function Cuts(x0, x1, cw)
+	local cuts, cell = { x0 }, 0
+	for x = x0, x1 do
+		local k = floor((x - x0) / cw)
+		if k ~= cell then cuts[#cuts + 1], cell = x, k end
+	end
+	cuts[#cuts + 1] = x1 + 1
+	return cuts
 end
 
 -- Spread(path, rows, columns, coords) -> how far from its cell's centre, as a share of the cell's width, the texture's pixels of alpha
@@ -33,15 +63,24 @@ local function Spread(path, rows, columns, coords)
 		local file = tostring(path):gsub("\\", "/"):match("Media/.+$")
 		local most = 0
 		if file then
-			local alpha, w, h = Decoded(file)
+			local runs, w, h = Runs(file)
 			local x0, x1, y0, y1 = math.floor(u0 * w), math.ceil(u1 * w) - 1, math.floor(v0 * h), math.ceil(v1 * h) - 1
+			assert(x0 >= 0 and x1 < w and y0 >= 0 and y1 < h, file .. ": the texture coordinates measured reach past the texture")
 			local cw, ch = (x1 - x0 + 1) / columns, (y1 - y0 + 1) / rows
+			local cuts = Cuts(x0, x1, cw)
 			for y = y0, y1 do
-				for x = x0, x1 do
-					if alpha(x, y) >= 64 then
-						local dx = math.abs(((x - x0) % cw + 0.5) / cw - 0.5) + 0.5 / cw
-						local dy = (math.abs(((y - y0) % ch + 0.5) / ch - 0.5) + 0.5 / ch) * ch / cw
-						most = math.max(most, math.sqrt(dx * dx + dy * dy))
+				local list = runs[y]
+				local dy = (abs(((y - y0) % ch + 0.5) / ch - 0.5) + 0.5 / ch) * ch / cw
+				for i = 1, #list, 2 do
+					local s, e = max(list[i], x0), min(list[i + 1], x1)
+					for j = 1, #cuts - 1 do
+						local lo, hi = max(s, cuts[j]), min(e, cuts[j + 1] - 1)
+						if lo <= hi then
+							local a = abs(((lo - x0) % cw + 0.5) / cw - 0.5) + 0.5 / cw
+							local b = abs(((hi - x0) % cw + 0.5) / cw - 0.5) + 0.5 / cw
+							local dx = max(a, b)
+							most = max(most, math.sqrt(dx * dx + dy * dy))
+						end
 					end
 				end
 			end
@@ -87,7 +126,7 @@ local function Content(region)
 	local texture = region._state.Texture
 	local file = texture and tostring(texture[1]):gsub("\\", "/"):match("Media/.+$")
 	if not file then return false end
-	local alpha, w, h = Decoded(file)
+	local runs, w, h = Runs(file)
 	local rows, columns = Cells(region)
 	local ul, ur, vt, vb = 0, 1, 0, 1
 	if rows == 1 and columns == 1 then
@@ -98,22 +137,41 @@ local function Content(region)
 	if CONTENT[key] == nil then
 		local x0, x1 = math.floor(math.min(ul, ur) * w), math.ceil(math.max(ul, ur) * w) - 1
 		local y0, y1 = math.floor(math.min(vt, vb) * h), math.ceil(math.max(vt, vb) * h) - 1
+		assert(x0 >= 0 and x1 < w and y0 >= 0 and y1 < h, file .. ": the texture coordinates measured reach past the texture")
 		local cw, ch = (x1 - x0 + 1) / columns, (y1 - y0 + 1) / rows
+		local cells, cuts = columns > 1 or rows > 1, Cuts(x0, x1, cw)
 		local l, r, t, b = 1, 0, 1, 0
 		for y = y0, y1 do
-			for x = x0, x1 do
-				if alpha(x, y) >= 64 then
-					local sx, ex, sy, ey
-					if columns > 1 or rows > 1 then
-						sx, sy = ((x - x0) % cw) / cw, ((y - y0) % ch) / ch
-						ex, ey = sx + 1 / cw, sy + 1 / ch
-					else
-						sx, ex = (x / w - ul) / (ur - ul), ((x + 1) / w - ul) / (ur - ul)
-						sy, ey = (y / h - vt) / (vb - vt), ((y + 1) / h - vt) / (vb - vt)
+			local list, drawn = runs[y], false
+			for i = 1, #list, 2 do
+				local s, e = max(list[i], x0), min(list[i + 1], x1)
+				for j = 1, #cuts - 1 do
+					local lo, hi = max(s, cuts[j]), min(e, cuts[j + 1] - 1)
+					if lo <= hi then
+						drawn = true
+						for k = 1, 2 do
+							local x = k == 1 and lo or hi
+							local sx, ex
+							if cells then
+								sx = ((x - x0) % cw) / cw
+								ex = sx + 1 / cw
+							else
+								sx, ex = (x / w - ul) / (ur - ul), ((x + 1) / w - ul) / (ur - ul)
+							end
+							l, r = min(l, sx, ex), max(r, sx, ex)
+						end
 					end
-					l, r = math.min(l, sx, ex), math.max(r, sx, ex)
-					t, b = math.min(t, sy, ey), math.max(b, sy, ey)
 				end
+			end
+			if drawn then
+				local sy, ey
+				if cells then
+					sy = ((y - y0) % ch) / ch
+					ey = sy + 1 / ch
+				else
+					sy, ey = (y / h - vt) / (vb - vt), ((y + 1) / h - vt) / (vb - vt)
+				end
+				t, b = min(t, sy, ey), max(b, sy, ey)
 			end
 		end
 		CONTENT[key] = r > l and { l, r, t, b } or false
@@ -222,7 +280,8 @@ local function OrbSheets(ns, Tokens, orb)
 	return names
 end
 
-function Reach.Check(sizes, classes, trees)
+function Reach.Check(sizes, low, classes, trees)
+	assert(type(low) == "boolean" and (low or not trees), "Reach.Check takes low: true for the centred cast bars, which trees need, or false for the cast bars on the unit frames")
 	local original, measured = dofile, nil
 	_G.dofile = function(path)
 		local result = original(path)
@@ -236,10 +295,8 @@ function Reach.Check(sizes, classes, trees)
 		return result
 	end
 	_G.RENDER_SCENE_LIB, _G.RENDER_TRACKERS = true, "lit"
-	for _, run in ipairs(trees and { { sizes = sizes, low = true } } or { { sizes = sizes }, { sizes = sizes, low = true } }) do
-	for _, size in ipairs(run.sizes) do
-		local low = run.low == true
-		_G.RENDER_CAST_ON_FRAME = low and "off" or nil
+	_G.RENDER_CAST_ON_FRAME = low and "off" or nil
+	for _, size in ipairs(sizes) do
 		local at = size[1] .. "x" .. size[2] .. (low and " with the centred cast bars" or "")
 		_G.RENDER_SCREEN = { width = size[1], height = size[2], size = "auto" }
 		local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -432,7 +489,6 @@ function Reach.Check(sizes, classes, trees)
 		-- instead of drifting with the collector's phase towards the test runner's 4096 MB limit.
 		measured = nil
 		collectgarbage("collect")
-	end
 	end
 	_G.dofile, _G.RENDER_TRACKERS, _G.RENDER_CAST_ON_FRAME = original, nil, nil
 end
