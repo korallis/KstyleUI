@@ -142,4 +142,24 @@ do
 		assert(#env._errors == 0 and #env._blocked == 0, "side plates must stay error-free and combat-safe")
 	end
 end
+-- KSTY-171: with the slab switched off the crest still shows, so the HUD size fit counts it at the Crest element's
+-- place, the joined gap's centre; bars 1 and 2, which keep larger buttons there until they are joined again, do not count.
+do
+	local _, K = New()
+	local Layouts = K.Setup.Layouts
+	local enabled = Layouts.Enabled("DPS")
+	local crest = Layouts.CrestPlace("16:9", "DPS")
+	local bar = Layouts.Place("DPS", "medallions", "16:9", BAR1)
+	local _, _, _, height = Layouts.MedallionsGroup("16:9")
+	assert(crest.anchor == "BOTTOM" and crest.x == 0 and near(crest.y + Layouts.MEDALLIONS_HUB_GAP / 2, bar.y + height), "the crest's default centre is the joined gap's top centre")
+	for _, slab in ipairs({ true, false }) do
+		K.Store.Module("ActionBars").slab = slab
+		local what = slab and "joined" or "split"
+		assert(Layouts.Fits("DPS", 1920, 1080, 0.875, enabled, Layouts.Positions("DPS", "medallions", "16:9"), nil, "medallions"), what .. ": the default HUD fits at 0.875 on 1920x1080")
+		local at = Layouts.Positions("DPS", "medallions", "16:9")
+		at["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = crest.y + Layouts.MEDALLIONS_HUB_GAP / 2 + 30 }
+		assert(not Layouts.Fits("DPS", 1920, 1080, 0.875, enabled, at, nil, "medallions"), what .. ": a class resource over the crest does not fit")
+	end
+end
+
 print("ok layout medallions")

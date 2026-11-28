@@ -89,7 +89,7 @@ local HOOK_DEPTH = 3
 Rest.WAKE = Tokens.Duration("hover")
 Rest.ORDER = { "actionBars", "player", "strip", "cooldowns" }
 Rest.PANELS = {
-	actionBars = { "actionbars.bar1", "actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "actionbars.pet", "actionbars.stance", "consumables.bar" },
+	actionBars = { "actionbars.bar1", "actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "actionbars.pet", "actionbars.stance", "actionbars.crest", "consumables.bar" },
 	player = { "unitframes.player", "unitframes.resource" },
 	strip = { "databars.strip", "databars.strip2", "databars.micro", "databars.bags", "databars.xp", "databars.rep", "databars.honor" },
 	cooldowns = { "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars", "cooldowns.custom" },
@@ -181,6 +181,16 @@ function Rest.Follow(key, ...)
 	end
 	if quiet then
 		Follow(key, 0)
+	end
+end
+
+function Rest.Unfollow(key, frame)
+	local list = followers[key] or NONE
+	for i = #list, 1, -1 do
+		if list[i] == frame then
+			table.remove(list, i)
+			Motion.Tween(frame, "SetAlpha", 1, 1, 0)
+		end
 	end
 end
 

@@ -1050,6 +1050,7 @@ ns.Locale.Add({
 	["Creates a profile from a role and HUD style preset, then switches to it."] = "Crea un perfil a partir de un rol y un estilo de HUD predeterminados, y cambia a \195\169l.",
 	["Creates a profile with the default settings and switches to it."] = "Crea un perfil con los ajustes predeterminados y cambia a \195\169l.",
 	["Credits"] = "Cr\195\169ditos",
+	["Crest"] = "Emblema",
 	["Crest fan"] = "Abanico del emblema",
 	["Crest inner ring"] = "Anillo interior del emblema",
 	["Crest left foot"] = "Pie izquierdo del emblema",

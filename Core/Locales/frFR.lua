@@ -1050,6 +1050,7 @@ ns.Locale.Add({
 	["Creates a profile from a role and HUD style preset, then switches to it."] = "Cr\195\169e un profil \195\160 partir d'un pr\195\169r\195\169glage de r\195\180le et de style d'ATH, puis y bascule.",
 	["Creates a profile with the default settings and switches to it."] = "Cr\195\169e un profil avec les r\195\169glages par d\195\169faut et passe dessus.",
 	["Credits"] = "G\195\169n\195\169rique",
+	["Crest"] = "Blason",
 	["Crest fan"] = "\195\137ventail sur le blason",
 	["Crest inner ring"] = "Anneau int\195\169rieur du blason",
 	["Crest left foot"] = "Pied gauche du blason",

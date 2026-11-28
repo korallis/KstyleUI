@@ -64,7 +64,7 @@ do
 	for _, panel in ipairs(Rest.ORDER) do
 		assert(s.panels[panel] == true, panel .. " rests by default")
 		for _, key in ipairs(Rest.PANELS[panel]) do
-			assert(K.Setup.Layouts.Element(key) or key == "cooldowns.custom", key .. " is an element key")
+			assert(K.Setup.Layouts.Element(key) or key == "cooldowns.custom" or key == "actionbars.crest", key .. " is an element key")
 		end
 	end
 	for _, key in ipairs(Rest.KEYS) do
@@ -187,6 +187,17 @@ do
 	assert(K.Layout.Set("actionbars.bar2", "alphaIdle", 0.5))
 	Rested(env)
 	assert(near(slab:GetAlpha(), 0.35), "a follower rests with its element")
+	-- KSTY-171: the crest stops following bar 1 while the bars are split, and must not stay dimmed.
+	local crest = env.CreateFrame("Frame", nil, K.Scale.Root())
+	Rest.Follow("actionbars.bar1", crest)
+	assert(near(crest:GetAlpha(), 0.35), "a follower added at rest rests at once")
+	Rest.Unfollow("actionbars.bar1", crest)
+	assert(near(crest:GetAlpha(), 1) and near(slab:GetAlpha(), 0.35), "an unfollowed frame comes back at once; the others stay at rest")
+	K.Options.Write("Rest", "alpha", 0.4)
+	W.Settle(env)
+	assert(near(crest:GetAlpha(), 1) and near(slab:GetAlpha(), 0.4), "and no longer follows the rest opacity")
+	K.Options.Write("Rest", "alpha", 0.35)
+	W.Settle(env)
 	assert(near(frames["actionbars.bar2"]:GetAlpha(), 0.5), "an element the player set to its own opacity keeps it")
 
 	W.Enter(frames["actionbars.bar1"].child)

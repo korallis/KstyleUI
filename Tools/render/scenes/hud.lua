@@ -318,6 +318,11 @@ local function applyPreset(env, opts)
 			K.Callbacks.Fire("SettingChanged", "ActionBars", bar .. ".rows", tonumber(rows))
 		end
 	end
+	if os.getenv("RENDER_SLAB") == "off" and K.Modules.IsEnabled("ActionBars") then K.Options.Write("ActionBars", "slab", false) end
+	for key, dy in (os.getenv("RENDER_BAR_MOVE") or ""):gmatch("([%w%.]+)=(%-?[%d%.]+)") do
+		local s = K.Layout.Get(key)
+		if s then assert(K.Layout.Set(key, "y", s.y + tonumber(dy))) end
+	end
 	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" and K.Modules.IsEnabled("ActionBars") then
 		K.Options.Write("ActionBars", "bar3.enabled", true)
 		local buttons = tonumber(os.getenv("RENDER_BAR3_BUTTONS") or "")

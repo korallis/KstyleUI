@@ -10,6 +10,7 @@ ns.Slab = Slab
 
 local STYLE = "medallions"
 local OWNER = "ActionBars.Slab"
+local CREST_KEY = "actionbars.crest"
 local STRATA = "LOW"
 local RING, CREST, OPENING = 150, 150, 118
 local MARGIN, HUB_LIFT = 4, 8
@@ -543,9 +544,22 @@ local function BuildMoments(hub)
 	hub.caption = caption
 end
 
+local function CrestPlace()
+	return Layouts().CrestPlace(K.Scale.Aspect(), K.Layout.Setting("preset"))
+end
+
 local function Build()
 	local root = K.Scale.Root()
 	local slab = BuildSlab(root)
+	local crest = CreateFrame("Frame", nil, root)
+	crest:SetFrameStrata(STRATA)
+	Widgets.Size(crest, RING + 2 * MARGIN, RING + 2 * MARGIN)
+	K.Layout.Register(crest, CREST_KEY, CrestPlace(), {
+		label = L["Crest"], module = "ActionBars", scalable = true, defaultPosition = CrestPlace,
+		fields = { "shown", "anchor", "x", "y", "scale", "alphaCombat", "alphaIdle" },
+	})
+	K.Layout.SetLive(CREST_KEY, false)
+	Slab.crest = crest
 	local hub = CreateFrame("Frame", nil, root)
 	hub:SetFrameStrata(STRATA)
 	Widgets.Size(hub, RING, RING)
@@ -560,7 +574,7 @@ local function Build()
 	hub.particles = BuildParticles(hub)
 	BuildMoments(hub)
 	Slab.frame, Slab.hub = slab, hub
-	K.Layout.Rest.Follow("actionbars.bar1", slab, hub)
+	K.Layout.Rest.Follow("actionbars.bar1", slab)
 	Slab.PaintPlaque(false)
 	state.built = true
 end
@@ -775,7 +789,26 @@ local function Yield()
 	end
 end
 
+local function Seat(split)
+	if state.split == split then
+		return
+	end
+	state.split = split
+	local hub, rest = Slab.hub, K.Layout.Rest
+	hub:SetParent(split and Slab.crest or K.Scale.Root())
+	hub:SetFrameStrata(STRATA)
+	if split then
+		rest.Unfollow("actionbars.bar1", hub)
+	else
+		rest.Follow("actionbars.bar1", hub)
+	end
+	K.Layout.SetLive(CREST_KEY, split)
+end
+
 local function Hide()
+	if state.built then
+		Seat(false)
+	end
 	Slab.PlaceSides(false)
 	if not state.built then
 		return
@@ -806,6 +839,47 @@ local function PlaceSweeps(slab, half)
 	end
 end
 
+local function Light(cfg)
+	local hub = Slab.hub
+	Paint()
+	SizeCrest(hub)
+	PaintLevel()
+	SizeBadge(hub)
+	hub:Show()
+	if K.Effects and K.Effects.Ambient then
+		K.Effects.Ambient("hub", Animate, Yield)
+	end
+	Animate()
+	Slab.PlaceSides(true, cfg)
+	ns.SlabEffects.UpdateCap()
+	ns.SlabJewels.Update()
+	ns.SlabHawks.Update()
+	ns.SlabStorm.Update()
+	ns.SlabTrackers.Update()
+	ns.SlabTarget.Update()
+	ns.SlabCrown.Update()
+	ns.Totems.Update()
+	if ns.Travel then ns.Travel.Refresh() end
+end
+
+local function Split(cfg)
+	if not state.built then
+		Build()
+	end
+	local crest, hub = Slab.crest, Slab.hub
+	state.class = select(2, UnitClass("player"))
+	for key in pairs(Slab.joined or {}) do Slab.joined[key] = nil end
+	Slab.frame:Hide()
+	Seat(true)
+	hub:SetScale(1)
+	hub:ClearAllPoints()
+	hub:SetPoint("CENTER", crest, "CENTER", 0, 0)
+	crest:SetFrameLevel(K.Scale.Root():GetFrameLevel())
+	hub:SetFrameLevel(crest:GetFrameLevel() + HUB_LIFT)
+	hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
+	Light(cfg)
+end
+
 function Slab.Refresh()
 	if not Slab.Active() then
 		Hide()
@@ -813,14 +887,17 @@ function Slab.Refresh()
 	end
 	local cfg = K.Store.Module("ActionBars")
 	state.extra = cfg.extraBarsApplied ~= "off"
-	if cfg.slab == false then
-		Hide()
-		Slab.PlaceSides(true, cfg)
-		return false
+	local left, right, gapWidth, l1, r2
+	if cfg.slab ~= false then
+		left, right, gapWidth, l1, r2 = Slab.Pair(cfg)
 	end
-	local left, right, gapWidth, l1, r2 = Slab.Pair(cfg)
 	if not left then
-		Hide()
+		if ns.gamepad or not (cfg.bar1.enabled == true or cfg.bar2.enabled == true) then
+			Hide()
+			if cfg.slab == false then Slab.PlaceSides(true, cfg) end
+		else
+			Split(cfg)
+		end
 		return false
 	end
 	if not state.built then
@@ -828,6 +905,7 @@ function Slab.Refresh()
 	end
 	local slab, hub = Slab.frame, Slab.hub
 	state.class = select(2, UnitClass("player"))
+	Seat(false)
 	local spec = Slab.Spec()
 	local pad = Widgets.Snap(slab, spec.pad)
 	local rise = 0
@@ -869,26 +947,8 @@ function Slab.Refresh()
 	hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
 	local slabScale = slab:GetEffectiveScale()
 	PlaceSweeps(slab, (r2 - l1) / 2 / (Plain(slabScale) and slabScale > 0 and slabScale or 1))
-	Paint()
-	SizeCrest(hub)
-	PaintLevel()
-	SizeBadge(hub)
 	slab:Show()
-	hub:Show()
-	if K.Effects and K.Effects.Ambient then
-		K.Effects.Ambient("hub", Animate, Yield)
-	end
-	Animate()
-	Slab.PlaceSides(true, cfg)
-	ns.SlabEffects.UpdateCap()
-	ns.SlabJewels.Update()
-	ns.SlabHawks.Update()
-	ns.SlabStorm.Update()
-	ns.SlabTrackers.Update()
-	ns.SlabTarget.Update()
-	ns.SlabCrown.Update()
-	ns.Totems.Update()
-	if ns.Travel then ns.Travel.Refresh() end
+	Light(cfg)
 	return true
 end
 
@@ -942,7 +1002,7 @@ function Slab.LevelUp(level)
 	end
 end
 
-local sides, SIDE_BARS = {}, { "pet", "stance", "bar3", "bar4", "bar5" }
+local sides, SIDE_BARS = {}, { "pet", "stance", "bar1", "bar2", "bar3", "bar4", "bar5" }
 
 function Slab.PlaceSides(on, cfg)
 	local active = Slab.Active()
@@ -954,6 +1014,8 @@ function Slab.PlaceSides(on, cfg)
 		local wanted = key == "bar3" and active and cfg.bar3.finished or key ~= "bar3" and on
 		if key == "bar4" or key == "bar5" then
 			wanted = extra and not (Slab.joined and Slab.joined[key] and Slab.frame:IsShown())
+		elseif key == "bar1" or key == "bar2" then
+			wanted = on and state.split == true
 		end
 		if bar and wanted and not plate then
 			plate = Plate(bar.header)
@@ -962,7 +1024,7 @@ function Slab.PlaceSides(on, cfg)
 		if plate then
 			local shown = wanted and bar:Shown() and not bar.holderHidden and not bar.gateHidden and not cfg[key].backing
 			if shown then
-				local action = key == "bar3" or key == "bar4" or key == "bar5"
+				local action = key ~= "pet" and key ~= "stance"
 				local pad = Widgets.Snap(plate, action and Slab.Spec().pad or Slab.Side().pad)
 				local vertical = pad - (key ~= "bar4" and key ~= "bar5" and K.Scale.Aspect() == "16:9" and Widgets.Border(plate) or 0)
 				plate:ClearAllPoints()
