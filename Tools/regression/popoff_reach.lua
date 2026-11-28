@@ -1,4 +1,4 @@
--- popoff_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for each class named with every crest tracker lit (RENDER_TRACKERS=lit), the hunter's hawk perches out and every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua) known and lit on top, at each screen size, with the cast bars on the unit frames. A mage or warlock also knows its widest crest rail (ranged_reach.lua's Reach.WIDEST), so the rail's medals stand where they reach furthest. It asserts that no pop-off texture, at full alpha, in any pose its own animations and its parents' reach (scale about each one's pivot, and every Translation path), draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column, and, pixel by pixel, that it draws on no texture another named-seat piece, hawk perch, crown point or pop-off draws at rest (shown at an alpha above 0), with no exemption, Divine Shield's dome over the emblem included. The pieces that ring the whole crest (rim seats) are no peer.
+-- popoff_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for each class named with every crest tracker lit (RENDER_TRACKERS=lit), the hunter's hawk perches out and every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua) known and lit on top, at each screen size, with the cast bars on the unit frames. A mage or warlock also knows its widest crest rail (ranged_reach.lua's Reach.WIDEST), so the rail's medals stand where they reach furthest; the warlock's Amplify Curse also runs, so the rail's crown shows beside Shadow Trance. It asserts that no pop-off texture, at full alpha, in any pose its own animations and its parents' reach together (anim_pose.lua's sampled poses, scale about each one's pivot), draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column, and, pixel by pixel, that it draws on no texture another named-seat piece, hawk perch, crown point, the rail's running crown or pop-off draws at rest (shown at an alpha above 0), with no exemption, Divine Shield's dome over the emblem included. The pieces that ring the whole crest (rim seats) are no peer.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Pose = dofile("Tools/regression/anim_pose.lua")
@@ -9,6 +9,8 @@ local Reach = {}
 local RING = { crestGust = true, crestClearcasting = true, crestTrance = true, crestWard = true, crestAutoShot = true, crestCooldowns = true, crestFiveSecond = true }
 local FRAMES = { "unitframes.player", "unitframes.target", "unitframes.castbar.player", "unitframes.castbar.target" }
 local CONTENT = {}
+-- The moment a class's crest rail crowns beside its pop-offs (SlabRanged.lua's rail abilities): the rail seat's key and its buff.
+local RAIL = { WARLOCK = { key = "amplify", spell = 18288 } }
 
 -- Grid(coords) -> columns and rows of the even grid a flipbook cell's texture coordinates (left, right, top, bottom) pick from;
 -- 1, 1 for the whole texture or a crop that is no grid cell.
@@ -74,63 +76,47 @@ local function Solid(region, u, v)
 	return content.alpha(x, y) >= 64
 end
 
--- Moves(node) -> the scales the node's own Scale animations reach through each pass, composed as anim_pose.lua does (1 among them), their pivot as an anchor point and offset in the
--- node's units, and the offsets its Translation paths pass through, sampled along each move.
+-- Moves(node) -> the poses the node's own animation groups reach, each {x, y, scale} as anim_pose.lua gives it at one sampled time of a
+-- group's pass, so an offset goes only with the scale it plays beside; the first is at rest. Also the Scale pivot as an anchor point and
+-- offset in the node's units.
 local function Moves(node)
-	local scales, origin, offsets = { 1 }, nil, { { 0, 0 } }
+	local poses, origin = { { 0, 0, 1 } }, nil
 	for _, group in ipairs(node._groups or {}) do
-		local orders, x, y = {}, 0, 0
 		for _, anim in ipairs(group._anims or {}) do
-			local order = anim._state.Order and anim._state.Order[1] or 1
-			orders[order] = orders[order] or {}
-			table.insert(orders[order], anim)
 			if anim._type == "Scale" then
 				origin = origin or anim._state.Origin
 			end
 		end
 		local timed, times = Pose.Passes(group)
-		for _, time in ipairs(times) do
-			local _, _, _, scale = Pose.At(timed, time)
-			scales[#scales + 1] = scale
-		end
-		for order = 1, 64 do
-			for _, anim in ipairs(orders[order] or {}) do
-				if anim._type == "Translation" then
-					local ox, oy = unpack(anim._state.Offset or { 0, 0 })
-					for step = 1, 4 do
-						offsets[#offsets + 1] = { x + (ox or 0) * step / 4, y + (oy or 0) * step / 4 }
-					end
-					x, y = x + (ox or 0), y + (oy or 0)
-				end
-			end
+		for _, time in ipairs(#timed > 0 and times or {}) do
+			local x, y, _, scale = Pose.At(timed, time)
+			poses[#poses + 1] = { x, y, scale }
 		end
 	end
-	return scales, origin, offsets
+	return poses, origin
 end
 
 local PIVOT = { CENTER = { 0.5, 0.5 }, BOTTOM = { 0.5, 0 }, TOP = { 0.5, 1 }, LEFT = { 0, 0.5 }, RIGHT = { 1, 0.5 }, BOTTOMLEFT = { 0, 0 }, BOTTOMRIGHT = { 1, 0 }, TOPLEFT = { 0, 1 }, TOPRIGHT = { 1, 1 } }
 
 -- Poses(solver, region, unit) -> the screen boxes (left, right, top, bottom; y up) the region's box reaches as it and every parent above
--- it play their animations: each node, from the region up, scales the box about its own pivot to each scale it reaches, so a parent's
--- scale also carries the child's offset from that pivot, and moves it to each offset along its Translation paths; the first is at rest.
+-- it play their animations: each node, from the region up, scales the box about its own pivot and moves it by each pose from Moves, so
+-- a parent's scale also carries the child's offset from that pivot; the first is at rest.
 local function Poses(solver, region, unit)
 	local box = solver:rect(region._barOwner or region)
 	local poses = { { box[1], box[3], box[4], box[2] } }
 	local node = region
 	while node do
-		local scales, origin, offsets = Moves(node)
-		if #scales > 1 or #offsets > 1 then
+		local moves, origin = Moves(node)
+		if #moves > 1 then
 			local rect = solver:rect(node._barOwner or node) or box
 			local at = PIVOT[origin and origin[1] or "CENTER"] or PIVOT.CENTER
 			local px = rect[1] + (rect[3] - rect[1]) * at[1] + (origin and origin[2] or 0) * unit
 			local py = rect[2] + (rect[4] - rect[2]) * at[2] + (origin and origin[3] or 0) * unit
 			local moved = {}
 			for _, p in ipairs(poses) do
-				for _, k in ipairs(scales) do
-					for _, o in ipairs(offsets) do
-						local dx, dy = o[1] * unit, o[2] * unit
-						moved[#moved + 1] = { px + (p[1] - px) * k + dx, px + (p[2] - px) * k + dx, py + (p[3] - py) * k + dy, py + (p[4] - py) * k + dy }
-					end
+				for _, m in ipairs(moves) do
+					local k, dx, dy = m[3], m[1] * unit, m[2] * unit
+					moved[#moved + 1] = { px + (p[1] - px) * k + dx, px + (p[2] - px) * k + dx, py + (p[3] - py) * k + dy, py + (p[4] - py) * k + dy }
 				end
 			end
 			poses = {}
@@ -156,7 +142,7 @@ local function Textures(frame, list)
 	return list
 end
 
--- Light(env, ns, class): the character knows every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua) and has each one's aura on its unit, its allies' and its after debuff too.
+-- Light(env, ns, class): the character knows every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua) and has each one's aura on its unit, its allies' and its after debuff too, and the buff of the moment its rail crowns (RAIL).
 local function Light(env, ns, class)
 	local rows, known, auras = {}, {}, {}
 	for _, entry in ipairs(ns.SlabPopoffs.CLASSES) do
@@ -172,6 +158,7 @@ local function Light(env, ns, class)
 		for _, unit in ipairs(row.allies or {}) do Give(unit, { id = row.spells[1], start = env._now, duration = 30 }) end
 		if row.after then Give("player", { id = row.after.spell, start = env._now, duration = 60, harmful = true }) end
 	end
+	if RAIL[class] then Give("player", { id = RAIL[class].spell, start = env._now, duration = 30 }) end
 	assert(#rows > 0, class .. " has pop-offs")
 	if not env._slotContainers then Slots.Install(env) end
 	local before = env.C_SpellBook.IsSpellKnown
@@ -298,6 +285,14 @@ function Reach.Check(sizes, classes)
 			for kind, p in pairs(crown.crowns) do
 				pieces[#pieces + 1] = { key = "crown " .. kind, regions = Textures(p.frame or p, {}) }
 			end
+			local moment = RAIL[class]
+			if moment then
+				local rail
+				for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do rail = p.spec.key == "crestRail" and p or rail end
+				local seat = assert(rail and rail.made[moment.key], at .. " " .. class .. ": the rail seats " .. moment.key)
+				assert(rail.owner == seat and seat.crowned:IsShown(), at .. " " .. class .. ": " .. moment.key .. " runs and owns the rail's crown")
+				pieces[#pieces + 1] = { key = "the rail's " .. moment.key .. " crown", crown = true, regions = Textures(seat.gate, {}) }
+			end
 			local peers = {}
 			for _, p in ipairs(pieces) do
 				for _, region in ipairs(not p.rim and p.regions or {}) do
@@ -308,7 +303,7 @@ function Reach.Check(sizes, classes)
 				end
 			end
 			assert(#peers > 8, at .. " " .. class .. ": the other drawn crest pieces are measured (" .. #peers .. ")")
-			local checked = 0
+			local checked, crowned = 0, 0
 			for _, p in ipairs(pieces) do
 				for _, region in ipairs(p.key == "crestPopoffs" and p.regions or {}) do
 					local texture = region._state.Texture
@@ -325,6 +320,7 @@ function Reach.Check(sizes, classes)
 							local x, y
 							if a.piece ~= p then
 								x, y = Covers(region, poses, a)
+								crowned = crowned + (a.piece.crown and 1 or 0)
 							end
 							assert(not x, string.format("%s covers %s's %s, another crest piece, at %d, %d (at its seat or on its way there)", name, a.key, tostring(a.region._state.Texture[1]):match("[^\\/]+$"), x or 0, y or 0))
 						end
@@ -332,6 +328,7 @@ function Reach.Check(sizes, classes)
 				end
 			end
 			assert(checked > 2, at .. " " .. class .. ": the lit pop-offs are measured (" .. checked .. ")")
+			assert(not moment or crowned > 0, at .. " " .. class .. ": the pop-offs are measured against the rail's running crown")
 		end
 	end
 	_G.dofile, _G.RENDER_TRACKERS = original, nil

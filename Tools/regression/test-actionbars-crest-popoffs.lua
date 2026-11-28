@@ -77,17 +77,18 @@ local function Finish(env)
 	while W.FinishGroups(env) do end
 end
 
--- The rows: the paladin first, one or two each, none for the hunter or the mage (the crest rail owns their moments), known spells of their own
--- class, seats of their own.
+-- The rows: one or two each for the seven classes in SIGNATURES, none for the hunter or the mage (the crest rail owns their moments),
+-- known spells of their own class, seats of their own.
 do
 	local _, _, ns = New("PALADIN", {})
 	local classes = ns.SlabPopoffs.CLASSES
-	assert(#classes == 7 and classes[1][1] == "PALADIN", "every class but the hunter and the mage has pop-offs, the paladin's first")
-	local seen = {}
+	assert(#classes == 7, "every class but the hunter and the mage has pop-offs")
+	local seen, paladin = {}, nil
 	for _, entry in ipairs(classes) do
 		local class, rows = entry[1], entry[2]
 		assert(SIGNATURES[class] and not seen[class], class .. " is listed once")
 		seen[class] = true
+		paladin = class == "PALADIN" and rows or paladin
 		assert(#rows == #SIGNATURES[class] and (#rows == 1 or #rows == 2), class .. " has one or two pop-offs")
 		local seats = {}
 		for i, row in ipairs(rows) do
@@ -106,7 +107,7 @@ do
 			end
 		end
 	end
-	assert(ns.SlabSeats.Name(classes[1][2][1].seat) == "emblem" and ns.SlabSeats.Name(classes[1][2][2].seat) == "popRight", "Divine Shield's bubble sits over the emblem and Divine Favor on the right pop-off seat")
+	assert(ns.SlabSeats.Name(paladin[1].seat) == "emblem" and ns.SlabSeats.Name(paladin[2].seat) == "popRight", "Divine Shield's bubble sits over the emblem and Divine Favor on the right pop-off seat")
 end
 
 -- The hunter's two moments, the mage's two and the warlock's Amplify Curse belong to the crest rail (SlabRail.lua): Beast Mastery seats
@@ -138,6 +139,12 @@ do
 			end
 		end
 		assert(case.class == "WARLOCK" or #Pops(hns) == 0, case.key .. ": the " .. case.class:lower() .. " builds no pop-off")
+		if case.class == "WARLOCK" then
+			R.Slots.Set(henv, "player", { { id = case.spell, auraInstanceID = 9, start = henv._now, duration = 10 }, { id = 17941, auraInstanceID = 10, start = henv._now, duration = 10 } })
+			henv.RunTimers()
+			local trance = assert(Pop(hns, "Void"), "amplify: Shadow Trance's pop-off is built beside the rail")
+			assert(trance.lits[1]:IsShown() and rail.owner == seat and seat.crowned:IsShown(), "amplify: Shadow Trance lights its pop-off while Amplify Curse keeps the rail's crown")
+		end
 		R.Clean(henv, hK)
 	end
 end
