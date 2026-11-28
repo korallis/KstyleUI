@@ -85,7 +85,18 @@ local function GuideStep()
 	return applied and Setup.GuideLoaded() and not GuidePlaced()
 end
 
-local function EditModeText()
+local function FullWhy(choices, full, known)
+	if not known then
+		return L["Edit Mode's layouts could not be read. Press Try again."]
+	elseif not full then
+		return L["An account layout slot is free now. Press Try again."]
+	elseif ns.Store.Module("Setup").replaceLayout then
+		return L["All account layouts are in use. Choose Replace this one, then Apply."]
+	end
+	return L["All %d account layouts are in use. Delete one in Edit Mode, then try again."]:format(#choices - 1)
+end
+
+local function EditModeText(choices, full, known)
 	local EditMode = Setup.EditMode
 	local last = EditMode and EditMode.Last()
 	local lines = {}
@@ -93,7 +104,7 @@ local function EditModeText()
 		if last.state == "waiting" then
 			lines[1] = string.format(L["Edit Mode: %s is written when combat ends."], last.layout)
 		elseif last.state == "failed" then
-			lines[1] = string.format(L["Edit Mode did not take %s. %s"], last.layout, last.why)
+			lines[1] = string.format(L["Edit Mode did not take %s. %s"], last.layout, last.full and FullWhy(choices, full, known) or last.why)
 		else
 			lines[1] = string.format(#last.notes > 0 and L["Edit Mode: %s is your active layout, with the quest tracker in the story rail."] or L["Edit Mode: %s is your active layout, with the quest tracker in the story rail and Blizzard's tracked buffs around your hands."], last.layout)
 			for _, note in ipairs(last.notes) do
@@ -134,22 +145,27 @@ local function SummaryTitle()
 	return L["Applied"]
 end
 
+local function Refused()
+	local last = Setup.EditMode and Setup.EditMode.Last()
+	return applied and last ~= nil and last.state == "failed" and last.full == true and ns.Store.Module("Setup").replaceLayout == true
+end
+
 local function Manager()
 	local settings = CooldownViewerSettings
 	return type(settings) == "table" and type(settings.ShowUIPanel) == "function" and settings or nil
 end
 
 local function RefreshEditMode()
-	local text = EditModeText()
+	local choices, full, known = Setup.EditMode.Replacements()
+	local text = EditModeText(choices, full, known)
 	local last = Setup.EditMode and Setup.EditMode.Last()
 	panel.editMode:SetShown(text ~= nil)
 	panel.editMode:SetText(text or "")
 	panel.retry:SetShown(text ~= nil and last ~= nil and (last.state == "failed" or (last.state == "written" and #last.notes > 0)))
 	panel.manager:SetShown(text ~= nil and last ~= nil and last.state == "written" and #last.notes > 0 and Manager() ~= nil)
-	local choices, full = Setup.EditMode.Replacements()
 	panel.replace:SetOptions(choices)
 	panel.replace:SetValue(Setup.Choice().replaceLayout or "", true)
-	panel.replace:SetShown(full and not applied and ns.Store.Module("Setup").replaceLayout)
+	panel.replace:SetShown(full and ns.Store.Module("Setup").replaceLayout and (not applied or Refused()))
 	if step == STEPS then
 		panel.summaryStatus.cap:SetText(SummaryTitle())
 	end
@@ -180,9 +196,10 @@ local function Refresh()
 	panel.back:SetShown(step > 1)
 	panel.skip:SetShown(step == 1)
 	panel.next:SetShown(step < STEPS)
-	panel.apply:SetShown(step == STEPS and not applied)
-	panel.reload:SetShown(step == STEPS and applied)
-	panel.later:SetShown(step == STEPS and applied)
+	local refused = Refused()
+	panel.apply:SetShown(step == STEPS and (not applied or refused))
+	panel.reload:SetShown(step == STEPS and applied and not refused)
+	panel.later:SetShown(step == STEPS and applied and not refused)
 	Select(panel.cards, choice.layout)
 	Select(panel.styleCards, choice.hudStyle)
 	local arrangement = choice.arrangement or Scale.Arrangement()
@@ -1170,7 +1187,7 @@ local function BuildSummary(page, width)
 	local help = Paragraph(status, "body", "muted", width, true)
 	panel.replace = Widgets.Dropdown(status, { width = 260, placeholder = L["Replace this one"], onChange = function(value)
 		Setup.Choice().replaceLayout = value
-		Changed()
+		if applied then Refresh() else Changed() end
 	end })
 	panel.replace:Hide()
 	panel.summaryChoices, panel.summaryLayout, panel.summaryStatus, panel.summaryWidth = choices, layout, status, width
@@ -1274,7 +1291,9 @@ local function Build()
 		text = L["Apply"],
 		primary = true,
 		onClick = function()
-			if Setup.Apply(Setup.Choice()) then
+			if applied then
+				Setup.RetryEditMode()
+			elseif Setup.Apply(Setup.Choice()) then
 				applied = true
 				Refresh()
 			end

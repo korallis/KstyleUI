@@ -1,5 +1,19 @@
 # KstyleUI changelog
 
+## v0.3.5.5 (2026-11-28)
+
+A hotfix for setup: when every Edit Mode account layout is in use, the summary keeps the controls its message asks for, and the Your addons step draws whole on its first open.
+
+Highlights:
+
+- Setup keeps Replace this one and Apply on screen when every Edit Mode layout is in use, so you can pick one to replace.
+- Setup's Your addons step draws its switches and dropdowns whole the first time it opens.
+
+### Fixed
+
+- Setup: with all five Edit Mode account layouts in use, the summary keeps Replace this one and Apply on screen after a refusal; pick a layout, then Apply, and KstyleUI replaces only that one.
+- Setup: the Your addons step lays its switches and dropdowns out again when it shows, so each switch's knob and the dropdown arrows draw on the first open.
+
 ## v0.3.5.4 (2026-11-28)
 
 A hotfix for ultrawide screens and the HUD width: cooldown viewers placed by a setup from before v0.3.5.3 move with the HUD again, while viewers you move yourself still stay put when the UI Scale changes.
