@@ -411,6 +411,8 @@ local function OnSetting(_, module, key)
 	end
 	local barKey, field = key:match("^(%w+)%.(.+)$")
 	if field and field:match("^visibilityBuilder%.") then return end
+	local shaped = barKey and SHAPE_FIELDS[field] and (ns.BAR[barKey] or barKey == "consumables") and ns.Config(barKey)
+	if type(shaped) == "table" and shaped.legacyLayout then shaped.legacyLayout = nil end
 	if barKey and (ns.BAR[barKey] or barKey == "consumables") and LinkShape(barKey, field) then return end
 	if barKey and field == "size" and (barKey == "bar1" or barKey == "bar2") and ns.Slab.Grouped(ns.BAR[barKey]) then
 		local other = barKey == "bar1" and "bar2" or "bar1"

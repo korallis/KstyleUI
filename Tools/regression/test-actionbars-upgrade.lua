@@ -89,8 +89,9 @@ end
 -- The consumables bar lays out its Buttons live but reserves twelve slots for Layout Mode and its attached anchor.
 -- Before Buttons per row both came from Rows alone: the reserve was ceil(12 / Rows) wide, the live bar
 -- ceil(Buttons / Rows) wide. After migration 50 each Buttons from 1 to 12 keeps the live shape it drew and, in both
--- fill orders, the reserve and attached anchor that twelve buttons at the same Rows give. In 18 shapes, such as 7
--- buttons in 7 rows, the old live bar was taller than its reserve; the reserve now holds the live bar instead.
+-- fill orders, the attached anchor that twelve buttons at the same Rows give. In 18 shapes, such as 7 buttons in
+-- 7 rows, the old live bar was taller than its reserve: the Layout Mode outline now holds the live bar, and the
+-- upgrade marks the bar so it docks where the old reserve put it until its shape is next edited.
 do
 	local live = RK.Store.Module("ActionBars").consumables
 	local class, compared, overflowed = RK.Scale.Aspect(), 0, 0
@@ -101,7 +102,7 @@ do
 				local data = { profiles = { P = { ActionBars = { consumables = { buttons = count, rows = rows, orientation = orientation } } } } }
 				migrate(data)
 				local cfg = data.profiles.P.ActionBars.consumables
-				live.buttons, live.rows, live.perRow, live.orientation = count, cfg.rows, cfg.perRow, orientation
+				live.buttons, live.rows, live.perRow, live.orientation, live.legacyLayout = count, cfg.rows, cfg.perRow, orientation, cfg.legacyLayout
 				local _, size, gap = Layouts.ConsumableGrid(class, "medallions")
 				local columns, used = Layouts.BarShape(count, cfg.perRow, cfg.rows, orientation)
 				local wasColumns = math.ceil(count / math.min(count, rows))
@@ -110,20 +111,21 @@ do
 				local wasTall = math.ceil(12 / wasWide)
 				local width, height = Layouts.ConsumableFootprint(class, "medallions")
 				local over = used > wasTall
+				assert((cfg.legacyLayout == true) == over, string.format("%d consumables in %d rows %s: only a bar taller than its old reserve is marked", count, rows, orientation))
 				local wantTall = over and used or wasTall
 				assert(width == wasWide * (size + gap) - gap and height == wantTall * (size + gap) - gap,
 					string.format("%d consumables in %d rows %s: the reserve changed size", count, rows, orientation))
 				for _, style in ipairs({ "medallions", "frames" }) do
 					local at = Layouts.Attached("DPS", "consumables.bar", class, style)
 					anchors[style] = anchors[style] or at
-					assert(over or at.x == anchors[style].x and at.y == anchors[style].y, string.format("%d consumables in %d rows %s: the %s anchor moved", count, rows, orientation, style))
+					assert(at.x == anchors[style].x and at.y == anchors[style].y, string.format("%d consumables in %d rows %s: the %s anchor moved", count, rows, orientation, style))
 				end
 				compared, overflowed = compared + 1, overflowed + (over and 1 or 0)
 			end
 		end
 	end
 	assert(compared == 288 and overflowed == 36, "every consumables shape was compared, got " .. compared .. " with " .. overflowed .. " taller than the old reserve")
-	live.buttons, live.rows, live.perRow, live.orientation = 12, 2, 6, "HORIZONTAL"
+	live.buttons, live.rows, live.perRow, live.orientation, live.legacyLayout = 12, 2, 6, "HORIZONTAL", nil
 end
 
 -- A profile saved before Buttons per row upgrades on reload and on import.
@@ -147,14 +149,17 @@ do
 	local imported = LK.Store.Module("ActionBars").bar3
 	assert(imported.perRow == 2 and imported.rows == 6, "an imported older profile upgrades too: " .. tostring(imported.perRow) .. "x" .. tostring(imported.rows))
 end
--- An existing 10-button stance bar, Down columns first in Rows 5, with five forms known: the upgrade keeps Rows 5,
--- and Down columns first fills the chosen rows, so all five forms stand in the first column of a bar two columns wide.
+-- An existing 10-button stance bar, Down columns first in Rows 5, with five forms known: the upgrade keeps Rows 5
+-- and the old fold, forms 1 to 3 in the first column and 4 and 5 in the second, until the shape is next edited;
+-- Rows 4 then fills the chosen rows, forms 1 to 4 in the first column and 5 at the top of the second. An attached
+-- consumables bar marked by the upgrade loses its mark on its own first shape edit too.
 do
 	local old = AB.CoreEnv.DeepCopy(reload.KstyleUIDB)
 	old.version = 49
 	local bars = old.profiles.Default.ActionBars
 	for _, bar in pairs(bars) do if type(bar) == "table" then bar.perRow = nil end end
 	bars.stance.buttons, bars.stance.rows, bars.stance.orientation, bars.stance.growth, bars.stance.spacing = 10, 5, "VERTICAL", "RIGHTDOWN", 3
+	bars.consumables.buttons, bars.consumables.rows, bars.consumables.attached = 7, 7, true
 	local loaded, LK, LN = AB.New({ saved = old, setup = function(e)
 		e._game.forms = {}
 		for i = 1, 5 do e._game.forms[i] = { texture = 132349, spellID = 2457 + i } end
@@ -165,12 +170,22 @@ do
 	assert(#loaded._errors == 0 and LK.ErrorCount() == 0, AB.Errors(loaded))
 	local cfg = LN.Config("stance")
 	assert(cfg.rows == 5 and cfg.perRow == 2, "the upgrade keeps Rows 5 and gives 2 per row, got " .. tostring(cfg.perRow) .. "x" .. tostring(cfg.rows))
+	assert(cfg.legacyLayout == true and LN.Config("consumables").legacyLayout == true, "the upgrade marks the vertical stance bar and the overflowing consumables bar")
 	local buttons, pitch = LN.bars.stance.buttons, cfg.size + 3
 	local function near(a, b) return math.abs(a - b) < 0.01 end
-	for i = 2, 5 do
-		assert(near(buttons[i]:GetLeft(), buttons[1]:GetLeft()) and near(buttons[1]:GetTop() - buttons[i]:GetTop(), (i - 1) * pitch), "form " .. i .. " stands in the first column, row " .. i)
+	local function At(i, column, row)
+		return near(buttons[i]:GetLeft() - buttons[1]:GetLeft(), column * pitch) and near(buttons[1]:GetTop() - buttons[i]:GetTop(), row * pitch)
 	end
+	assert(At(2, 0, 1) and At(3, 0, 2) and At(4, 1, 0) and At(5, 1, 1), "forms 4 and 5 stay in the second column after the upgrade")
 	assert(near(LN.bars.stance.holder:GetWidth(), pitch + cfg.size), "the bar keeps two columns of width")
+	LK.Options.Write("ActionBars", "stance.rows", 4)
+	AB.W.Settle(loaded)
+	assert(cfg.legacyLayout == nil and cfg.rows == 4 and cfg.perRow == 3, "a shape edit drops the mark and Rows 4 gives 3 per row")
+	assert(At(2, 0, 1) and At(3, 0, 2) and At(4, 0, 3) and At(5, 1, 0), "after the edit forms 1 to 4 fill the first column and form 5 starts the second")
+	LK.Options.Write("ActionBars", "consumables.buttons", 6)
+	AB.W.Settle(loaded)
+	assert(LN.Config("consumables").legacyLayout == nil, "a consumables shape edit drops its mark")
+	assert(#loaded._errors == 0 and LK.ErrorCount() == 0, AB.Errors(loaded))
 end
 
 print("actionbars upgrade ok: v0.2.7 profile and snapshots load and apply without errors; migration 50 keeps " .. placed .. " button places")

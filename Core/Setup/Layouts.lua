@@ -567,11 +567,12 @@ function Layouts.ConsumableGrid(class, style)
 	return rows, size, gap, cfg.perRow or RowsPerRow(cfg.buttons or 12, rows), cfg.orientation
 end
 
-function Layouts.ConsumableFootprint(class, style)
+function Layouts.ConsumableFootprint(class, style, docked)
 	local rows, size, gap, perRow, orientation = Layouts.ConsumableGrid(class, style)
 	local cfg = ns.Store.IsLoaded() and ns.Store.Module("ActionBars").consumables or {}
 	local columns, used = Layouts.BarShape(cfg.buttons or 12, perRow, rows, orientation)
 	local wide, tall = Layouts.BarShape(12, perRow, rows, orientation ~= "VERTICAL" and "VERTICAL" or nil)
+	if docked and cfg.legacyLayout then return wide * (size + gap) - gap, tall * (size + gap) - gap end
 	return math.max(columns, wide) * (size + gap) - gap, math.max(used, tall) * (size + gap) - gap
 end
 
@@ -1173,7 +1174,7 @@ function Layouts.Attached(name, key, class, style)
 	style = style or ns.HudStyle.Current()
 	if not layouts[name] or not byKey[key] or not (style == "frames" or STYLES[style]) then return nil end
 	if key == "consumables.bar" then
-		local w, h = Layouts.ConsumableFootprint(class, style)
+		local w, h = Layouts.ConsumableFootprint(class, style, true)
 		local player = Layouts.Aspect(class, style, name, "unitframes.player") or Layouts.Style(name, "unitframes.player", style) or layouts[name]["unitframes.player"]
 		local pw, ph = player.width or COLUMN, player.height or 77.5
 		local reserve = style == "medallions" and 43 or 131.5
@@ -1187,6 +1188,7 @@ function Layouts.Attached(name, key, class, style)
 				if third and third.enabled then x, y = -480, player.y + 447 end
 			end
 		end
+		w, h = Layouts.ConsumableFootprint(class, style)
 		return { anchor = "BOTTOM", x = x, y = y, width = w, height = h }
 	end
 	local cooldown = key:match("^cooldowns%.") ~= nil

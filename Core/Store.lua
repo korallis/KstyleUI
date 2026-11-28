@@ -1126,11 +1126,12 @@ end
 
 local BAR_SHAPES = {
 	bar1 = { 12, 1, 12 }, bar2 = { 12, 1, 12 }, bar3 = { 12, 1, 12 }, bar4 = { 12, 12, 1 }, bar5 = { 12, 12, 1 }, bar6 = { 12, 12, 1 },
-	pet = { 10, 0, 0 }, stance = { 10, 0, 0 }, consumables = { 12, 2, 6, 12 },
+	pet = { 10, 0, 0 }, stance = { 10, 0, 0, fold = true }, consumables = { 12, 2, 6, 12 },
 }
 
 local function BarShape(bar, shape)
 	if type(bar) ~= "table" or bar.perRow ~= nil then return end
+	if shape.fold and bar.orientation == "VERTICAL" then bar.legacyLayout = true end
 	local count, rows = bar.buttons, bar.rows
 	if type(count) ~= "number" or count ~= count then count = shape[1] end
 	if type(rows) ~= "number" or rows ~= rows then rows, bar.rows = nil, nil end
@@ -1143,6 +1144,7 @@ local function BarShape(bar, shape)
 	local lines = math.ceil(count / columns)
 	if shape[4] then
 		local wide = math.ceil(shape[4] / math.min(shape[4], math.max(1, math.floor(rows or shape[2]))))
+		if lines > math.ceil(shape[4] / wide) then bar.legacyLayout = true end
 		if bar.orientation == "VERTICAL" then columns = wide else lines = math.ceil(shape[4] / wide) end
 	end
 	if rows then
