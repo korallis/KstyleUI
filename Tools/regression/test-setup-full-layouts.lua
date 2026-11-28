@@ -28,6 +28,7 @@ local function Refuse(env, K, panel)
 	assert(panel.editMode:GetText():find("Choose Replace this one, then Apply", 1, true), "the refusal names Replace this one and Apply")
 	assert(Visible(panel.replace) and Visible(panel.apply), "after the refusal the summary still shows Replace this one and Apply, as the refusal asks")
 	assert(not Visible(panel.reload) and not Visible(panel.later), "Apply takes Reload's place while the refusal waits for a pick")
+	assert(not panel.summaryHelp:GetText():find("Reload the interface", 1, true), "the summary asks for no reload while Reload is hidden")
 end
 
 -- Picks through the open menu, as a player does, so a broken dropdown click or menu row fails here too.
@@ -58,7 +59,16 @@ local function Finished(env, K, panel)
 	assert(K.Setup.EditMode.Last().state == "written", "Edit Mode takes the KstyleUI layout once a layout is picked")
 	assert(Visible(panel.reload) and Visible(panel.later), "the summary offers Reload and Later once Edit Mode took the layout")
 	assert(not Visible(panel.apply) and not Visible(panel.replace), "Apply and Replace this one go once Edit Mode took the layout")
+	assert(panel.summaryHelp:GetText():find("Reload the interface to finish", 1, true), "the summary asks for the reload once Reload shows")
 	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+local function Restored(K, state)
+	assert(K.Profiles.Restore(), "Restore puts the setup backup back")
+	for i = 1, 5 do
+		assert(Fake.Named(state, "Mine " .. i), "Restore brings back Mine " .. i .. " from before setup")
+	end
+	assert(not Fake.Named(state, "KstyleUI DPS") and state.active == 3, "Restore drops the KstyleUI layout and makes the layout from before setup active again")
 end
 
 do
@@ -79,6 +89,7 @@ do
 	Replaced(state)
 	assert(#K.Store.ListProfiles() == profiles, "Apply after the refusal makes no second setup backup")
 	Finished(env, K, panel)
+	Restored(K, state)
 end
 
 do
@@ -104,7 +115,7 @@ do
 end
 
 -- After the refusal the player frees a slot in Edit Mode: the summary drops the picker, says the slot is free, and
--- Apply writes the KstyleUI layout into it without a second backup.
+-- Apply writes the KstyleUI layout into it without a second backup, while Restore still brings back the deleted layout.
 do
 	local env, K, state, panel = FullSetup(true)
 	Refuse(env, K, panel)
@@ -123,6 +134,7 @@ do
 	end
 	assert(#K.Store.ListProfiles() == profiles, "Apply into the free slot makes no second setup backup")
 	Finished(env, K, panel)
+	Restored(K, state)
 end
 
 -- After the refusal Edit Mode's layouts cannot be read: the summary asks for Try again without claiming a free slot
@@ -140,17 +152,16 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- After the refusal the player turns Choose an Edit Mode replacement off: the summary keeps the earlier full-list
--- message and the usual Reload and Later.
+-- After the refusal the player turns Choose an Edit Mode replacement off: the open summary at once keeps the earlier
+-- full-list message and the usual Reload and Later.
 do
 	local env, K, _, panel = FullSetup(true)
 	Refuse(env, K, panel)
 	K.Options.Write("Setup", "replaceLayout", false)
-	K.Setup.Go(5)
-	W.Settle(env)
 	assert(panel.editMode:GetText():find("Delete one in Edit Mode", 1, true), "with the replacement off, the summary says to delete a layout")
 	assert(not panel.editMode:GetText():find("Choose Replace this one", 1, true), "with the replacement off, the summary no longer names Replace this one")
 	assert(not Visible(panel.replace) and not Visible(panel.apply) and Visible(panel.reload) and Visible(panel.later), "with the replacement off, Reload and Later return")
+	assert(panel.summaryHelp:GetText():find("Reload the interface to finish", 1, true), "with the replacement off, the summary asks for the reload again")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

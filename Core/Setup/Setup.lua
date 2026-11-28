@@ -258,10 +258,10 @@ local function EditModeChanged()
 	end
 end
 
-local function WriteEditMode(name, replace)
+local function WriteEditMode(name, replace, retry)
 	Setup.EditMode.Waiting(name)
 	ns.Combat.Queue(function()
-		Setup.EditMode.Write(name, Setup.Story(name, GuideLoaded()), replace)
+		Setup.EditMode.Write(name, Setup.Story(name, GuideLoaded()), replace, retry)
 		EditModeChanged()
 	end)
 end
@@ -271,7 +271,7 @@ function Setup.RetryEditMode()
 	if not Layouts.Get(name) then
 		return false
 	end
-	WriteEditMode(name, Setup.Choice().replaceLayout)
+	WriteEditMode(name, Setup.Choice().replaceLayout, true)
 	EditModeChanged()
 	return true
 end
