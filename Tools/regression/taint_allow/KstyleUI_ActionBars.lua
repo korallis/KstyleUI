@@ -1,5 +1,11 @@
 -- KstyleUI_ActionBars.lua: reviewed taint-scan exceptions for KstyleUI_ActionBars/. Tools/regression/README.md has the format.
 return {
+	["KstyleUI_ActionBars/Slab.lua"] = {
+		why = "Seat() moves the crest hub, KstyleUI's own plain frame, between KstyleUI's root and the Crest element's holder when bars 1 and 2 split or rejoin. Edit Mode never lays it out, and no protected frame anchors to it: its secure travel button and the Spirit Poles are placed over it by coordinates.",
+		calls = {
+			["Slab.hub:SetParent"] = 1,
+		},
+	},
 	["KstyleUI_ActionBars/Button.lua"] = {
 		why = "GameTooltip is hidden when the pointer leaves a KstyleUI action button that showed it, and only while that button owns it, as Blizzard's own action buttons do. GameTooltip is not a layout frame.",
 		calls = {

@@ -131,6 +131,10 @@ return Common.Run(function()
 	place(stance.holder, 60, 620)
 	place(bar3.holder, 700, 80)
 	bar1:RefreshSlab(true)
+	-- Bars laid out apart split the slab, which keeps the crest on its own Layout element; the gallery crops the bars,
+	-- so the crest stays off it.
+	assert(K.Layout.Set("actionbars.crest", "shown", "never"))
+	env.RunTimers()
 
 	-- The preview on a plain frame, as the settings window shows it.
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())

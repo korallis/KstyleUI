@@ -1,4 +1,4 @@
--- test-unitframes-medallions-dock.lua: with the real action bars, a fitted player or target slab docks its arm only while the crest shows; moving action bar 1 hides the crest and the arms with it, and a reset brings both back.
+-- test-unitframes-medallions-dock.lua: with the real action bars, a fitted player or target slab docks its arm to the crest only while bars 1 and 2 stand at home; moving action bar 1 splits the bars, which keeps the crest on its own element (KSTY-171 part 1) but takes the arms away, and a reset docks them again.
 local Suite = dofile("Tools/regression/suite_env.lua")
 local env, K = Suite.New(nil, 1920, 1080)
 local choice = K.Setup.NewChoice()
@@ -7,12 +7,12 @@ assert(K.Setup.Apply(choice))
 env.RunTimers()
 local frames, slab = env._addons.KstyleUI_UnitFrames.Frames, env._addons.KstyleUI_ActionBars.Slab
 
-local function check(label, crest)
+local function check(label, docked)
 	env.RunTimers()
-	assert(slab.hub:IsShown() == crest, label .. ": the crest shows " .. tostring(crest))
+	assert(slab.hub:IsShown(), label .. ": the crest shows")
 	for _, kind in ipairs({ "player", "target" }) do
 		local arm = frames.Get(kind).views[1].dock
-		assert(arm and arm:IsShown() == crest, label .. ": the " .. kind .. " arm follows the crest (" .. tostring(crest) .. ")")
+		assert(arm and arm:IsShown() == docked, label .. ": the " .. kind .. " arm docks " .. tostring(docked))
 	end
 end
 
