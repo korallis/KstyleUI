@@ -1,4 +1,4 @@
--- popoff_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for each class named with every crest tracker lit (RENDER_TRACKERS=lit), the hunter's hawk perches out and every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua) known and lit on top, at each screen size, with the cast bars on the unit frames. A mage or warlock also knows its widest crest rail (ranged_reach.lua's Reach.WIDEST), so the rail's medals stand where they reach furthest. It asserts that no pop-off texture, at full alpha, in any pose its own animations and its parents' reach (scale about each one's pivot, and every Translation path), draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column, and, pixel by pixel, that it draws on no texture another named-seat piece, hawk perch, crown point or pop-off draws at rest (shown at an alpha above 0), except where Meant allows it: an overlay over the piece on its own seat, and nothing else.
+-- popoff_reach.lua: Reach.Check(sizes, classes) builds the HUD scene's action bars for each class named with every crest tracker lit (RENDER_TRACKERS=lit), the hunter's hawk perches out and every one of the class's signature pop-offs (KstyleUI_ActionBars/SlabPopoffs.lua) known and lit on top, at each screen size, with the cast bars on the unit frames. A mage or warlock also knows its widest crest rail (ranged_reach.lua's Reach.WIDEST), so the rail's medals stand where they reach furthest. It asserts that no pop-off texture, at full alpha, in any pose its own animations and its parents' reach (scale about each one's pivot, and every Translation path), draws a pixel (alpha at least a quarter, read from the texture) on an action slot, the level badge, the player or target frame or either cast bar, or outside the crest's column, and, pixel by pixel, that it draws on no texture another named-seat piece, hawk perch, crown point or pop-off draws at rest (shown at an alpha above 0), with no exemption, Divine Shield's dome over the emblem included. The pieces that ring the whole crest (rim seats) are no peer.
 local Png = dofile("Tools/regression/png.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local Pose = dofile("Tools/regression/anim_pose.lua")
@@ -215,33 +215,18 @@ local function Box(solver, region, unit, sweep)
 	return l, r, t, b, tostring(texture[1]):match("[^\\/]+$")
 end
 
--- Covers(region, poses, peer, meant) -> the first screen pixel where the region, in any of its poses (from Poses), draws a pixel (alpha
--- 64 or more) on a pixel the peer's texture draws at rest, unless meant(x, y, pose) allows it; nil when they never meet.
-local function Covers(region, poses, peer, meant)
+-- Covers(region, poses, peer) -> the first screen pixel where the region, in any of its poses (from Poses), draws a pixel (alpha
+-- 64 or more) on a pixel the peer's texture draws at rest; nil when they never meet.
+local function Covers(region, poses, peer)
 	for _, p in ipairs(poses) do
 		local l, r, t, b = math.max(p[1], peer[1]), math.min(p[2], peer[2]), math.min(p[3], peer[3]), math.max(p[4], peer[4])
 		for y = math.floor(b) + 0.5, t, 1 do
 			for x = math.floor(l) + 0.5, r, 1 do
 				if Solid(region, (x - p[1]) / (p[2] - p[1]), (p[3] - y) / (p[3] - p[4])) and Solid(peer.region, (x - peer[1]) / (peer[2] - peer[1]), (peer[3] - y) / (peer[3] - peer[4])) then
-					if not meant(x, y, p, peer) then
-						return x, y
-					end
+					return x, y
 				end
 			end
 		end
-	end
-end
-
--- Meant(popoff) -> whether a region of the pop-off draws a pixel over another piece on purpose: an overlay (Divine Shield's bubble)
--- covers only the piece on its own seat; every other pop-off's sigil, ring and flare is held to every peer. Seats compare in crest units.
-local function Near(a, b)
-	return a and b and math.abs(a[1] - b[1]) < 4 and math.abs(a[2] - b[2]) < 4
-end
-
-local function Meant(popoff)
-	local seat, own = popoff.at, popoff.overlay
-	return function(_, _, _, peer)
-		return own and Near(peer.piece.at, seat) or false
 	end
 end
 
@@ -293,9 +278,7 @@ function Reach.Check(sizes, classes)
 			assert(#avoid > 16, at .. " " .. class .. ": the action slots, badge, unit frames and cast bars are placed")
 			local pieces = {}
 			for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-				local seat = p.spec.seat
-				seat = type(seat) == "table" and seat or ns.SlabSeats.AT[seat]
-				pieces[#pieces + 1] = { key = p.spec.key, frame = p, overlay = p.spec.overlay, at = seat, rim = not ns.SlabSeats.Name(p.spec.seat), regions = RING[p.spec.key] and {} or Textures(p, {}) }
+				pieces[#pieces + 1] = { key = p.spec.key, rim = not ns.SlabSeats.Name(p.spec.seat), regions = RING[p.spec.key] and {} or Textures(p, {}) }
 			end
 			for i, p in ipairs(ns.SlabHawks and ns.SlabHawks.state.perches or {}) do
 				pieces[#pieces + 1] = { key = "hawk perch " .. i, regions = Textures(p.holder, {}) }
@@ -337,11 +320,11 @@ function Reach.Check(sizes, classes)
 						for _, a in ipairs(avoid) do
 							assert(r <= a[1] or a[3] <= l or t <= a[2] or a[4] <= b, name .. " crosses an action slot, the level badge, a unit frame or a cast bar")
 						end
-						local poses, meant = Poses(solver, region, unit), Meant(p)
+						local poses = Poses(solver, region, unit)
 						for _, a in ipairs(peers) do
 							local x, y
 							if a.piece ~= p then
-								x, y = Covers(region, poses, a, meant)
+								x, y = Covers(region, poses, a)
 							end
 							assert(not x, string.format("%s covers %s's %s, another crest piece, at %d, %d (at its seat or on its way there)", name, a.key, tostring(a.region._state.Texture[1]):match("[^\\/]+$"), x or 0, y or 0))
 						end
