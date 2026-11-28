@@ -575,15 +575,9 @@ local function Pinned()
 	return true
 end
 
-local function Holds(frame)
-	hooksecurefunc(frame, "SetAlpha", function(self, alpha)
-		if faded[self] and alpha ~= 0 then self:SetAlpha(0) end
-	end)
-end
-
 local function FadeOut(frame)
 	faded[frame] = true
-	frame:SetAlpha(0)
+	Motion.Tween(frame, "SetAlpha", 0, 0, 0)
 end
 
 local function Unfaded(frame)
@@ -596,7 +590,6 @@ end
 local function BuildPlate()
 	local slab = BuildSlab(K.Scale.Root())
 	Slab.frame = slab
-	Holds(slab)
 	K.Layout.Rest.Follow("actionbars.bar1", slab)
 end
 
@@ -617,7 +610,6 @@ local function Build()
 	BuildMoments(hub)
 	BuildSweeps(Slab.frame)
 	Slab.hub = hub
-	Holds(hub)
 	K.Layout.Rest.Follow("actionbars.bar1", hub)
 	Slab.PaintPlaque(false)
 	state.built = true
@@ -796,7 +788,7 @@ local function Animate()
 end
 
 local function Wake()
-	if Slab.HubShown() and Resting(Held()) ~= state.rest then Animate() end
+	if state.built and Resting(Held()) ~= state.rest and Slab.HubShown() then Animate() end
 end
 
 local function Edges(frame)
