@@ -7,8 +7,10 @@ local Png = dofile("Tools/regression/png.lua")
 -- then added its two seats' cooldown repaint, measured at 269,700 instructions, and the hunter's crest needs
 -- (staging b107b6f0) added 2,400 to the mage's path there (226,800 to 229,200), measured on top of the rail at 271,900. The
 -- mage's power orb then took the tree's great cooldown from the rail and added its fill, 274,900. The widest mage rail, four
--- seats, the trinket and six round medals on the second rail, measured 336,200 and 3,100.
-local BUDGET_COOLDOWN, BUDGET_RAIL, BUDGET_HEALTH = { 274900, 1700 }, { 336200, 3100 }, { 46100, 2000 }
+-- seats, the trinket and six round medals on the second rail, measured 336,200 and 3,100. These fixtures have no target, so
+-- until the rail stopped resting with the crest (KSTY-168) its ready seats were still; burning, each asks once per update
+-- whether its breath still plays: 1,900 calls for this fixture's two seats and 4,100 for the widest rail's ten.
+local BUDGET_COOLDOWN, BUDGET_RAIL, BUDGET_HEALTH = { 274900, 1900 }, { 336200, 4100 }, { 46100, 2000 }
 local AB, Slots, New, Piece, Seated, Shown, Clean, Tint, Icons = R.AB, R.Slots, R.New, R.Piece, R.Seated, R.Shown, R.Clean, R.Tint, R.Icons
 local Aura = R.Aura
 

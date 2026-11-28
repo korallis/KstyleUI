@@ -212,6 +212,39 @@ do
 	Clean(env, K)
 end
 
+-- KSTY-168: a tester's ready Rapid Fire and trap medals stopped animating out of combat with nothing targeted. The captain chose
+-- to keep the rail burning while the crest rests, with only the crest's centre calming; Calm and Off still hold the still.
+do
+	local env, K, ns = New("HUNTER", { known = { 13165, 883, 75, 3045, 13795 }, size = { 2560, 1440 } })
+	local rail = Rail(ns)
+	local seats = { rail.made.rapid, rail.made.trap }
+	assert(seats[1].ready and seats[2].ready and K.Store.Module("Medallions").restingCrest ~= false, "both medals are ready and Calm crest at rest is on")
+	local function Rested(step)
+		assert(ns.Slab.Resting(), step .. ": the crest rests")
+		assert(not ns.Slab.hub.runes.turn:IsPlaying(), step .. ": the crest's rune ring holds still")
+		for _, seat in ipairs(seats) do
+			assert(Burning(seat) and seat.breath:IsPlaying(), step .. ": the ready " .. seat.key .. " medal burns and breathes")
+		end
+	end
+	Rested("logged in with no target")
+	Awake(env)
+	env.SetTarget(false)
+	env.RunTimers()
+	Rested("the target cleared")
+	env.SetCombat(true)
+	env.RunTimers()
+	env.SetCombat(false)
+	env.RunTimers()
+	Rested("out of combat again")
+	for _, level in ipairs({ "calm", "off" }) do
+		Motion(env, K, level)
+		for _, seat in ipairs(seats) do
+			assert(Still(seat), "at " .. level .. " with no target the " .. seat.key .. " medal holds its still")
+		end
+	end
+	Clean(env, K)
+end
+
 do
 	local env, K, ns = New("HUNTER", { known = BM })
 	Awake(env)
