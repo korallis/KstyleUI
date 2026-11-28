@@ -615,10 +615,10 @@ end
 -- foot (four) and per stack ember (five, the spec's stacks); one sacrificed demon, the Imp's buff fed alone; one gust; and a sigil per cooldown-row family with
 -- an aura sheet that the crest rail does not hold. The rail takes the class's long cooldowns and the player's own racial, so the row keeps the potions and the
 -- other races' racials the fixture's spellbook knows (Perception and Will of the Forsaken where a mage or warlock race has them), and the warlock's Shadow Ward
--- and sacrificed-demon sigils. A mage's second rail fills with its other cooldowns first (Blink, Frost Nova, Fire Blast and the rest), so the major
--- racials it would take fall back to the row as well, three more fires there.
+-- and sacrificed-demon sigils. A mage's second rail fills with its other cooldowns first (Blink, Frost Nova, Fire Blast and the rest) but keeps its first
+-- racial, so the other major racials it would take fall back to the row, two more fires there.
 for _, build in ipairs({
-	{ "MAGE", { crestYourSpell = 1, crestCooldowns = 10 } },
+	{ "MAGE", { crestYourSpell = 1, crestCooldowns = 9 } },
 	{ "MAGE", { crestSchool = 5, crestManaGem = 1 }, Unknown({ 10054, 10053, 3552, 759 }, { 11095, 12872, 12873 }) },
 	{ "WARLOCK", { crestTorments = 4, crestCurse = 5, crestDemon = 1, crestCooldowns = 9 } },
 	{ "WARLOCK", { crestHealthstone = 1 }, Unknown({ 11730, 11729, 5699, 6202, 6201 }) },
