@@ -1,7 +1,7 @@
 -- KstyleUI_ActionBars.lua: reviewed taint-scan exceptions for KstyleUI_ActionBars/. Tools/regression/README.md has the format.
 return {
 	["KstyleUI_ActionBars/Slab.lua"] = {
-		why = "Seat() moves the crest hub, KstyleUI's own plain frame, between KstyleUI's root and the Crest element's holder when bars 1 and 2 split or rejoin. Edit Mode never lays it out, and no protected frame anchors to it: its secure travel button and the Spirit Poles are placed over it by coordinates.",
+		why = "Parent() moves the crest hub, KstyleUI's own plain frame, between KstyleUI's root, KstyleUI's own crest gate (while the Crest element's Shown rule can hide it) and the Crest element's holder, out of combat, when bars 1 and 2 split or rejoin or that rule changes. Edit Mode never lays it out, and no protected frame anchors to it: its secure travel button and the Spirit Poles are placed over it by coordinates.",
 		calls = {
 			["Slab.hub:SetParent"] = 1,
 		},
