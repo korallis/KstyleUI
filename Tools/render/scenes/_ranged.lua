@@ -22,8 +22,8 @@
 -- those switches (crestOrb for the mage's orb alone). RENDER_TRACKERS_SWAP=from:to[,from:to] plays the
 -- story with other aura spell IDs, so one seat shows each of its choices: 13165:13163 perches Aspect of the Monkey for
 -- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting. RENDER_TRACKERS_COUNT=id:count[,id:count] gives
--- an aura of the story another stack count, and RENDER_TRACKERS_COOL=id:start:seconds[,...] casts that spell at start
--- and cools it for that long, so one orb or seat can be drawn ready, spent, refilling and relit at its own times. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
+-- an aura of the story another stack count, and RENDER_TRACKERS_COOL=id:start:seconds[,...] casts that spell at start,
+-- in place of the story's own cast of it, and cools it for that long, so one orb or seat can be drawn ready, spent, refilling and relit at its own times. RENDER_PET_MOOD=1|2|3 sets the hunter pet's happiness (Unhappy,
 -- Content, Happy) in place of the story's own, so the haunch shows or goes; RENDER_PET_DEAD=1 lays the pet dead, so its perch shows the red
 -- hound. The hunter's story also carries Trueshot Aura from 3 s and Track Beasts from 0.2 s on a hostile beast target (creature type 1), for Improved Tracking's
 -- compass, a pet that knows Screech (its debuff on the target from 5.5 s) and Growl at 70 focus, and three Healing Potions, one drunk at 5 s.
@@ -241,7 +241,9 @@ local function Of(class)
 			auras[i] = setmetatable({ count = COUNT[a.id] or a.count }, { __index = a })
 		end
 		for id, c in pairs(story.cooling or {}) do cooling[id] = c end
-		for i, cast in ipairs(story.casts or {}) do casts[i] = cast end
+		for _, cast in ipairs(story.casts or {}) do
+			if not COOL[cast[2]] then casts[#casts + 1] = cast end
+		end
 		for id, c in pairs(COOL) do
 			cooling[id], casts[#casts + 1] = c, { c[1], id }
 		end
