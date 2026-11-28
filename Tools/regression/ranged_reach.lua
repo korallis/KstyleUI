@@ -7,14 +7,44 @@ local Reach = {}
 local RING = { crestGust = true, crestClearcasting = true, crestTrance = true, crestWard = true, crestAutoShot = true, crestCooldowns = true, crestFiveSecond = true }
 local FRAMES = { "unitframes.player", "unitframes.target", "unitframes.castbar.player", "unitframes.castbar.target" }
 local ROW = { "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars" }
-local DECODED, CONTENT, SAMPLES = {}, {}, {}
+local RUNS, CONTENT, SAMPLES = {}, {}, {}
 local DEMON_SHEETS = { "HornsPet", "Imp", "Voidwalker", "Succubus", "Fangs", "ImpFel", "VoidwalkerFel", "SuccubusFel", "FangsFel" }
+local floor, min, max, abs, find = math.floor, math.min, math.max, math.abs, string.find
 
--- Decoded(file) -> alpha(x, y), width and height of an addon file, read once for both sweeps; a file the reader cannot read stops
--- the check.
-local function Decoded(file)
-	DECODED[file] = DECODED[file] or { Png.Alpha(file) }
-	return DECODED[file][1], DECODED[file][2], DECODED[file][3]
+-- Runs(file) -> runs, width and height of an addon file, read once for both sweeps: runs[y] holds row y's spans of pixels of alpha
+-- 64 or more as first and last x, in pairs. A file the reader cannot read stops the check. The runs hold only the texture's own
+-- pixels, so Content and Spread stop on texture coordinates past its edge instead of measuring nothing there.
+local function Runs(file)
+	if not RUNS[file] then
+		local rows, w, h = Png.Coverage(file)
+		local runs = {}
+		for y = 0, h - 1 do
+			local row, list, at = rows[y], {}, 1
+			while true do
+				local first, last = find(row, "[\64-\255]+", at)
+				if not first then break end
+				list[#list + 1], list[#list + 2] = first - 1, last - 1
+				at = last + 1
+			end
+			runs[y] = list
+		end
+		RUNS[file] = { runs, w, h }
+	end
+	return RUNS[file][1], RUNS[file][2], RUNS[file][3]
+end
+
+-- Cuts(x0, x1, cw) -> the first x of each cell of width cw from x0 to x1, then x1 + 1. A cell is the one x % cw measures x in
+-- (Lua's floor((x - x0) / cw)), so inside each piece of a run cut here a pixel's place in its cell grows with x, and the per-pixel
+-- measures below reach their extremes at the piece's two ends: Content and Spread read only those, which gives the same answer
+-- as reading every pixel.
+local function Cuts(x0, x1, cw)
+	local cuts, cell = { x0 }, 0
+	for x = x0, x1 do
+		local k = floor((x - x0) / cw)
+		if k ~= cell then cuts[#cuts + 1], cell = x, k end
+	end
+	cuts[#cuts + 1] = x1 + 1
+	return cuts
 end
 
 -- Spread(path, rows, columns, coords) -> how far from its cell's centre, as a share of the cell's width, the texture's pixels of alpha
@@ -33,15 +63,24 @@ local function Spread(path, rows, columns, coords)
 		local file = tostring(path):gsub("\\", "/"):match("Media/.+$")
 		local most = 0
 		if file then
-			local alpha, w, h = Decoded(file)
+			local runs, w, h = Runs(file)
 			local x0, x1, y0, y1 = math.floor(u0 * w), math.ceil(u1 * w) - 1, math.floor(v0 * h), math.ceil(v1 * h) - 1
+			assert(x0 >= 0 and x1 < w and y0 >= 0 and y1 < h, file .. ": the texture coordinates measured reach past the texture")
 			local cw, ch = (x1 - x0 + 1) / columns, (y1 - y0 + 1) / rows
+			local cuts = Cuts(x0, x1, cw)
 			for y = y0, y1 do
-				for x = x0, x1 do
-					if alpha(x, y) >= 64 then
-						local dx = math.abs(((x - x0) % cw + 0.5) / cw - 0.5) + 0.5 / cw
-						local dy = (math.abs(((y - y0) % ch + 0.5) / ch - 0.5) + 0.5 / ch) * ch / cw
-						most = math.max(most, math.sqrt(dx * dx + dy * dy))
+				local list = runs[y]
+				local dy = (abs(((y - y0) % ch + 0.5) / ch - 0.5) + 0.5 / ch) * ch / cw
+				for i = 1, #list, 2 do
+					local s, e = max(list[i], x0), min(list[i + 1], x1)
+					for j = 1, #cuts - 1 do
+						local lo, hi = max(s, cuts[j]), min(e, cuts[j + 1] - 1)
+						if lo <= hi then
+							local a = abs(((lo - x0) % cw + 0.5) / cw - 0.5) + 0.5 / cw
+							local b = abs(((hi - x0) % cw + 0.5) / cw - 0.5) + 0.5 / cw
+							local dx = max(a, b)
+							most = max(most, math.sqrt(dx * dx + dy * dy))
+						end
 					end
 				end
 			end
@@ -87,7 +126,7 @@ local function Content(region)
 	local texture = region._state.Texture
 	local file = texture and tostring(texture[1]):gsub("\\", "/"):match("Media/.+$")
 	if not file then return false end
-	local alpha, w, h = Decoded(file)
+	local runs, w, h = Runs(file)
 	local rows, columns = Cells(region)
 	local ul, ur, vt, vb = 0, 1, 0, 1
 	if rows == 1 and columns == 1 then
@@ -98,22 +137,40 @@ local function Content(region)
 	if CONTENT[key] == nil then
 		local x0, x1 = math.floor(math.min(ul, ur) * w), math.ceil(math.max(ul, ur) * w) - 1
 		local y0, y1 = math.floor(math.min(vt, vb) * h), math.ceil(math.max(vt, vb) * h) - 1
+		assert(x0 >= 0 and x1 < w and y0 >= 0 and y1 < h, file .. ": the texture coordinates measured reach past the texture")
 		local cw, ch = (x1 - x0 + 1) / columns, (y1 - y0 + 1) / rows
+		local cells, cuts = columns > 1 or rows > 1, Cuts(x0, x1, cw)
 		local l, r, t, b = 1, 0, 1, 0
 		for y = y0, y1 do
-			for x = x0, x1 do
-				if alpha(x, y) >= 64 then
-					local sx, ex, sy, ey
-					if columns > 1 or rows > 1 then
-						sx, sy = ((x - x0) % cw) / cw, ((y - y0) % ch) / ch
-						ex, ey = sx + 1 / cw, sy + 1 / ch
-					else
-						sx, ex = (x / w - ul) / (ur - ul), ((x + 1) / w - ul) / (ur - ul)
-						sy, ey = (y / h - vt) / (vb - vt), ((y + 1) / h - vt) / (vb - vt)
+			local list, drawn = runs[y], false
+			for i = 1, #list, 2 do
+				local s, e = max(list[i], x0), min(list[i + 1], x1)
+				for j = 1, #cuts - 1 do
+					local lo, hi = max(s, cuts[j]), min(e, cuts[j + 1] - 1)
+					if lo <= hi then
+						drawn = true
+						for k = 1, 2 do
+							local x, sx, ex = k == 1 and lo or hi, nil, nil
+							if cells then
+								sx = ((x - x0) % cw) / cw
+								ex = sx + 1 / cw
+							else
+								sx, ex = (x / w - ul) / (ur - ul), ((x + 1) / w - ul) / (ur - ul)
+							end
+							l, r = min(l, sx, ex), max(r, sx, ex)
+						end
 					end
-					l, r = math.min(l, sx, ex), math.max(r, sx, ex)
-					t, b = math.min(t, sy, ey), math.max(b, sy, ey)
 				end
+			end
+			if drawn then
+				local sy, ey
+				if cells then
+					sy = ((y - y0) % ch) / ch
+					ey = sy + 1 / ch
+				else
+					sy, ey = (y / h - vt) / (vb - vt), ((y + 1) / h - vt) / (vb - vt)
+				end
+				t, b = min(t, sy, ey), max(b, sy, ey)
 			end
 		end
 		CONTENT[key] = r > l and { l, r, t, b } or false
