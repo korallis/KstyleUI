@@ -581,6 +581,9 @@ local function Build()
 	BuildMoments(hub)
 	BuildSweeps(Slab.frame)
 	Slab.hub = hub
+	hooksecurefunc(hub, "SetAlpha", function(_, alpha)
+		if state.faded and alpha ~= 0 then hub:SetAlpha(0) end
+	end)
 	K.Layout.Rest.Follow("actionbars.bar1", hub)
 	Slab.PaintPlaque(false)
 	state.built = true
@@ -796,9 +799,27 @@ local function Yield()
 	end
 end
 
-local function Unfade()
-	state.fading = false
+local function Later()
+	state.later = false
 	Slab.Refresh()
+end
+
+local function Pinned()
+	if not (InCombatLockdown() and ns.Totems.OnCrest()) then
+		return false
+	end
+	if not state.later then
+		state.later = true
+		K.Combat.Queue(Later)
+	end
+	return true
+end
+
+local function Unfaded()
+	if state.faded then
+		state.faded = false
+		Slab.hub:SetAlpha(K.Layout.Rest.Level("actionbars.bar1"))
+	end
 end
 
 local function HideHub()
@@ -807,17 +828,12 @@ local function HideHub()
 		return
 	end
 	local hub = Slab.hub
-	if InCombatLockdown() and ns.Totems.OnCrest() then
+	if Pinned() then
 		state.faded = true
 		hub:SetAlpha(0)
-		if not state.fading then
-			state.fading = true
-			K.Combat.Queue(Unfade)
-		end
 	else
-		state.faded = false
+		Unfaded()
 		hub:Hide()
-		hub:SetAlpha(1)
 	end
 	if ns.Travel then ns.Travel.Refresh() end
 	if K.Effects and K.Effects.Ambient then
@@ -925,19 +941,23 @@ function Slab.Refresh()
 	if not (Plain(unit) and unit > 0) then
 		unit = 1
 	end
-	hub:SetScale(max(0.01, min(1, (gapWidth / unit - 2 * MARGIN) / RING)))
-	hub:ClearAllPoints()
-	local lift = rise > 0 and (rise - left.holder:GetHeight() * Widgets.ScaleFactor(left.holder)) / 2 or 0
-	hub:SetPoint("CENTER", gap, "TOP", 0, Widgets.Snap(hub, lift))
-	hub:SetFrameLevel(slab:GetFrameLevel() + HUB_LIFT)
-	hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
+	local pinned = Pinned()
+	if not pinned then
+		hub:SetScale(max(0.01, min(1, (gapWidth / unit - 2 * MARGIN) / RING)))
+		hub:ClearAllPoints()
+		local lift = rise > 0 and (rise - left.holder:GetHeight() * Widgets.ScaleFactor(left.holder)) / 2 or 0
+		hub:SetPoint("CENTER", gap, "TOP", 0, Widgets.Snap(hub, lift))
+		hub:SetFrameLevel(slab:GetFrameLevel() + HUB_LIFT)
+		hub.top:SetFrameLevel(hub:GetFrameLevel() + 2)
+	end
 	Paint()
 	SizeCrest(hub)
 	PaintLevel()
 	SizeBadge(hub)
-	state.faded = false
-	hub:SetAlpha(1)
-	hub:Show()
+	if not pinned then
+		Unfaded()
+		hub:Show()
+	end
 	if K.Effects and K.Effects.Ambient then
 		K.Effects.Ambient("hub", Animate, Yield)
 	end

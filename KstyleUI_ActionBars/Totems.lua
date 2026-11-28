@@ -645,6 +645,19 @@ local function Blizzard(on)
 	end
 end
 
+local function Detach()
+	state.header:ClearAllPoints()
+	for _, b in ipairs(state.sockets) do
+		b:ClearAllPoints()
+		b.spire:ClearAllPoints()
+		b.fan:ClearAllPoints()
+		for _, f in ipairs(b.fan.buttons) do f:ClearAllPoints() end
+	end
+	state.wolf:ClearAllPoints()
+	state.call:ClearAllPoints()
+	state.crest = false
+end
+
 local function Apply()
 	state.pending = false
 	local on, was = Wanted(), state.shown
@@ -660,6 +673,7 @@ local function Apply()
 			end
 			state.call:SetAttribute("*type1", nil)
 			state.call:SetAttribute("*type2", nil)
+			Detach()
 		end
 		Listen(false)
 	else
@@ -682,7 +696,7 @@ local function Apply()
 end
 
 function Totems.OnCrest()
-	return state.shown == true and state.crest == true
+	return state.crest == true
 end
 
 function Totems.Update()

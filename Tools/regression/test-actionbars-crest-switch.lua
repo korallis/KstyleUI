@@ -435,12 +435,62 @@ do
 	assert(#env._blocked == 0, "nothing protected is touched in combat: " .. table.concat(env._blocked, ", "))
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(not hub:IsShown() and hub:GetAlpha() == 1 and not st.shown and not st.header:IsShown(), "when combat ends, the crest and the totems hide")
+	AB.W.Tick(env, 1)
+	assert(not hub:IsShown() and not st.shown and not st.header:IsShown(), "when combat ends, the crest and the totems hide")
+	assert(hub:GetAlpha() == K.Layout.Rest.Level("actionbars.bar1"), "and the crest takes back its rest opacity")
 	assert(#Listening(seen) == 0 and not seen.live["ActionBars.Totems PLAYER_TOTEM_UPDATE"], "and nothing of them listens")
 	K.Options.Write("ActionBars", "crest", true)
 	env.RunTimers()
-	assert(hub:IsShown() and hub:GetAlpha() == 1 and st.shown and st.header:IsShown() and st.header:GetAlpha() == 1, "switched on again, the crest and its totems come back whole")
+	assert(hub:IsShown() and hub:GetAlpha() == K.Layout.Rest.Level("actionbars.bar1") and st.shown and st.header:IsShown() and st.header:GetAlpha() == 1, "switched on again, the crest and its totems come back whole")
 	Clean(env, K, "shaman in combat")
+end
+
+-- The clean screen eases the crest with bar 1. Its rest opacity stands through a bar refresh, and a rest wake still
+-- easing as combat starts never shows a crest switched off in combat.
+do
+	local env, K, ns = Start("SHAMAN", {}, { setup = Shaman })
+	local hub, Rest = ns.Slab.hub, K.Layout.Rest
+	env.SetCombat(true)
+	env.SetCombat(false)
+	env.RunTimers()
+	AB.W.Tick(env, 1)
+	assert(Rest.Quiet() and Rest.Level("actionbars.bar1") == 0.35 and hub:GetAlpha() == 0.35, "at rest the crest sits at the clean screen's opacity")
+	ns.bars.bar1:RefreshSlab()
+	assert(hub:GetAlpha() == 0.35, "a bar refresh keeps the crest at its rest opacity")
+	env.SetCombat(true)
+	K.Options.Write("ActionBars", "crest", false)
+	AB.W.Tick(env, 1)
+	assert(hub:IsShown() and hub:GetAlpha() == 0, "the wake that combat started leaves the crest switched off in combat unseen")
+	Clean(env, K, "the crest at rest")
+end
+
+-- The secure totems anchored to the crest pin its place in combat. A bar refresh in combat leaves the crest where it
+-- is until combat ends; totems switched off let go of the crest, so it then hides at once.
+do
+	local env, K, ns = Start("SHAMAN", {}, { setup = Shaman })
+	local hub, st = ns.Slab.hub, ns.Totems.state
+	local function Moves()
+		return #AB.W.Calls(hub, "SetPoint") + #AB.W.Calls(hub, "SetScale") + #AB.W.Calls(hub, "Show")
+	end
+	env.SetCombat(true)
+	local moves = Moves()
+	ns.bars.bar1:RefreshSlab()
+	assert(Moves() == moves, "with the totems on it, a bar refresh in combat neither moves nor shows the crest")
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(Moves() > moves, "the crest takes its place when combat ends")
+	K.Options.Write("ActionBars", "totemBar", false)
+	env.RunTimers()
+	local held = st.header:GetNumPoints() + st.wolf:GetNumPoints() + st.call:GetNumPoints()
+	for _, b in ipairs(st.sockets) do
+		held = held + b:GetNumPoints() + b.spire:GetNumPoints() + b.fan:GetNumPoints()
+		for _, f in ipairs(b.fan.buttons) do held = held + f:GetNumPoints() end
+	end
+	assert(not st.shown and held == 0 and not ns.Totems.OnCrest(), "totems switched off let go of the crest")
+	env.SetCombat(true)
+	K.Options.Write("ActionBars", "crest", false)
+	assert(not hub:IsShown(), "so the crest switched off in combat hides at once")
+	Clean(env, K, "totems pin the crest")
 end
 
 print("ok crest switch")
