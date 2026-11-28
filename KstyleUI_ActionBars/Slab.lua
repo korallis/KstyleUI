@@ -46,7 +46,8 @@ local CLASS_NAMES = {
 
 Slab.RING, Slab.MARGIN, Slab.STRATA, Slab.RUNE_TURN = RING, MARGIN, STRATA, RUNE_TURN
 
-local state = { combat = false, built = false, class = nil, procs = {}, enabled = false, crest = false, waiting = false, faded = false }
+local state = { combat = false, built = false, class = nil, procs = {}, enabled = false, crest = false, waiting = false }
+local faded = {}
 
 local function IsSecret(v)
 	return ns.IsSecret(v)
@@ -69,7 +70,7 @@ function Slab.CrestLive()
 end
 
 function Slab.HubShown()
-	return state.built and Slab.hub:IsShown() and not state.faded
+	return state.built and Slab.hub:IsShown() and not faded[Slab.hub]
 end
 
 local function Layouts()
@@ -558,9 +559,44 @@ local function BuildMoments(hub)
 	hub.caption = caption
 end
 
+local function Later()
+	state.later = false
+	Slab.Refresh()
+end
+
+local function Pinned()
+	if not (InCombatLockdown() and ns.Totems.OnCrest()) then
+		return false
+	end
+	if not state.later then
+		state.later = true
+		K.Combat.Queue(Later)
+	end
+	return true
+end
+
+local function Holds(frame)
+	hooksecurefunc(frame, "SetAlpha", function(self, alpha)
+		if faded[self] and alpha ~= 0 then self:SetAlpha(0) end
+	end)
+end
+
+local function FadeOut(frame)
+	faded[frame] = true
+	frame:SetAlpha(0)
+end
+
+local function Unfaded(frame)
+	if faded[frame] then
+		faded[frame] = nil
+		frame:SetAlpha(K.Layout.Rest.Level("actionbars.bar1"))
+	end
+end
+
 local function BuildPlate()
 	local slab = BuildSlab(K.Scale.Root())
 	Slab.frame = slab
+	Holds(slab)
 	K.Layout.Rest.Follow("actionbars.bar1", slab)
 end
 
@@ -581,9 +617,7 @@ local function Build()
 	BuildMoments(hub)
 	BuildSweeps(Slab.frame)
 	Slab.hub = hub
-	hooksecurefunc(hub, "SetAlpha", function(_, alpha)
-		if state.faded and alpha ~= 0 then hub:SetAlpha(0) end
-	end)
+	Holds(hub)
 	K.Layout.Rest.Follow("actionbars.bar1", hub)
 	Slab.PaintPlaque(false)
 	state.built = true
@@ -597,6 +631,9 @@ end
 
 local function SizeBadge(hub)
 	local numbered = ns.Config("hubNumber") ~= false
+	if not numbered and Pinned() then
+		return
+	end
 	local scale = hub:GetScale()
 	if not numbered then hub:SetScale(1) end
 	Widgets.Size(hub.plaque, numbered and 20 or BADGE, numbered and 20 or BADGE)
@@ -799,29 +836,6 @@ local function Yield()
 	end
 end
 
-local function Later()
-	state.later = false
-	Slab.Refresh()
-end
-
-local function Pinned()
-	if not (InCombatLockdown() and ns.Totems.OnCrest()) then
-		return false
-	end
-	if not state.later then
-		state.later = true
-		K.Combat.Queue(Later)
-	end
-	return true
-end
-
-local function Unfaded()
-	if state.faded then
-		state.faded = false
-		Slab.hub:SetAlpha(K.Layout.Rest.Level("actionbars.bar1"))
-	end
-end
-
 local function HideHub()
 	if not state.built then
 		ns.Totems.Update()
@@ -829,10 +843,9 @@ local function HideHub()
 	end
 	local hub = Slab.hub
 	if Pinned() then
-		state.faded = true
-		hub:SetAlpha(0)
+		FadeOut(hub)
 	else
-		Unfaded()
+		Unfaded(hub)
 		hub:Hide()
 	end
 	if ns.Travel then ns.Travel.Refresh() end
@@ -860,7 +873,12 @@ end
 
 local function Hide()
 	Slab.PlaceSides(false)
-	if Slab.frame then Slab.frame:Hide() end
+	if Slab.frame and Pinned() then
+		FadeOut(Slab.frame)
+	elseif Slab.frame then
+		Unfaded(Slab.frame)
+		Slab.frame:Hide()
+	end
 	HideHub()
 end
 
@@ -921,16 +939,19 @@ function Slab.Refresh()
 			end
 		end
 	end
-	slab:ClearAllPoints()
-	slab:SetPoint("TOPLEFT", left.holder, "TOPLEFT", -pad, pad + Widgets.Snap(slab, rise))
-	slab:SetPoint("BOTTOMRIGHT", right.holder, "BOTTOMRIGHT", pad, -Widgets.Snap(slab, spec.stripGap + spec.strip + spec.bottom))
+	local pinned, gap = Pinned(), slab.gap
+	if not pinned then
+		slab:ClearAllPoints()
+		slab:SetPoint("TOPLEFT", left.holder, "TOPLEFT", -pad, pad + Widgets.Snap(slab, rise))
+		slab:SetPoint("BOTTOMRIGHT", right.holder, "BOTTOMRIGHT", pad, -Widgets.Snap(slab, spec.stripGap + spec.strip + spec.bottom))
+		gap:ClearAllPoints()
+		gap:SetPoint("TOPLEFT", left.holder, "TOPRIGHT", 0, 0)
+		gap:SetPoint("BOTTOMRIGHT", right.holder, "BOTTOMLEFT", 0, 0)
+		slab:SetFrameLevel(K.Scale.Root():GetFrameLevel())
+		Unfaded(slab)
+		slab:Show()
+	end
 	LayPlate(slab)
-	local gap = slab.gap
-	gap:ClearAllPoints()
-	gap:SetPoint("TOPLEFT", left.holder, "TOPRIGHT", 0, 0)
-	gap:SetPoint("BOTTOMRIGHT", right.holder, "BOTTOMLEFT", 0, 0)
-	slab:SetFrameLevel(K.Scale.Root():GetFrameLevel())
-	slab:Show()
 	if not hub then
 		Slab.PlaceSides(true, cfg)
 		return true
@@ -941,7 +962,6 @@ function Slab.Refresh()
 	if not (Plain(unit) and unit > 0) then
 		unit = 1
 	end
-	local pinned = Pinned()
 	if not pinned then
 		hub:SetScale(max(0.01, min(1, (gapWidth / unit - 2 * MARGIN) / RING)))
 		hub:ClearAllPoints()
@@ -955,7 +975,7 @@ function Slab.Refresh()
 	PaintLevel()
 	SizeBadge(hub)
 	if not pinned then
-		Unfaded()
+		Unfaded(hub)
 		hub:Show()
 	end
 	if K.Effects and K.Effects.Ambient then

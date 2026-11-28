@@ -464,21 +464,47 @@ do
 	Clean(env, K, "the crest at rest")
 end
 
--- The secure totems anchored to the crest pin its place in combat. A bar refresh in combat leaves the crest where it
--- is until combat ends; totems switched off let go of the crest, so it then hides at once.
+-- The secure totems anchored to the crest pin it, the gap it hangs from and the slab plate holding that gap in combat.
+-- A bar refresh, a level-up with the clear hub level off, or a bar refresh that finds the slab switched off in combat
+-- leaves their place, scale and visibility until combat ends; totems switched off let go of the crest, so it then hides at once.
 do
-	local env, K, ns = Start("SHAMAN", {}, { setup = Shaman })
-	local hub, st = ns.Slab.hub, ns.Totems.state
+	local env, K, ns = Start("SHAMAN", { hubNumber = false }, { setup = Shaman })
+	local hub, slab, st = ns.Slab.hub, ns.Slab.frame, ns.Totems.state
+	local METHODS = { "SetPoint", "ClearAllPoints", "SetScale", "SetFrameLevel", "Show", "Hide" }
 	local function Moves()
-		return #AB.W.Calls(hub, "SetPoint") + #AB.W.Calls(hub, "SetScale") + #AB.W.Calls(hub, "Show")
+		local n = 0
+		for _, frame in ipairs({ hub, slab, slab.gap }) do
+			for _, method in ipairs(METHODS) do n = n + #AB.W.Calls(frame, method) end
+		end
+		return n
 	end
 	env.SetCombat(true)
 	local moves = Moves()
 	ns.bars.bar1:RefreshSlab()
-	assert(Moves() == moves, "with the totems on it, a bar refresh in combat neither moves nor shows the crest")
+	env._game.level = (env._game.level or 1) + 1
+	env.FireEvent("PLAYER_LEVEL_UP", env._game.level)
+	ns.Slab.PaintPlaque(true)
+	AB.W.Tick(env, 3)
+	assert(Moves() == moves, "with the totems on it, a refresh or level-up in combat neither moves, scales nor shows the crest, its gap or the slab")
 	env.SetCombat(false)
 	env.RunTimers()
 	assert(Moves() > moves, "the crest takes its place when combat ends")
+	AB.W.Tick(env, 1)
+	assert(K.Layout.Rest.Quiet(), "the clean screen settles")
+	env.SetCombat(true)
+	moves = Moves()
+	K.Options.Write("ActionBars", "slab", false)
+	ns.bars.bar1:RefreshSlab()
+	AB.W.Tick(env, 1)
+	assert(Moves() == moves and slab:GetAlpha() == 0 and hub:GetAlpha() == 0, "a bar refresh in combat that finds the slab off fades the plate and the crest without hiding them, through the wake combat started")
+	env.SetCombat(false)
+	env.RunTimers()
+	AB.W.Tick(env, 1)
+	assert(not slab:IsShown() and not hub:IsShown(), "and hides them when combat ends")
+	assert(slab:GetAlpha() == K.Layout.Rest.Level("actionbars.bar1"), "the plate takes back its rest opacity")
+	K.Options.Write("ActionBars", "slab", true)
+	env.RunTimers()
+	assert(slab:IsShown() and hub:IsShown() and st.shown, "the slab switched on again brings back the plate, the crest and the totems")
 	K.Options.Write("ActionBars", "totemBar", false)
 	env.RunTimers()
 	local held = st.header:GetNumPoints() + st.wolf:GetNumPoints() + st.call:GetNumPoints()
