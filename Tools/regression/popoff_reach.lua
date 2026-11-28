@@ -269,7 +269,18 @@ function Reach.Check(sizes, classes)
 			assert(#avoid > 16, at .. " " .. class .. ": the action slots, badge, unit frames and cast bars are placed")
 			local pieces = {}
 			for _, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-				pieces[#pieces + 1] = { key = p.spec.key, rim = p.spec.key ~= "crestRail" and not ns.SlabSeats.Name(p.spec.seat), regions = RING[p.spec.key] and {} or Textures(p, {}) }
+				local regions = RING[p.spec.key] and {} or Textures(p, {})
+				if p.rail then
+					-- The crown is measured as a piece of its own below, so the rail's medals leave its subtree out.
+					local medals = {}
+					for _, region in ipairs(regions) do
+						local node = region:GetParent()
+						while node and node ~= p.crown do node = node:GetParent() end
+						if not node then medals[#medals + 1] = region end
+					end
+					regions = medals
+				end
+				pieces[#pieces + 1] = { key = p.spec.key, rim = p.spec.key ~= "crestRail" and not ns.SlabSeats.Name(p.spec.seat), regions = regions }
 			end
 			for i, p in ipairs(ns.SlabHawks and ns.SlabHawks.state.perches or {}) do
 				pieces[#pieces + 1] = { key = "hawk perch " .. i, regions = Textures(p.holder, {}) }
