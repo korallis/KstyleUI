@@ -11,7 +11,7 @@ Highlights:
 
 ### Fixed
 
-- Setup: when all five Edit Mode account layouts are in use, the summary said "Choose Replace this one, then Apply" but hid both, and Try again repeated the refusal. It now keeps Replace this one and Apply on screen; pick a layout, then Apply or Try again, and KstyleUI writes its layout over only the one you picked, keeping the settings it already applied.
+- Setup: with all five Edit Mode account layouts in use, the summary keeps Replace this one and Apply on screen after a refusal; pick a layout, then Apply, and KstyleUI replaces only that one.
 - Setup: the Your addons step lays its switches and dropdowns out again when it shows, so each switch's knob and the dropdown arrows draw on the first open.
 
 ## v0.3.5.4 (2026-11-28)
