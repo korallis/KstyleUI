@@ -193,7 +193,7 @@ A proc (mage Clearcasting, warlock Shadow Trance, druid Clearcasting) is a rim p
 | `footLeft`, `footRight` | ∓26.4, -62.1 | Foot grooves and medals beside the level plaque; the hunter's Tranquilizing Shot |
 | `popLeft`, `popRight` | ∓40, 84 | [Signature pop-offs](#signature-pop-offs) |
 | `popRogue` | -62, 38 | The rogue's Stealth pop-off on the left shoulder, below the crown's daggers and clear of the Rupture stain on the right |
-| `rail` | none | Claimed by name for the crest rail of medals above the crest (hunter, mage, warlock) |
+| `rail` | none | Claimed by name for the crest rail of medals above the crest (hunter, mage, warlock, warrior, paladin, rogue) |
 
 ## Crest trackers
 
