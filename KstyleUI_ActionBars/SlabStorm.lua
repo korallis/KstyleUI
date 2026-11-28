@@ -32,7 +32,7 @@ Storm.state = state
 
 local function Active()
 	local hub = ns.Slab and ns.Slab.hub
-	if not (state.enabled and hub and hub:IsShown() and ns.Config("crestStorm") ~= false and UnitClass) then
+	if not (state.enabled and hub and ns.Slab.HubShown() and ns.Config("crestStorm") ~= false and UnitClass) then
 		return nil
 	end
 	local _, class = UnitClass("player")
@@ -372,11 +372,12 @@ function Storm.Recheck()
 	end
 end
 
-Medals.OnRest(function()
+local function Rest()
 	if state.listening then Motion() end
-end)
+end
 
 function Storm.SetEnabled(on)
 	state.enabled = on
+	if on then Medals.OnRest(Rest) else Medals.OffRest(Rest) end
 	Storm.Update()
 end

@@ -358,4 +358,6 @@ function Unleashed.Paint()
 	end
 end
 
-Medals.OnRest(Unleashed.Paint)
+function Unleashed.SetEnabled(on)
+	if on then Medals.OnRest(Unleashed.Paint) else Medals.OffRest(Unleashed.Paint) end
+end

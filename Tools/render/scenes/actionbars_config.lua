@@ -1,12 +1,13 @@
--- actionbars_config.lua: the real action bars at their shipped defaults, six buttons in two rows, or free of their slab and tray.
+-- actionbars_config.lua: the real action bars at their shipped defaults, six buttons in two rows, free of their slab and tray, or without the crest.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 return Common.Run(function()
+	local mode = os.getenv("RENDER_BAR_CONFIG") or "default"
 	local env, K = AB.New({
 		class = "WARRIOR", width = Common.SCREEN.width, height = Common.SCREEN.height,
-		saved = Gallery.Saved({ "ActionBars" }),
+		saved = Gallery.Saved({ ActionBars = { crest = mode ~= "nocrest" } }),
 		setup = function(e)
 			Common.ForceScreen(e)
 			e._game.petExists = true
@@ -19,7 +20,6 @@ return Common.Run(function()
 		end,
 	})
 	AB.Enable(env, K)
-	local mode = os.getenv("RENDER_BAR_CONFIG") or "default"
 	if mode == "legacy" then K.Options.Write("ActionBars", "tray", false) end
 	if mode == "reversed" then K.Options.Write("ActionBars", "bar1.reverse", true) end
 	if mode == "free" then

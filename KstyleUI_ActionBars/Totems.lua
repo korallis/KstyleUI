@@ -67,8 +67,7 @@ local function Wolf()
 end
 
 local function Seat()
-	local hub = ns.Slab.hub
-	if hub and hub:IsShown() then return hub end
+	if ns.Slab.HubShown() then return ns.Slab.hub end
 	local stance = K.HudStyle.Current() == "frames" and ns.bars.stance
 	return stance and stance.holder or nil
 end
@@ -497,6 +496,7 @@ end
 local function Place()
 	local header, seat, hub = state.header, Seat(), ns.Slab.hub
 	local crest = seat == hub
+	state.crest = crest
 	local own = header:GetParent():GetEffectiveScale()
 	header:SetScale(own > 0 and seat:GetEffectiveScale() / own * (crest and 1 or ns.bars.stance.buttons[1].opts.size / SOCKET) or 1)
 	header:ClearAllPoints()
@@ -645,6 +645,19 @@ local function Blizzard(on)
 	end
 end
 
+local function Detach()
+	state.header:ClearAllPoints()
+	for _, b in ipairs(state.sockets) do
+		b:ClearAllPoints()
+		b.spire:ClearAllPoints()
+		b.fan:ClearAllPoints()
+		for _, f in ipairs(b.fan.buttons) do f:ClearAllPoints() end
+	end
+	state.wolf:ClearAllPoints()
+	state.call:ClearAllPoints()
+	state.crest = false
+end
+
 local function Apply()
 	state.pending = false
 	local on, was = Wanted(), state.shown
@@ -660,10 +673,12 @@ local function Apply()
 			end
 			state.call:SetAttribute("*type1", nil)
 			state.call:SetAttribute("*type2", nil)
+			Detach()
 		end
 		Listen(false)
 	else
 		if not state.header then Build() end
+		state.header:SetAlpha(1)
 		Fill()
 		Place()
 		RegisterStateDriver(state.header, "visibility", OVERRIDDEN)
@@ -680,7 +695,15 @@ local function Apply()
 	end
 end
 
+function Totems.OnCrest()
+	return state.crest == true
+end
+
 function Totems.Update()
+	if InCombatLockdown() and state.shown and not Wanted() then
+		state.header:SetAlpha(0)
+		Listen(false)
+	end
 	if state.pending then return end
 	state.pending = true
 	K.Combat.Queue(Apply)

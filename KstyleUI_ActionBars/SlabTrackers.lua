@@ -131,7 +131,7 @@ local function Form()
 		return nil
 	end
 	local hub = ns.Slab.hub
-	if hub and hub:IsShown() then
+	if hub and ns.Slab.HubShown() then
 		return "crest", hub
 	end
 	local stance = not ns.gamepad and K.HudStyle.Current() == "frames" and ns.bars.stance
@@ -596,9 +596,10 @@ end
 
 function Trackers.SetEnabled(on)
 	state.enabled = on
-	if on and CLASSES[ns.class] and not state.resting then
-		state.resting = true
+	if on and CLASSES[ns.class] then
 		Medals.OnRest(Motion)
+	else
+		Medals.OffRest(Motion)
 	end
 	if on and CLASSES[ns.class] then
 		K.Callbacks.Register("SettingChanged", OWNER, OnSetting)

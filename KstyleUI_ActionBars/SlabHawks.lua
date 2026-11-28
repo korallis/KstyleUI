@@ -26,7 +26,7 @@ Hawks.state = state
 
 local function Active()
 	local hub = ns.Slab and ns.Slab.hub
-	if not (state.enabled and hub and hub:IsShown() and ns.Config("crestHawks") ~= false and UnitClass and GetTotemInfo) then
+	if not (state.enabled and hub and ns.Slab.HubShown() and ns.Config("crestHawks") ~= false and UnitClass and GetTotemInfo) then
 		return nil
 	end
 	local _, class = UnitClass("player")
