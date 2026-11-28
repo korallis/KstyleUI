@@ -793,6 +793,10 @@ function Widgets.Cover(overlay, visual)
 	return true
 end
 
+function Widgets.CoverOnce(overlay, visual)
+	return Place(overlay, { visual = visual })
+end
+
 function Widgets.Text(parent, role, colorName, layer)
 	local text = Widgets.FontString(parent, layer)
 	Widgets.StyleText(text, role or "body")

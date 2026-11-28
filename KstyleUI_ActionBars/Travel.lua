@@ -55,8 +55,7 @@ local function Tooltip(tip)
 end
 
 local function Build()
-	local root = K.Scale.Root()
-	local crest = CreateFrame("Button", "KstyleUI_CrestTravel", root, "SecureActionButtonTemplate,SecureHandlerBaseTemplate")
+	local crest = CreateFrame("Button", "KstyleUI_CrestTravel", ns.Slab.Gate(), "SecureActionButtonTemplate,SecureHandlerBaseTemplate")
 	crest:SetFrameStrata("MEDIUM")
 	crest:RegisterForClicks("AnyUp")
 	crest:SetAttribute("useOnKeyDown", false)
@@ -68,7 +67,7 @@ local function Build()
 end
 
 local function BuildMenu()
-	local menu = CreateFrame("Frame", nil, K.Scale.Root(), "SecureHandlerBaseTemplate")
+	local menu = CreateFrame("Frame", nil, ns.Slab.Gate(), "SecureHandlerBaseTemplate")
 	menu.chrome = Widgets.Chrome(menu, { shape = "panel", fill = "surface", shadow = true, popup = true })
 	menu:SetFrameStrata("DIALOG")
 	menu:SetClampedToScreen(true)

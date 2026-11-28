@@ -1,5 +1,6 @@
 -- test-actionbars-medallions-split.lua: KSTY-171 part 1, from a player's report that the medallion disappears when they change the panels. Under Medallions, bars 1 and 2 out of line, the slab switched off, or either bar off or toggled away, splits the slab: each shown bar wears its own plate and the crest stays on the Crest Layout element, at the joined gap's spot until moved; back in line the slab returns. Gamepad mode still hides both.
 local AB = dofile("Tools/regression/actionbars_env.lua")
+local Fixture = dofile("Tools/regression/travel_fixture.lua")
 
 local CREST = "actionbars.crest"
 
@@ -28,6 +29,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 		e._game.bindings["CLICK KstyleUI_Toggle_bar2:LeftButton"] = { "F10" }
 		e._resolveRects = true
 	end })
+	Fixture.Install(env, true)
 	AB.Hiding(env)
 	AB.Enable(env, K)
 	env.RunTimers()
@@ -52,6 +54,18 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 			local plate = Slab.sides[key]
 			assert((plate and plate:IsVisible() or false) == on, what .. ": " .. key .. (on and " wears" or " does not wear") .. " its own plate")
 			if on then Holds(plate, ns.bars[key], what) end
+		end
+	end
+	-- Held: split in combat from joined, the crest keeps the gap until combat ends, so its secure controls, which
+	-- cannot move in combat, stay over it.
+	local function Held(what, one, two)
+		assert(not slab:IsShown() and hub:IsVisible(), what .. ": the joined slab plate hides and the crest stays")
+		assert(not Layout.Live(CREST) and hub:GetParent() == K.Scale.Root(), what .. ": the crest keeps the gap until combat ends")
+		local x, y = Centre(hub)
+		assert(math.abs(x - x0) < 1e-6 and math.abs(y - y0) < 1e-6, what .. ": where it was")
+		for key, on in pairs({ bar1 = one, bar2 = two }) do
+			local plate = Slab.sides[key]
+			assert((plate and plate:IsVisible() or false) == on, what .. ": " .. key .. (on and " wears" or " does not wear") .. " its own plate")
 		end
 	end
 	local what = width .. "x" .. height
@@ -121,6 +135,25 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	Travels(what .. " shown again")
 	local sx, sy = Centre(hub)
 
+	-- A Crest element shown only out of combat takes its travel button and an open travel menu away in combat,
+	-- through the secure gate's state driver, and gives them back after.
+	assert(Layout.Set(CREST, "shown", "noCombat"))
+	env.RunTimers()
+	AB.W.Enter(travel)
+	AB.W.Leave(travel)
+	AB.Click(env, travel, "RightButton", false)
+	assert(ns.Travel.menu and ns.Travel.menu:IsVisible(), what .. ": the travel menu opens on the split crest")
+	env.SetCombat(true)
+	env.RunTimers()
+	assert(not hub:IsVisible() and not travel:IsVisible() and not ns.Travel.menu:IsVisible(), what .. ": in combat the crest, its travel button and the open menu are gone")
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(hub:IsVisible() and travel:IsVisible(), what .. ": after combat the crest and its button are back")
+	ns.Travel.menu:Hide()
+	Travels(what .. " after a combat hide")
+	assert(Layout.Set(CREST, "shown", "always"))
+	env.RunTimers()
+
 	-- Profiles: a copy keeps the split; back in line there it joins; the first profile splits again with the crest
 	-- where it was left.
 	local profile, other = K.Store.ProfileName(), "Other " .. width
@@ -136,21 +169,35 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	local bx, by = Centre(hub)
 	assert(math.abs(bx - sx) <= px and math.abs(by - sy) <= px, string.format("%s: the crest keeps its moved place across profiles, %.2f %.2f against %.2f %.2f", what, bx, by, sx, sy))
 
-	-- Splitting and joining in combat stays clear of protected calls.
-	env._combat = true
-	env.FireEvent("PLAYER_REGEN_DISABLED")
+	-- In combat the crest never moves, so its secure controls stay over it: split, it stays on its element even
+	-- when the bars could join; joined, it keeps the gap; each moves once combat ends.
+	env.SetCombat(true)
 	assert(AB.PressKey(env, "F10"))
 	env.RunTimers()
 	Split(what .. " bar 2 toggled away in combat", true, false)
 	assert(AB.PressKey(env, "F10"))
 	env.RunTimers()
-	assert(hub:IsVisible() and bar2.buttons[1]:IsVisible(), what .. ": bar 2 and the crest are back in combat")
-	env._combat = false
-	env.FireEvent("PLAYER_REGEN_ENABLED")
+	Split(what .. " bar 2 back in combat", true, true)
+	env.SetCombat(false)
 	env.RunTimers()
+	Split(what .. " after combat, still out of line", true, true)
 	assert(Layout.Set("actionbars.bar2", "y", y))
 	env.RunTimers()
-	assert(slab:IsShown() and hub:GetParent() == K.Scale.Root(), what .. ": back in line after combat, the slab returns")
+	Joined(what .. " back in line after combat")
+	env.SetCombat(true)
+	assert(AB.PressKey(env, "F10"))
+	env.RunTimers()
+	Held(what .. " bar 2 toggled away in combat from joined", true, false)
+	Travels(what .. " held in combat")
+	env.SetCombat(false)
+	env.RunTimers()
+	Split(what .. " after combat the held crest", true, false)
+	local hx, hy = Centre(hub)
+	assert(math.abs(hx - sx) <= px and math.abs(hy - sy) <= px, string.format("%s: once combat ends the crest takes its saved place, %.2f %.2f against %.2f %.2f", what, hx, hy, sx, sy))
+	Travels(what .. " after combat on its saved place")
+	assert(AB.PressKey(env, "F10"))
+	env.RunTimers()
+	Joined(what .. " bar 2 back")
 
 	-- A custom visibility rule that hides bar 2 in combat splits the aligned bars there and rejoins them after.
 	K.Options.Write("ActionBars", "bar2.visibility", "[combat] hide; show")
@@ -159,7 +206,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 } }) do
 	env.SetCombat(true)
 	env.RunTimers()
 	assert(not bar2.header:IsVisible(), what .. ": the rule hides bar 2 in combat")
-	Split(what .. " the rule in combat", true, false)
+	Held(what .. " the rule in combat", true, false)
 	env.SetCombat(false)
 	env.RunTimers()
 	Joined(what .. " the rule after combat")

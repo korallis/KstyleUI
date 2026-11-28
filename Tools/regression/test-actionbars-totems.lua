@@ -1,4 +1,4 @@
--- test-actionbars-totems.lua: the shaman's Spirit Poles on the Medallions crest: a shaman who knows a totem gets KstyleUI's secure totem bar and Blizzard's MultiCastActionBarFrame goes to Safe's hidden parent, nobody else gets a frame, an event or a callback; the sockets drop their multi-cast action slots, right click fans out the element's totems as multispell buttons that set the slot and close, shift right click dismisses, Call casts Call of the Elements and right click Totemic Recall; each spire lights from the slot's own boolean and drains from its duration object, secret or not, hidden rather than alpha 0 when Lua can read it; toggling in combat waits for the end of combat with nothing blocked; turning the setting or the slab off gives Blizzard's bar and the Ghost Wolf stance bar back; Motion Off shows end states and nothing runs OnUpdate; the sockets sit on an arc above the crest with the medals on its shoulders, clear of each other, the cooldown row and the crest debuff fan, at four screen sizes.
+-- test-actionbars-totems.lua: the shaman's Spirit Poles on the Medallions crest: a shaman who knows a totem gets KstyleUI's secure totem bar and Blizzard's MultiCastActionBarFrame goes to Safe's hidden parent, nobody else gets a frame, an event or a callback; the sockets drop their multi-cast action slots, right click fans out the element's totems as multispell buttons that set the slot and close, shift right click dismisses, Call casts Call of the Elements and right click Totemic Recall; each spire lights from the slot's own boolean and drains from its duration object, secret or not, hidden rather than alpha 0 when Lua can read it; toggling in combat waits for the end of combat with nothing blocked; turning the setting off, or hiding the crest, gives Blizzard's bar and the Ghost Wolf stance bar back, while split bars keep the crest and the poles on it, which are placed over it once and only take over once that place can be read; Motion Off shows end states and nothing runs OnUpdate; the sockets sit on an arc above the crest with the medals on its shoulders, clear of each other, the cooldown row and the crest debuff fan, at four screen sizes.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
@@ -269,8 +269,9 @@ do
 end
 
 -- KSTY-171 part 1: split bars keep the crest, so Spirit Poles stay with it on the Crest element. Moving, scaling and
--- hiding that element carry the poles, which are placed over the hub by coordinates: the hub moves in combat when
--- the bars split, so no protected frame may anchor to it. Only the crest's removal gives Blizzard's bar back.
+-- hiding that element carry the poles, which are placed over the hub by coordinates so no protected frame anchors to
+-- it; the crest holds still in combat, so a split there waits for the end of combat to move it and the poles.
+-- Only the crest's removal, or a place that cannot be read, gives Blizzard's bar back.
 do
 	local env, K, ns = New("SHAMAN", { rects = true, toggle = true })
 	local state, Layout, hub = ns.Totems.state, K.Layout, ns.Slab.hub
@@ -293,45 +294,72 @@ do
 		assert(math.abs(hs - cs) < 1e-6, string.format("%s: the poles take the crest's scale, %.3f against %.3f", what, cs, hs))
 		assert(math.abs(hx * hs - cx * cs) < 0.5 and math.abs(hy * hs - cy * cs) < 0.5, string.format("%s: the poles sit over the crest, %s %s against %s %s", what, tostring(cx), tostring(cy), tostring(hx), tostring(hy)))
 	end
-	Free("joined")
-	Over("joined")
+	local function Seated(what, parent)
+		assert(hub:GetParent() == parent and hub:IsVisible(), what .. ": the crest is " .. (parent == ns.Slab.crest and "on the Crest element" or "in the gap"))
+		assert(state.header:IsShown() and K.Safe.IsHidden(env.MultiCastActionBarFrame), what .. ": Spirit Poles stay")
+		Free(what)
+		Over(what)
+	end
+	local crest, root = ns.Slab.crest, K.Scale.Root()
+	Seated("joined", root)
 	env.SetCombat(true)
 	assert(AB.PressKey(env, "F10"))
 	env.RunTimers()
-	assert(hub:GetParent() == ns.Slab.crest and hub:IsVisible(), "bar 2 toggled away in combat splits the bars and keeps the crest")
-	assert(state.header:IsShown() and K.Safe.IsHidden(env.MultiCastActionBarFrame), "split in combat: Spirit Poles stay")
+	Seated("bar 2 toggled away in combat holds the crest in the gap", root)
 	assert(#env._blocked == 0, "split in combat: nothing protected moved: " .. table.concat(env._blocked, ", "))
-	Free("split in combat")
 	env.SetCombat(false)
 	env.RunTimers()
-	Over("split")
+	Seated("after combat the split takes the crest", crest)
 	assert(AB.PressKey(env, "F10"))
 	env.RunTimers()
-	assert(hub:GetParent() == K.Scale.Root(), "bar 2 back rejoins the bars")
+	Seated("bar 2 back rejoins the bars", root)
 	K.Options.Write("ActionBars", "slab", false)
 	env.RunTimers()
-	assert(hub:GetParent() == ns.Slab.crest and state.header:IsShown() and K.Safe.IsHidden(env.MultiCastActionBarFrame), "the slab switch off keeps the crest and Spirit Poles")
-	Free("slab off")
-	Over("slab off")
+	Seated("the slab switch off", crest)
 	local c = Layout.Get("actionbars.crest")
 	assert(Layout.Set("actionbars.crest", "x", c.x + 100))
 	env.RunTimers()
-	Over("the Crest element moved 100 units")
+	Seated("the Crest element moved 100 units", crest)
+	local mx = hub:GetCenter() * hub:GetEffectiveScale()
+	K.Options.Write("ActionBars", "slab", true)
+	env.RunTimers()
+	Seated("the slab switch on", root)
+	env.SetCombat(true)
+	assert(AB.PressKey(env, "F10"))
+	env.RunTimers()
+	Seated("split in combat with a saved offset", root)
+	assert(math.abs(hub:GetCenter() * hub:GetEffectiveScale() - mx) > 50, "split in combat: the crest waits in the gap, away from its saved place")
+	assert(#env._blocked == 0, "split in combat with a saved offset: nothing protected moved: " .. table.concat(env._blocked, ", "))
+	env.SetCombat(false)
+	env.RunTimers()
+	Seated("after combat on the saved offset", crest)
+	assert(math.abs(hub:GetCenter() * hub:GetEffectiveScale() - mx) < 0.5, "after combat the crest and poles take the saved place")
+	assert(AB.PressKey(env, "F10"))
+	env.RunTimers()
+	K.Options.Write("ActionBars", "slab", false)
+	env.RunTimers()
 	assert(Layout.Set("actionbars.crest", "scale", 1.5))
 	env.RunTimers()
-	Over("the Crest element at scale 1.5")
+	Seated("the Crest element at scale 1.5", crest)
 	assert(Layout.Set("actionbars.crest", "shown", "never"))
 	env.RunTimers()
 	assert(not state.header:IsShown() and not K.Safe.IsHidden(env.MultiCastActionBarFrame) and ns.bars.stance:Visibility() == "show", "without the crest Blizzard's bar and the stance bar come back")
 	assert(Layout.Set("actionbars.crest", "shown", "always"))
 	env.RunTimers()
-	assert(state.header:IsShown() and K.Safe.IsHidden(env.MultiCastActionBarFrame), "the crest's return brings the bar back")
-	Over("the crest shown again")
+	Seated("the crest shown again", crest)
+	-- A crest whose place cannot be read keeps Blizzard's bar until a later layout gives one.
+	local rect = hub.GetRect
+	hub.GetRect = function() return nil end
+	ns.Totems.Update()
+	env.RunTimers()
+	assert(not state.header:IsShown() and not K.Safe.IsHidden(env.MultiCastActionBarFrame) and ns.bars.stance:Visibility() == "show", "an unreadable crest gives Blizzard's bar and the stance bar back")
+	hub.GetRect = rect
+	ns.Slab.Refresh()
+	env.RunTimers()
+	Seated("a readable crest again", crest)
 	K.Options.Write("ActionBars", "slab", true)
 	env.RunTimers()
-	assert(hub:GetParent() == K.Scale.Root() and state.header:IsShown(), "the slab switch on rejoins the bars with the poles on the crest")
-	Free("rejoined")
-	Over("rejoined")
+	Seated("the slab switch on rejoins the bars with the poles on the crest", root)
 	Clean(env, K, "split")
 end
 

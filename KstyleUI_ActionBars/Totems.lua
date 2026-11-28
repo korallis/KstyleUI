@@ -411,7 +411,7 @@ local function WolfTooltip(tip, m)
 end
 
 local function Build()
-	local header = CreateFrame("Frame", "KstyleUI_Totems", K.Scale.Root(), "SecureHandlerBaseTemplate")
+	local header = CreateFrame("Frame", "KstyleUI_Totems", ns.Slab.Gate(), "SecureHandlerBaseTemplate")
 	header:SetFrameStrata("MEDIUM")
 	header:Hide()
 	state.header = header
@@ -499,11 +499,14 @@ local function Place()
 	local crest = seat == hub
 	local own = header:GetParent():GetEffectiveScale()
 	header:SetScale(own > 0 and seat:GetEffectiveScale() / own * (crest and 1 or ns.bars.stance.buttons[1].opts.size / SOCKET) or 1)
-	header:ClearAllPoints()
 	local half, pitch, w, h = SOCKET / 2, SOCKET + ROW_GAP, 4 * (SOCKET + ROW_GAP) + 2 * MEDAL + 2 * ROW_GAP, SOCKET + SPIRE_LIFT + SPIRE
 	if crest then
-		if not Widgets.Cover(header, hub) then ns.LogOnce("totemCover", "The crest has no readable place yet; Spirit Poles stay where they were") end
+		if not Widgets.CoverOnce(header, hub) then
+			ns.LogOnce("totemCover", "The crest has no readable place yet; Blizzard's totem bar stays until it has one")
+			return false
+		end
 	else
+		header:ClearAllPoints()
 		header:SetPoint("BOTTOMLEFT", seat, "BOTTOMLEFT", 0, 0)
 		header:SetSize(w, h)
 	end
@@ -576,6 +579,7 @@ local function Place()
 	for i, t in ipairs(state.call.runes) do
 		Put(t, state.call, MEDAL * 0.34 * cos(rad(CALLED[i])), MEDAL * 0.34 * sin(rad(CALLED[i])), MEDAL * 0.46)
 	end
+	return true
 end
 
 local function Hotkeys()
@@ -648,6 +652,11 @@ end
 local function Apply()
 	state.pending = false
 	local on, was = Wanted(), state.shown
+	if on then
+		if not state.header then Build() end
+		Fill()
+		on = Place()
+	end
 	state.shown = on
 	if not on then
 		local header = state.header
@@ -663,9 +672,6 @@ local function Apply()
 		end
 		Listen(false)
 	else
-		if not state.header then Build() end
-		Fill()
-		Place()
 		RegisterStateDriver(state.header, "visibility", OVERRIDDEN)
 		Listen(true)
 		Hotkeys()

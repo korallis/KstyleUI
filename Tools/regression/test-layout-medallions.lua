@@ -158,5 +158,20 @@ do
 		assert(not Layouts.Fits("DPS", 1920, 1080, 0.875, enabled, at, nil, "medallions"), what .. ": a class resource over the crest does not fit")
 	end
 end
+-- One bar off splits the bars with the slab on: the fit counts the crest at its own place, not above a bar 1 moved
+-- far up and switched off. Only bar 2 and the class resource are on, so nothing else stands where either ring falls.
+do
+	local _, K = New()
+	local Layouts = K.Setup.Layouts
+	K.Store.Module("ActionBars").slab = true
+	local enabled = Layouts.Enabled("DPS")
+	for key in pairs(enabled) do enabled[key] = key == "actionbars.bar2" or key == "unitframes.resource" end
+	local crest = Layouts.CrestPlace("16:9", "DPS")
+	local at = Layouts.Positions("DPS", "medallions", "16:9")
+	at["actionbars.bar1"].y = at["actionbars.bar1"].y + 200
+	assert(Layouts.Fits("DPS", 1920, 1080, 0.875, enabled, at, nil, "medallions"), "bar 1 off and moved up: the HUD fits at 0.875 on 1920x1080")
+	at["unitframes.resource"] = { anchor = "BOTTOM", x = 0, y = crest.y + Layouts.MEDALLIONS_HUB_GAP / 2 + 30 }
+	assert(not Layouts.Fits("DPS", 1920, 1080, 0.875, enabled, at, nil, "medallions"), "bar 1 off and moved up: a class resource over the crest does not fit")
+end
 
 print("ok layout medallions")

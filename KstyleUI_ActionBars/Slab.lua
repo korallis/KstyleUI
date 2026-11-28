@@ -559,8 +559,6 @@ local function Build()
 		fields = { "shown", "anchor", "x", "y", "scale", "alphaCombat", "alphaIdle" },
 	})
 	K.Layout.SetLive(CREST_KEY, false)
-	crest:HookScript("OnShow", Slab.CrestMoved)
-	crest:HookScript("OnHide", Slab.CrestMoved)
 	Slab.crest = crest
 	local hub = CreateFrame("Frame", nil, root)
 	hub:SetFrameStrata(STRATA)
@@ -791,6 +789,46 @@ local function Yield()
 	end
 end
 
+function Slab.Gate()
+	if not state.gate then
+		state.gate = CreateFrame("Frame", "KstyleUI_CrestGate", K.Scale.Root(), "SecureHandlerStateTemplate")
+	end
+	return state.gate
+end
+
+local function Rule()
+	state.ruling = false
+	local gate = Slab.Gate()
+	local driver = state.split and K.Layout.Rules.Driver(K.Layout.Get(CREST_KEY).shown) or nil
+	if driver == state.driver then
+		return
+	end
+	state.driver = driver
+	if driver then
+		RegisterStateDriver(gate, "visibility", driver)
+	else
+		UnregisterStateDriver(gate, "visibility")
+		gate:Show()
+	end
+end
+
+local function Ruled()
+	if not state.ruling then
+		state.ruling = true
+		K.Combat.Queue(Rule)
+	end
+end
+
+local function Later()
+	if not state.later then
+		state.later = true
+		K.Combat.Queue(function()
+			state.later = false
+			Slab.Refresh()
+		end)
+	end
+end
+
 local function Seat(split)
 	if state.split == split then
 		return
@@ -806,21 +844,24 @@ local function Seat(split)
 	end
 	K.Layout.SetLive(CREST_KEY, split)
 	rest.Regather()
+	Ruled()
 end
 
 function Slab.CrestShown()
 	local hub = Slab.hub
-	return hub ~= nil and hub:IsShown() and not (state.split and not Slab.crest:IsShown())
+	return hub ~= nil and hub:IsShown() and not (state.split and K.Layout.Get(CREST_KEY).shown == "never")
 end
 
 function Slab.CrestMoved()
 	if state.split then
+		Ruled()
 		ns.Totems.Update()
 		if ns.Travel then ns.Travel.Refresh() end
 	end
 end
 
 local function Hide()
+	state.apart = false
 	if state.built then
 		Seat(false)
 	end
@@ -885,6 +926,12 @@ local function Split(cfg)
 	state.class = select(2, UnitClass("player"))
 	for key in pairs(Slab.joined or {}) do Slab.joined[key] = nil end
 	Slab.frame:Hide()
+	state.apart = true
+	if not state.split and InCombatLockdown() and hub:GetNumPoints() > 0 then
+		Later()
+		Light(cfg)
+		return
+	end
 	Seat(true)
 	hub:SetScale(1)
 	hub:ClearAllPoints()
@@ -906,6 +953,10 @@ function Slab.Refresh()
 	if cfg.slab ~= false then
 		left, right, gapWidth, l1, r2 = Slab.Pair(cfg)
 	end
+	if left and state.split and InCombatLockdown() then
+		left = nil
+		Later()
+	end
 	if not left then
 		if ns.gamepad or not (cfg.bar1.enabled == true or cfg.bar2.enabled == true) then
 			Hide()
@@ -920,6 +971,7 @@ function Slab.Refresh()
 	end
 	local slab, hub = Slab.frame, Slab.hub
 	state.class = select(2, UnitClass("player"))
+	state.apart = false
 	Seat(false)
 	local spec = Slab.Spec()
 	local pad = Widgets.Snap(slab, spec.pad)
@@ -1030,7 +1082,7 @@ function Slab.PlaceSides(on, cfg)
 		if key == "bar4" or key == "bar5" then
 			wanted = extra and not (Slab.joined and Slab.joined[key] and Slab.frame:IsShown())
 		elseif key == "bar1" or key == "bar2" then
-			wanted = on and state.split == true
+			wanted = on and state.apart == true
 		end
 		if bar and wanted and not plate then
 			plate = Plate(bar.header)

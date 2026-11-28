@@ -142,7 +142,8 @@ do
 	assert(tostring(AB.W.LastCall(fire.spire.steel, "SetTexture")[1]):find("PipSpireSteel102.png", 1, true), "the crest's fire spire leans at its own angle")
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
-	assert(st.shown and select(2, st.header:GetPoint(1)) == ns.bars.stance.holder and not st.ring[5]:IsShown() and not st.ring.breath:IsPlaying(), "Frames: the row again, the ring still")
+	env.RunTickers()
+	assert(st.shown and select(2, st.header:GetPoint(1)) == ns.bars.stance.holder and not st.ring[5]:IsShown() and not st.ring.breath:IsPlaying(), "Frames: the row again, the ring still, with nothing left moving it back to the crest")
 	for _, size in ipairs({ 32, 48 }) do
 		K.Options.Write("ActionBars", "stance.size", size)
 		env.RunTimers()
